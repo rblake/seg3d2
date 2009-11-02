@@ -141,9 +141,9 @@ xmlCtxtDumpSpaces(xmlDebugCtxtPtr ctxt)
         return;
     if ((ctxt->output != NULL) && (ctxt->depth > 0)) {
         if (ctxt->depth < 50)
-            fprintf(ctxt->output, &ctxt->shift[100 - 2 * ctxt->depth]);
+            fprintf(ctxt->output, "%s", &ctxt->shift[100 - 2 * ctxt->depth]);
         else
-            fprintf(ctxt->output, ctxt->shift);
+            fprintf(ctxt->output, "%s", ctxt->shift);
     }
 }
 
