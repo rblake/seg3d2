@@ -50,7 +50,7 @@ ADD_SUBDIRECTORY(libpng)
 # that these projects are included before Teem.
 
 MESSAGE(STATUS "Configuring teem")
-#ADD_SUBDIRECTORY(teem)
+ADD_SUBDIRECTORY(teem)
 
 ##################################################
 # ADDING GLEW
@@ -58,6 +58,16 @@ MESSAGE(STATUS "Configuring teem")
 
 MESSAGE(STATUS "Configuring glew")
 ADD_SUBDIRECTORY(glew)
+
+##################################################
+# ADDING SLIVR
+##################################################
+
+# FOR NOW SLIVR IS DISABLED AS IT DOES NOT COMPILE
+# WITH GLEWMX - WHICH IS THE CORRECT GLEW SETTING
+
+#MESSAGE(STATUS "Configuring slivr")
+#ADD_SUBDIRECTORY(slivr)
 
 ##################################################
 # ADDING LIBXML2

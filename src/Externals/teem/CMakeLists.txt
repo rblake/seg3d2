@@ -433,16 +433,22 @@ SET(srcdir ".")
 CONFIGURE_FILE("${Teem_SOURCE_DIR}/CMake/TeemConfig.cmake.in"
   "${Teem_BINARY_DIR}/CMake/TeemConfig.cmake" @ONLY IMMEDIATE)
 
-INSTALL(FILES ${Teem_INSTALLED_HEADER_FILES}
-  DESTINATION include/teem
-  )
-INSTALL(FILES
-          "${Teem_SOURCE_DIR}/CMake/TeemUse.cmake"
-          "${Teem_BINARY_DIR}/TeemBuildSettings.cmake"
-          "${Teem_BINARY_DIR}/TeemLibraryDepends.cmake"
-          "${Teem_BINARY_DIR}/CMake/TeemConfig.cmake"
-        DESTINATION
-          lib/Teem-${Teem_VERSION_STRING}
-       )
+#INSTALL(FILES ${Teem_INSTALLED_HEADER_FILES}
+#  DESTINATION include/teem
+#  )
+#  
+#INSTALL(FILES
+#          "${Teem_SOURCE_DIR}/CMake/TeemUse.cmake"
+#          "${Teem_BINARY_DIR}/TeemBuildSettings.cmake"
+#          "${Teem_BINARY_DIR}/TeemLibraryDepends.cmake"
+#          "${Teem_BINARY_DIR}/CMake/TeemConfig.cmake"
+#        DESTINATION
+#          lib/Teem-${Teem_VERSION_STRING}
+#       )
+
+#FOREACH(header_file ${Teem_HEADER_FILES})
+#  GET_FILENAME_COMPONENT(file_name ${header_file} NAME)
+#  CONFIGURE_FILE($header_file ${CMAKE_CURRENT_BINARY_DIR}/include/teem/${file_name} COPYONLY)
+#ENDFOREACH(file ${Teem_HEADER_FILES})
        
 SET(SCI_TEEM_INCLUDE ${CMAKE_CURRENT_BINARY_DIR}/include CACHE INTERNAL "Teem include directories" FORCE)
