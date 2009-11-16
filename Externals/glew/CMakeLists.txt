@@ -88,10 +88,8 @@ ENDIF (NOT WIN32)
 
 ###########################################
 # Specific defines that need to be set
-# MX - we use the multi threaded version
 # STATIC - we want glew to be a static library
 
-ADD_DEFINITIONS(-DGLEW_MX)
 ADD_DEFINITIONS(-DGLEW_STATIC)
 
 ###########################################
