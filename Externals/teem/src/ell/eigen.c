@@ -462,7 +462,7 @@ ell_6ms_eigensolve_d(double eval[6], double _evec[36],
                      const double sym[21], const double eps) {
   /* char me[]="ell_6ms_eigensolve_d"; */
   double mat[2][6][6], evec[2][6][6], sumon, sumoff, evtmp[12];
-  unsigned int cur, rrI, ccI, maxI[2], iter;
+  unsigned int cur, rrI, ccI, maxI[2] = {0,0} , iter;
 
   if (!( eval && sym && eps >= 0 )) {
     return 1;
