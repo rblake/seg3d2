@@ -87,6 +87,16 @@ ADD_SUBDIRECTORY(boost)
 # ADDING ITK
 ##################################################
 
-MESSAGE(STATUS "Cunfiguring insight toolkit")
+MESSAGE(STATUS "Configuring insight toolkit")
+
+# Force ITK not to install any libraries, header
+# files etc. Because we don't need that stuff
+
+SET(ITK_INSTALL_NO_DEVELOPMENT 1)
+SET(ITK_INSTALL_NO_RUNTIME 1)
+SET(ITK_INSTALL_NO_DOCUMENTATION 1)
+SET(ITK_INSTALL_NO_LIBRARIES 1)
+
 ADD_SUBDIRECTORY(itk)
+
 

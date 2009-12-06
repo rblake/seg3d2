@@ -234,21 +234,22 @@ IF(BUILD_EXPERIMENTAL_LIBS)
     pull/pull.h
     )
 ENDIF(BUILD_EXPERIMENTAL_LIBS)
-SET(Teem_INSTALLED_HEADER_FILES)
-FOREACH(header_file ${Teem_HEADER_FILES})
-  # When debugging, uncomment this line
-  #MESSAGE(STATUS "Copy header file: ${header_file}")
-  GET_FILENAME_COMPONENT(file_no_path "${header_file}" NAME)
-  CONFIGURE_FILE(
-                 "${CMAKE_CURRENT_SOURCE_DIR}/src/${header_file}"
-                 "${CMAKE_CURRENT_BINARY_DIR}/include/teem/${file_no_path}"
-                 COPYONLY
-                 IMMEDIATE
-                )
-  SET(Teem_INSTALLED_HEADER_FILES
-    ${Teem_INSTALLED_HEADER_FILES}
-    "${CMAKE_CURRENT_BINARY_DIR}/include/teem/${file_no_path}")
-ENDFOREACH(header_file)
+
+#SET(Teem_INSTALLED_HEADER_FILES)
+#FOREACH(header_file ${Teem_HEADER_FILES})
+#  # When debugging, uncomment this line
+#  #MESSAGE(STATUS "Copy header file: ${header_file}")
+#  GET_FILENAME_COMPONENT(file_no_path "${header_file}" NAME)
+#  CONFIGURE_FILE(
+#                 "${CMAKE_CURRENT_SOURCE_DIR}/src/${header_file}"
+#                 "${CMAKE_CURRENT_BINARY_DIR}/include/teem/${file_no_path}"
+#                 COPYONLY
+#                 IMMEDIATE
+#                )
+#  SET(Teem_INSTALLED_HEADER_FILES
+#    ${Teem_INSTALLED_HEADER_FILES}
+#    "${CMAKE_CURRENT_BINARY_DIR}/include/teem/${file_no_path}")
+#ENDFOREACH(header_file)
 
 #---
 # Include directory 
@@ -319,13 +320,13 @@ ENDIF(WIN32)
 # RPATH stuff, and mac will ingore the INSTALL_RPATH.  Make sure for
 # macs to set BUILD_WITH_INSTALL_RPATH OFF and set INSTALL_NAME_DIR.
 # I belive INSTALL_NAME_DIR will be ignored on linux.
-SET_TARGET_PROPERTIES(${SCI_TEEM_LIBRARY} PROPERTIES
-  BUILD_WITH_INSTALL_RPATH OFF
-  INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib
-  INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib
-  SOVERSION 1
-  VERSION ${Teem_VERSION_STRING}
-  )
+#SET_TARGET_PROPERTIES(${SCI_TEEM_LIBRARY} PROPERTIES
+#  BUILD_WITH_INSTALL_RPATH OFF
+#  INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib
+#  INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib
+#  SOVERSION 1
+#  VERSION ${Teem_VERSION_STRING}
+#  )
 
 IF(Teem_ZLIB_LIB)
   TARGET_LINK_LIBRARIES(${SCI_TEEM_LIBRARY} ${SCI_ZLIB_LIBRARY})
@@ -361,11 +362,11 @@ ELSE(Teem_USE_LIB_INSTALL_SUBDIR)
   SET(EXTRA_INSTALL_PATH "")
 ENDIF(Teem_USE_LIB_INSTALL_SUBDIR)
 
-INSTALL(TARGETS ${SCI_TEEM_LIBRARY}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib${EXTRA_INSTALL_PATH}
-  ARCHIVE DESTINATION lib${EXTRA_INSTALL_PATH}
-  ) 
+#INSTALL(TARGETS ${SCI_TEEM_LIBRARY}
+#  RUNTIME DESTINATION bin
+#  LIBRARY DESTINATION lib${EXTRA_INSTALL_PATH}
+#  ARCHIVE DESTINATION lib${EXTRA_INSTALL_PATH}
+#  ) 
 
 # Now compile the binaries
 ADD_SUBDIRECTORY(src/bin)
