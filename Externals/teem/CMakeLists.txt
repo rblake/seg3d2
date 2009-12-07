@@ -61,6 +61,15 @@ INCLUDE (CMakeBackwardCompatibilityC)
 FILE(MAKE_DIRECTORY ${Teem_BINARY_DIR}/include)
 FILE(MAKE_DIRECTORY ${Teem_BINARY_DIR}/include/teem)
 
+FILE(GLOB src_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
+FOREACH(src_dir ${src_dirs})
+  FILE(GLOB header_files ${src_dir}/*.h)
+  FOREACH(header_file ${header_files})
+    GET_FILENAME_COMPONENT(filename ${header_file} NAME)
+    CONFIGURE_FILE(${header_file} ${Teem_BINARY_DIR}/include/teem/${filename} COPYONLY)
+  ENDFOREACH(header_file ${header_files})
+ENDFOREACH(src_dir {$src_dirs})
+
 #-----------------------------------------------------------------------------
 # Find platform-specific differences in the handling of IEEE floating point 
 # special values.
