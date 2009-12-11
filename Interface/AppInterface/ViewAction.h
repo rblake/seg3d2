@@ -25,39 +25,53 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
-#include <sstream>
-#include <iostream>
 
-#include <Utils/Core/Log.h>
+#ifndef INTERFACE_APPINTERFACE_VIEWACTION_H
+#define INTERFACE_APPINTERFACE_VIEWACTION_H
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif
 
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
-
-namespace Seg3D  {
-	
-	class ProjectDockWidgetPrivate {
-	public:
-
-		Ui::ProjectDockWidget ui_;
-		
-	};
+#include <QtGui>
+#include <QAction>
 
 
-ProjectDockWidget::ProjectDockWidget(QWidget *parent) :
-    QDockWidget(parent),
-    private_(new ProjectDockWidgetPrivate)
-{
-  if(private_){
-    private_->ui_.setupUi(this);
-  }
-}
 
-ProjectDockWidget::~ProjectDockWidget()
-{
+namespace Seg3D {
+  
+class ViewAction : public QObject
+{    
+  Q_OBJECT
+    
+  Q_SIGNALS:
+    void triggered(int,int);
 
-}
+    
+  
+  public:
+    ViewAction(QAction *parent, int column1, int column2);
+    ViewAction(QAction *parent, bool true_or_false);
+    virtual ~ViewAction();
+    
+  public Q_SLOTS:
+    void slot();
+    void slot(bool);
+    
+  private:
+    int col1_;
+    int col2_;
+    bool state_;
+    
+    
+};
 
 
-	
-} // end namespace
+
+} // end namespace Seg3D
+
+#endif
+
+
+
+

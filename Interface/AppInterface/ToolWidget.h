@@ -62,6 +62,7 @@ class ToolWidget : public QWidget, public ToolInterface {
   protected:
     QToolButton* close_button_;
     QToolButton* help_button_;
+    QPushButton* activate_button_;
   
     QFrame*      main_frame_;
   
