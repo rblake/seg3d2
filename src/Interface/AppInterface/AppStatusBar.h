@@ -25,39 +25,73 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
-#include <sstream>
-#include <iostream>
 
-#include <Utils/Core/Log.h>
+#ifndef INTERFACE_APPINTERFACE_APPSTATUSBAR_H
+#define INTERFACE_APPINTERFACE_APPSTATUSBAR_H
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
 
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
+#include <QStatusBar>
+#include <qlabel.h>
+#include <QAction>
+#include <QMainWindow>
 
-namespace Seg3D  {
-	
-	class ProjectDockWidgetPrivate {
-	public:
-
-		Ui::ProjectDockWidget ui_;
-		
-	};
+namespace Seg3D {
 
 
-ProjectDockWidget::ProjectDockWidget(QWidget *parent) :
-    QDockWidget(parent),
-    private_(new ProjectDockWidgetPrivate)
+class AppStatusBar : public QObject
 {
-  if(private_){
-    private_->ui_.setupUi(this);
-  }
-}
+  Q_OBJECT
+  
+ 
+  // -- constructor / destructor --    
+  public:
+    AppStatusBar(QMainWindow* parent = 0);
+    virtual ~AppStatusBar();
+  
 
-ProjectDockWidget::~ProjectDockWidget()
-{
+  
+  public Q_SLOTS:
+    void set_coordinates_label(int, int);
+    void set_coordinates_mode(int);
+    void set_focus_label(int);
 
-}
+  // -- status bar components -- //
+  private:
+    QLabel *coordinates_label_;
+    QLabel *focus_label_;
+  
+  // -- build status bar widgets -- //    
+  private:
+    void build_coordinates_label();
+    void build_focus_label();
+  
+};
+  
+  
+} // end namespace Seg3D
 
+    
+    
 
-	
-} // end namespace
+#endif
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+

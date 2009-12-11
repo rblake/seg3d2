@@ -30,34 +30,32 @@
 
 #include <Utils/Core/Log.h>
 
-
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
+#include <Interface/AppInterface/LayerManagerDockWidget.h>
+#include "ui_LayerManagerDockWidget.h"
 
 namespace Seg3D  {
 	
-	class ProjectDockWidgetPrivate {
+	class LayerManagerDockWidgetPrivate {
 	public:
-
-		Ui::ProjectDockWidget ui_;
+    
+		Ui::LayerManagerDockWidget ui_;
 		
 	};
 
 
-ProjectDockWidget::ProjectDockWidget(QWidget *parent) :
-    QDockWidget(parent),
-    private_(new ProjectDockWidgetPrivate)
+LayerManagerDockWidget::LayerManagerDockWidget(QWidget *parent) :
+    QDockWidget("LayerManagerDockWidget",parent),
+    private_(new LayerManagerDockWidgetPrivate)
 {
-  if(private_){
-    private_->ui_.setupUi(this);
-  }
+	if (private_) 
+	{
+		private_->ui_.setupUi(this);
+    
+	}
 }
 
-ProjectDockWidget::~ProjectDockWidget()
+LayerManagerDockWidget::~LayerManagerDockWidget()
 {
-
+  
 }
-
-
-	
 } // end namespace

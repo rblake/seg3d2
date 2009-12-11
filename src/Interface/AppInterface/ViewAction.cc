@@ -25,39 +25,43 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
-#include <sstream>
-#include <iostream>
 
-#include <Utils/Core/Log.h>
+#include "ViewAction.h"
 
+//#include <QAction>
 
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
 
 namespace Seg3D  {
-	
-	class ProjectDockWidgetPrivate {
-	public:
-
-		Ui::ProjectDockWidget ui_;
-		
-	};
-
-
-ProjectDockWidget::ProjectDockWidget(QWidget *parent) :
-    QDockWidget(parent),
-    private_(new ProjectDockWidgetPrivate)
+  
+ViewAction::ViewAction(QAction* parent, int column1, int column2) : 
+  QObject(parent)
 {
-  if(private_){
-    private_->ui_.setupUi(this);
-  }
+  col1_ = column1;
+  col2_ = column2;
+  
+  connect(parent,SIGNAL(triggered()),this,SLOT(slot()));
 }
 
-ProjectDockWidget::~ProjectDockWidget()
+ViewAction::ViewAction(QAction* parent, bool true_or_false) : 
+  QObject(parent)
 {
-
+  state_ = true_or_false;
+  connect(parent, SIGNAL(triggered(bool)), this, SLOT(slot(bool)));
 }
+  
+
+void  ViewAction::slot()
+{  
+  Q_EMIT triggered(col1_,col2_);
+}
+ 
+void ViewAction::slot(bool torf)
+{
+  //Q_EMIT trigaficated(state_);
+}
+  
+
+ViewAction::~ViewAction(){}
 
 
-	
-} // end namespace
+}  //end namespace Seg3d
