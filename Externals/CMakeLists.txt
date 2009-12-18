@@ -66,8 +66,8 @@ ADD_SUBDIRECTORY(glew)
 # FOR NOW SLIVR IS DISABLED AS IT DOES NOT COMPILE
 # WITH GLEWMX - WHICH IS THE CORRECT GLEW SETTING
 
-#MESSAGE(STATUS "Configuring slivr")
-#ADD_SUBDIRECTORY(slivr)
+MESSAGE(STATUS "Configuring slivr")
+ADD_SUBDIRECTORY(slivr)
 
 ##################################################
 # ADDING LIBXML2
@@ -75,6 +75,13 @@ ADD_SUBDIRECTORY(glew)
 
 MESSAGE(STATUS "Configuring libxml2")
 ADD_SUBDIRECTORY(libxml2)
+
+##################################################
+# ADDING FREETYPE
+##################################################
+
+MESSAGE(STATUS "Configuring freetype")
+ADD_SUBDIRECTORY(freetype)
 
 ##################################################
 # ADDING BOOST
