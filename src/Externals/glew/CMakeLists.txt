@@ -98,18 +98,18 @@ ADD_DEFINITIONS(-DGLEW_STATIC)
 # in that case we do not need this workaround.
  
 IF (APPLE)
-  IF(X11_FOUND)
-
-    EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-    STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
-    IF (DARWIN_VERSION GREATER 8)
-      SET_TARGET_PROPERTIES(glew PROPERTIES 
-        LINK_FLAGS  "-dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib /usr/X11R6/lib/libGL.dylib /usr/X11R6/lib/libGLU.dylib  -framework AGL"
-        )
-    ENDIF (DARWIN_VERSION GREATER 8)
-
-    ADD_DEFINITIONS(-DGLEW_APPLE_GLX)
-  ENDIF(X11_FOUND)
+#  IF(X11_FOUND)
+#
+#    EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
+#    STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+#    IF (DARWIN_VERSION GREATER 8)
+#      SET_TARGET_PROPERTIES(glew PROPERTIES 
+#        LINK_FLAGS  "-dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib /usr/X11R6/lib/libGL.dylib /usr/X11R6/lib/libGLU.dylib  -framework AGL"
+#        )
+#    ENDIF (DARWIN_VERSION GREATER 8)
+#
+#    ADD_DEFINITIONS(-DGLEW_APPLE_GLX)
+#  ENDIF(X11_FOUND)
 ENDIF(APPLE)
 
 
