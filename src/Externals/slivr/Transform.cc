@@ -48,6 +48,8 @@
 #include <string.h>
 #include <iostream>
 
+#include <stdio.h>
+
 using namespace SLIVR;
 using namespace std;
 

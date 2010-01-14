@@ -43,12 +43,14 @@
 #include <slivr/Vector.h>
 #include <iostream>
 
+#include <stdio.h>
+
 namespace SLIVR {
 
 std::string Point::get_string() const
 {
   char buf[100];
-  sprintf(buf, "[%g, %g, %g]", x_, y_, z_);
+  snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
   return buf;
 }
 

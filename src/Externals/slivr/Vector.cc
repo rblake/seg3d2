@@ -44,6 +44,8 @@
 #include <assert.h>
 #include <iostream>
 
+#include <stdio.h>
+
 using std::istream;
 using std::ostream;
 
@@ -53,7 +55,7 @@ string
 Vector::get_string() const
 {
     char buf[100];
-    sprintf(buf, "[%g, %g, %g]", x_, y_, z_);
+    snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
     return buf;
 }
 
