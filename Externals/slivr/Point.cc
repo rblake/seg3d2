@@ -50,7 +50,7 @@ namespace SLIVR {
 std::string Point::get_string() const
 {
   char buf[100];
-  snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
+  _snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
   return buf;
 }
 
