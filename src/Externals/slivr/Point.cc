@@ -49,9 +49,9 @@ namespace SLIVR {
 
 std::string Point::get_string() const
 {
-  char buf[100];
-  _snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
-  return buf;
+//  char buf[100];
+//  _snprintf(buf, 100, "[%g, %g, %g]", x_, y_, z_);
+  return std::string("");
 }
 
 int Point::operator==(const Point& p) const
