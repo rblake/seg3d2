@@ -29,23 +29,29 @@
 #ifndef APPLICATION_RENDERER_RENDERER_H
 #define APPLICATION_RENDERER_RENDERER_H
 
-#ifdef (_MSC_VER) && (_MSC_VER >= 1020)
+#if defined (_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif
 
+// boost includes
+#include <boost/thread/mutex.hpp>
 
 // Application includes
 #include <Application/Renderer/RenderContext.h>
-#include <Application/View/ViewRenderer.h>
+#include <Application/Viewer/ViewerRenderer.h>
+#include <Application/Renderer/Texture.h>
+#include <Application/Renderer/RenderBuffer.h>
+#include <Application/Renderer/FrameBufferObject.h>
+#include <Utils/EventHandler/EventHandler.h>
 
 namespace Seg3D {
 
 // Forward declarations
 class Renderer;
-boost::shared_ptr<Renderer> RendererHandle;
+typedef boost::shared_ptr<Renderer> RendererHandle;
 
 // Class definitions
-class Renderer : public ViewRenderer {
+class Renderer : public ViewerRenderer, private Utils::EventHandler {
 
 // -- constructor/destructor --
   public:
@@ -63,6 +69,20 @@ class Renderer : public ViewRenderer {
     
     // Context for rendering images
     RenderContextHandle context_;
+    
+    TextureHandle textures_[2];
+    RenderBufferHandle depth_buffer_;
+    FrameBufferObjectHandle frame_buffer_;
+    int active_render_texture_;
+    
+    int width_;
+    int height_;
+    bool invalid_;
+    bool resized_;
+    boost::mutex mutex_invalid_;
+    
+    static int red;
+    int red_;
 };
 
 } // end namespace Seg3D

@@ -46,6 +46,10 @@
 
 #include <stdio.h>
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 using std::istream;
 using std::ostream;
 
