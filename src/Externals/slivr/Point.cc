@@ -45,6 +45,10 @@
 
 #include <stdio.h>
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 namespace SLIVR {
 
 std::string Point::get_string() const
