@@ -26,46 +26,47 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
-#define APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
+#include <Utils/Core/ConnectionHandler.h>
+#include <Utils/Core/Log.h>
 
-#include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
 
-#include <GL/glew.h>
+namespace Utils {
 
-#include <Application/Renderer/Texture.h>
-#include <Application/Renderer/RenderBuffer.h>
+ConnectionHandler::ConnectionHandler()
+{
+}
 
-namespace Seg3D {
+ConnectionHandler::~ConnectionHandler()
+{
+  if (!connections_.empty())
+  {
+    SCI_LOG_ERROR("disconnect_all() needs to be called in the destructor of the derived class");
+    // Correct the problem, although this is not fully thread safe
+    disconnect_all();
+  }
+}
 
-class FrameBufferObject;
-typedef boost::shared_ptr<FrameBufferObject> FrameBufferObjectHandle;
+void 
+ConnectionHandler::add_connection(boost::signals2::connection& connection)
+{
+  connections_.push_back(connection);
+}
 
-class FrameBufferObject : public boost::noncopyable {
+void
+ConnectionHandler::disconnect_all()
+{
+  connections_type::iterator it = connections_.begin();
+  connections_type::iterator it_end = connections_.end();
 
-  public:
-  
-    FrameBufferObject();
-    ~FrameBufferObject();
-    
-    void enable();
-    void disable();
-    
-    void attach_texture(TextureHandle texture, unsigned int attachment = GL_COLOR_ATTACHMENT0_EXT, int level = 0, int layer = 0);
-    void attach_render_buffer(RenderBufferHandle render_buffer, unsigned int attachment);
-    
-  private:
-  
-    void _safe_bind();
-    void _safe_unbind();
-    
-    unsigned int id_;
-    int saved_id_;
-    
-    const static unsigned int TARGET_;
-};
+  // disconnect all the connections
+  while(it != it_end)
+  {
+    (*it).disconnect();
+    ++it;
+  }
 
-} // end namespace Seg3D
+  // clear the connections
+  connections_.clear();
+}
 
-#endif
+} // end namespace Utils
