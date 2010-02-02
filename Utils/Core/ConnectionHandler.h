@@ -26,46 +26,53 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
-#define APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
+#ifndef UTILS_CORE_CONNECTIONHANDLER_H
+#define UTILS_CORE_CONNECTIONHANDLER_H
 
-#include <boost/utility.hpp>
+// Boost includes
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
+#include <boost/signals2/connection.hpp>
 
-#include <GL/glew.h>
+// STL includes
+#include <list>
 
-#include <Application/Renderer/Texture.h>
-#include <Application/Renderer/RenderBuffer.h>
 
-namespace Seg3D {
+namespace Utils {
 
-class FrameBufferObject;
-typedef boost::shared_ptr<FrameBufferObject> FrameBufferObjectHandle;
+// CLASS CONNECTIONHANDLER:
+// A simple class for managing connections
 
-class FrameBufferObject : public boost::noncopyable {
+// NOTE: To use this class the derived class needs to call disconnect_all()
+// in the distructor before any of the structures are deleted.
 
+class ConnectionHandler : public boost::noncopyable {
+
+// -- constructor / destructor --
   public:
-  
-    FrameBufferObject();
-    ~FrameBufferObject();
+    ConnectionHandler();    
+    virtual ~ConnectionHandler();
+
+// -- connection management --
+  public:
     
-    void enable();
-    void disable();
-    
-    void attach_texture(TextureHandle texture, unsigned int attachment = GL_COLOR_ATTACHMENT0_EXT, int level = 0, int layer = 0);
-    void attach_render_buffer(RenderBufferHandle render_buffer, unsigned int attachment);
-    
+    // ADD_CONNECTION:
+    // Add a connection into the list so it can be deleted on the destruction
+    // of the clas
+    void add_connection(boost::signals2::connection& connection);
+
+    // DISCONNECT_ALL:
+    // Disconnect alal the connections that are stored in this class.
+    // NOTE: this function needs to be called in the most derived class
+    void disconnect_all();
+
+// -- internal database --
   private:
+    typedef std::list<boost::signals2::connection> connections_type;
   
-    void _safe_bind();
-    void _safe_unbind();
-    
-    unsigned int id_;
-    int saved_id_;
-    
-    const static unsigned int TARGET_;
+    connections_type connections_;
 };
 
-} // end namespace Seg3D
+} // end namespace Utils
 
 #endif
