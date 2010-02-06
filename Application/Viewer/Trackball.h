@@ -26,41 +26,40 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Application/State/Actions/ActionRotate.h>
+#ifndef APPLICATION_VIEWER_TRACKBALL_H
+#define APPLICATION_VIEWER_TRACKBALL_H
+
+// Utils includes
+#include <Utils/Geometry/Quaternion.h>
+#include <Utils/Geometry/Vector.h>
 
 namespace Seg3D {
 
-SCI_REGISTER_ACTION(Rotate);
+class Trackball {
 
-bool 
-ActionRotate::validate(ActionContextHandle &context)
-{
-  // Check whether the state exists
-  StateView3DHandle state = state_.value().lock();
-
-  // If the state no longer exists report an error
-  if (!state) 
-  {
-    context->report_error(
-      std::string("State variable '")+stateid_.value()+"' doesn't exist");
-    return (false);
-  }
-  
-  return (true);
-}
-
-bool
-ActionRotate::run(ActionContextHandle &context, ActionResultHandle &result)
-{
-  StateView3DHandle state = state_.value().lock();
-
-  if (state)
-  {
-    state->get().rotate(rotation_.value());
-    return (true);
-  }
-  
-  return (false);
-}
+  public:
+    Trackball();
+    ~Trackball();
+    
+    Utils::Quaternion map_mouse_move_to_rotation(int x0, int y0, int x1, int y1);
+    
+    void resize(int width, int height) { width_ = width; height_ = height; }
+    void set_invert_y(bool invert_y) { invert_y_ = invert_y; }
+    void set_camera_mode(bool camera_mode) { camera_mode_ = camera_mode; }
+    
+  private:
+    Utils::Vector project_point_on_sphere(int x, int y);
+    
+    int width_;
+    int height_;
+    
+    // whether to invert the y coordinate
+    bool invert_y_;
+    
+    // indicates if the camera, instead of objects, is being rotated
+    bool camera_mode_;
+};
 
 } // End namespace Seg3D
+
+#endif

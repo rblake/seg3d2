@@ -26,41 +26,8 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Application/State/Actions/ActionRotate.h>
+#include <Utils/Geometry/Matrix.h>
 
-namespace Seg3D {
+namespace Utils {
 
-SCI_REGISTER_ACTION(Rotate);
-
-bool 
-ActionRotate::validate(ActionContextHandle &context)
-{
-  // Check whether the state exists
-  StateView3DHandle state = state_.value().lock();
-
-  // If the state no longer exists report an error
-  if (!state) 
-  {
-    context->report_error(
-      std::string("State variable '")+stateid_.value()+"' doesn't exist");
-    return (false);
-  }
-  
-  return (true);
 }
-
-bool
-ActionRotate::run(ActionContextHandle &context, ActionResultHandle &result)
-{
-  StateView3DHandle state = state_.value().lock();
-
-  if (state)
-  {
-    state->get().rotate(rotation_.value());
-    return (true);
-  }
-  
-  return (false);
-}
-
-} // End namespace Seg3D

@@ -26,41 +26,53 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#include <Application/State/Actions/ActionRotate.h>
+// Utils includes
+#include <Utils/Math/MathFunctions.h>
+
+// Application includes
+#include <Application/Viewer/Trackball.h>
 
 namespace Seg3D {
 
-SCI_REGISTER_ACTION(Rotate);
-
-bool 
-ActionRotate::validate(ActionContextHandle &context)
+Trackball::Trackball() :
+  width_(0), height_(0), 
+  invert_y_(true), camera_mode_(true)
 {
-  // Check whether the state exists
-  StateView3DHandle state = state_.value().lock();
-
-  // If the state no longer exists report an error
-  if (!state) 
-  {
-    context->report_error(
-      std::string("State variable '")+stateid_.value()+"' doesn't exist");
-    return (false);
-  }
-  
-  return (true);
 }
 
-bool
-ActionRotate::run(ActionContextHandle &context, ActionResultHandle &result)
+Trackball::~Trackball()
 {
-  StateView3DHandle state = state_.value().lock();
+}
 
-  if (state)
+Utils::Quaternion 
+Trackball::map_mouse_move_to_rotation(int x0, int y0, int x1, int y1)
+{
+  Utils::Vector v0 = project_point_on_sphere(x0, y0);
+  Utils::Vector v1 = project_point_on_sphere(x1, y1);
+  
+  Utils::Vector axis = Utils::Cross(v0, v1);
+  double angle = Utils::Acos(Dot(v0, v1));
+  
+  // negate the angle for camera rotation
+  if (camera_mode_)
   {
-    state->get().rotate(rotation_.value());
-    return (true);
+    angle = -angle;
   }
   
-  return (false);
+  return Utils::Quaternion(axis, angle);
 }
+
+Utils::Vector 
+Trackball::project_point_on_sphere( int x, int y )
+{
+  Utils::Vector v(x*2.0/width_-1.0, (invert_y_? (height_-y) : y)*2.0/height_-1.0, 0.0);
+  double len2 = v.length2();
+  v[2] = len2 >= 1.0 ? 0.0 : Utils::Sqrt(1.0 - len2);
+  v.normalize();
+  
+  return v;
+}
+
+
 
 } // End namespace Seg3D
