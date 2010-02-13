@@ -26,53 +26,40 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-// Utils includes
-#include <Utils/Math/MathFunctions.h>
+#ifndef APPLICATION_STATE_ACTIONS_ACTIONROTATEVIEW3D_H
+#define APPLICATION_STATE_ACTIONS_ACTIONROTATEVIEW3D_H
 
-// Application includes
-#include <Application/Viewer/Trackball.h>
+#include <Application/Action/Action.h>
+#include <Application/Interface/Interface.h>
+#include <Application/State/StateView3D.h>
 
-namespace Seg3D {
+#include <Utils/Geometry/Vector.h>
 
-Trackball::Trackball() :
-  width_(0), height_(0), 
-  invert_y_(true), camera_mode_(true)
+namespace Seg3D
 {
-}
 
-Trackball::~Trackball()
+class ActionRotateView3D : public Action
 {
-}
+	SCI_ACTION_TYPE("Rotate", "Rotate <key> <axis> <angle>", APPLICATION_E)
 
-Utils::Quaternion 
-Trackball::map_mouse_move_to_rotation(int x0, int y0, int x1, int y1)
-{
-  Utils::Vector v0 = project_point_on_sphere(x0, y0);
-  Utils::Vector v1 = project_point_on_sphere(x1, y1);
-  
-  Utils::Vector axis = Utils::Cross(v0, v1);
-  double angle = Utils::Acos(Dot(v0, v1));
-  
-  // negate the angle for camera rotation
-  if (camera_mode_)
-  {
-    angle = -angle;
-  }
-  
-  return Utils::Quaternion(axis, angle);
-}
+public:
+	ActionRotateView3D();
+	virtual ~ActionRotateView3D();
 
-Utils::Vector 
-Trackball::project_point_on_sphere( int x, int y )
-{
-  Utils::Vector v(x*2.0/width_-1.0, (invert_y_? (height_-y) : y)*2.0/height_-1.0, 0.0);
-  double len2 = v.length2();
-  v[2] = len2 >= 1.0 ? 0.0 : Utils::Sqrt(1.0 - len2);
-  v.normalize();
-  
-  return v;
-}
+	virtual bool validate(ActionContextHandle& context);
+	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
 
+private:
+	ActionParameter<std::string> stateid_;
+	ActionParameter<Utils::Vector> axis_;
+	ActionParameter<double> angle_;
 
+	StateView3DWeakHandle view3d_state_;
 
-} // End namespace Seg3D
+public:
+	static void Dispatch(StateView3DHandle& view3d_state, const Utils::Vector& axis, double angle);
+};
+
+} // end namespace Seg3D
+
+#endif

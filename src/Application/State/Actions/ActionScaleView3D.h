@@ -26,40 +26,37 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_VIEWER_TRACKBALL_H
-#define APPLICATION_VIEWER_TRACKBALL_H
+#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
+#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
 
-// Utils includes
-#include <Utils/Geometry/Quaternion.h>
-#include <Utils/Geometry/Vector.h>
+#include <Application/Action/Action.h>
+#include <Application/Interface/Interface.h>
+#include <Application/State/StateView3D.h>
 
 namespace Seg3D {
 
-class Trackball {
+class ActionScaleView3D : public Action
+{
+	SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", APPLICATION_E)
 
-  public:
-    Trackball();
-    ~Trackball();
-    
-    Utils::Quaternion map_mouse_move_to_rotation(int x0, int y0, int x1, int y1);
-    
-    void resize(int width, int height) { width_ = width; height_ = height; }
-    void set_invert_y(bool invert_y) { invert_y_ = invert_y; }
-    void set_camera_mode(bool camera_mode) { camera_mode_ = camera_mode; }
-    
-  private:
-    Utils::Vector project_point_on_sphere(int x, int y);
-    
-    int width_;
-    int height_;
-    
-    // whether to invert the y coordinate
-    bool invert_y_;
-    
-    // indicates if the camera, instead of objects, is being rotated
-    bool camera_mode_;
+public:
+	ActionScaleView3D();
+
+	virtual ~ActionScaleView3D() {}
+
+	virtual bool validate(ActionContextHandle& context);
+	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
+
+private:
+	ActionParameter<std::string> stateid_;
+	ActionParameter<double> scale_ratio_;
+
+	StateView3DWeakHandle view3d_state_;
+
+public:
+	static void Dispatch(StateView3DHandle& view3d_state, double ratio);
 };
 
-} // End namespace Seg3D
+} // end namespace Seg3D
 
 #endif
