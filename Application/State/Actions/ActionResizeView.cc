@@ -26,37 +26,57 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-
-#include <Application/Action/Action.h>
-#include <Application/Interface/Interface.h>
+#include <Application/State/Actions/ActionResizeView.h>
+#include <Application/State/StateView2D.h>
 #include <Application/State/StateView3D.h>
 
-namespace Seg3D {
-
-class ActionScaleView3D : public Action
+namespace Seg3D
 {
-	SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", APPLICATION_E)
 
-public:
-	ActionScaleView3D();
+SCI_REGISTER_ACTION(ResizeView);
 
-	virtual ~ActionScaleView3D() {}
+ActionResizeView::ActionResizeView()
+{
+	this->add_argument(this->stateid_);
+	this->add_argument(this->width_);
+	this->add_argument(this->height_);
+}
 
-	virtual bool validate(ActionContextHandle& context);
-	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
+bool ActionResizeView::validate( ActionContextHandle& context )
+{
+	StateBaseHandle state = this->state_weak_handle_.lock();
+	if (!state)
+	{
+		if (!(StateEngine::Instance()->get_state(this->stateid_.value(), state)))
+		{
+			context->report_error(std::string("Unknown state variable '") + this->stateid_.value() + "'");
+			return false;
+		}
 
-private:
-	ActionParameter<std::string> stateid_;
-	ActionParameter<double> scale_ratio_;
+		if (typeid(*state) != typeid(StateView2D) && typeid(*state) != typeid(StateView3D))
+		{
+			context->report_error(std::string("State variable '") + this->stateid_.value() 
+				+ "' doesn't support ActionResizeView");
+			return false;
+		}
 
-	StateView3DWeakHandle state_weak_handle_;
+		this->state_weak_handle_ = boost::dynamic_pointer_cast<StateViewBase>(state);
+	}
+	
+	return true;
+}
 
-public:
-	static void Dispatch(StateView3DHandle& view3d_state, double ratio);
-};
+bool ActionResizeView::run( ActionContextHandle& context, ActionResultHandle& result )
+{
+	StateViewBaseHandle state = this->state_weak_handle_.lock();
+
+	if (state)
+	{
+		state->resize(this->width_.value(), this->height_.value());
+		return true;
+	}
+
+	return false;
+}
 
 } // end namespace Seg3D
-
-#endif

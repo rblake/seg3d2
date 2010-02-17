@@ -29,79 +29,120 @@
 // Application includes
 #include <Application/Viewer/Viewer.h>
 #include <Application/Viewer/ViewManipulator.h>
+#include <Application/State/Actions/ActionResizeView.h>
 
 namespace Seg3D {
 
 Viewer::Viewer(const std::string& key) :
-  StateHandler(key)
+	StateHandler(key)
 {
-  add_state("view_mode",view_mode_state,"axial|coronal|sagittal|volume","axial");
-  
-  add_state("axial_view",axial_view_state);
-  add_state("sagittal_view",sagittal_view_state);
-  add_state("coronal_view",coronal_view_state);
-  add_state("volume_view",volume_view_state);
+	add_state("view_mode", view_mode_state, "volume", "axial|coronal|sagittal|volume");
 
-  add_state("slice_lock",slice_lock_state,true);
-  add_state("slice_grid",slice_grid_state,true);
-  add_state("slice_visible",slice_visible_state,true);
+	add_state("axial_view", axial_view_state);
+	add_state("sagittal_view", sagittal_view_state);
+	add_state("coronal_view", coronal_view_state);
+	add_state("volume_view", volume_view_state);
 
-  add_state("volume_lock",volume_lock_state,true);
-  add_state("volume_slices_visible",volume_slices_visible_state,true);
-  add_state("volume_isosurfaces_visible",volume_isosurfaces_visible_state,true);
-  add_state("volume_volume_rendering_visible",volume_volume_rendering_visible_state,false);
+	add_state("slice_lock", slice_lock_state, true);
+	add_state("slice_grid", slice_grid_state, true);
+	add_state("slice_visible", slice_visible_state, true);
 
-  this->view_manipulator_ = boost::shared_ptr<ViewManipulator>(new ViewManipulator(this));
+	add_state("volume_lock", volume_lock_state, true);
+	add_state("volume_slices_visible", volume_slices_visible_state, true);
+	add_state("volume_isosurfaces_visible", volume_isosurfaces_visible_state, true);
+	add_state("volume_volume_rendering_visible", volume_volume_rendering_visible_state, false);
+
+	this->view_manipulator_ = boost::shared_ptr<ViewManipulator>(new ViewManipulator(this));
+	//this->view_mode_state->set("volume");
 }
-  
+
 Viewer::~Viewer()
 {
-  disconnect_all();
+	disconnect_all();
+}
+
+void Viewer::resize( int width, int height )
+{
+	this->view_manipulator_->resize(width, height);
+	if (width != 0 && height != 0)
+	{
+		ActionResizeView::Dispatch(this->volume_view_state, width, height);
+		ActionResizeView::Dispatch(this->axial_view_state, width, height);
+		ActionResizeView::Dispatch(this->sagittal_view_state, width, height);
+		ActionResizeView::Dispatch(this->coronal_view_state, width, height);
+	}	
 }
 
 void Viewer::mouse_move_event( const MouseHistory& mouse_history, int button, int buttons, int modifiers )
 {
-  if (!mouse_move_handler_.empty())
-  {
-    // if the registered handler handled the event, no further process needed
-    if (mouse_move_handler_(mouse_history, button, buttons, modifiers))
-    {
-      return;
-    }
-  }
-  
-  // default handling here
+	if (!mouse_move_handler_.empty())
+	{
+		// if the registered handler handled the event, no further process needed
+		if (mouse_move_handler_(mouse_history, button, buttons, modifiers))
+		{
+			return;
+		}
+	}
+
+	// default handling here
 	this->view_manipulator_->mouse_move(mouse_history, button, buttons, modifiers);
 }
 
 void Viewer::mouse_press_event( const MouseHistory& mouse_history, int button, int buttons, int modifiers )
 {
-  if (!mouse_press_handler_.empty())
-  {
-    // if the registered handler handled the event, no further process needed
-    if (mouse_press_handler_(mouse_history, button, buttons, modifiers))
-    {
-      return;
-    }
-  }
+	if (!mouse_press_handler_.empty())
+	{
+		// if the registered handler handled the event, no further process needed
+		if (mouse_press_handler_(mouse_history, button, buttons, modifiers))
+		{
+			return;
+		}
+	}
 
-  // default handling here
+	// default handling here
 	this->view_manipulator_->mouse_press(mouse_history, button, buttons, modifiers);
 }
 
 void Viewer::mouse_release_event( const MouseHistory& mouse_history, int button, int buttons, int modifiers )
 {
-  if (!mouse_release_handler_.empty())
-  {
-    // if the registered handler handled the event, no further process needed
-    if (mouse_release_handler_(mouse_history, button, buttons, modifiers))
-    {
-      return;
-    }
-  }
+	if (!mouse_release_handler_.empty())
+	{
+		// if the registered handler handled the event, no further process needed
+		if (mouse_release_handler_(mouse_history, button, buttons, modifiers))
+		{
+			return;
+		}
+	}
 
-  // default handling here
+	// default handling here
 	this->view_manipulator_->mouse_release(mouse_history, button, buttons, modifiers);
+}
+
+void Viewer::set_mouse_move_handler( mouse_event_handler_type func )
+{
+	this->mouse_move_handler_ = func;
+}
+
+void Viewer::set_mouse_press_handler( mouse_event_handler_type func )
+{
+	this->mouse_press_handler_ = func;
+}
+
+void Viewer::set_mouse_release_handler( mouse_event_handler_type func )
+{
+	this->mouse_release_handler_ = func;
+}
+
+void Viewer::reset_mouse_handlers()
+{
+	this->mouse_move_handler_ = 0;
+	this->mouse_press_handler_ = 0;
+	this->mouse_release_handler_ = 0;
+}
+
+void Viewer::state_changed()
+{
+	redraw_signal_();
 }
 
 } // end namespace Seg3D

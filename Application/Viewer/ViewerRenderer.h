@@ -62,7 +62,7 @@ class ViewerRenderer : public boost::noncopyable {
     virtual void resize(int width, int height);
     
     // Set the index of the corresponding viewer in the ViewerManager
-    inline void set_id(size_t viewer_id) { viewer_id_ = viewer_id; }
+    inline void set_viewer_id(size_t viewer_id) { viewer_id_ = viewer_id; }
     
     
 // -- signals handling --
