@@ -26,37 +26,4 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-
-#include <Application/Action/Action.h>
-#include <Application/Interface/Interface.h>
-#include <Application/State/StateView3D.h>
-
-namespace Seg3D {
-
-class ActionScaleView3D : public Action
-{
-	SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", APPLICATION_E)
-
-public:
-	ActionScaleView3D();
-
-	virtual ~ActionScaleView3D() {}
-
-	virtual bool validate(ActionContextHandle& context);
-	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
-
-private:
-	ActionParameter<std::string> stateid_;
-	ActionParameter<double> scale_ratio_;
-
-	StateView3DWeakHandle state_weak_handle_;
-
-public:
-	static void Dispatch(StateView3DHandle& view3d_state, double ratio);
-};
-
-} // end namespace Seg3D
-
-#endif
+#include <Application/State/StateViewBase.h>

@@ -26,35 +26,29 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
+#ifndef APPLICATION_STATE_STATEVIEWBASE_H
+#define APPLICATION_STATE_STATEVIEWBASE_H
 
-#include <Application/Action/Action.h>
-#include <Application/Interface/Interface.h>
-#include <Application/State/StateView3D.h>
+#include <boost/smart_ptr.hpp>
 
-namespace Seg3D {
+#include <Application/State/StateBase.h>
 
-class ActionScaleView3D : public Action
+namespace Seg3D
 {
-	SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", APPLICATION_E)
 
+class StateViewBase;
+typedef boost::shared_ptr<StateViewBase> StateViewBaseHandle;
+typedef boost::weak_ptr<StateViewBase> StateViewBaseWeakHandle;
+
+class StateViewBase : public StateBase
+{
 public:
-	ActionScaleView3D();
+	StateViewBase() : StateBase() {}
+	virtual ~StateViewBase() {}
 
-	virtual ~ActionScaleView3D() {}
-
-	virtual bool validate(ActionContextHandle& context);
-	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
-
-private:
-	ActionParameter<std::string> stateid_;
-	ActionParameter<double> scale_ratio_;
-
-	StateView3DWeakHandle state_weak_handle_;
-
-public:
-	static void Dispatch(StateView3DHandle& view3d_state, double ratio);
+	virtual void scale(double ratio) = 0;
+	virtual void translate(const Utils::Vector& offset) = 0;
+	virtual void resize(int width, int height) = 0;
 };
 
 } // end namespace Seg3D

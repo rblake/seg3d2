@@ -51,39 +51,39 @@ class Renderer;
 typedef boost::shared_ptr<Renderer> RendererHandle;
 
 // Class definitions
-class Renderer : public ViewerRenderer, private Utils::EventHandler {
+class Renderer : public ViewerRenderer, private Utils::EventHandler 
+{
 
-// -- constructor/destructor --
-  public:
-    Renderer();
-    virtual ~Renderer();
+	// -- constructor/destructor --
+public:
+	Renderer();
+	virtual ~Renderer();
 
-  public:
-  
-    virtual void initialize();
-    virtual void redraw();
-    
-    virtual void resize(int width, int height);
+public:
 
-  private:
-    
-    // Context for rendering images
-    RenderContextHandle context_;
-    
-    TextureHandle textures_[2];
-    RenderBufferHandle depth_buffer_;
-    FrameBufferObjectHandle frame_buffer_;
-    int active_render_texture_;
-    
-    int width_;
-    int height_;
-    bool redraw_needed_;
-    bool resized_;
-    boost::mutex redraw_needed_mutex_;
-    boost::mutex size_mutex_;
-    
-    static int red;
-    int red_;
+	virtual void initialize();
+	virtual void redraw();
+
+	virtual void resize(int width, int height);
+
+private:
+
+	// Context for rendering images
+	RenderContextHandle context_;
+
+	TextureHandle textures_[2];
+	RenderBufferHandle depth_buffer_;
+	FrameBufferObjectHandle frame_buffer_;
+	int active_render_texture_;
+
+	int width_;
+	int height_;
+	bool redraw_needed_;
+
+	boost::mutex redraw_needed_mutex_;
+
+	static int red;
+	int red_;
 };
 
 } // end namespace Seg3D
