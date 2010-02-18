@@ -26,37 +26,56 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW3D_H
-
-#include <Application/Action/Action.h>
-#include <Application/Interface/Interface.h>
+#include <Application/State/Actions/ActionScaleView.h>
+#include <Application/State/StateView2D.h>
 #include <Application/State/StateView3D.h>
 
-namespace Seg3D {
-
-class ActionScaleView3D : public Action
+namespace Seg3D
 {
-	SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", APPLICATION_E)
 
-public:
-	ActionScaleView3D();
+SCI_REGISTER_ACTION(ScaleView);
 
-	virtual ~ActionScaleView3D() {}
+ActionScaleView::ActionScaleView()
+{
+	add_argument(this->stateid_);
+	add_argument(this->scale_ratio_);
+}
 
-	virtual bool validate(ActionContextHandle& context);
-	virtual bool run(ActionContextHandle& context, ActionResultHandle& result);
+bool ActionScaleView::validate( ActionContextHandle& context )
+{
+	StateBaseHandle state = this->state_weak_handle_.lock();
+	if (!state)
+	{
+		if (!(StateEngine::Instance()->get_state(stateid_.value(), state)))
+		{
+			context->report_error(std::string("Unknown state variable '") + stateid_.value() + "'");
+			return false;
+		}
 
-private:
-	ActionParameter<std::string> stateid_;
-	ActionParameter<double> scale_ratio_;
+		if (typeid(*state) != typeid(StateView2D) && typeid(*state) != typeid(StateView3D))
+		{
+			context->report_error(std::string("State variable '") + stateid_.value() 
+				+ "' doesn't support ActionScaleView");
+			return false;
+		}
 
-	StateView3DWeakHandle state_weak_handle_;
+		this->state_weak_handle_ = boost::dynamic_pointer_cast<StateViewBase>(state);
+	}
 
-public:
-	static void Dispatch(StateView3DHandle& view3d_state, double ratio);
-};
+	return true;
+}
+
+bool ActionScaleView::run( ActionContextHandle& context, ActionResultHandle& result )
+{
+	StateViewBaseHandle state = this->state_weak_handle_.lock();
+
+	if (state)
+	{
+		state->scale(this->scale_ratio_.value());
+		return true;
+	}
+
+	return false;
+}
 
 } // end namespace Seg3D
-
-#endif
