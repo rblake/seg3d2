@@ -579,6 +579,70 @@ nrrdFlip(Nrrd *nout, const Nrrd *nin, unsigned int axis) {
   return 0;
 }
 
+
+/*
+******** nrrdReflect()
+**
+** reverse the order of slices along the given axis.
+** Actually flip in the space, unlike flip which flips
+** data and space
+*/
+int
+nrrdReflect(Nrrd *nout, const Nrrd *nin, unsigned int axis) {
+  char me[]="nrrdReflect", func[]="reflect", err[BIFF_STRLEN];
+  size_t *perm, si;
+  airArray *mop;
+  unsigned int axisIdx;
+
+  mop = airMopNew();
+  if (!(nout && nin)) {
+    sprintf(err, "%s: got NULL pointer", me);
+    biffAdd(NRRD, err); airMopError(mop); return 1;
+  }
+  if (!(  axis < nin->dim )) {
+    sprintf(err, "%s: given axis (%d) is outside valid range ([0,%d])", 
+            me, axis, nin->dim-1);
+    biffAdd(NRRD, err); airMopError(mop); return 1;
+  }
+  if (!(perm = (size_t*)calloc(nin->axis[axis].size, sizeof(size_t)))) {
+    sprintf(err, "%s: couldn't alloc permutation array", me);
+    biffAdd(NRRD, err); airMopError(mop); return 1;
+  }
+  airMopAdd(mop, perm, airFree, airMopAlways);
+  for (si=0; si<nin->axis[axis].size; si++) {
+    perm[si] = nin->axis[axis].size-1-si;
+  }
+
+  _nrrdAxisInfoCopy(&(nout->axis[axis]), &(nin->axis[axis]),
+                    NRRD_AXIS_INFO_SIZE_BIT
+                    | NRRD_AXIS_INFO_KIND_BIT);
+  nout->axis[axis].min = nin->axis[axis].max;
+  nout->axis[axis].max = nin->axis[axis].min;
+  nout->axis[axis].spacing = -nin->axis[axis].spacing;
+  /* HEY: Fri Jan 14 02:53:30 EST 2005: but not thickness */
+  nout->axis[axis].thickness = nin->axis[axis].thickness;
+  /* need to set general orientation info too */
+  for (axisIdx=0; axisIdx<NRRD_SPACE_DIM_MAX; axisIdx++) {
+    nout->axis[axis].spaceDirection[axisIdx] = 
+      -nin->axis[axis].spaceDirection[axisIdx];
+  }
+  /* modify origin only if we flipped a spatial axis */
+  if (AIR_EXISTS(nin->axis[axis].spaceDirection[0])) {
+    nrrdSpaceVecScaleAdd2(nout->spaceOrigin,
+                          1.0,
+                          nin->spaceOrigin,
+                          nin->axis[axis].size-1,
+                          nin->axis[axis].spaceDirection);
+  } else {
+    nrrdSpaceVecCopy(nout->spaceOrigin, nin->spaceOrigin);
+  }
+  airMopOkay(mop); 
+  return 0;
+}
+
+
+
+
 /*
 **
 ** NOTE: this seems to destroy all space/orientation info.  What
