@@ -38,22 +38,23 @@
 // Base class of the tool widget include
 #include <Interface/AppInterface/ToolWidget.h>
 
+namespace Seg3D
+{
 
-namespace Seg3D {
-  
 class InvertToolInterfacePrivate;
 
-class InvertToolInterface : public ToolWidget {
-  Q_OBJECT
+class InvertToolInterface : public ToolWidget
+{
+Q_OBJECT
 
 // Constructor/destructor
 public:
-  InvertToolInterface();
-  virtual ~InvertToolInterface();
-  virtual bool build_widget(QFrame* frame);
+	InvertToolInterface();
+	virtual ~InvertToolInterface();
+	virtual bool build_widget( QFrame* frame );
 
 private:
-  InvertToolInterfacePrivate* private_;
+	InvertToolInterfacePrivate* private_;
 
 };
 

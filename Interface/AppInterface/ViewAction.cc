@@ -28,38 +28,36 @@
 
 #include <Interface/AppInterface/ViewAction.h>
 
-
-namespace Seg3D  {
-  
-ViewAction::ViewAction(QAction* parent, int column1, int column2) : 
-  QObject(parent)
+namespace Seg3D
 {
-  col1_ = column1;
-  col2_ = column2;
-  
-  connect(parent,SIGNAL(triggered()),this,SLOT(slot()));
-}
 
-ViewAction::ViewAction(QAction* parent, bool true_or_false) : 
-  QObject(parent)
+ViewAction::ViewAction( QAction* parent, int column1, int column2 ) :
+	QObject( parent )
 {
-  state_ = true_or_false;
-  connect(parent, SIGNAL(triggered(bool)), this, SLOT(slot(bool)));
-}
-  
+	col1_ = column1;
+	col2_ = column2;
 
-void  ViewAction::slot()
-{  
-  Q_EMIT triggered(col1_,col2_);
+	connect( parent, SIGNAL( triggered() ), this, SLOT( slot() ) );
 }
- 
+
+ViewAction::ViewAction( QAction* parent, bool true_or_false ) :
+	QObject( parent )
+{
+	state_ = true_or_false;
+connect(parent, SIGNAL(triggered(bool)), this, SLOT(slot(bool)));
+}
+
+void ViewAction::slot()
+{
+Q_EMIT triggered(col1_,col2_);
+}
+
 void ViewAction::slot(bool torf)
 {
-  //Q_EMIT trigaficated(state_);
+//Q_EMIT trigaficated(state_);
 }
-  
 
-ViewAction::~ViewAction(){}
+ViewAction::~ViewAction()
+{}
 
-
-}  //end namespace Seg3d
+} //end namespace Seg3d
