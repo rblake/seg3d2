@@ -36,7 +36,7 @@ namespace Seg3D
 
 class GradientMagnitudeFilter : public Tool
 {
-SCI_TOOL_TYPE( "GradientMagnitudeFilter", "Gradient Magnitude", "",
+SCI_TOOL_TYPE( "GradientMagnitudeFilter", "Gradient Magnitude", "ALT+G",
 	Tool::DATATODATA_E|Tool::FILTER_E,
 	"http://seg3d.org/")
 

@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_BINARYDIALATEERODEFILTERINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_BINARYDIALATEERODEFILTERINTERFACE_H
+#ifndef INTERFACE_TOOLINTERFACE_BINARYDILATEERODEFILTERINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_BINARYDILATEERODEFILTERINTERFACE_H
 
 // Utils includes
 #include <Utils/Core/Log.h>
@@ -42,19 +42,19 @@
 namespace Seg3D
 {
 
-class BinaryDialateErodeFilterInterfacePrivate;
+class BinaryDilateErodeFilterInterfacePrivate;
 
-class BinaryDialateErodeFilterInterface : public ToolWidget
+class BinaryDilateErodeFilterInterface : public ToolWidget
 {
 Q_OBJECT
 
 public:
-	BinaryDialateErodeFilterInterface();
-	virtual ~BinaryDialateErodeFilterInterface();
+	BinaryDilateErodeFilterInterface();
+	virtual ~BinaryDilateErodeFilterInterface();
 	virtual bool build_widget( QFrame* frame );
 
 private:
-	BinaryDialateErodeFilterInterfacePrivate* private_;
+	BinaryDilateErodeFilterInterfacePrivate* private_;
 	SliderSpinComboInt *erodeAdjuster;
 	SliderSpinComboInt *dialateAdjuster;
 

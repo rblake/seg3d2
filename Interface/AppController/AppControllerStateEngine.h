@@ -26,43 +26,38 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_CONFIDENCECONNECTEDFILTER_H
-#define APPLICATION_TOOLS_CONFIDENCECONNECTEDFILTER_H
+#ifndef INTERFACE_APPCONTROLLER_APPCONTROLLERSTATEENGINE_H
+#define INTERFACE_APPCONTROLLER_APPCONTROLLERSTATEENGINE_H
 
-#include <Application/Tool/Tool.h>
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
+
+// STL includes
+#include <string>
+
+// QT includes
+#include <QtGui>
 
 namespace Seg3D
 {
 
-class ConfidenceConnectedFilter : public Tool
+class AppControllerStateEngine : public QAbstractTableModel
 {
-SCI_TOOL_TYPE( "ConfidenceConnectedFilter", "Confidence Connected", "Alt+Shift+C",
-	Tool::DATATOMASK_E|Tool::FILTER_E,
-	"http://seg3d.org/")
-
 public:
-	ConfidenceConnectedFilter( const std::string& toolid );
-	virtual ~ConfidenceConnectedFilter();
+	AppControllerStateEngine( QObject* parent = 0 );
 
-	// -- constraint parameters --
+	virtual ~AppControllerStateEngine();
 
-	// Constrain viewer to right painting tool when layer is selected
-	void target_constraint( std::string layerid );
+	int rowCount( const QModelIndex &index ) const;
+	int columnCount( const QModelIndex &index ) const;
 
-	// -- activate/deactivate tool --
+	QVariant data( const QModelIndex& index, int role ) const;
+	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
 
-	virtual void activate();
-	virtual void deactivate();
-
-	// -- state --
-public:
-
-	// Layerid of the target layer
-	StateOptionHandle target_layer_state_;
-	StateRangedIntHandle iterations_state_;
-	StateRangedIntHandle threshold_multiplier_state_;
-
+	void update() { reset(); }
 };
-} // end namespace
+
+} // end namespace Seg3D
 
 #endif

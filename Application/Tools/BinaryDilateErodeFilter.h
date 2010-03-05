@@ -26,48 +26,47 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Tools/BinaryDialateErodeFilter.h>
+#ifndef APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
+#define APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
+
+#include <Application/Tool/Tool.h>
 
 namespace Seg3D
 {
 
-// Register the tool into the tool factory
-SCI_REGISTER_TOOL(BinaryDialateErodeFilter)
-
-BinaryDialateErodeFilter::BinaryDialateErodeFilter( const std::string& toolid ) :
-	Tool( toolid )
+class BinaryDilateErodeFilter : public Tool
 {
-	// Need to set ranges and default values for all parameters
-	add_state( "target", target_layer_state_, "<none>", "<none>" );
-	add_state( "dialate", dialate_state_, 1, 100, 1, 2 );
-	add_state( "erode", erode_state_, 1, 100, 1, 2 );
-	add_state( "replace", replace_state_, false );
+SCI_TOOL_TYPE( "BinaryDilateErodeFilter", "Binary Dialate -> Erode", "Alt+Shift+E",
+	Tool::MASKTOMASK_E|Tool::FILTER_E,
+	"http://seg3d.org/")
 
-	// Add constaints, so that when the state changes the right ranges of
-	// parameters are selected
-	target_layer_state_->value_changed_signal_.connect( boost::bind(
-	    &BinaryDialateErodeFilter::target_constraint, this, _1 ) );
+public:
+	BinaryDilateErodeFilter( const std::string& toolid );
+	virtual ~BinaryDilateErodeFilter();
 
-}
+	// -- constraint parameters --
 
-void BinaryDialateErodeFilter::target_constraint( std::string layerid )
-{
-}
+	// Constrain viewer to right painting tool when layer is selected
+	void target_constraint( std::string layerid );
 
-BinaryDialateErodeFilter::~BinaryDialateErodeFilter()
-{
-	disconnect_all();
-}
+	// -- activate/deactivate tool --
 
-void BinaryDialateErodeFilter::activate()
-{
-}
+	virtual void activate();
+	virtual void deactivate();
 
-void BinaryDialateErodeFilter::deactivate()
-{
-}
+	// -- state --
+public:
+	// Layerid of the target layer
+	StateOptionHandle target_layer_state_;
 
-} // end namespace Seg3D
+	StateRangedIntHandle dialate_state_;
 
+	StateRangedIntHandle erode_state_;
 
+	StateBoolHandle replace_state_;
+
+};
+
+} // end namespace
+
+#endif
