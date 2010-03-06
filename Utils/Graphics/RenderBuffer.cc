@@ -26,9 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Renderer/RenderBuffer.h>
+#include <Utils/Graphics/RenderBuffer.h>
 
-namespace Seg3D
+namespace Utils
 {
 
 const unsigned int RenderBuffer::TARGET_ = GL_RENDERBUFFER_EXT;

@@ -26,15 +26,15 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RENDERER_RENDERBUFFER_H
-#define APPLICATION_RENDERER_RENDERBUFFER_H
+#ifndef UTILS_GRAPHICS_RENDERBUFFER_H
+#define UTILS_GRAPHICS_RENDERBUFFER_H
 
 #include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <GL/glew.h>
 
-namespace Seg3D
+namespace Utils
 {
 
 class RenderBuffer;

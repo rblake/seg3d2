@@ -26,47 +26,33 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
-#define APPLICATION_RENDERER_FRAMEBUFFEROBJECT_H
+#ifndef UTILS_GRAPHICS_UNITCUBE_H
+#define UTILS_GRAPHICS_UNITCUBE_H
 
-#include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/smart_ptr.hpp>
 
-#include <GL/glew.h>
+#include <Utils/Graphics/VertexBufferObject.h>
 
-#include <Application/Renderer/Texture.h>
-#include <Application/Renderer/RenderBuffer.h>
-
-namespace Seg3D
+namespace Utils
 {
+class UnitCube;
+typedef boost::shared_ptr< UnitCube > UnitCubeHandle;
 
-class FrameBufferObject;
-typedef boost::shared_ptr< FrameBufferObject > FrameBufferObjectHandle;
-
-class FrameBufferObject : public boost::noncopyable
+class UnitCube
 {
-
 public:
+	UnitCube();
+	~UnitCube();
 
-	FrameBufferObject();
-	~FrameBufferObject();
-
-	void enable();
-	void disable();
-
-	void attach_texture(TextureHandle texture, unsigned int attachment = GL_COLOR_ATTACHMENT0_EXT, int level = 0, int layer = 0);
-	void attach_render_buffer(RenderBufferHandle render_buffer, unsigned int attachment);
-	bool check_status( GLenum* status = NULL );
+	void draw();
 
 private:
+	VertexBufferObjectHandle vertices_buffer_;
+	VertexBufferObjectHandle faces_buffer_;
+	VertexBufferObjectHandle colors_buffer_;
 
-	void safe_bind();
-	void safe_unbind();
-
-	unsigned int id_;
-	int saved_id_;
-
-const static unsigned int TARGET_C;
+	const static GLfloat VERTICES_C[ 8 ][ 3 ];
+	const static GLubyte FACES_C[ 6 ][ 4 ];
 };
 
 } // end namespace Seg3D
