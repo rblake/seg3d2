@@ -26,49 +26,55 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef UTILS_GRAPHICS_RENDERBUFFER_H
-#define UTILS_GRAPHICS_RENDERBUFFER_H
+#ifndef UTILS_GRAPHICS_PIXELBUFFEROBJECT_H
+#define UTILS_GRAPHICS_PIXELBUFFEROBJECT_H
 
+#include <boost/smart_ptr.hpp>
 #include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include <GL/glew.h>
+
+#include <Utils/Core/EnumClass.h>
 
 namespace Utils
 {
 
-class Renderbuffer;
-typedef boost::shared_ptr< Renderbuffer > RenderBufferHandle;
+SCI_ENUM_CLASS
+(
+	PixelBufferType,
+	PACK_BUFFER_E = 0,
+	UNPACK_BUFFER_E
+)
 
-class Renderbuffer : public boost::noncopyable
+class PixelBufferObject;
+typedef boost::shared_ptr< PixelBufferObject > PixelBufferObjectHandle;
+
+class PixelBufferObject : public boost::noncopyable
 {
+
 public:
-	Renderbuffer();
-	~Renderbuffer();
+	PixelBufferObject(PixelBufferType buffer_type);
+	~PixelBufferObject();
 
 	void bind();
 	void unbind();
 
-void set_storage(int width, int height, unsigned int internal_format, int samples = 1);
+	void set_buffer_data( GLsizeiptr size, const GLvoid* data, GLenum usage );
+	void set_buffer_sub_data( GLintptr offset, GLsizeiptr size, const GLvoid* data );
 
-inline unsigned int get_id() const
-{
-	return id_;
-}
-
-inline unsigned int get_target() const
-{
-	return TARGET_;
-}
+	void* map_buffer(GLenum access);
+	GLboolean unmap_buffer();
 
 private:
 	void safe_bind();
 	void safe_unbind();
 
-	unsigned int id_;
-	int saved_id_;
+private:
+	GLenum target_;
+	GLenum query_target_;
+	GLuint id_;
+	GLint saved_id_;
 
-const static unsigned int TARGET_;
 };
 
 } // end namespace Utils
