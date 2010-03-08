@@ -35,21 +35,21 @@
 #include <GL/glew.h>
 
 #include <Utils/Graphics/Texture.h>
-#include <Utils/Graphics/RenderBuffer.h>
+#include <Utils/Graphics/Renderbuffer.h>
 
 namespace Utils
 {
 
-class FrameBufferObject;
-typedef boost::shared_ptr< FrameBufferObject > FrameBufferObjectHandle;
+class FramebufferObject;
+typedef boost::shared_ptr< FramebufferObject > FrameBufferObjectHandle;
 
-class FrameBufferObject : public boost::noncopyable
+class FramebufferObject : public boost::noncopyable
 {
 
 public:
 
-	FrameBufferObject();
-	~FrameBufferObject();
+	FramebufferObject();
+	~FramebufferObject();
 
 	void enable();
 	void disable();
@@ -69,6 +69,6 @@ private:
 const static unsigned int TARGET_C;
 };
 
-} // end namespace Seg3D
+} // end namespace Utils
 
 #endif
