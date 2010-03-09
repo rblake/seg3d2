@@ -26,10 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef UTILS_GRAPHICS_RENDERBUFFER_H
-#define UTILS_GRAPHICS_RENDERBUFFER_H
+#ifndef UTILS_GRAPHICS_BUFFEROBJECT_H
+#define UTILS_GRAPHICS_BUFFEROBJECT_H
 
-#include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <GL/glew.h>
@@ -37,38 +36,48 @@
 namespace Utils
 {
 
-class Renderbuffer;
-typedef boost::shared_ptr< Renderbuffer > RenderbufferHandle;
+class BufferObject;
+typedef boost::shared_ptr< BufferObject > BufferObjectHandle;
 
-class Renderbuffer : public boost::noncopyable
+class BufferObject
 {
+protected:
+	// Default constructor
+	BufferObject();
+
+	// Copy constructor
+	// Allows binding buffer objects to different targets. The destructor will not
+	// delete the underlying OpenGL object. It is deleted by the original instance.
+	BufferObject( const BufferObjectHandle& bo );
+
+	virtual ~BufferObject();
+
 public:
-	Renderbuffer();
-	~Renderbuffer();
+	void set_buffer_data( GLsizeiptr size, const GLvoid* data, GLenum usage );
+	void set_buffer_sub_data( GLintptr offset, GLsizeiptr size, const GLvoid* data );
 
 	void bind();
 	void unbind();
 
-	void set_storage(int width, int height, unsigned int internal_format, int samples = 1);
+	void* map_buffer(GLenum access);
+	GLboolean unmap_buffer();
 
-	inline unsigned int get_id() const
-	{
-		return id_;
-	}
-
-	inline unsigned int get_target() const
-	{
-		return TARGET_;
-	}
-
-private:
+protected:
 	void safe_bind();
 	void safe_unbind();
 
-	unsigned int id_;
-	int saved_id_;
+protected:
+	GLenum target_;
+	GLenum query_target_;
 
-	const static unsigned int TARGET_;
+private:
+	BufferObject& operator=( const BufferObject& bo );
+
+private:
+	GLuint id_;
+	GLint saved_id_;
+	bool copy_constructed_;
+	BufferObjectHandle buffer_object_;
 };
 
 } // end namespace Utils

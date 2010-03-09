@@ -34,47 +34,41 @@
 
 #include <GL/glew.h>
 
-#include <Utils/Core/EnumClass.h>
+#include <Utils/Graphics/BufferObject.h>
 
 namespace Utils
 {
 
-SCI_ENUM_CLASS
-(
-	PixelBufferType,
-	PACK_BUFFER_E = 0,
-	UNPACK_BUFFER_E
-)
-
 class PixelBufferObject;
 typedef boost::shared_ptr< PixelBufferObject > PixelBufferObjectHandle;
 
-class PixelBufferObject : public boost::noncopyable
+class PixelBufferObject : public BufferObject
 {
+protected:
+	PixelBufferObject();
+	PixelBufferObject( const BufferObjectHandle& bo );
+	virtual ~PixelBufferObject();
+};
+
+class PixelPackBuffer : public PixelBufferObject
+{
+public:
+	PixelPackBuffer();
+	PixelPackBuffer( const BufferObjectHandle& bo );
+	virtual ~PixelPackBuffer() {}
 
 public:
-	PixelBufferObject(PixelBufferType buffer_type);
-	~PixelBufferObject();
+	static void RestoreDefault();
+};
 
-	void bind();
-	void unbind();
-
-	void set_buffer_data( GLsizeiptr size, const GLvoid* data, GLenum usage );
-	void set_buffer_sub_data( GLintptr offset, GLsizeiptr size, const GLvoid* data );
-
-	void* map_buffer(GLenum access);
-	GLboolean unmap_buffer();
-
-private:
-	void safe_bind();
-	void safe_unbind();
-
-private:
-	GLenum target_;
-	GLenum query_target_;
-	GLuint id_;
-	GLint saved_id_;
-
+class PixelUnpackBuffer : public PixelBufferObject
+{
+public:
+	PixelUnpackBuffer();
+	PixelUnpackBuffer( const BufferObjectHandle& bo );
+	virtual ~PixelUnpackBuffer() {}
+public:
+	static void RestoreDefault();
 };
 
 } // end namespace Utils
