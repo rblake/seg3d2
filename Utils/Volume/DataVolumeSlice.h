@@ -26,34 +26,42 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Utils/Volume/Volume.h>
+#ifndef UTILS_VOLUME_DATAVOLUMESLICE_H
+#define UTILS_VOLUME_DATAVOLUMESLICE_H
+
+#include <Utils/DataBlock/DataBlock.h>
+#include <Utils/Volume/DataVolume.h>
+#include <Utils/Volume/VolumeSlice.h>
 
 namespace Utils
 {
 
-Volume::Volume( const GridTransform& grid_transform, VolumeType type ) :
-	type_( type ), grid_transform_( grid_transform )
-{
-	this->nx_ = this->grid_transform_.nx();
-	this->ny_ = this->grid_transform_.ny();
-	this->nz_ = this->grid_transform_.nz();
+class DataVolumeSlice;
+typedef boost::shared_ptr< DataVolumeSlice > DataVolumeSliceHandle;
 
-	this->inverse_grid_transform_ = this->grid_transform_.transform().get_inverse();
-}
-
-Volume::~Volume()
+class DataVolumeSlice : public VolumeSlice
 {
-}
+public:
+	DataVolumeSlice( const DataVolumeHandle& data_volume, 
+		VolumeSliceType type = VolumeSliceType::AXIAL_E, size_t slice_num = 0 );
+	virtual ~DataVolumeSlice() {}
 
-Point Volume::apply_grid_transform( const Point& pt ) const
-{
-	return this->grid_transform_ * pt;
-}
+	inline double get_data_at ( size_t i, size_t j ) const
+	{
+		return this->data_block_->get_data_at( this->to_index( i, j ) );
+	}
 
-Point Volume::apply_inverse_grid_transform( const Point& pt ) const
-{
-	return this->inverse_grid_transform_ * pt;
-}
+	inline void set_data_at( size_t i, size_t j, double value ) 
+	{
+		this->data_block_->set_data_at( this->to_index( i, j ), value );
+	}
+
+private:
+	// Pointer to the data block. The base class keeps a handle of the volume,
+	// so it is safe to use a pointer here.
+	DataBlock* data_block_;
+};
 
 } // end namespace Utils
 
+#endif

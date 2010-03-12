@@ -26,35 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Utils/DataBlock/DataSlice.h>
-#include <Utils/Geometry/Point.h>
+#include <Utils/Volume/DataVolumeSlice.h>
 
 namespace Utils
 {
 
-DataSlice::DataSlice( const DataBlockHandle& data_block, 
-					 SliceType slice_type, size_t slice_num ) :
-	data_block_( data_block ), slice_type_( slice_type ), slice_number_ ( slice_num ),
-	slice_changed_( true )
+DataVolumeSlice::DataVolumeSlice( const DataVolumeHandle& data_volume, 
+								 VolumeSliceType type, size_t slice_num ) :
+	VolumeSlice( data_volume, type, slice_num )
 {
-	this->index_func_[0] = boost::bind( &DataBlock::to_index, this->data_block_, 
-		_1, _2, boost::bind( &DataSlice::slice_number, this ) );
-	this->index_func_[1] = boost::bind( &DataBlock::to_index, this->data_block_,
-		_2, boost::bind( &DataSlice::slice_number, this ), _1 );
-	this->index_func_[2] = boost::bind( &DataBlock::to_index, this->data_block_,
-		boost::bind( &DataSlice::slice_number, this ), _1, _2 );
-
-	this->width_func_[0] = boost::bind( &DataBlock::nx, this->data_block_ );
-	this->width_func_[1] = boost::bind( &DataBlock::nz, this->data_block_ );
-	this->width_func_[2] = boost::bind( &DataBlock::ny, this->data_block_ );
-
-	this->height_func_[0] = boost::bind( &DataBlock::ny, this->data_block_ );
-	this->height_func_[1] = boost::bind( &DataBlock::nx, this->data_block_ );
-	this->height_func_[2] = boost::bind( &DataBlock::nz, this->data_block_ );
-}
-
-DataSlice::~DataSlice()
-{
+	this->data_block_ = data_volume->data_block().get();
+	this->add_connection( this->data_block_->data_changed_signal_.connect( 
+		boost::bind( &VolumeSlice::volume_updated, this ) ) );
 }
 
 } // end namespace Utils
