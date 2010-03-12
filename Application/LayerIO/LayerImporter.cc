@@ -26,47 +26,71 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_APPMENU_H
-#define INTERFACE_APPINTERFACE_APPMENU_H
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif 
-
-#include <QMenuBar>
-#include <QAction>
-#include <QMainWindow>
-
-#include <Interface/AppInterface/ViewerInterface.h>
-#include <Interface/AppInterface/ViewAction.h>
-#include <Interface/AppInterface/AppLayerIO.h>
+// Application includes
+#include <Application/LayerIO/LayerImporter.h>
 
 namespace Seg3D
 {
 
-class AppMenu : public QObject
+LayerImporter::LayerImporter( const std::string& filename ) :
+	filename_( filename )
 {
-Q_OBJECT
-// -- constructor / destructor --    
-public:
-	AppMenu( QMainWindow* parent = 0 );
-	virtual ~AppMenu();
+}
 
-	// -- functions for building menus --
-private:
-	void create_file_menu( QMenu* menu );
-	void create_edit_menu( QMenu* menu );
-	void create_layer_menu( QMenu* menu );
-	void create_view_menu( QMenu* menu );
-	void create_tool_menu( QMenu* menu );
-	void create_filter_menu( QMenu* menu );
-	void create_window_menu( QMenu* menu );
-	
-	// Keep a pointer to the main window
-	QMainWindow*  main_window_;
-};
+LayerImporter::~LayerImporter()
+{
+}
 
-} // end namespace Seg3D
+std::string LayerImporter::get_filename() 
+{ 
+	return filename_; 
+}
 
-#endif
+bool LayerImporter::import_header()
+{
+	return false;
+}
 
+bool LayerImporter::import_data()
+{
+	return false;
+}
+
+Utils::GridTransform LayerImporter::get_grid_transform()
+{
+	Utils::GridTransform identity(1,1,1);
+	return identity;
+}
+
+bool LayerImporter::is_data_volume_compatible()
+{
+	return false;
+}
+
+bool LayerImporter::is_mask_volume_compatible()
+{
+	return false;
+}
+
+bool LayerImporter::is_label_volume_compatible()
+{
+	return false;
+}
+
+bool LayerImporter::import_as_datavolume( LayerHandle& layer )
+{
+	return false;
+}
+
+bool LayerImporter::import_as_maskvolume( std::vector<LayerHandle>& layers,
+		LayerMaskImporterMode mode )
+{
+	return false;
+}
+
+bool LayerImporter::import_as_labelvolume( LayerHandle& layer )
+{
+	return false;
+}
+
+} // end namespace seg3D
