@@ -26,68 +26,56 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_QTWIDGETS_LAYERMANAGERWIDGET_H
-#define INTERFACE_QTWIDGETS_LAYERMANAGERWIDGET_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONINSERTLAYER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONINSERTLAYER_H
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif
-
-// Qt includes
-#include <QtGui>
-
-// Application Includes
-#include <Utils/Core/EnumClass.h>
-
+#include <Application/Action/Actions.h>
+#include <Application/Interface/Interface.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Interface/AppInterface/LayerGroupWidget.h>
 
 namespace Seg3D
 {
 	
-// enum for layer types
-SCI_ENUM_CLASS
-(
-	LayerType,
-	DATA_LAYER_E = 1, 
-	MASK_LAYER_E = 2, 
-	LABEL_LAYER_E = 3
-)
+	class ActionInsertLayer : public Action
+	{
+		SCI_ACTION_TYPE( "InsertLayer", "Insert Layer <name>", ActionPropertiesType::LAYER_E )
+		
+		// -- Constructor/Destructor --
+	public:
+		ActionInsertLayer()
+		{
+			add_argument( group_id_ );
+		}
+		
+		virtual ~ActionInsertLayer()
+		{
+		}
+		
+		// -- Functions that describe action --
+	public:
+		virtual bool validate( ActionContextHandle& context );
+		virtual bool run( ActionContextHandle& context, ActionResultHandle& result );
+		
+		// -- Action parameters --
+	private:
+		// ToolID that is requested
+		ActionParameter< std::string > group_id_;
+		LayerGroupWeakHandle layer_group_handle_;
+		LayerHandle layer_handle_;
+		
+		// -- Dispatch this action from the interface --
+	public:
+		// CREATE
+		// Create action that moves the layer above
+		static ActionHandle Create( const std::string& name );
+		
+		// DISPATCH
+		// Create and dispatch action that moves the layer above 
+		static void Dispatch( LayerHandle layer );
+		static void Dispatch( LayerGroupHandle group );
+		
+	};
 	
-	
-
-//class LayerManagerWidgetPrivate;
-//typedef boost::shared_ptr< LayerManagerWidgetPrivate > LayerManagerWidgetPrivateHandle_type;
-
-class LayerManagerWidget : public QScrollArea
-{
-	// Needed to make it a Qt object
-Q_OBJECT
-
-//constructor - destructor
-public:
-	LayerManagerWidget( QWidget *parent = 0 );
-	virtual ~LayerManagerWidget();
-
-
-public:
-	void process_group( LayerGroupHandle group );
-	//void find_and_delete( LayerGroupWidget_handle group_to_delete );
-	
-
-private:
-	// private Qt GUI Components for the LayerManagerWidget
-	QWidget* main_;
-	QVBoxLayout* main_layout_;
-	QVBoxLayout* group_layout_;
-	
-
-private:
-	QList< LayerGroupWidget_handle > group_list_;
-	//void clean_out_layers( LayerGroupHandle group_to_clean );
-
-};
-
-} //endnamespace Seg3d
+} // end namespace Seg3D
 
 #endif
