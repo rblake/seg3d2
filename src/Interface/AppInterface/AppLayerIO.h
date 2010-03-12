@@ -26,44 +26,28 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_APPMENU_H
-#define INTERFACE_APPINTERFACE_APPMENU_H
+#ifndef INTERFACE_APPINTERFACE_APPLAYERIO_H
+#define INTERFACE_APPINTERFACE_APPLAYERIO_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif 
 
-#include <QMenuBar>
-#include <QAction>
-#include <QMainWindow>
-
-#include <Interface/AppInterface/ViewerInterface.h>
-#include <Interface/AppInterface/ViewAction.h>
-#include <Interface/AppInterface/AppLayerIO.h>
+// #include <Interface/AppInterface/AppLayerImporter.h>
 
 namespace Seg3D
 {
 
-class AppMenu : public QObject
+class AppLayerIO
 {
-Q_OBJECT
-// -- constructor / destructor --    
 public:
-	AppMenu( QMainWindow* parent = 0 );
-	virtual ~AppMenu();
-
-	// -- functions for building menus --
-private:
-	void create_file_menu( QMenu* menu );
-	void create_edit_menu( QMenu* menu );
-	void create_layer_menu( QMenu* menu );
-	void create_view_menu( QMenu* menu );
-	void create_tool_menu( QMenu* menu );
-	void create_filter_menu( QMenu* menu );
-	void create_window_menu( QMenu* menu );
+	// IMPORT:
+	// Import a layer into the LayerManager
+	static void Import( QMainWindow* main_window );
 	
-	// Keep a pointer to the main window
-	QMainWindow*  main_window_;
+	// EXPORT:
+	// Export the current layer to file
+	static void Export( QMainWindow* main_window );
 };
 
 } // end namespace Seg3D
