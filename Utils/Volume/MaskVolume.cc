@@ -33,7 +33,7 @@ namespace Utils
 
 MaskVolume::MaskVolume( const GridTransform& grid_transform, 
 					   const MaskDataBlockHandle& mask_data_block ) :
-	Volume( grid_transform, VolumeType::MASK_E ),
+	Volume( grid_transform ),
 	mask_data_block_( mask_data_block )
 {
 }
