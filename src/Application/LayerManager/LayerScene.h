@@ -26,28 +26,38 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// STL includes
+#ifndef APPLICATION_LAYERMANAGER_LAYERSCENE_H
+#define APPLICATION_LAYERMANAGER_LAYERSCENE_H
 
-// Boost includes 
+#include <vector>
+#include <boost/shared_ptr.hpp>
 
-#include <Application/Application/Application.h>
-#include <Application/Layer/LabelLayer.h>
+#include <Application/Layer/Layer.h>
 
 namespace Seg3D
 {
 
-LabelLayer::LabelLayer( const std::string& name, const Utils::VolumeHandle& volume ) :
-	Layer( name, volume )
-{
-	// Step (1) : Build the layer specific state variables
+class LayerSceneItem;
+typedef boost::shared_ptr< LayerSceneItem > LayerSceneItemHandle;
 
-}
+typedef std::vector< LayerSceneItemHandle > LayerGroupSceneItem;
+typedef boost::shared_ptr< LayerGroupSceneItem > LayerGroupSceneItemHandle;
 
-LabelLayer::~LabelLayer()
+typedef std::vector< LayerGroupSceneItemHandle > LayerScene;
+typedef boost::shared_ptr< LayerScene > LayerSceneHandle;
+
+class LayerSceneItem
 {
-	// Disconnect all current connections
-	disconnect_all();
-}
+public:
+	LayerSceneItem() {}
+	~LayerSceneItem() {}
+
+public:
+	Utils::VolumeHandle volume_;
+	double opacity_;
+	Utils::GridTransform grid_transform_;
+};
 
 } // end namespace Seg3D
 
+#endif
