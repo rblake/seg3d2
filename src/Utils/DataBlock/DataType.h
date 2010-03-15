@@ -26,51 +26,57 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef UTILS_VOLUME_MASKVOLUME_H
-#define UTILS_VOLUME_MASKVOLUME_H
+#ifndef UTILS_DATABLOCK_DATATYPE_H
+#define UTILS_DATABLOCK_DATATYPE_H
 
-#include <Utils/DataBlock/MaskDataBlock.h>
-#include <Utils/DataBlock/NrrdData.h>
-#include <Utils/Volume/Volume.h>
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
+
+// STL includes
+#include <string>
+
+// Utils includes
+#include <Utils/Core/EnumClass.h>
 
 namespace Utils
 {
 
-class MaskVolume;
-typedef boost::shared_ptr< MaskVolume > MaskVolumeHandle;
+// CLASS DataType:
+// This class describes the data types that the program uses
 
-class MaskVolume : public Volume
-{
-public:
-	MaskVolume( const GridTransform& grid_transform, const MaskDataBlockHandle& mask_data_block );
-	virtual ~MaskVolume() {}
+SCI_ENUM_CLASS
+(
+	DataType,
+	CHAR_E = 0, 
+	UCHAR_E, 
+	SHORT_E, 
+	USHORT_E, 
+	INT_E, 
+	UINT_E,
+	LONGLONG_E,
+	ULONGLONG_E, 
+	FLOAT_E, 
+	DOUBLE_E, 
+	UNKNOWN_E
+)
 
-	virtual VolumeType type() const
-	{
-		return VolumeType::MASK_E;
-	}
+// IMPORT FROM STRING:
+// Import a DataType from a string
+// NOTE: If the import fails UNKNOWN_E is returned and the function returns false
+bool ImportFromString( const std::string& data_type_string, DataType& data_type_string );
 
-	// MASK_DATA_BLOCK:
-	// Get the datablock that contains the mask
-	MaskDataBlockHandle mask_data_block()
-	{
-		return this->mask_data_block_;
-	}
+// EXPORT TO STRING:
+// Export the data type to a string
+std::string ExportToString( DataType data_type );
 
-	virtual mutex_type& get_mutex()
-	{
-		return this->mask_data_block_->get_mutex();
-	}
+// IS INTEGER
+// Test whether data type is an integer 
+bool IsInteger( const DataType& data_type );
 
-private:
-	// Handle to where the mask volume is really stored
-	MaskDataBlockHandle mask_data_block_;
-
-public:
-	// CREATEMASKVOLUMEFROMNRRD:
-	// Create a data volume from a nrrd
-	static VolumeHandle CreateMaskVolumeFromNrrd( NrrdDataHandle& nrrddata );
-};
+// IS REAL
+// Test whether data is floating point
+bool IsReal( const DataType& data_type );
 
 } // end namespace Utils
 
