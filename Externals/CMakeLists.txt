@@ -36,6 +36,13 @@ MESSAGE(STATUS "Configuring zlib")
 ADD_SUBDIRECTORY(zlib)
 
 ##################################################
+# ADDING MATLABIO
+##################################################
+
+MESSAGE(STATUS "Configuring MatlabIO")
+ADD_SUBDIRECTORY(MatlabIO)
+
+##################################################
 # ADDING LIBPNG
 ##################################################
 
