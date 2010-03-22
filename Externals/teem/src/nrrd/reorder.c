@@ -299,7 +299,8 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes) {
 int
 nrrdShuffle(Nrrd *nout, const Nrrd *nin, unsigned int axis,
             const size_t *perm) {
-  static const char me[]="nrrdShuffle", func[]="shuffle", err[BIFF_STRLEN];
+  const char me[]="nrrdShuffle", func[]="shuffle";
+  char err[BIFF_STRLEN];
   char buff2[AIR_STRLEN_SMALL];
   /* Sun Feb 8 13:13:58 CST 2009: There was a memory bug here caused
      by using the same buff1[NRRD_DIM_MAX*30] declaration that had
@@ -589,7 +590,7 @@ nrrdFlip(Nrrd *nout, const Nrrd *nin, unsigned int axis) {
 */
 int
 nrrdReflect(Nrrd *nout, const Nrrd *nin, unsigned int axis) {
-  char me[]="nrrdReflect", func[]="reflect", err[BIFF_STRLEN];
+  char me[]="nrrdReflect", err[BIFF_STRLEN];
   size_t *perm, si;
   airArray *mop;
   unsigned int axisIdx;
