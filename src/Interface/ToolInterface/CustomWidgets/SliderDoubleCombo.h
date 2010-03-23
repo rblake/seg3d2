@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,37 +26,53 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_GRADIENTMAGNITUDEFILTERINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_GRADIENTMAGNITUDEFILTERINTERFACE_H
+#ifndef INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_SLIDERDOUBLECOMBO_H
+#define INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_SLIDERDOUBLECOMBO_H
 
-// Utils includes
-#include <Utils/Core/Log.h>
+// QT Includes
+#include <QtGui>
 
-// Application includes
-#include <Application/Tool/ToolFactory.h>
+#include <boost/shared_ptr.hpp>
 
-// Base class of the tool widget
-#include <Interface/AppInterface/ToolWidget.h>
-
-namespace Seg3D
+namespace Seg3D 
 {
 
-class GradientMagnitudeFilterInterfacePrivate;
+class SliderDoubleComboPrivate;
 
-class GradientMagnitudeFilterInterface : public ToolWidget
+class SliderDoubleCombo : public QWidget
 {
 Q_OBJECT
 
+Q_SIGNALS:
+	void valueAdjusted( double );
+    void rangeChanged( double, double );
+// -- constructor/destructor --
 public:
-	GradientMagnitudeFilterInterface();
-	virtual ~GradientMagnitudeFilterInterface();
-	virtual bool build_widget( QFrame* frame );
+    SliderDoubleCombo( QWidget* parent = 0, bool edit_range = false );
+    virtual ~SliderDoubleCombo();
+    
+public Q_SLOTS:
+    void setStep( double );
+	void setRange( double, double );
+	void setCurrentValue( double );
+	void set_all( double min, double max, double value );
 
+    
+// -- widget internals -- 
 private:
-    boost::shared_ptr< GradientMagnitudeFilterInterfacePrivate > private_;
-
+    boost::shared_ptr< SliderDoubleComboPrivate > private_;
+    
+private Q_SLOTS:
+    void edit_ranges( bool edit );
+    void change_min( double new_min );
+    void change_max( double new_max );
+    void double_range();
+    void half_range();
+    void slider_signal( int value );
+    void spinner_signal( double value );
+  
 };
 
-} // end namespace Seg3D
+}  // end namespace Seg3D
 
 #endif
