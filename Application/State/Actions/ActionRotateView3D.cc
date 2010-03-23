@@ -31,8 +31,7 @@
 namespace Seg3D
 {
 
-SCI_REGISTER_ACTION(RotateView3D)
-;
+SCI_REGISTER_ACTION(RotateView3D);
 
 ActionRotateView3D::ActionRotateView3D()
 {
@@ -58,41 +57,42 @@ bool ActionRotateView3D::validate( ActionContextHandle& context )
 		}
 
 		if ( typeid(*state) != typeid(StateView3D) )
-			{
-				context->report_error( std::string( "State variable '" ) + stateid_.value()
-				    + "' doesn't support ActionRotateView3D" );
-				return false;
-			}
-
-			this->view3d_state_ = StateView3DWeakHandle(
-			    boost::dynamic_pointer_cast< StateView3D >( state ) );
+		{
+			context->report_error( std::string( "State variable '" ) + stateid_.value()
+			    + "' doesn't support ActionRotateView3D" );
+			return false;
 		}
 
+		this->view3d_state_ = StateView3DWeakHandle(
+		    boost::dynamic_pointer_cast< StateView3D >( state ) );
+	}
+
+	return true;
+}
+
+bool ActionRotateView3D::run( ActionContextHandle& context, ActionResultHandle& result )
+{
+	StateView3DHandle state = this->view3d_state_.lock();
+
+	if ( state )
+	{
+		state->rotate( this->axis_.value(), this->angle_.value() );
 		return true;
 	}
 
-	bool ActionRotateView3D::run( ActionContextHandle& context, ActionResultHandle& result )
-	{
-		StateView3DHandle state = this->view3d_state_.lock();
+	return false;
+}
 
-		if ( state )
-		{
-			state->rotate( this->axis_.value(), this->angle_.value() );
-			return true;
-		}
+void ActionRotateView3D::Dispatch( StateView3DHandle& view3d_state, const Utils::Vector& axis,
+    double angle )
+{
+	ActionRotateView3D* action = new ActionRotateView3D;
+	action->stateid_.value() = view3d_state->stateid();
+	action->axis_.value() = axis;
+	action->angle_.value() = angle;
+	action->view3d_state_ = StateView3DWeakHandle( view3d_state );
 
-		return false;
-	}
+	Interface::PostAction( ActionHandle( action ) );
+}
 
-	void ActionRotateView3D::Dispatch( StateView3DHandle& view3d_state, const Utils::Vector& axis,
-	    double angle )
-	{
-		ActionRotateView3D* action = new ActionRotateView3D;
-		action->stateid_.value() = view3d_state->stateid();
-		action->axis_.value() = axis;
-		action->angle_.value() = angle;
-		action->view3d_state_ = StateView3DWeakHandle( view3d_state );
-
-		Interface::PostAction( ActionHandle( action ) );
-	}
-	}
+} // end namespace Seg3D

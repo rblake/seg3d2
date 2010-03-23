@@ -26,26 +26,26 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#include <Application/Action/ActionFactory.h>
 #include <Application/State/StateEngine.h>
-#include <Application/State/Actions/ActionSet.h>
+#include <Application/State/Actions/ActionSetRange.h>
 
 namespace Seg3D
 {
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-SCI_REGISTER_ACTION(Set);
+SCI_REGISTER_ACTION(SetRange);
 
-bool ActionSet::validate( ActionContextHandle& context )
+ActionSetRange::ActionSetRange()
 {
-	// Check whether the state exists
+	add_argument( this->stateid_ );
+	add_argument( this->min_value_ );
+	add_argument( this->max_value_ );
+}
 
-	// NOTE: We use lock() to avoid constructor from throwing an exception
-	StateBaseHandle state( state_weak_handle_.lock() );
-
-	// If not the state cannot be retrieved report an error
-	if ( !state.get() )
+bool ActionSetRange::validate(  ActionContextHandle& context )
+{
+	StateBaseHandle state = this->state_weak_handle_.lock();
+	if ( !state )
 	{
 		if ( !( StateEngine::Instance()->get_state( stateid_.value(), state ) ) )
 		{
@@ -53,35 +53,42 @@ bool ActionSet::validate( ActionContextHandle& context )
 			    + "'" );
 			return false;
 		}
-		state_weak_handle_ = state;
 	}
 
-	// The Variant parameter can contain both the value send from the State in
-	// its right format or a string in case it is send from a script.
-	// In any case we need to validate whether the value can be transcribed into
-	// the type we want.
-
-	std::string error;
-	if ( !( state->validate_variant( state_value_, error ) ) )
+	if ( typeid( *state ) != typeid( StateRangedInt ) &&
+		 typeid( *state ) != typeid( StateRangedDouble ) )
 	{
-		context->report_error( error );
+		context->report_error( std::string( "State variable '" ) + stateid_.value()
+		    + "' doesn't support ActionSetRange" );
 		return false;
 	}
 
+	this->state_weak_handle_ = state;
 	return true;
 }
 
-bool ActionSet::run( ActionContextHandle& context, ActionResultHandle& result )
+bool ActionSetRange::run( ActionContextHandle& context, ActionResultHandle& result )
 {
-	// Get the state
-	StateBaseHandle state( state_weak_handle_.lock() );
-
-	if ( state.get() )
+	StateBaseHandle state = this->state_weak_handle_.lock();
+	if ( state )
 	{
-		// Set the value
-		state->import_from_variant( state_value_, context->source() );
-		context->report_message( "test message" ); // works!! yeay!!
-		return true;
+		if ( typeid( *state ) == typeid( StateRangedInt ) )
+		{
+			StateRangedInt* ranged_int_state = 
+				dynamic_cast< StateRangedInt* >( state.get() );
+			ranged_int_state->set_range( static_cast<int>( this->min_value_.value() ),
+				static_cast<int>( this->max_value_.value() ), context->source() );
+			return true;
+		}
+
+		if ( typeid( *state ) == typeid( StateRangedDouble ) )
+		{
+			StateRangedDouble* ranged_double_state = 
+				dynamic_cast< StateRangedDouble* >( state.get() );
+			ranged_double_state->set_range( this->min_value_.value(), this->max_value_.value(),
+				context->source() );
+			return true;
+		}
 	}
 
 	return false;

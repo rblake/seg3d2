@@ -34,7 +34,7 @@ namespace Seg3D
 {
 
 ActionContext::ActionContext() :
-	status_( ActionStatus::ACTION_SUCCESS_E )
+	status_( ActionStatus::SUCCESS_E )
 {
 }
 
@@ -77,7 +77,7 @@ ActionStatus ActionContext::status()
 
 ActionSource ActionContext::source()
 {
-	return ( ActionSource::ACTION_SOURCE_COMMANDLINE_E );
+	return ( ActionSource::COMMANDLINE_E );
 }
 
 void ActionContext::report_done()
