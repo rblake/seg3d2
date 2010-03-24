@@ -26,63 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_LAYERWIDGET_H
-#define INTERFACE_APPINTERFACE_LAYERWIDGET_H
+#ifndef INTERFACE_APPINTERFACE_STYLESHEET_H
+#define INTERFACE_APPINTERFACE_STYLESHEET_H
 
-// QT Includes
+//Qt Includes
 #include <QtGui>
-
-// Application includes
-#include <Application/Layer/Layer.h>
-
 
 namespace Seg3D
 {
-	
-class LayerGroupWidget;
-typedef QSharedPointer< LayerGroupWidget > LayerGroupWidget_handle;
-	
-class LayerWidget;
-typedef QSharedPointer< LayerWidget > LayerWidget_handle;
 
-
-class LayerWidgetPrivate;
-	
-class LayerWidget : public QWidget
-{
-Q_OBJECT
-
-// -- constructor/destructor --
-public:
-	LayerWidget( QFrame* parent, LayerHandle layer, boost::function< void() > activate_function );
-	virtual ~LayerWidget();
-		
-// -- widget internals --
-	
-//TODO connect to state engine
-public Q_SLOTS:
-	void show_opacity_bar( bool show );
-	void show_brightness_contrast_bar( bool show );
-	void show_border_fill_bar( bool show );
-	void show_color_bar( bool show );
-	void show_progress_bar( bool show );
-	void visual_lock( bool lock );
-	
-public:
-	void show_selection_checkbox( bool hideshow );
-	std::string &get_layer_id();
-	void set_active( bool active );
-	
-private:
-
-    boost::shared_ptr< LayerWidgetPrivate > private_;
     
-	// icons to represent the layer types
-	QIcon data_layer_icon_;
-	QIcon label_layer_icon_;
+// TODO
+// this header file will contain all the static QStrings needed for changing style sheets
 
-};
 
-} //end namespace Seg3D
-
-#endif
+}  // end namespace Seg3D

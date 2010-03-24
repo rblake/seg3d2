@@ -26,63 +26,50 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_LAYERWIDGET_H
-#define INTERFACE_APPINTERFACE_LAYERWIDGET_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONACTIVATELAYER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONACTIVATELAYER_H
 
-// QT Includes
-#include <QtGui>
-
-// Application includes
+#include <Application/Action/Actions.h>
+#include <Application/Interface/Interface.h>
 #include <Application/Layer/Layer.h>
-
 
 namespace Seg3D
 {
-	
-class LayerGroupWidget;
-typedef QSharedPointer< LayerGroupWidget > LayerGroupWidget_handle;
-	
-class LayerWidget;
-typedef QSharedPointer< LayerWidget > LayerWidget_handle;
 
-
-class LayerWidgetPrivate;
-	
-class LayerWidget : public QWidget
+class ActionActivateLayer : public Action
 {
-Q_OBJECT
+SCI_ACTION_TYPE("ActivateLayer", "ActivateLayer <name>", ActionPropertiesType::LAYER_E)
 
-// -- constructor/destructor --
+	// -- Constructor/Destructor --
 public:
-	LayerWidget( QFrame* parent, LayerHandle layer, boost::function< void() > activate_function );
-	virtual ~LayerWidget();
-		
-// -- widget internals --
-	
-//TODO connect to state engine
-public Q_SLOTS:
-	void show_opacity_bar( bool show );
-	void show_brightness_contrast_bar( bool show );
-	void show_border_fill_bar( bool show );
-	void show_color_bar( bool show );
-	void show_progress_bar( bool show );
-	void visual_lock( bool lock );
-	
+	ActionActivateLayer()
+	{
+	}
+
+	virtual ~ActionActivateLayer()
+	{
+	}
+
+	// -- Functions that describe action --
 public:
-	void show_selection_checkbox( bool hideshow );
-	std::string &get_layer_id();
-	void set_active( bool active );
+	virtual bool validate( ActionContextHandle& context );
+	virtual bool run( ActionContextHandle& context, ActionResultHandle& result );
+
+	// -- Dispatch this action from the interface --
+public:
+	// CREATE
+	// Create action that activates a tool
+	//static ActionHandle Create( const std::string& layer_id );
+
+	// DISPATCH
+	// Create and dispatch action that activates a layer
+	static void Dispatch( LayerHandle layer );
 	
 private:
-
-    boost::shared_ptr< LayerWidgetPrivate > private_;
-    
-	// icons to represent the layer types
-	QIcon data_layer_icon_;
-	QIcon label_layer_icon_;
+    LayerHandle layer_handle_;
 
 };
 
-} //end namespace Seg3D
+} // end namespace Seg3D
 
 #endif
