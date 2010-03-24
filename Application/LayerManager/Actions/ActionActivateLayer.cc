@@ -26,63 +26,47 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_LAYERWIDGET_H
-#define INTERFACE_APPINTERFACE_LAYERWIDGET_H
-
-// QT Includes
-#include <QtGui>
-
-// Application includes
-#include <Application/Layer/Layer.h>
-
+#include <Application/LayerManager/LayerManager.h>
+#include <Application/LayerManager/Actions/ActionActivateLayer.h>
 
 namespace Seg3D
 {
-	
-class LayerGroupWidget;
-typedef QSharedPointer< LayerGroupWidget > LayerGroupWidget_handle;
-	
-class LayerWidget;
-typedef QSharedPointer< LayerWidget > LayerWidget_handle;
 
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+SCI_REGISTER_ACTION(ActivateLayer);
 
-class LayerWidgetPrivate;
-	
-class LayerWidget : public QWidget
+bool ActionActivateLayer::validate( ActionContextHandle& context )
 {
-Q_OBJECT
+    if ( !this->layer_handle_ )
+			return false;
+	
+	if ( !( StateEngine::Instance()->is_stateid( layer_handle_->get_layer_id() ) ) )
+	{
+		context->report_error( std::string( "LayerID '" ) + layer_handle_->get_layer_id() + "' is invalid" );
+		return false;
+	}
 
-// -- constructor/destructor --
-public:
-	LayerWidget( QFrame* parent, LayerHandle layer, boost::function< void() > activate_function );
-	virtual ~LayerWidget();
+	return true; // validated
+}
+
+	bool ActionActivateLayer::run( ActionContextHandle& context, ActionResultHandle& result )
+	{
+		if ( this->layer_handle_ )
+		{
+			LayerManager::Instance()->set_active_layer( layer_handle_ );
+			return true;
+		}
 		
-// -- widget internals --
-	
-//TODO connect to state engine
-public Q_SLOTS:
-	void show_opacity_bar( bool show );
-	void show_brightness_contrast_bar( bool show );
-	void show_border_fill_bar( bool show );
-	void show_color_bar( bool show );
-	void show_progress_bar( bool show );
-	void visual_lock( bool lock );
-	
-public:
-	void show_selection_checkbox( bool hideshow );
-	std::string &get_layer_id();
-	void set_active( bool active );
-	
-private:
+		return false;
+	}
+	void ActionActivateLayer::Dispatch( LayerHandle layer )
+	{
+		ActionActivateLayer* action = new ActionActivateLayer;
+		action->layer_handle_ = layer;
+		
+		Interface::PostAction( ActionHandle( action ) );
+	}
 
-    boost::shared_ptr< LayerWidgetPrivate > private_;
-    
-	// icons to represent the layer types
-	QIcon data_layer_icon_;
-	QIcon label_layer_icon_;
-
-};
-
-} //end namespace Seg3D
-
-#endif
+} // end namespace Seg3D

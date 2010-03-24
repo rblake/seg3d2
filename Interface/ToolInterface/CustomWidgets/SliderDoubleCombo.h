@@ -55,8 +55,6 @@ public Q_SLOTS:
     void setStep( double );
 	void setRange( double, double );
 	void setCurrentValue( double );
-	void set_all( double min, double max, double value );
-
     
 // -- widget internals -- 
 private:
@@ -70,6 +68,9 @@ private Q_SLOTS:
     void half_range();
     void slider_signal( int value );
     void spinner_signal( double value );
+
+private:
+    void block_signals( bool block );    
   
 };
 
