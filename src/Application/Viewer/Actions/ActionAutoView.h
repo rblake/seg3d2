@@ -26,37 +26,34 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW_H
-#define APPLICATION_STATE_ACTIONS_ACTIONSCALEVIEW_H
+#ifndef APPLICATION_VIEWER_ACTIONS_ACTIONAUTO_VIEW_H
+#define APPLICATION_VIEWER_ACTIONS_ACTIONAUTO_VIEW_H
 
 #include <Application/Action/Action.h>
-#include <Application/State/StateViewBase.h>
+#include <Application/Viewer/Viewer.h>
 
 namespace Seg3D
 {
 
-class ActionScaleView : public Action
+class ActionAutoView : public Action
 {
-SCI_ACTION_TYPE("Scale", "Scale <key> <ratio>", ActionPropertiesType::APPLICATION_E)
+
+SCI_ACTION_TYPE("AutoView", "AutoView <viewer_id>", ActionPropertiesType::APPLICATION_E)
 
 public:
-	ActionScaleView();
-
-	virtual ~ActionScaleView()
-	{
-	}
+	ActionAutoView();
+	virtual ~ActionAutoView() {}
 
 	virtual bool validate( ActionContextHandle& context );
 	virtual bool run( ActionContextHandle& context, ActionResultHandle& result );
 
 private:
-	ActionParameter< std::string > stateid_;
-	ActionParameter< double > scale_ratio_;
+	ActionParameter< std::string > viewer_name_;
 
-	StateViewBaseWeakHandle state_weak_handle_;
+	ViewerWeakHandle viewer_weak_handle_;
 
 public:
-	static void Dispatch( StateViewBaseHandle& view_state, double ratio );
+	static void Dispatch( ViewerHandle& viewer );
 };
 
 } // end namespace Seg3D

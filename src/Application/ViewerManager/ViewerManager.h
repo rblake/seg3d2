@@ -69,6 +69,7 @@ private:
 
 public:
 	ViewerHandle get_viewer( size_t idx );
+	ViewerHandle get_viewer( const std::string viewer_name );
 
 	// -- State information --
 public:
