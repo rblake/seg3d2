@@ -26,51 +26,51 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RENDER_RENDERRESOURCESCONTEXT_H
-#define APPLICATION_RENDER_RENDERRESOURCESCONTEXT_H
+#ifndef UTILS_RENDERRESOURCES_RENDERCONTEXT_H
+#define UTILS_RENDERRESOURCES_RENDERCONTEXT_H
 
 // Boost includes
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
 
 // Utils includes
 #include <Utils/Core/Log.h>
-#include <Application/Renderer/RenderContext.h>
 
-namespace Seg3D
+namespace Utils
 {
 
 // Forward declarations
-class RenderResourcesContext;
-typedef boost::shared_ptr< RenderResourcesContext > RenderResourcesContextHandle;
+class RenderContext;
+typedef boost::shared_ptr< RenderContext > RenderContextHandle;
 
-// Class definitions
-
-class RenderResourcesContext : public boost::noncopyable
+// Class definition
+class RenderContext
 {
 
 	// -- constructor/ destructor --
 public:
-	RenderResourcesContext();
-	virtual ~RenderResourcesContext();
+	RenderContext();
+	virtual ~RenderContext();
 
-	// -- functions implemented by GUI system --
+	// -- context functions --
+	// IS_VALID:
+	// Test whether the context is valid
+	virtual bool is_valid() = 0;
 
-protected:
+	// MAKE_CURRENT:
+	// Set the rendering context current to this thread
+	virtual void make_current() = 0;
 
-	friend class RenderResources;
+	// DONE_CURRENT:
+	// Indicate that rendering using this context is done for now
+	virtual void done_current() = 0;
 
-	// CREATE_RENDER_CONTEXT:
-	// Generate a render context for one of the viewers
-	virtual bool create_render_context( RenderContextHandle& context ) = 0;
-
-	// VALID_RENDER_RESOURCES:
-	// Check whether valid render resources were installed
-	virtual bool valid_render_resources() = 0;
+	// SWAP_BUFFERS:
+	// Swap the front and back buffers
+	virtual void swap_buffers() = 0;
 
 };
 
-} // end namespace Utils
+} // end namespace Seg3D
 
 #endif

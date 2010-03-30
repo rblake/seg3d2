@@ -57,6 +57,7 @@ ADD_LIBRARY(Utils_Graphics STATIC
             ${UTILS_GRAPHICS_SRCS} )
             
 TARGET_LINK_LIBRARIES(Utils_Graphics
+					  Utils_RenderResources
                       ${SCI_GLEW_LIBRARY}
                       ${SCI_BOOST_LIBRARY})
 
