@@ -28,46 +28,24 @@
 #
 
 ##################################################
-# Import shaders into source files
-##################################################
-
-ADD_CUSTOM_COMMAND(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/SliceShaderFrag
-  COMMAND ShaderImporter ${CMAKE_CURRENT_SOURCE_DIR}/SliceShader.frag ${CMAKE_CURRENT_BINARY_DIR}/SliceShaderFrag
-  DEPENDS ShaderImporter ${CMAKE_CURRENT_SOURCE_DIR}/SliceShader.frag
-  )
-   
-##################################################
 # Set sources
 ##################################################
 
-SET(APPLICATION_RENDERER_SRCS
-  Renderer.h
-  Renderer.cc
-  SliceShader.h
-  SliceShader.cc
-  )
-  
-SET(APPLICATION_RENDERER_SHADER_RAW_SRCS
-  SliceShader.frag
-  )
-
-SET(APPLICATION_RENDERER_SHADER_SRCS
-  SliceShaderFrag
+SET(UTILS_RENDERRESOURCES_SRCS
+  RenderResourcesEventHandler.h
+  RenderResourcesEventHandler.cc
+  RenderResources.h
+  RenderResources.cc
+  RenderResourcesContext.h
+  RenderResourcesContext.cc
+  RenderContext.h
+  RenderContext.cc
   )
 
-
-ADD_LIBRARY(Application_Renderer STATIC 
-            ${APPLICATION_RENDERER_SRCS}
-			${APPLICATION_RENDERER_SHADER_RAW_SRCS}
-			${APPLICATION_RENDERER_SHADER_SRCS})
+ADD_LIBRARY(Utils_RenderResources STATIC 
+            ${UTILS_RENDERRESOURCES_SRCS})
             
-TARGET_LINK_LIBRARIES(Application_Renderer
-                      Utils_Core
-                      Utils_EventHandler
-					  Utils_Graphics
-					  Utils_RenderResources
-                      Application_Viewer
+TARGET_LINK_LIBRARIES(Utils_RenderResources
                       ${SCI_GLEW_LIBRARY}
                       ${SCI_BOOST_LIBRARY})
 

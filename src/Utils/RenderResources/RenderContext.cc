@@ -26,18 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Renderer/RenderResourcesContext.h>
+#include <Utils/RenderResources/RenderContext.h>
 
-namespace Seg3D
+namespace Utils
 {
 
-RenderResourcesContext::RenderResourcesContext()
-{
-}
-
-RenderResourcesContext::~RenderResourcesContext()
+RenderContext::RenderContext()
 {
 }
 
-} // end namespace Seg3D
+RenderContext::~RenderContext()
+{
+}
+
+} // end namespace Utils
 
