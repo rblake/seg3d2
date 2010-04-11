@@ -33,7 +33,7 @@
 namespace Seg3D
 {
 
-SCI_REGISTER_ACTION( AutoView );
+CORE_REGISTER_ACTION( AutoView );
 
 ActionAutoView::ActionAutoView()
 {
