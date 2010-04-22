@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONDISCRETEGAUSSIAN_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONDISCRETEGAUSSIAN_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONCANNYEDGEDETECTION_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONCANNYEDGEDETECTION_H
 
 #include <Application/Action/Actions.h>
 #include <Application/Interface/Interface.h>
@@ -36,17 +36,17 @@
 namespace Seg3D
 {
 	
-class ActionDiscreteGaussian : public Action
+class ActionCannyEdgeDetection : public Action
 {
-CORE_ACTION( "DiscreteGaussian", "Run Discrete Gaussian Filter on: <name>" );
+CORE_ACTION( "CannyEdgeDetection", "Run Canny Edge Detection Filter on: <name>" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionDiscreteGaussian()
+	ActionCannyEdgeDetection()
 	{
 	}
 	
-	virtual ~ActionDiscreteGaussian()
+	virtual ~ActionCannyEdgeDetection()
 	{
 	}
 	
@@ -60,7 +60,8 @@ private:
 	// Layer_handle that is requested
 	std::string layer_alias_;
 	double variance_;
-	double kernelwidth_;
+	double max_error_;
+	double threshold_;
 	bool replace_;
 	
 	// -- Dispatch this action from the interface --
@@ -68,7 +69,7 @@ public:
 		
 	// DISPATCH
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_alias, double variance, double kernelwidth, bool replace );
+	static void Dispatch( std::string layer_alias, double variance, double max_error, double threshold, bool replace );
 	
 };
 	

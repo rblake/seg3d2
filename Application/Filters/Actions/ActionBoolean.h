@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONBINARYDIALATEERODE_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONBINARYDIALATEERODE_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONBOOLEAN_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONBOOLEAN_H
 
 #include <Application/Action/Actions.h>
 #include <Application/Interface/Interface.h>
@@ -36,17 +36,17 @@
 namespace Seg3D
 {
 	
-class ActionBinaryDialateErode : public Action
+class ActionBoolean : public Action
 {
-CORE_ACTION( "BinaryDialateErode", "Run Binary Dialate Erode on: <name>" );
+CORE_ACTION( "Arithmetic", "Run Arithmetic Filter on: <name>" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionBinaryDialateErode()
+	ActionBoolean()
 	{
 	}
 	
-	virtual ~ActionBinaryDialateErode()
+	virtual ~ActionBoolean()
 	{
 	}
 	
@@ -58,9 +58,11 @@ public:
 	// -- Action parameters --
 private:
 	// Layer_handle that is requested
-	std::string layer_alias_;
-	int dialate_;
-	int erode_;
+	std::string mask_a_alias_;
+	std::string mask_b_alias_;
+	std::string mask_c_alias_;
+	std::string mask_d_alias_;
+	std::string expression_;
 	bool replace_;
 	
 	// -- Dispatch this action from the interface --
@@ -68,7 +70,9 @@ public:
 		
 	// DISPATCH
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_alias, int dialate, int erode, bool replace );
+	static void Dispatch( std::string mask_a_alias, std::string mask_b_alias, 
+		std::string mask_c_alias, std::string mask_d_alias,
+		std::string expression, bool replace );
 	
 };
 	
