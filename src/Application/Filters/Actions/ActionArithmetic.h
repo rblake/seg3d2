@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONDISCRETEGAUSSIAN_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONDISCRETEGAUSSIAN_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONARITHMETIC_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONARITHMETIC_H
 
 #include <Application/Action/Actions.h>
 #include <Application/Interface/Interface.h>
@@ -36,17 +36,17 @@
 namespace Seg3D
 {
 	
-class ActionDiscreteGaussian : public Action
+class ActionArithmetic : public Action
 {
-CORE_ACTION( "DiscreteGaussian", "Run Discrete Gaussian Filter on: <name>" );
+CORE_ACTION( "Arithmetic", "Run Arithmetic Filter on: <name>" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionDiscreteGaussian()
+	ActionArithmetic()
 	{
 	}
 	
-	virtual ~ActionDiscreteGaussian()
+	virtual ~ActionArithmetic()
 	{
 	}
 	
@@ -58,9 +58,10 @@ public:
 	// -- Action parameters --
 private:
 	// Layer_handle that is requested
-	std::string layer_alias_;
-	double variance_;
-	double kernelwidth_;
+	std::string layer_a_alias_;
+	std::string layer_b_alias_;
+	std::string layer_c_alias_;
+	std::string expression_;
 	bool replace_;
 	
 	// -- Dispatch this action from the interface --
@@ -68,7 +69,8 @@ public:
 		
 	// DISPATCH
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_alias, double variance, double kernelwidth, bool replace );
+	static void Dispatch( std::string layer_a_alias, std::string layer_b_alias, 
+		std::string layer_c_alias, std::string expression, bool replace );
 	
 };
 	
