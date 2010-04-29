@@ -32,9 +32,9 @@ namespace Seg3D
 {
 
 
-PushDragButton::PushDragButton( QWidget *parent )
+PushDragButton::PushDragButton( QWidget *parent ) :
+	QPushButton( parent )
 {
-	this->setParent( parent );
 }
 
 PushDragButton::~PushDragButton()
