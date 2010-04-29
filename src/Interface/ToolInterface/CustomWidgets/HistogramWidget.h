@@ -25,38 +25,39 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
-#include <sstream>
-#include <iostream>
 
-#include <Utils/Core/Log.h>
+#ifndef INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAMWIDGET_H
+#define INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAMWIDGET_H
 
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
+//Boost includes
+#include <boost/shared_ptr.hpp>
+
+//Qt includes
+#include <QtGui>
+
 
 namespace Seg3D
 {
 
-class ProjectDockWidgetPrivate
+class HistogramWidgetPrivate;
+
+class HistogramWidget : public QWidget
 {
+    Q_OBJECT
+
 public:
+    HistogramWidget( QWidget *parent = 0 );
+    virtual ~HistogramWidget();
+    
+public Q_SLOTS:
+	void set_histogram( std::vector< size_t > ints_bin, int min, int max, 
+		size_t min_bin, size_t max_bin );
 
-	Ui::ProjectDockWidget ui_;
 
+private:
+	boost::shared_ptr< HistogramWidgetPrivate > private_;
 };
 
-ProjectDockWidget::ProjectDockWidget( QWidget *parent ) :
-	QDockWidget( parent ), 
-	private_( new ProjectDockWidgetPrivate )
-{
-	if( private_ )
-	{
-		private_->ui_.setupUi( this );
-	}
-}
-
-ProjectDockWidget::~ProjectDockWidget()
-{
-
-}
-
 } // end namespace Seg3D
+
+#endif

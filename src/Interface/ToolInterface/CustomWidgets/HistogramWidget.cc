@@ -25,38 +25,49 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
-#include <sstream>
-#include <iostream>
 
-#include <Utils/Core/Log.h>
+#include <QtGui>
+#include <time.h>
+#include "ui_HistogramWidget.h"
 
-#include <Interface/AppInterface/ProjectDockWidget.h>
-#include "ui_ProjectDockWidget.h"
+// Interface includes
+#include <Interface/ToolInterface/CustomWidgets/HistogramWidget.h>
+#include <Interface/ToolInterface/CustomWidgets/Histogram.h>
 
 namespace Seg3D
 {
 
-class ProjectDockWidgetPrivate
+class HistogramWidgetPrivate 
 {
 public:
-
-	Ui::ProjectDockWidget ui_;
-
+	Ui::HistogramWidget ui_;
+	Histogram* histogram_;
 };
 
-ProjectDockWidget::ProjectDockWidget( QWidget *parent ) :
-	QDockWidget( parent ), 
-	private_( new ProjectDockWidgetPrivate )
+
+HistogramWidget::HistogramWidget( QWidget *parent ) :
+	QWidget( parent ),
+    private_( new HistogramWidgetPrivate )
 {
-	if( private_ )
-	{
-		private_->ui_.setupUi( this );
-	}
+	this->private_->ui_.setupUi( this );
+	
+	this->private_->histogram_ = new Histogram( this );
+	this->private_->ui_.histogramLayout->addWidget( this->private_->histogram_ );
+	this->setMinimumHeight( 170 );
+	this->private_->ui_.label_3->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 }
 
-ProjectDockWidget::~ProjectDockWidget()
+HistogramWidget::~HistogramWidget()
 {
+}
 
+void HistogramWidget::set_histogram( std::vector< size_t > ints_bin, int min, int max,
+	size_t min_bin, size_t max_bin )
+{
+	this->private_->histogram_->set_bins( ints_bin, min_bin, max_bin );
+	this->private_->ui_.min->setText( QString::number( min ) );
+	this->private_->ui_.max->setText( QString::number( max ) );
+	this->private_->histogram_->repaint();
 }
 
 } // end namespace Seg3D
