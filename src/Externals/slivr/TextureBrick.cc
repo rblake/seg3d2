@@ -32,7 +32,7 @@
 #include <math.h>
 
 #include <slivr/TextureBrick.h>
-#include <slivr/Utils.h>
+#include <slivr/Core.h>
 #include <utility>
 #include <iostream>
 
