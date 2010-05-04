@@ -40,7 +40,7 @@
  */
 
 #include <slivr/Color.h>
-#include <slivr/Utils.h>
+#include <slivr/Core.h>
 
 namespace SLIVR {
 
