@@ -31,7 +31,7 @@
 
 #include <slivr/gldefs.h>
 #include <slivr/ShaderProgramARB.h>
-#include <slivr/Core.h>
+#include <slivr/Utils.h>
 #include <slivr/slivr_debug.h>
 #include <cstring>
 #include <assert.h>

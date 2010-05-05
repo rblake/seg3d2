@@ -41,7 +41,7 @@
 
 #include <slivr/BBox.h>
 #include <slivr/Vector.h>
-#include <slivr/Core.h>
+#include <slivr/Utils.h>
 #include <assert.h>
 #include <math.h>
 
