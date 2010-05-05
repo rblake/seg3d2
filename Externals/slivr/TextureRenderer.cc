@@ -34,7 +34,7 @@
 #include <slivr/TextureRenderer.h>
 #include <slivr/Color.h>
 
-#include <slivr/Core.h>
+#include <slivr/Utils.h>
 #include <slivr/ShaderProgramARB.h>
 #include <slivr/VolShader.h>
 #include <slivr/CM2Widget.h>

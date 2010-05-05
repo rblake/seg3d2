@@ -32,7 +32,7 @@
 
 #include <slivr/CM2Widget.h>
 #include <slivr/ShaderProgramARB.h>
-#include <slivr/Core.h>
+#include <slivr/Utils.h>
 #include <slivr/gldefs.h>
 
 // #ifdef _WIN32

@@ -32,7 +32,7 @@
 #include <slivr/gldefs.h>
 #include <slivr/ShaderProgramARB.h>
 #include <slivr/Texture.h>
-#include <slivr/Core.h>
+#include <slivr/Utils.h>
 
 namespace SLIVR {
 
