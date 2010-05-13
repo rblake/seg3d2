@@ -26,41 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_STATE_STATEVIEWBASE_H
-#define CORE_STATE_STATEVIEWBASE_H
-
-// Boost includes
-#include <boost/smart_ptr.hpp>
-
 // Core includes
-#include <Core/Utils/StringUtil.h>
-#include <Core/Geometry/Point.h>
-#include <Core/Geometry/Vector.h>
-#include <Core/State/StateBase.h>
+#include <Core/DataBlock/ITKImageData.h>
 
 namespace Core
 {
 
-class StateViewBase;
-typedef boost::shared_ptr< StateViewBase > StateViewBaseHandle;
-typedef boost::weak_ptr< StateViewBase > StateViewBaseWeakHandle;
-
-class StateViewBase : public StateBase
+ITKImageData::ITKImageData()
 {
-public:
-	StateViewBase( const std::string& stateid ) :
-		StateBase( stateid )
-	{
-	}
-	
-	virtual ~StateViewBase()
-	{
-	}
+}
 
-	virtual void scale( double ratio ) = 0;
-	virtual void translate( const Vector& offset ) = 0;
-};
+ITKImageData::~ITKImageData()
+{
+}
 
 } // end namespace Core
-
-#endif

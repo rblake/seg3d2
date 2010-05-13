@@ -49,9 +49,9 @@ NrrdDataBlock::NrrdDataBlock( NrrdDataHandle nrrd_data ) :
 {
 	this->private_->nrrd_data_ = nrrd_data;
 
-	set_nx( nrrd_data->nx() );
-	set_ny( nrrd_data->ny() );
-	set_nz( nrrd_data->nz() );
+	set_nx( nrrd_data->get_nx() );
+	set_ny( nrrd_data->get_ny() );
+	set_nz( nrrd_data->get_nz() );
 	set_type( nrrd_data->get_data_type() );
 	set_data( nrrd_data->get_data() );
 }
