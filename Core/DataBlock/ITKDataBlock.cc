@@ -26,41 +26,34 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_STATE_STATEVIEWBASE_H
-#define CORE_STATE_STATEVIEWBASE_H
-
-// Boost includes
-#include <boost/smart_ptr.hpp>
-
 // Core includes
-#include <Core/Utils/StringUtil.h>
-#include <Core/Geometry/Point.h>
-#include <Core/Geometry/Vector.h>
-#include <Core/State/StateBase.h>
+#include <Core/DataBlock/ITKDataBlock.h>
 
 namespace Core
 {
 
-class StateViewBase;
-typedef boost::shared_ptr< StateViewBase > StateViewBaseHandle;
-typedef boost::weak_ptr< StateViewBase > StateViewBaseWeakHandle;
-
-class StateViewBase : public StateBase
+class ITKDataBlockPrivate : public boost::noncopyable
 {
 public:
-	StateViewBase( const std::string& stateid ) :
-		StateBase( stateid )
-	{
-	}
-	
-	virtual ~StateViewBase()
-	{
-	}
-
-	virtual void scale( double ratio ) = 0;
-	virtual void translate( const Vector& offset ) = 0;
+	// Location where the original nrrd is stored
+	ITKImageDataHandle itk_image_data_;
 };
 
-} // end namespace Core
 
-#endif
+ITKDataBlock::ITKDataBlock( ITKImageDataHandle itk_image_data ) :
+	private_( new ITKDataBlockPrivate )
+{
+	this->private_->itk_image_data_ = itk_image_data;
+
+	set_nx( itk_image_data->get_nx() );
+	set_ny( itk_image_data->get_ny() );
+	set_nz( itk_image_data->get_nz() );
+	set_type( itk_image_data->get_data_type() );
+	set_data( itk_image_data->get_data() );
+}
+
+ITKDataBlock::~ITKDataBlock()
+{
+}
+
+} // end namespace Core

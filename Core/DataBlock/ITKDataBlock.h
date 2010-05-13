@@ -26,39 +26,35 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_STATE_STATEVIEWBASE_H
-#define CORE_STATE_STATEVIEWBASE_H
-
-// Boost includes
-#include <boost/smart_ptr.hpp>
+#ifndef CORE_DATABLOCK_ITKDATABLOCK_H
+#define CORE_DATABLOCK_ITKDATABLOCK_H
 
 // Core includes
-#include <Core/Utils/StringUtil.h>
-#include <Core/Geometry/Point.h>
-#include <Core/Geometry/Vector.h>
-#include <Core/State/StateBase.h>
+#include <Core/DataBlock/DataBlock.h>
+#include <Core/DataBlock/ITKImageData.h>
 
 namespace Core
 {
 
-class StateViewBase;
-typedef boost::shared_ptr< StateViewBase > StateViewBaseHandle;
-typedef boost::weak_ptr< StateViewBase > StateViewBaseWeakHandle;
+// Forward Declaration
+class ITKDataBlock;
+typedef boost::shared_ptr< ITKDataBlock > ITKDataBlockHandle;
 
-class StateViewBase : public StateBase
+class ITKDataBlockPrivate;
+typedef boost::shared_ptr< ITKDataBlockPrivate > ITKDataBlockPrivateHandle;
+
+// Class definition
+class ITKDataBlock : public DataBlock
 {
+	// -- Constructor/destructor --
 public:
-	StateViewBase( const std::string& stateid ) :
-		StateBase( stateid )
-	{
-	}
-	
-	virtual ~StateViewBase()
-	{
-	}
+	ITKDataBlock( ITKImageDataHandle itk_data );
+	virtual ~ITKDataBlock();
 
-	virtual void scale( double ratio ) = 0;
-	virtual void translate( const Vector& offset ) = 0;
+	// -- Internal implementation of this class --
+private:
+	ITKDataBlockPrivateHandle private_;
+
 };
 
 } // end namespace Core
