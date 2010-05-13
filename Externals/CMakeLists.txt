@@ -98,6 +98,13 @@ MESSAGE(STATUS "Configuring boost")
 ADD_SUBDIRECTORY(boost)
 
 ##################################################
+# ADDING TINYXML
+##################################################
+
+MESSAGE(STATUS "Configuring tinyxml")
+ADD_SUBDIRECTORY(tinyxml)
+
+##################################################
 # ADDING ITK
 ##################################################
 
