@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONCONNECTEDCOMPONENT_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONCONNECTEDCOMPONENT_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONCONFIDENCECONNECTEDFILTER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONCONFIDENCECONNECTEDFILTER_H
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
@@ -36,17 +36,24 @@
 namespace Seg3D
 {
 	
-class ActionConnectedComponent : public Core::Action
+class ActionConfidenceConnectedFilter : public Core::Action
 {
-CORE_ACTION( "ConnectedComponent", "Run Connected Component Filter on: <name>" );
+CORE_ACTION( "ConfidenceConnectedFilter",
+	"ConfidenceConnectedFilter <layerid> [iterations={10}] [multiplier={1}]" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionConnectedComponent()
+	ActionConfidenceConnectedFilter()
 	{
+		add_argument( this->layer_id_ );
+		
+		add_parameter( "iterations", this->iterations_, 10 );
+		add_parameter( "multiplier", this->multiplier_, 1 );
+		
+		add_cachedhandle( this->layer_ );
 	}
 	
-	virtual ~ActionConnectedComponent()
+	virtual ~ActionConfidenceConnectedFilter()
 	{
 	}
 	
@@ -57,15 +64,23 @@ public:
 	
 	// -- Action parameters --
 private:
-	// Layer_handle that is requested
-	std::string layer_alias_;
+
+	Core::ActionParameter< std::string > layer_id_;
+	Core::ActionParameter< int > iterations_;
+	Core::ActionParameter< int > multiplier_;
+	
+	Core::ActionCachedHandle< LayerHandle > layer_;
 	
 	// -- Dispatch this action from the interface --
 public:
-		
-	// DISPATCH
+
+	// CREATE:	
+	// Create the action, but do not dispatch it
+	static Core::ActionHandle Create( std::string layer_id, int iterations, int multiplier );
+			
+	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_alias );
+	static void Dispatch( std::string layer_id, int iterations, int multiplier );
 	
 };
 	

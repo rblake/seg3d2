@@ -26,50 +26,56 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONCONNECTEDCOMPONENTFILTER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONCONNECTEDCOMPONENTFILTER_H
 
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/Filters/Actions/ActionConnectedComponent.h>
-
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, ConnectedComponent )
+#include <Core/Action/Actions.h>
+#include <Core/Interface/Interface.h>
+#include <Application/Layer/Layer.h>
 
 namespace Seg3D
 {
 	
-bool ActionConnectedComponent::validate( Core::ActionContextHandle& context )
+class ActionConnectedComponentFilter : public Core::Action
 {
-	if( !( Core::StateEngine::Instance()->is_statealias( this->layer_alias_ ) ) )
-	{
-		context->report_error( std::string( "LayerID '" ) + this->layer_alias_ + "' is invalid" );
-		return false;
-	}
-
-	return true;
-}
-
-bool ActionConnectedComponent::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
-{
-	if ( Core::StateEngine::Instance()->is_statealias( this->layer_alias_ ) )
-	{
-		// TODO: run filter
-		context->report_message( "The Connected Component Filter has been triggered "
-			"successfully on layer: "  + this->layer_alias_ );
+CORE_ACTION( "ConnectedComponentFilter", 
+	"ConnectedComponentFilter <layerid> <seedpoints>" );
 		
-		return true;
+	// -- Constructor/Destructor --
+public:
+	ActionConnectedComponentFilter()
+	{
 	}
-		
-	return false;
-}
-
-
-void ActionConnectedComponent::Dispatch( std::string layer_alias )
-{
-	ActionConnectedComponent* action = new ActionConnectedComponent;
-	action->layer_alias_ = layer_alias;
 	
-	Core::Interface::PostAction( Core::ActionHandle( action ) );
-}
+	virtual ~ActionConnectedComponentFilter()
+	{
+	}
+	
+	// -- Functions that describe action --
+public:
+	virtual bool validate( Core::ActionContextHandle& context );
+	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+	
+	// -- Action parameters --
+private:
+	// Layer_handle that is requested
+	Core::ActionParameter< std::string > layer_id_;
+
+	Core::ActionCachedHandle< LayerHandle > layer_;
+		
+	// -- Dispatch this action from the interface --
+public:
+
+	// CREATE:	
+	// Create the action, but do not dispatch it
+	static Core::ActionHandle Create( std::string layer_id );
+			
+	// DISPATCH:
+	// Create and dispatch action that inserts the new layer 
+	static void Dispatch( std::string layer_id );
+	
+};
 	
 } // end namespace Seg3D
+
+#endif

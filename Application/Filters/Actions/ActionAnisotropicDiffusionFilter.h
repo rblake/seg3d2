@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONANISOTROPICDIFFUSION_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONANISOTROPICDIFFUSION_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONANISOTROPICDIFFUSIONFILTER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONANISOTROPICDIFFUSIONFILTER_H
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
@@ -36,17 +36,27 @@
 namespace Seg3D
 {
 	
-class ActionAnisotropicDiffusion : public Core::Action
+class ActionAnisotropicDiffusionFilter : public Core::Action
 {
-CORE_ACTION( "AnisotropicDiffusion", "Run Anisotropic Diffusion Filter on: <name>" );
+CORE_ACTION( "AnisotropicDiffusionFilter", 
+	"AnisotropicDiffusionFilter <layerid> [iterations={10}] [step={2}]"
+	" [conductance={1.0}] [replace={true}]" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionAnisotropicDiffusion()
+	ActionAnisotropicDiffusionFilter()
 	{
+		add_argument( this->layer_id_ );
+		
+		add_parameter( "iterations", this->iterations_, 10 );
+		add_parameter( "step", this->integration_step_, 2 );
+		add_parameter( "conductance", this->conductance_, 1.0 );
+		add_parameter( "replace", this->replace_, true );
+		
+		add_cachedhandle( this->layer_ );
 	}
 	
-	virtual ~ActionAnisotropicDiffusion()
+	virtual ~ActionAnisotropicDiffusionFilter()
 	{
 	}
 	
@@ -57,21 +67,27 @@ public:
 	
 	// -- Action parameters --
 private:
-	// Layer_handle that is requested
-	std::string layer_alias_;
-	int iterations_;
-	int integration_step_;
-	double conductance_;
-	bool replace_;
+
+	Core::ActionParameter< std::string > layer_id_;
+	Core::ActionParameter< int > iterations_;
+	Core::ActionParameter< int > integration_step_;
+	Core::ActionParameter< double > conductance_;
+	Core::ActionParameter< bool > replace_;
 	
+	Core::ActionCachedHandle< LayerHandle > layer_;
 	
 	// -- Dispatch this action from the interface --
 public:
 		
-	// DISPATCH
+	// CREATE:	
+	// Create the action, but do not dispatch it
+	static Core::ActionHandle Create( std::string layer_id, int iterations, 
+		int integration_step, double conductance, bool replace );
+		
+	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_alias, int iterations, int integration_step, 
-						 double conductance, bool replace );
+	static void Dispatch( std::string layer_id, int iterations, int integration_step, 
+		double conductance, bool replace );
 	
 };
 	
