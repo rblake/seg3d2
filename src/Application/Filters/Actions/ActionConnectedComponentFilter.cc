@@ -28,63 +28,49 @@
 
 
 #include <Application/LayerManager/LayerManager.h>
-#include <Application/Filters/Actions/ActionCannyEdgeDetection.h>
+#include <Application/Filters/Actions/ActionConnectedComponentFilter.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
 // registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, CannyEdgeDetection )
+CORE_REGISTER_ACTION( Seg3D, ConnectedComponentFilter )
 
 namespace Seg3D
 {
 	
-bool ActionCannyEdgeDetection::validate( Core::ActionContextHandle& context )
+bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& context )
 {
-	if( !( Core::StateEngine::Instance()->is_statealias( this->layer_alias_ ) ) )
+	this->layer_.handle() = LayerManager::Instance()->get_layer_by_id( this->layer_id_.value() );
+
+	if ( ! this->layer_.handle() )
 	{
-		context->report_error( std::string( "LayerID '" ) + this->layer_alias_ + "' is invalid" );
+		context->report_error( std::string( "LayerID '" ) + this->layer_id_.value() +
+			std::string( "' is not valid." ) );
 		return false;
 	}
-	if( this->variance_ < 0 )
-	{
-		return false;
-	}
-	if( this->max_error_ < 0 )
-	{
-		return false;
-	}
-	if( this->threshold_ < 0 )
-	{
-		return false;
-	}
+	
 	return true;
 }
 
-bool ActionCannyEdgeDetection::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
+bool ActionConnectedComponentFilter::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
 {
-	if ( Core::StateEngine::Instance()->is_statealias( this->layer_alias_ ) )
-	{
-		// TODO: run filter
-		context->report_message( "The Canny Edge Detection Filter has been triggered "
-			"successfully on layer: "  + this->layer_alias_ );
-		return true;
-	}
-		
-	return false;
+	// TODO: run filter
+	context->report_message( std::string( "The ActionConnectedComponentFilter has been triggered "
+		"successfully on layer: " ) + this->layer_.handle()->name_state_->get() );
+	return true;
 }
 
-
-void ActionCannyEdgeDetection::Dispatch( std::string layer_alias, double variance, 
-	double max_error, double threshold, bool replace )
+Core::ActionHandle ActionConnectedComponentFilter::Create( std::string layer_id )
 {
-	ActionCannyEdgeDetection* action = new ActionCannyEdgeDetection;
-	action->layer_alias_ = layer_alias;
-	action->variance_ = variance;
-	action->max_error_ = max_error;
-	action->threshold_ = threshold;
-	action->replace_ = replace;
+	ActionConnectedComponentFilter* action = new ActionConnectedComponentFilter;
+	action->layer_id_.value() = layer_id;
 	
-	Core::Interface::PostAction( Core::ActionHandle( action ) );
+	return Core::ActionHandle( action );
+}
+
+void ActionConnectedComponentFilter::Dispatch( std::string layer_id )
+{
+	Core::Interface::PostAction( Create( layer_id ) );
 }
 	
 } // end namespace Seg3D

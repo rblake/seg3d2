@@ -26,27 +26,34 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONBOOLEAN_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONBOOLEAN_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONBINARYDILATEERODEFILTER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONBINARYDILATEERODEFILTER_H
 
 #include <Core/Action/Actions.h>
-#include <Core/Interface/Interface.h>
 #include <Application/Layer/Layer.h>
 
 namespace Seg3D
 {
 	
-class ActionBoolean : public Core::Action
+class ActionBinaryDilateErodeFilter : public Core::Action
 {
-CORE_ACTION( "Boolean", "Run Boolean Filter on: <name>" );
+CORE_ACTION( "BinaryDialateErodeFilter", 
+	"BinaryDialateErodeFilter <layerid> [dilate={0}] [erode={0}] [replace={true}]" );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionBoolean()
+	ActionBinaryDilateErodeFilter()
 	{
+		add_argument( layer_id_ );
+		
+		add_parameter( "dilate", dilate_, 0 );
+		add_parameter( "erode", erode_, 0 );
+		add_parameter( "replace", replace_, true );
+		
+		add_cachedhandle( layer_ );
 	}
 	
-	virtual ~ActionBoolean()
+	virtual ~ActionBinaryDilateErodeFilter()
 	{
 	}
 	
@@ -57,22 +64,23 @@ public:
 	
 	// -- Action parameters --
 private:
-	// Layer_handle that is requested
-	std::string mask_a_alias_;
-	std::string mask_b_alias_;
-	std::string mask_c_alias_;
-	std::string mask_d_alias_;
-	std::string expression_;
-	bool replace_;
+	Core::ActionParameter< std::string > layer_id_;
+	Core::ActionParameter< int > dilate_;
+	Core::ActionParameter< int > erode_;
+	Core::ActionParameter< bool > replace_;
 	
+	Core::ActionCachedHandle< LayerHandle > layer_;
+
 	// -- Dispatch this action from the interface --
 public:
-		
-	// DISPATCH
-	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string mask_a_alias, std::string mask_b_alias, 
-		std::string mask_c_alias, std::string mask_d_alias,
-		std::string expression, bool replace );
+
+	// CREATE:
+	// Create the action, but do not post it.
+	static Core::ActionHandle Create( std::string layer_id, int dilate, int erode, bool replace );
+			
+	// DISPATCH:
+	// Create and dispatch action.
+	static void Dispatch( std::string layer_id, int dilate, int erode, bool replace );
 	
 };
 	

@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOL_ACTIONS_ACTIONARITHMETIC_H
-#define APPLICATION_TOOL_ACTIONS_ACTIONARITHMETIC_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONCANNYEDGEDETECTIONFILTER_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONCANNYEDGEDETECTIONFILTER_H
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
@@ -36,17 +36,18 @@
 namespace Seg3D
 {
 	
-class ActionArithmetic : public Core::Action
+class ActionCannyEdgeDetectionFilter : public Core::Action
 {
-CORE_ACTION( "Arithmetic", "Run Arithmetic Filter on: <name>" );
+CORE_ACTION( "CannyEdgeDetectionFilter", "CannyEdgeDetectionFilter <layerid> [variance={2.0}] "
+	"[max_error={1.0}] [threshold={1.0}] [replace={true}]"  );
 	
 	// -- Constructor/Destructor --
 public:
-	ActionArithmetic()
+	ActionCannyEdgeDetectionFilter()
 	{
 	}
 	
-	virtual ~ActionArithmetic()
+	virtual ~ActionCannyEdgeDetectionFilter()
 	{
 	}
 	
@@ -57,20 +58,27 @@ public:
 	
 	// -- Action parameters --
 private:
-	// Layer_handle that is requested
-	std::string layer_a_alias_;
-	std::string layer_b_alias_;
-	std::string layer_c_alias_;
-	std::string expression_;
-	bool replace_;
+
+	Core::ActionParameter< std::string > layer_id_;
+	Core::ActionParameter< double > variance_;
+	Core::ActionParameter< double > max_error_;
+	Core::ActionParameter< double > threshold_;
+	Core::ActionParameter< bool > replace_;
+	
+	Core::ActionCachedHandle< LayerHandle > layer_;
 	
 	// -- Dispatch this action from the interface --
 public:
 		
-	// DISPATCH
+	// CREATE:	
+	// Create the action, but do not dispatch it
+	static Core::ActionHandle Create( std::string layer_id, double variance, double max_error, 
+		double threshold, bool replace );		
+		
+	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
-	static void Dispatch( std::string layer_a_alias, std::string layer_b_alias, 
-		std::string layer_c_alias, std::string expression, bool replace );
+	static void Dispatch( std::string layer_id, double variance, double max_error, 
+		double threshold, bool replace );
 	
 };
 	
