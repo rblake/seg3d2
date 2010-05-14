@@ -43,11 +43,11 @@ bool ActionInsertLayer::validate( Core::ActionContextHandle& context )
 	if ( !this->layer_handle_ )
 		return false;
 	
-	if ( !( Core::StateEngine::Instance()->is_stateid( layer_handle_->get_layer_id() ) ) )
-    {
-	    context->report_error( std::string( "LayerID '" ) + layer_handle_->get_layer_id() + "' is invalid" );
-	    return false;
-    }
+	//if ( !( Core::StateEngine::Instance()->is_stateid( layer_handle_->get_layer_id() ) ) )
+ //   {
+	//    context->report_error( std::string( "LayerID '" ) + layer_handle_->get_layer_id() + "' is invalid" );
+	//    return false;
+ //   }
 	
 	return true;
 
