@@ -26,35 +26,15 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_ANISOTROPICDIFFUSIONFILTERINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_ANISOTROPICDIFFUSIONFILTERINTERFACE_H
+#include <boost/signals2.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+#include <boost/utility.hpp>
+#include <boost/smart_ptr.hpp>
+#include <boost/date_time.hpp>
+#include <boost/bind.hpp>
+#include <boost/asio.hpp>
+ 
+#include <QtCore>
+#include <QtGui>
 
-// Base class of the tool widget
-#include <Interface/AppInterface/ToolWidget.h>
-
-namespace Seg3D
-{
-
-class AnisotropicDiffusionFilterInterfacePrivate;
-
-class AnisotropicDiffusionFilterInterface : public ToolWidget
-{
-Q_OBJECT
-
-// Constructor/destructor
-public:
-	AnisotropicDiffusionFilterInterface();
-	virtual ~AnisotropicDiffusionFilterInterface();
-	virtual bool build_widget( QFrame* frame );
-
-private Q_SLOTS:
-	void execute_filter();
-	void enable_run_filter( bool valid );
-
-private:
-	boost::shared_ptr< AnisotropicDiffusionFilterInterfacePrivate > private_;
-};
-
-} // namespace Seg3D
-
-#endif
