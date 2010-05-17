@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,35 +26,24 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_ANISOTROPICDIFFUSIONFILTERINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_ANISOTROPICDIFFUSIONFILTERINTERFACE_H
+#ifndef APPLICATION_LAYER_LAYERFWD_H
+#define APPLICATION_LAYER_LAYERFWD_H
 
-// Base class of the tool widget
-#include <Interface/AppInterface/ToolWidget.h>
+// Boost includes 
+#include <boost/shared_ptr.hpp>
 
 namespace Seg3D
 {
 
-class AnisotropicDiffusionFilterInterfacePrivate;
+// Forward declarations	
+class LayerGroup;
+typedef boost::shared_ptr< LayerGroup > LayerGroupHandle;
+typedef boost::weak_ptr< LayerGroup > LayerGroupWeakHandle;
+	
+class Layer;
+typedef boost::shared_ptr< Layer > LayerHandle;
+typedef boost::weak_ptr< Layer > LayerWeakHandle;
 
-class AnisotropicDiffusionFilterInterface : public ToolWidget
-{
-Q_OBJECT
-
-// Constructor/destructor
-public:
-	AnisotropicDiffusionFilterInterface();
-	virtual ~AnisotropicDiffusionFilterInterface();
-	virtual bool build_widget( QFrame* frame );
-
-private Q_SLOTS:
-	void execute_filter();
-	void enable_run_filter( bool valid );
-
-private:
-	boost::shared_ptr< AnisotropicDiffusionFilterInterfacePrivate > private_;
-};
-
-} // namespace Seg3D
+} // end namespace Seg3D
 
 #endif
