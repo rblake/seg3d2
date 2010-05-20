@@ -77,13 +77,6 @@ MESSAGE(STATUS "Configuring slivr")
 ADD_SUBDIRECTORY(slivr)
 
 ##################################################
-# ADDING LIBXML2
-##################################################
-
-MESSAGE(STATUS "Configuring libxml2")
-ADD_SUBDIRECTORY(libxml2)
-
-##################################################
 # ADDING FREETYPE
 ##################################################
 
