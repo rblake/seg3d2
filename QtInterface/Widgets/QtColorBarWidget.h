@@ -26,48 +26,60 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <QtGui>
-#include <time.h>
-#include "ui_HistogramWidget.h"
+#ifndef QTINTERFACE_WIDGETS_QTCOLORBARWIDGET_H
+#define QTINTERFACE_WIDGETS_QTCOLORBARWIDGET_H
 
-// Interface includes
-#include <Interface/ToolInterface/CustomWidgets/HistogramWidget.h>
-#include <Interface/ToolInterface/CustomWidgets/Histogram.h>
+// QT includes
+#include <QWidget>
 
-namespace Seg3D
+// STL includes
+#include <string>
+
+// Boost includes
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/shared_ptr.hpp>
+
+// QtInterface includes
+#include <QtInterface/Widgets/QtColorButton.h>
+
+namespace Core
 {
 
-class HistogramWidgetPrivate 
+class QtColorBarWidgetPrivate;
+typedef boost::shared_ptr< QtColorBarWidgetPrivate > QtColorBarWidgetPrivateHandle;
+
+class QtColorBarWidget : public QWidget
 {
+Q_OBJECT
+
 public:
-	Ui::HistogramWidget ui_;
-	Histogram* histogram_;
+	QtColorBarWidget( QWidget* parent = 0 );
+	virtual ~QtColorBarWidget();
+
+public:
+	void add_color_button( QtColorButton* color_button, int index );
+
+	int get_active_index();
+
+public Q_SLOTS:
+	void set_color_index( int index );
+
+Q_SIGNALS:
+	void color_index_changed( int index );
+	void color_changed( int index );
+
+private:
+	void mousePressEvent( QMouseEvent* event );
+	
+private Q_SLOTS:
+	void signal_activation( int active );
+	void color_only_changed( int button_index );
+
+private:
+	QtColorBarWidgetPrivateHandle private_;
 };
 
+} // end namespace Core
 
-HistogramWidget::HistogramWidget( QWidget *parent ) :
-	QWidget( parent ),
-    private_( new HistogramWidgetPrivate )
-{
-	this->private_->ui_.setupUi( this );
-	
-	this->private_->histogram_ = new Histogram( this );
-	this->private_->ui_.histogramLayout->addWidget( this->private_->histogram_ );
-	this->setMinimumHeight( 170 );
-	this->private_->ui_.label_3->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
-}
-
-HistogramWidget::~HistogramWidget()
-{
-}
-
-void HistogramWidget::set_histogram( std::vector< size_t > ints_bin, int min, int max,
-	size_t min_bin, size_t max_bin )
-{
-	this->private_->histogram_->set_bins( ints_bin, min_bin, max_bin );
-	this->private_->ui_.min->setText( QString::number( min ) );
-	this->private_->ui_.max->setText( QString::number( max ) );
-	this->private_->histogram_->repaint();
-}
-
-} // end namespace Seg3D
+#endif

@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,55 +26,67 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPPREFERENCES_COLORBUTTON_H
-#define INTERFACE_APPPREFERENCES_COLORBUTTON_H
+#ifndef QTINTERFACE_WIDGETS_QTSLIDERINTCOMBO_H
+#define QTINTERFACE_WIDGETS_QTSLIDERINTCOMBO_H
 
-// QT includes
-#include <QtGui/QToolButton>
+// QT Includes
+#include <QWidget>
 
-// Core includes
-#include <Core/Geometry/Color.h>
+// Boost includes
+#include <boost/shared_ptr.hpp>
 
-namespace Seg3D
+namespace Core 
 {
-	
-class ColorButton :
-	public QToolButton
-{
-	Q_OBJECT
-	
-Q_SIGNALS:
-	void color_changed( Core::Color );
-	void color_changed( int );
-	void button_clicked( Core::Color, bool );
-	void index( int );
 
+// Forward declaration
+class QtSliderIntCombo;
+class QtSliderIntComboPrivate;
+typedef boost::shared_ptr< QtSliderIntComboPrivate > QtSliderIntComboPrivateHandle;
+
+// Class definition
+class QtSliderIntCombo : public QWidget
+{
+Q_OBJECT
+
+// -- constructor/destructor --
 public:
-	// - Constructor / Destructor
-	ColorButton( QWidget *parent = 0, int index = 0, 
-		Core::Color button_color = Core::Color(), int height = 0, int width = 0 );
-	virtual ~ColorButton();
-	
+    QtSliderIntCombo( QWidget* parent = 0, bool edit_range = false );
+    virtual ~QtSliderIntCombo();
+
+Q_SIGNALS:
+	void valueAdjusted( int );
+	void rangeChanged( int, int );
+    
 public Q_SLOTS:
-	// SET_COLOR:
-	// This function sets the color and the stylesheet of the button to reflect the desired color
-	void set_color( Core::Color );
-
-	// GET_COLOR:
-	// This function returns the current color of the button
-	Core::Color get_color(){ return button_color_; }
+    void setStep(int);
+	void setRange( int, int );
+	void setCurrentValue( int );
 	
-private Q_SLOTS:
-	// TRIGGER_SIGNAL:
-	// This function is called when the button needs to signal that it has been toggled.
-	void trigger_signal( bool );
+public:
+	int get_value() 
+	{ 
+		return value_;
+	}
 
+// -- widget internals -- 
 private:
-	Core::Color button_color_;
-	const int index_;
-	
+    QtSliderIntComboPrivateHandle private_;
+    
+private Q_SLOTS:
+    void edit_ranges( bool edit );
+    void change_min( int new_min );
+    void change_max( int new_max );
+    void double_range();
+    void half_range();
+    void slider_signal( int value );
+    void spinner_signal( int value );
+    
+private:
+	void block_signals( bool block );
+	int value_;
+  
 };
-	
-} // end namespace Seg3D
 
-#endif //INTERFACE_APPINTERFACE_ColorButton_H
+}  // end namespace Core
+
+#endif

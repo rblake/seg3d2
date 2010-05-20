@@ -26,59 +26,47 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_COLORBARWIDGET_H
-#define INTERFACE_APPINTERFACE_COLORBARWIDGET_H
+// UI includes
+#include "ui_QtHistogramWidget.h"
 
-// QT includes
-#include <QtGui>
+// Interface includes
+#include <QtInterface/Widgets/QtHistogramWidget.h>
+#include <QtInterface/Widgets/QtHistogramGraph.h>
 
-// STL includes
-#include <string>
-
-// Boost includes
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/shared_ptr.hpp>
-
-//Interface includes
-#include <Interface/AppPreferences/ColorButton.h>
-
-namespace Seg3D
+namespace Core
 {
 
-class ColorBarWidgetPrivate;
-
-class ColorBarWidget : public QWidget
+class QtHistogramWidgetPrivate 
 {
-Q_OBJECT
-
 public:
-	ColorBarWidget( QWidget* parent = 0 );
-	virtual ~ColorBarWidget();
-
-public:
-	int get_active_index();
-
-public Q_SLOTS:
-	void set_color_index( int index );
-
-Q_SIGNALS:
-	void color_index_changed( int index );
-	void color_changed( int index );
-
-private:
-	void initialize_buttons();
-	void mousePressEvent( QMouseEvent* event );
-	
-private Q_SLOTS:
-	void signal_activation( int active );
-	void color_only_changed( int button_index );
-
-private:
-	// Internals of the dockwidget
-	boost::shared_ptr< ColorBarWidgetPrivate > private_;
+	Ui::HistogramWidget ui_;
+	QtHistogramGraph* histogram_graph_;
 };
 
-} // end namespace
 
-#endif // COLORBARWIDGET_H
+QtHistogramWidget::QtHistogramWidget( QWidget *parent ) :
+	QWidget( parent ),
+    private_( new QtHistogramWidgetPrivate )
+{
+	this->private_->ui_.setupUi( this );
+	
+	this->private_->histogram_graph_ = new QtHistogramGraph( this );
+	this->private_->ui_.histogramLayout->addWidget( this->private_->histogram_graph_ );
+
+	this->setMinimumHeight( 170 );
+	this->private_->ui_.label_3->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
+}
+
+QtHistogramWidget::~QtHistogramWidget()
+{
+}
+
+void QtHistogramWidget::set_histogram( const Histogram& histogram )
+{
+	this->private_->histogram_graph_->set_histogram( histogram );
+	this->private_->ui_.min->setText( QString::number( histogram.get_min() ) );
+	this->private_->ui_.max->setText( QString::number( histogram.get_max() ) );
+	this->private_->histogram_graph_->repaint();
+}
+
+} // end namespace Core
