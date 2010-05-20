@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,38 +26,27 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAMWIDGET_H
-#define INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAMWIDGET_H
+#ifndef QTINTERFACE_UTILS_QTPOINTER_H
+#define QTINTERFACE_UTILS_QTPOINTER_H
 
-//Boost includes
-#include <boost/shared_ptr.hpp>
+// QT includes/custom widget
+#include <QPointer>
 
-//Qt includes
-#include <QtGui>
-
-
-namespace Seg3D
+namespace Core
 {
 
-class HistogramWidgetPrivate;
-
-class HistogramWidget : public QWidget
+template< class QPOINTER >
+void CheckQtPointerImpl( QPOINTER qpointer, boost::function< void() > function )
 {
-    Q_OBJECT
+	if ( !( qpointer.isNull() ) ) function();
+}
 
-public:
-    HistogramWidget( QWidget *parent = 0 );
-    virtual ~HistogramWidget();
-    
-public Q_SLOTS:
-	void set_histogram( std::vector< size_t > ints_bin, int min, int max, 
-		size_t min_bin, size_t max_bin );
+template< class QPOINTER >
+boost::function< void() > CheckQtPointer( QPOINTER qpointer, boost::function< void() > function )
+{
+	return boost::bind( &CheckQtPointerImpl< QPOINTER > , qpointer, function );
+}
 
-
-private:
-	boost::shared_ptr< HistogramWidgetPrivate > private_;
-};
-
-} // end namespace Seg3D
+} // end namespace Core
 
 #endif

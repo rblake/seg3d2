@@ -26,37 +26,55 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAM_H
-#define INTERFACE_TOOLINTERFACE_CUSTOMWIDGETS_HISTOGRAM_H
+#ifndef QTINTERFACE_WIDGETS_QTCOLORBUTTON_H
+#define QTINTERFACE_WIDGETS_QTCOLORBUTTON_H
 
-#include <QtGui>
+// QT includes
+#include <QtGui/QToolButton>
 
-namespace Seg3D
+// Core includes
+#include <Core/Geometry/Color.h>
+
+namespace Core
 {
-
-class Histogram : public QWidget
+	
+class QtColorButton :
+	public QToolButton
 {
-    Q_OBJECT
+	Q_OBJECT
+	
+Q_SIGNALS:
+	void color_changed( Core::Color );
+	void color_changed( int );
+	void button_clicked( Core::Color, bool );
+	void index( int );
 
 public:
-    Histogram( QWidget *parent = 0 );
-    virtual ~Histogram();
-    
-public:
-	void set_bins( std::vector< size_t > ints_bin, size_t min_bin, size_t max_bin );
-// public Q_SLOTS:
-// 	void setHistogram();
+	// - Constructor / Destructor
+	QtColorButton( QWidget *parent = 0, int index = 0, 
+		Core::Color button_color = Core::Color(), int height = 0, int width = 0 );
+	virtual ~QtColorButton();
+	
+public Q_SLOTS:
+	// SET_COLOR:
+	// This function sets the color and the stylesheet of the button to reflect the desired color
+	void set_color( Core::Color );
 
-protected:
-    void paintEvent( QPaintEvent *event );
+	// GET_COLOR:
+	// This function returns the current color of the button
+	Core::Color get_color(){ return button_color_; }
+	
+private Q_SLOTS:
+	// TRIGGER_SIGNAL:
+	// This function is called when the button needs to signal that it has been toggled.
+	void trigger_signal( bool );
 
 private:
-    std::vector< size_t > bins_;
-    size_t min_bin_;
-    size_t max_bin_;
-
+	Core::Color button_color_;
+	const int index_;
+	
 };
-
-} // end namespace Seg3D
+	
+} // end namespace Core
 
 #endif

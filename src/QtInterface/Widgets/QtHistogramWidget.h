@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
-
+ 
  The MIT License
-
+ 
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
-
-
+ 
+ 
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
-
+ 
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,29 +26,43 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_QTINTERFACE_QTPOINTER_H
-#define INTERFACE_QTINTERFACE_QTPOINTER_H
+#ifndef QTINTERFACE_WIDGETS_QTHISTOGRAMWIDGET_H
+#define QTINTERFACE_WIDGETS_QTHISTOGRAMWIDGET_H
 
-// QT includes/custom widget
-#include <QPointer>
+// STL includes
+#include <vector>
 
-// NOTE: This function needs to be defined so the boost::mem_fn function can 
-// use it
+//Boost includes
+#include <boost/shared_ptr.hpp>
 
-namespace Seg3D
+//Qt includes
+#include <QWidget>
+
+// Core includes
+#include <Core/DataBlock/Histogram.h>
+
+namespace Core
 {
 
-template< class QPOINTER >
-void CheckQtPointerImpl( QPOINTER qpointer, boost::function< void() > function )
-{
-	if ( !( qpointer.isNull() ) ) function();
-}
+// Forward declaration
+class QtHistogramWidgetPrivate;
+typedef boost::shared_ptr< QtHistogramWidgetPrivate > QtHistogramWidgetPrivateHandle;
 
-template< class QPOINTER >
-boost::function< void() > CheckQtPointer( QPOINTER qpointer, boost::function< void() > function )
+// Class definition
+class QtHistogramWidget : public QWidget
 {
-	return boost::bind( &CheckQtPointerImpl< QPOINTER > , qpointer, function );
-}
+    Q_OBJECT
+
+public:
+    QtHistogramWidget( QWidget *parent = 0 );
+    virtual ~QtHistogramWidget();
+    
+public Q_SLOTS:
+	void set_histogram( const Histogram& histogram );
+
+private:
+	QtHistogramWidgetPrivateHandle private_;
+};
 
 } // end namespace Seg3D
 
