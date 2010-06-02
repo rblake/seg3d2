@@ -26,80 +26,56 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROJECT_PROJECT_H
-#define APPLICATION_PROJECT_PROJECT_H
+#ifndef APPLICATION_PROJECT_SESSION_H
+#define APPLICATION_PROJECT_SESSION_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 #pragma once
 #endif
-
-// STL includes
-#include <string>
-#include <vector>
 
 // Boost includes
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
-// Application indludes
-#include <Application/Project/Session.h>
-
-
 // Volume includes
-#include <Core/Action/Action.h>
-#include <Core/Application/Application.h>
-#include <Core/Interface/Interface.h>
-#include <Core/Volume/Volume.h>
 #include <Core/State/State.h>
 
 namespace Seg3D
 {
 
-// CLASS Project
-// This is the main class for collecting state information on a Project
-class Project;
+// CLASS Session
+// This is the main class for collecting state information on a Session
+class Session;
 	
-typedef boost::shared_ptr< Project > ProjectHandle;
+typedef boost::shared_ptr< Session > SessionHandle;
 
 // Class definition
-class Project : public Core::StateHandler
+class Session : public Core::StateHandler
 {
 
 	// -- constructor/destructor --
 public:
-	Project( const std::string& project_name );
-	virtual ~Project();
+	Session( const std::string& session_name );
+	virtual ~Session();
 	
 public:
-	Core::StateStringHandle project_name_state_;
-	Core::StateBoolHandle save_custom_colors_state_;
-	Core::StateBoolHandle auto_consolidate_files_state_;
-	Core::StateStringVectorHandle sessions_state_;
-	
+	// general session data
+	Core::StateStringHandle session_name_state_;
+
+
 public:
 	// INITIALIZE_FROM_FILE:
-	// this file initializes the state values for project from the file at the path specified
-	bool initialize_from_file( boost::filesystem::path project_path, const std::string& project_name );
+	// this file initializes the state values for Session from the file at the path specified
+	bool initialize_from_file( boost::filesystem::path path, const std::string& session_name );
 	
-	// LOAD_SESSION:
-	// this function will be called to load a specific session
-	bool load_session( boost::filesystem::path project_path, int state_index );
-	
-	// SAVE_SESSION:
-	// this function will be called from the project manager
-	bool save_session( boost::filesystem::path project_path, const std::string& session_name );
-	
-private:
-	
-	void add_session_to_list( const std::string& session_path_and_name );
-	
-private:
-	SessionHandle current_session_;
+	// SAVE_CURRENT_STATE:
+	// this function will take a snapshot of the current state of the project and save it
+	bool save_session_settings( boost::filesystem::path path, const std::string& session_name );
 	
 
 };
 
 } // end namespace Seg3D
 
-#endif
+#endif // SESSION_H

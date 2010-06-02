@@ -36,6 +36,9 @@
 // STL includes
 #include <string>
 
+// Core includes
+#include <Core/Utils/ConnectionHandler.h>
+
 // Boost includes
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -46,7 +49,7 @@ namespace Seg3D
 	
 class ProjectDockWidgetPrivate;
 
-class ProjectDockWidget : public QDockWidget
+class ProjectDockWidget : public QDockWidget, public Core::ConnectionHandler
 {
 	
 	Q_OBJECT
@@ -55,6 +58,14 @@ public:
 	ProjectDockWidget( QWidget *parent = 0 );
 	virtual ~ProjectDockWidget();
 	
+public:
+	typedef QPointer< ProjectDockWidget > qpointer_type;
+	static void HandleSessionSaved( qpointer_type qpointer );
+	
+private Q_SLOTS:
+	void save_project();
+	void populate_session_list();
+	void load_session();
 	
 private:
 	boost::shared_ptr< ProjectDockWidgetPrivate > private_;
