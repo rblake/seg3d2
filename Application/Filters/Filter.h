@@ -26,74 +26,59 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYER_MASKLAYER_H
-#define APPLICATION_LAYER_MASKLAYER_H
+#ifndef APPLICATION_FILTER_FILTER_H
+#define APPLICATION_FILTER_FILTER_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 #pragma once
 #endif
 
+// STL includes
+#include <vector>
+
+// Boost includes 
+#include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+
 // Core includes
-#include <Core/Volume/MaskVolume.h>
-#include <Core/Utils/AtomicCounter.h>
+#include <Core/Utils/IntrusiveBase.h>
+#include <Core/Utils/Lockable.h>
 
 // Application includes
-#include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerFWD.h>
 
 namespace Seg3D
 {
 
-// CLASS MaskLayer
-
-// Forward declarations
-class MaskLayer;
-typedef boost::shared_ptr< MaskLayer > MaskLayerHandle;
+// Forward Declaration
+class Filter;
+typedef boost::intrusive_ptr<Filter> FilterHandle;
 
 // Class definition
-class MaskLayer : public Layer
+class Filter : public Core::IntrusiveBase
 {
 
-	// -- constructor/destructor --
+	// -- Constructor/destructor --
 public:
 
-	MaskLayer( const std::string& name, const Core::MaskVolumeHandle& volume );
-	MaskLayer( const std::string& name, const Core::GridTransform& grid_transform );
-	virtual ~MaskLayer();
+	Filter();
+	virtual ~Filter();
 
-	virtual Core::VolumeType type() const { return Core::VolumeType::MASK_E; }
-
-	virtual const Core::GridTransform& get_grid_transform() const 
-	{ 
-		return mask_volume_->get_grid_transform(); 
-	}
-
-	Core::MaskVolumeHandle get_mask_volume()
-	{
-		return this->mask_volume_;
-	}
-	
-	// -- state variables --
 public:
+	// START:
+	// Start the filter on a separate thread
+	bool start( LayerHandle layer );
+			
+protected:
 
-	// Which color to use for displaying the mask
-	Core::StateIntHandle color_state_;
-
-	// State that describes whether to use a fat border for the mask
-	Core::StateOptionHandle border_state_;
-
-	// State that describes whether to fill the mask solid
-	Core::StateOptionHandle fill_state_;
-
-	// State that describes whether to show the  isosurface state
-	Core::StateBoolHandle show_isosurface_state_;
+	// RUN_FILTER:
+	// The actual implementation of the filter
+	virtual bool run_filter( LayerHandle layer ) = 0;
 
 private:
-	Core::MaskVolumeHandle mask_volume_;
+	// Function for running the separate thread
+	static void RunFilter( FilterHandle filter, LayerHandle layer );
 
-	void initialize_states();
-	
-	// counter for generating new colors for each new mask
-	static Core::AtomicCounter color_count_;
 };
 
 } // end namespace Seg3D
