@@ -26,48 +26,58 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYER_LabelLAYER_H
-#define APPLICATION_LAYER_LabelLAYER_H
+#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
+#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-#pragma once
-#endif
+#include <Core/Action/Action.h> 
+#include <Core/Interface/Interface.h>
 
-// Application includes
-#include <Application/Layer/Layer.h>
 
 namespace Seg3D
 {
 
-// CLASS LabelLayer
-
-// Forward declarations
-class LabelLayer;
-typedef boost::shared_ptr< LabelLayer > LabelLayerHandle;
-
-// Class definition
-class LabelLayer : public Layer
+class ActionDeleteSession : public Core::Action
 {
+	CORE_ACTION( "DeleteSession", "DeleteSession <sessionname>" );
 
-	// -- constructor/destructor --
+	// -- Constructor/Destructor --
 public:
+	ActionDeleteSession()
+	{
+		this->add_argument( this->session_name_ );
+		this->add_argument( this->session_index_ );
+	}
 
-	LabelLayer( const std::string& name, const Core::VolumeHandle& volume );
-	virtual ~LabelLayer();
+	virtual ~ActionDeleteSession()
+	{
+	}
 
-	virtual Core::VolumeType type() const { return Core::VolumeType::LABEL_E; }
+	// -- Functions that describe action --
+public:
+	virtual bool validate( Core::ActionContextHandle& context );
+	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
-	virtual const Core::GridTransform& get_grid_transform() const = 0;
-
-public:
-
-	// TODO: Need to generate this class
-
 private:
-	const static size_t version_number_;
 
+
+	// This parameter contains the name of the session to be loaded
+	Core::ActionParameter< std::string > session_name_;
+
+	// This parameter contains the index of the session to be loaded
+	Core::ActionParameter< int > session_index_;
+	
+	// -- Dispatch this action from the interface --
+public:
+	
+	// CREATE:
+	// Create an action that loads a session
+	static Core::ActionHandle Create( int session_index );
+	
+	// DISPATCH:
+	// Dispatch an action loads a session
+	static void Dispatch( int session_index );
 };
 
 } // end namespace Seg3D
 
-#endif
+#endif  //ACTIONDELETESESSION_H

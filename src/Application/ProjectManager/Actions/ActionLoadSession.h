@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,50 +26,58 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_CONFIDENCECONNECTEDFILTER_H
-#define APPLICATION_TOOLS_CONFIDENCECONNECTEDFILTER_H
+#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
+#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
 
-#include <Application/Tool/Tool.h>
+#include <Core/Action/Action.h> 
+#include <Core/Interface/Interface.h>
+
 
 namespace Seg3D
 {
 
-class ConfidenceConnectedFilter : public Tool
+class ActionLoadSession : public Core::Action
 {
-SCI_TOOL_TYPE( "ConfidenceConnectedFilter", "Confidence Connected", "Alt+Shift+C",
-	ToolGroupType::DATATOMASK_E|ToolGroupType::FILTER_E,
-	"http://seg3d.org/")
+	CORE_ACTION( "LoadSession", "LoadSession <sessionname>" );
 
+	// -- Constructor/Destructor --
 public:
-	ConfidenceConnectedFilter( const std::string& toolid );
-	virtual ~ConfidenceConnectedFilter();
+	ActionLoadSession()
+	{
+		this->add_argument( this->session_name_ );
+		this->add_argument( this->session_index_ );
+	}
 
-	// -- constraint parameters --
+	virtual ~ActionLoadSession()
+	{
+	}
 
-	// Constrain viewer to right painting tool when layer is selected
-	void target_constraint( std::string layerid );
-
-	// -- activate/deactivate tool --
-
-	virtual void activate();
-	virtual void deactivate();
+	// -- Functions that describe action --
+public:
+	virtual bool validate( Core::ActionContextHandle& context );
+	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
 private:
-	// -- handle updates from layermanager --
-	void handle_layers_changed();
 
-	// -- state --
+
+	// This parameter contains the name of the session to be loaded
+	Core::ActionParameter< std::string > session_name_;
+
+	// This parameter contains the index of the session to be loaded
+	Core::ActionParameter< int > session_index_;
+	
+	// -- Dispatch this action from the interface --
 public:
-
-	// Layerid of the target layer
-	Core::StateStringHandle target_layer_state_;
-	Core::StateRangedIntHandle iterations_state_;
-	Core::StateRangedIntHandle threshold_multiplier_state_;
-
-private:
-	const static size_t version_number_;
-
+	
+	// CREATE:
+	// Create an action that loads a session
+	static Core::ActionHandle Create( int session_index );
+	
+	// DISPATCH:
+	// Dispatch an action loads a session
+	static void Dispatch( int session_index );
 };
-} // end namespace
 
-#endif
+} // end namespace Seg3D
+
+#endif  //ACTIONSAVESESSION_H
