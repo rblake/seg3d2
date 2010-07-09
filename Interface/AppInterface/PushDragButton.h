@@ -48,10 +48,15 @@ public:
 	PushDragButton( QWidget *parent );
 	virtual ~PushDragButton();
 
+	// SET_ENABLED:
+	// Set whether the button detect clicks or is only draggable
+	void set_enabled( bool enabled );
+
 private:
-	void mousePressEvent( QMouseEvent *event );
+	virtual void mousePressEvent( QMouseEvent *event );
 
-
+	// Record whether the button is active
+	bool enabled_;
 };
 
 } // end namespace Seg3D
