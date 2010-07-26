@@ -38,7 +38,7 @@
 namespace Core
 {
 
-class ActionRotateView3D : public Action
+class ActionRotateView : public Action
 {
 
 CORE_ACTION(
@@ -49,8 +49,8 @@ CORE_ACTION_ARGUMENT( "angle", "The angle to rotate the view about." )
 );
 
 public:
-	ActionRotateView3D();
-	virtual ~ActionRotateView3D();
+	ActionRotateView();
+	virtual ~ActionRotateView();
 
 	virtual bool validate( ActionContextHandle& context );
 	virtual bool run( ActionContextHandle& context, ActionResultHandle& result );
