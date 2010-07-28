@@ -37,7 +37,7 @@ INCLUDE_DIRECTORIES(${SCI_TINYXML_INCLUDE})
 ###########################################
 # Ensure it uses STL
 
-ADD_DEFINITIONS(-DTINYXML_USE_STL=YES)
+ADD_DEFINITIONS(-DTIXML_USE_STL)
 
 ###########################################
 # Add the library
