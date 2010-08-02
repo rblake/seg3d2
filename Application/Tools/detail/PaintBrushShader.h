@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RENDERER_SLICESHADER_H
-#define APPLICATION_RENDERER_SLICESHADER_H
+#ifndef APPLICATION_TOOLS_DETAIL_PAINTBRUSHSHADER_H
+#define APPLICATION_TOOLS_DETAIL_PAINTBRUSHSHADER_H
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
@@ -38,25 +38,21 @@
 namespace Seg3D
 {
 
-class SliceShader;
-typedef boost::shared_ptr< SliceShader > SliceShaderHandle;
+class PaintBrushShader;
+typedef boost::shared_ptr< PaintBrushShader > PaintBrushShaderHandle;
 
-class SliceShader : public boost::noncopyable
+class PaintBrushShader : public Core::Lockable
 {
 public:
-	SliceShader();
-	~SliceShader();
+	PaintBrushShader();
+	~PaintBrushShader();
 
 	bool initialize();
 	void enable();
 	void disable();
-	void set_slice_texture( int tex_unit );
-	void set_pattern_texture( int tex_unit );
-	void set_mask_mode( int mask_mode );
-	void set_volume_type( int volume_type );
-	void set_mask_color( float r, float g, float b );
+	void set_brush_texture( int tex_unit );
+	void set_brush_color( float r, float g, float b );
 	void set_opacity( float opacity );
-	void set_scale_bias( float scale, float bias );
 	void set_pixel_size( float width, float height );
 	void set_border_width( int width );
 
@@ -67,13 +63,9 @@ private:
 	Core::GLSLProgramHandle glsl_prog_;
 	Core::GLSLShaderHandle glsl_frag_shader_;
 
-	int slice_tex_loc_;
-	int pattern_tex_loc_;
-	int mask_mode_loc_;
-	int volume_type_loc_;
-	int mask_color_loc_;
+	int brush_tex_loc_;
+	int brush_color_loc_;
 	int opacity_loc_;
-	int scale_bias_loc_;
 	int border_width_loc_;
 	int pixel_size_loc_;
 
