@@ -33,16 +33,8 @@
 # pragma once
 #endif
 
-// Application includes
-#include <Application/Renderer/SliceShader.h>
-#include <Application/Viewer/Viewer.h>
-
 #include <Core/Utils/ConnectionHandler.h>
-#include <Core/Geometry/BBox.h>
-#include <Core/Graphics/Texture.h>
-#include <Core/Graphics/UnitCube.h>
 #include <Core/RendererBase/RendererBase.h>
-#include <Core/TextRenderer/TextRenderer.h>
 
 namespace Seg3D
 {
@@ -53,12 +45,10 @@ class RendererPrivate;
 typedef boost::shared_ptr< Renderer > RendererHandle;
 typedef boost::shared_ptr< RendererPrivate > RendererPrivateHandle;
 
-class ProxyRectangle;
-typedef boost::shared_ptr< ProxyRectangle > ProxyRectangleHandle;
-
 // Class definitions
 class Renderer : public Core::RendererBase, private Core::ConnectionHandler
 {
+	friend class RendererPrivate;
 
 	// -- constructor/destructor --
 public:
@@ -72,26 +62,6 @@ protected:
 	virtual bool render_overlay();
 
 private:
-	void process_slices( LayerSceneHandle& layer_scene, ViewerHandle& viewer );
-	void draw_slices_3d( const Core::BBox& bbox, 
-		const std::vector< LayerSceneHandle >& layer_scenes, 
-		const std::vector< double >& depths,
-		const std::vector< std::string >& view_modes );
-	void draw_slice( LayerSceneItemHandle layer_item, const Core::Matrix& proj_mat,
-		ProxyRectangleHandle rect = ProxyRectangleHandle() );
-	void viewer_slice_changed( size_t viewer_id );
-	void viewer_mode_changed( size_t viewer_id );
-	void picking_target_changed( size_t viewer_id );
-	void enable_rendering( bool enable );
-
-	SliceShaderHandle slice_shader_;
-	Core::Texture2DHandle pattern_texture_;
-
-	Core::TextRendererHandle text_renderer_;
-	Core::Texture2DHandle text_texture_;
-	
-	size_t viewer_id_;
-
 	RendererPrivateHandle private_;
 };
 
