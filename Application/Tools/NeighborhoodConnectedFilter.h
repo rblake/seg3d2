@@ -36,9 +36,14 @@ namespace Seg3D
 
 class NeighborhoodConnectedFilter : public Tool
 {
-SCI_TOOL_TYPE( "NeighborhoodConnectedFilter", "Neighborhood Connected", "Alt+N",
-	ToolGroupType::DATATOMASK_E|ToolGroupType::FILTER_E,
-	"http://seg3d.org/")
+
+SEG3D_TOOL(
+SEG3D_TOOL_NAME( "NeighborhoodConnectedFilter", "Define mask based on value range connected to seed points" )
+SEG3D_TOOL_MENULABEL( "Neighborhood Connected" )
+SEG3D_TOOL_MENU( "filter_data_to_mask" )
+SEG3D_TOOL_SHORTCUT_KEY( "Alt+N" )
+SEG3D_TOOL_URL( "http://seg3d.org/" )
+)
 
 public:
 	NeighborhoodConnectedFilter( const std::string& toolid, bool auto_number = true );
