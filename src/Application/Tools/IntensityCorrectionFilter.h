@@ -36,9 +36,14 @@ namespace Seg3D
 
 class IntensityCorrectionFilter : public Tool
 {
-SCI_TOOL_TYPE( "IntensityCorrectionFilter", "Intensity Correction", "Alt+Shift+I",
-	ToolGroupType::DATATODATA_E|ToolGroupType::FILTER_E,
-	"http://seg3d.org/")
+
+SEG3D_TOOL(
+SEG3D_TOOL_NAME( "IntensityCorrectionFilter", "Correct for gradual intensity changes" )
+SEG3D_TOOL_MENULABEL( "Intensity Correction" )
+SEG3D_TOOL_MENU( "filter_data_to_data" )
+SEG3D_TOOL_SHORTCUT_KEY( "Alt+Shift+I" )
+SEG3D_TOOL_URL( "http://seg3d.org/" )
+)
 
 public:
 	IntensityCorrectionFilter( const std::string& toolid, bool auto_number = true );
