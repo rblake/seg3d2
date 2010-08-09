@@ -26,35 +26,35 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Renderer/SliceShader.h>
+#include <Application/Renderer/IsosurfaceShader.h>
 
 #include <Core/Utils/Log.h>
 
 namespace Seg3D
 {
 
-const char* SliceShader::FRAG_SHADER_SOURCE_C[] =
+const char* IsosurfaceShader::FRAG_SHADER_SOURCE_C[] =
 {
-#include "SliceShader_frag"
+#include "IsosurfaceShader_frag"
 #include "Lighting_frag"
 };
 
-const char* SliceShader::VERT_SHADER_SOURCE_C[] =
+const char* IsosurfaceShader::VERT_SHADER_SOURCE_C[] =
 {
-#include "SliceShader_vert"
+#include "IsosurfaceShader_vert"
 #include "Lighting_vert"
 };
 
-SliceShader::SliceShader() :
+IsosurfaceShader::IsosurfaceShader() :
 	valid_( false )
 {
 }
 
-SliceShader::~SliceShader()
+IsosurfaceShader::~IsosurfaceShader()
 {
 }
 
-bool SliceShader::initialize()
+bool IsosurfaceShader::initialize()
 {
 	this->glsl_frag_shader_ = Core::GLSLShaderHandle( new Core::GLSLFragmentShader );
 	this->glsl_frag_shader_->set_source( sizeof( FRAG_SHADER_SOURCE_C ) / sizeof( char* ),
@@ -62,7 +62,7 @@ bool SliceShader::initialize()
 	if ( !this->glsl_frag_shader_->compile() )
 	{
 		std::string error_info = this->glsl_frag_shader_->get_info_log();
-		CORE_LOG_ERROR( std::string( "Failed compiling SliceShader source: \n" ) + error_info );
+		CORE_LOG_ERROR( std::string( "Failed compiling IsosurfaceShader source: \n" ) + error_info );
 		this->glsl_frag_shader_.reset();
 		return false;
 	}
@@ -73,7 +73,7 @@ bool SliceShader::initialize()
 	if ( !this->glsl_vert_shader_->compile() )
 	{
 		std::string error_info = this->glsl_vert_shader_->get_info_log();
-		CORE_LOG_ERROR( std::string( "Failed compiling SliceShader source: \n" ) + error_info );
+		CORE_LOG_ERROR( std::string( "Failed compiling IsosurfaceShader source: \n" ) + error_info );
 		this->glsl_frag_shader_.reset();
 		this->glsl_vert_shader_.reset();
 		return false;
@@ -85,7 +85,7 @@ bool SliceShader::initialize()
 	if ( !this->glsl_prog_->link() )
 	{
 		std::string error_info = this->glsl_prog_->get_info_log();
-		CORE_LOG_ERROR( std::string( "Failed linking SliceShader program: \n" ) + error_info );
+		CORE_LOG_ERROR( std::string( "Failed linking IsosurfaceShader program: \n" ) + error_info );
 		this->glsl_vert_shader_.reset();
 		this->glsl_frag_shader_.reset();
 		this->glsl_prog_.reset();
@@ -93,15 +93,6 @@ bool SliceShader::initialize()
 	}
 
 	this->glsl_prog_->enable();
-	this->slice_tex_loc_ = this->glsl_prog_->get_uniform_location( "slice_tex" );
-	this->pattern_tex_loc_ = this->glsl_prog_->get_uniform_location( "pattern_tex" );
-	this->opacity_loc_ = this->glsl_prog_->get_uniform_location( "opacity" );
-	this->mask_mode_loc_ = this->glsl_prog_->get_uniform_location( "mask_mode" );
-	this->scale_bias_loc_ = this->glsl_prog_->get_uniform_location( "scale_bias" );
-	this->pixel_size_loc_ = this->glsl_prog_->get_uniform_location( "pixel_size" );
-	this->border_width_loc_ = this->glsl_prog_->get_uniform_location( "border_width" );
-	this->volume_type_loc_ = this->glsl_prog_->get_uniform_location( "volume_type" );
-	this->mask_color_loc_ = this->glsl_prog_->get_uniform_location( "mask_color" );
 	this->enable_lighting_loc_ = this->glsl_prog_->get_uniform_location( "enable_lighting" );
 	this->glsl_prog_->disable();
 
@@ -109,67 +100,21 @@ bool SliceShader::initialize()
 	return true;
 }
 
-void SliceShader::enable()
+void IsosurfaceShader::enable()
 {
 	assert( this->valid_ );
 	this->glsl_prog_->enable();
 }
 
-void SliceShader::disable()
+void IsosurfaceShader::disable()
 {
 	assert( this->valid_ );
 	this->glsl_prog_->disable();
 }
 
-void SliceShader::set_slice_texture( int tex_unit )
-{
-	glUniform1i( this->slice_tex_loc_, tex_unit );
-}
-
-void SliceShader::set_pattern_texture( int tex_unit )
-{
-	glUniform1i( this->pattern_tex_loc_, tex_unit );
-}
-
-void SliceShader::set_opacity( float opacity )
-{
-	glUniform1f( this->opacity_loc_, opacity );
-}
-
-void SliceShader::set_mask_mode( int mask_mode )
-{
-	glUniform1i( this->mask_mode_loc_, mask_mode );
-}
-
-void SliceShader::set_scale_bias( float scale, float bias )
-{
-	glUniform2f( this->scale_bias_loc_, scale, bias );
-}
-
-void SliceShader::set_pixel_size( float width, float height )
-{
-	glUniform2f( this->pixel_size_loc_, width, height );
-}
-
-void SliceShader::set_border_width( int width )
-{
-	glUniform1i( this->border_width_loc_, width );
-}
-
-void SliceShader::set_volume_type( int volume_type )
-{
-	glUniform1i( this->volume_type_loc_, volume_type );
-}
-
-void SliceShader::set_mask_color( float r, float g, float b )
-{
-	glUniform3f( this->mask_color_loc_, r, g, b );
-}
-
-void SliceShader::set_lighting( bool enabled )
+void IsosurfaceShader::set_lighting( bool enabled )
 {
 	glUniform1i( this->enable_lighting_loc_, enabled );
 }
-
 
 } // end namespace Seg3D

@@ -55,7 +55,7 @@ bool PaintBrushShader::initialize()
 	if ( !this->glsl_frag_shader_->compile() )
 	{
 		std::string error_info = this->glsl_frag_shader_->get_info_log();
-		CORE_LOG_ERROR( std::string( "Failed compling PaintBrushShader source: \n" ) + error_info );
+		CORE_LOG_ERROR( std::string( "Failed compiling PaintBrushShader source: \n" ) + error_info );
 		this->glsl_frag_shader_.reset();
 		return false;
 	}
