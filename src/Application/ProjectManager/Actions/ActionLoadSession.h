@@ -40,7 +40,7 @@ class ActionLoadSession : public Core::Action
 {
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "LoadSession", "Load a saved session.")
-	CORE_ACTION_ARGUMENT( "index", "Index of the session that needs to be loaded." )
+	CORE_ACTION_ARGUMENT( "name", "Name of the session that needs to be loaded." )
 )
 	// -- Constructor/Destructor --
 public:
