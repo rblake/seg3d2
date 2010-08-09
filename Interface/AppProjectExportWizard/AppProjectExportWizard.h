@@ -26,57 +26,74 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
-#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
+#ifndef INTERFACE_APPPROJECTEXPORTWIZARD_APPPROJECTEXPORTWIZARD_H
+#define INTERFACE_APPPROJECTEXPORTWIZARD_APPPROJECTEXPORTWIZARD_H
 
-#include <Core/Action/Action.h> 
-#include <Core/Interface/Interface.h>
-
+//Qt includes
+#include <QtGui>
 
 namespace Seg3D
 {
 
-class ActionDeleteSession : public Core::Action
+class AppProjectExportWizard : public QWizard
 {
+Q_OBJECT
 
-CORE_ACTION( 
-	CORE_ACTION_TYPE( "DeleteSession", "Delete a session." )
-	CORE_ACTION_ARGUMENT( "name", "Name of the session to delete." )
-)
-
-	// -- Constructor/Destructor --
 public:
-	ActionDeleteSession()
-	{
-		this->add_argument( this->session_name_ );
-	}
+	AppProjectExportWizard( const std::string& session_name, QWidget *parent = 0 );
+    virtual ~AppProjectExportWizard();
 
-	virtual ~ActionDeleteSession()
-	{
-	}
-
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
 private:
+    void accept();
+	QString session_name_;
 
-	// This parameter contains the name of the session to be loaded
-	Core::ActionParameter< std::string > session_name_;;
-	
-	// -- Dispatch this action from the interface --
-public:
-	
-	// CREATE:
-	// Create an action that loads a session
-	static Core::ActionHandle Create( const std::string& session_name );
-	
-	// DISPATCH:
-	// Dispatch an action loads a session
-	static void Dispatch( Core::ActionContextHandle context, const std::string& session_name );
+
 };
 
-} // end namespace Seg3D
+class ExportInfoPage : public QWizardPage
+{
+Q_OBJECT
 
-#endif  //ACTIONDELETESESSION_H
+public:
+    ExportInfoPage( QWidget *parent = 0 );
+
+public:
+	QString session_name_;
+	
+protected:
+    void initializePage();
+
+private:
+	QLabel *project_name_label_;
+    QLabel *project_path_label_;
+    QLineEdit *project_name_lineedit_;
+    QLineEdit *project_path_lineedit_;
+    QPushButton *project_path_change_button_;
+    QCheckBox *automatically_consolidate_checkbox_;
+
+private Q_SLOTS:
+    void set_path();
+};
+
+class ExportSummaryPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    ExportSummaryPage(QWidget *parent = 0);
+
+protected:
+    void initializePage();
+
+private:
+	QLabel *description_;
+    QLabel *project_name_;
+    QLabel *project_path_;
+	QLabel *consolidate_;
+
+};
+
+
+}	// end namespace Seg3D
+#endif // APPPROJECTWIZARD_H
+
