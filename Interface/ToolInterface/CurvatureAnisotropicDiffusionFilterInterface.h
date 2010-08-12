@@ -26,42 +26,39 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
-#define APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
+#ifndef INTERFACE_TOOLINTERFACE_CURVATUREANISOTROPICDIFFUSIONFILTERINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_CURVATUREANISOTROPICDIFFUSIONFILTERINTERFACE_H
 
-#include <Application/Tool/SingleTargetTool.h>
+// Base class of the tool widget
+#include <Interface/AppInterface/ToolWidget.h>
 
 namespace Seg3D
 {
 
-class BinaryDilateErodeFilter : public SingleTargetTool
+class CurvatureAnisotropicDiffusionFilterInterfacePrivate;
+
+class CurvatureAnisotropicDiffusionFilterInterface : public ToolWidget
 {
+Q_OBJECT
 
-SEG3D_TOOL(
-SEG3D_TOOL_NAME( "BinaryDilateErodeFilter", "Grow and Shrink segmentations" )
-SEG3D_TOOL_MENULABEL( "Binary Dialate -> Erode" )
-SEG3D_TOOL_MENU( "filter_mask_to_mask" )
-SEG3D_TOOL_SHORTCUT_KEY( "Alt+Shift+E" )
-SEG3D_TOOL_URL( "http://seg3d.org/" )
-)
-
+// -- Constructor/destructor --
 public:
-	BinaryDilateErodeFilter( const std::string& toolid, bool auto_number = true );
-	virtual ~BinaryDilateErodeFilter();
+	CurvatureAnisotropicDiffusionFilterInterface();
+	virtual ~CurvatureAnisotropicDiffusionFilterInterface();
 
-	// -- state --
+// -- create interface --
 public:
-	Core::StateRangedIntHandle dilate_state_;
+	virtual bool build_widget( QFrame* frame );
 
-	Core::StateRangedIntHandle erode_state_;
+// -- run filter --
+private Q_SLOTS:
+	void run_filter();
 
-	Core::StateBoolHandle replace_state_;
-
+// -- filter internals --
 private:
-	const static size_t VERSION_NUMBER_C;
-
+	boost::shared_ptr< CurvatureAnisotropicDiffusionFilterInterfacePrivate > private_;
 };
 
-} // end namespace
+} // namespace Seg3D
 
 #endif

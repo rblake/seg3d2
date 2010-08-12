@@ -26,36 +26,46 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
-#define APPLICATION_TOOLS_BINARYDILATEERODEFILTER_H
+#ifndef APPLICATION_TOOLS_ANISOTROPICDIFFUSIONFILTER_H
+#define APPLICATION_TOOLS_ANISOTROPICDIFFUSIONFILTER_H
 
 #include <Application/Tool/SingleTargetTool.h>
 
 namespace Seg3D
 {
 
-class BinaryDilateErodeFilter : public SingleTargetTool
+class CurvatureAnisotropicDiffusionFilter : public SingleTargetTool
 {
-
 SEG3D_TOOL(
-SEG3D_TOOL_NAME( "BinaryDilateErodeFilter", "Grow and Shrink segmentations" )
-SEG3D_TOOL_MENULABEL( "Binary Dialate -> Erode" )
-SEG3D_TOOL_MENU( "filter_mask_to_mask" )
-SEG3D_TOOL_SHORTCUT_KEY( "Alt+Shift+E" )
+SEG3D_TOOL_NAME( "CurvatureAnisotropicDiffusionFilter", "Filter for smoothing data" )
+SEG3D_TOOL_MENULABEL( "Curvature Aniso. Diffusion" )
+SEG3D_TOOL_MENU( "filter_data_to_data" )
+SEG3D_TOOL_SHORTCUT_KEY( "" )
 SEG3D_TOOL_URL( "http://seg3d.org/" )
 )
 
 public:
-	BinaryDilateErodeFilter( const std::string& toolid, bool auto_number = true );
-	virtual ~BinaryDilateErodeFilter();
-
+	CurvatureAnisotropicDiffusionFilter( const std::string& toolid, bool auto_number = true );
+	virtual ~CurvatureAnisotropicDiffusionFilter();
+	
 	// -- state --
 public:
-	Core::StateRangedIntHandle dilate_state_;
-
-	Core::StateRangedIntHandle erode_state_;
-
+	// Whether the layer needs to be replaced
 	Core::StateBoolHandle replace_state_;
+
+	// Number of iterations the filter needs to run
+	Core::StateRangedIntHandle iterations_state_;
+
+	// Number of steps needed
+	Core::StateRangedIntHandle steps_state_;
+
+	// The conductance for deciding what is a similar value
+	Core::StateRangedDoubleHandle conductance_state_;
+
+	// -- execute --
+public:
+	// Execute the tool and dispatch the action
+	virtual void execute( Core::ActionContextHandle context );
 
 private:
 	const static size_t VERSION_NUMBER_C;

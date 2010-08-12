@@ -48,6 +48,13 @@ class Layer;
 typedef boost::shared_ptr< Layer > LayerHandle;
 typedef boost::weak_ptr< Layer > LayerWeakHandle;
 
+class DataLayer;
+typedef boost::shared_ptr< DataLayer > DataLayerHandle;
+class MaskLayer;
+typedef boost::shared_ptr< MaskLayer > MaskLayerHandle;
+class LabelLayer;
+typedef boost::shared_ptr< LabelLayer > LabelLayerHandle;
+
 typedef std::pair< std::string, std::string > LayerIDNamePair;
 
 class LayerSceneItem;
