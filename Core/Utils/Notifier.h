@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,56 +26,43 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_HISTOGRAMEQUALIZATIONFILTER_H
-#define APPLICATION_TOOLS_HISTOGRAMEQUALIZATIONFILTER_H
+#ifndef CORE_UTILS_NOTIFIER_H
+#define CORE_UTILS_NOTIFIER_H
 
-#include <Application/Tool/Tool.h>
+// Boost includes
+#include <boost/utility.hpp>
+#include <boost/smart_ptr.hpp>
 
-namespace Seg3D
+namespace Core
 {
 
-class HistogramEqualizationFilter : public Tool
-{
-SEG3D_TOOL(
-SEG3D_TOOL_NAME( "HistogramEqualizationFilter", "Equalize the histgram" )
-SEG3D_TOOL_MENULABEL( "Histogram Equalization" )
-SEG3D_TOOL_MENU( "filter_data_to_data" )
-SEG3D_TOOL_SHORTCUT_KEY( "Alt+H" )
-SEG3D_TOOL_URL( "http://seg3d.org/" )
-)
+class Notifier;
+typedef boost::shared_ptr<Notifier> NotifierHandle;
 
+class Notifier : public boost::noncopyable
+{
+	// -- constructor / destructor --
 public:
-	HistogramEqualizationFilter( const std::string& toolid );
-	virtual ~HistogramEqualizationFilter();
+	Notifier();
+	virtual ~Notifier();
 
-	// -- constraint parameters --
-
-	// Constrain viewer to right painting tool when layer is selected
-	void target_constraint( std::string layerid );
-
-	// -- activate/deactivate tool --
-
-	virtual void activate();
-	virtual void deactivate();
+public:	
+	// WAIT:
+	// Wait for the event to be triggered. If the event was already triggered this function
+	// returns immediately.
+	virtual void wait() = 0;
 	
-private:
-	// -- handle updates from layermanager --
-	void handle_layers_changed();
+	// WAIT:
+	// Wait for the event to be triggered. If the event was already triggered this function
+	// returns immediately with true. After the timeout the function returns. If a timeout
+	// was triggered it returns false.
+	virtual bool wait( double timeout ) = 0;
 
-	// -- state --
-public:
-	// Layerid of the target layer
-	Core::StateStringHandle target_layer_state_;
-
-	Core::StateRangedDoubleHandle upper_threshold_state_;
-
-	Core::StateRangedDoubleHandle lower_threshold_state_;
-
-	Core::StateRangedIntHandle alpha_state_;
-
-	Core::StateBoolHandle replace_state_;
+	// GET_NAME:
+	// The name of the resource we are waiting for
+	virtual std::string get_name() const = 0;
 };
 
-} // end namespace
+} // end namespace Core
 
 #endif
