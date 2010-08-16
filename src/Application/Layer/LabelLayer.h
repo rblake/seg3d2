@@ -62,10 +62,6 @@ public:
 public:
 
 	// TODO: Need to generate this class
-
-private:
-	const static size_t VERSION_NUMBER_C;
-
 };
 
 } // end namespace Seg3D
