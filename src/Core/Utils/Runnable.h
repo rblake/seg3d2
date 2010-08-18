@@ -25,56 +25,31 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
+ 
 
-#ifndef APPLICATION_LAYER_LabelLAYER_H
-#define APPLICATION_LAYER_LabelLAYER_H
+#ifndef CORE_UTILS_RUNTHREAD_H
+#define CORE_UTILS_RUNTHREAD_H
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-#pragma once
-#endif
-
-// Application includes
-#include <Application/Layer/Layer.h>
-
-namespace Seg3D
+#include <boost/smart_ptr.hpp>
+#include <boost/utility.hpp>
+  
+namespace Core
 {
 
-// CLASS LabelLayer
+class Runnable;
+typedef boost::shared_ptr<Runnable> RunnableHandle;
 
-// Forward declarations
-class LabelLayer;
-typedef boost::shared_ptr< LabelLayer > LabelLayerHandle;
+class Runnable : public boost::noncopyable {
 
-// Class definition
-class LabelLayer : public Layer
-{
-
-	// -- constructor/destructor --
 public:
-
-	LabelLayer( const std::string& name, const Core::VolumeHandle& volume );
-	virtual ~LabelLayer();
-
-	// -- Layer properties --
-public:
-
-	// TYPE
-	// Get the type of the layer
-	virtual Core::VolumeType type() const { return Core::VolumeType::LABEL_E; }
+	virtual ~Runnable();
+	virtual void run() = 0;
 	
-	// GET_GRID_TRANSFORM:
-	// Get the transform of the layer
-	virtual Core::GridTransform get_grid_transform() const = 0;
-
-	// IS_VALID:
-	// Check whether the layer has valid data
-	virtual bool is_valid() const = 0;
-
 public:
-
-	// TODO: Need to generate this class
+	
+	static void Start( RunnableHandle runnable );
 };
 
-} // end namespace Seg3D
-
+} // end namespace Core
+  
 #endif

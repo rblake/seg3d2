@@ -26,55 +26,17 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYER_LabelLAYER_H
-#define APPLICATION_LAYER_LabelLAYER_H
+#include <Core/Utils/Notifier.h>
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-#pragma once
-#endif
-
-// Application includes
-#include <Application/Layer/Layer.h>
-
-namespace Seg3D
+namespace Core
 {
 
-// CLASS LabelLayer
-
-// Forward declarations
-class LabelLayer;
-typedef boost::shared_ptr< LabelLayer > LabelLayerHandle;
-
-// Class definition
-class LabelLayer : public Layer
+Notifier::Notifier()
 {
+}
 
-	// -- constructor/destructor --
-public:
+Notifier::~Notifier()
+{
+}
 
-	LabelLayer( const std::string& name, const Core::VolumeHandle& volume );
-	virtual ~LabelLayer();
-
-	// -- Layer properties --
-public:
-
-	// TYPE
-	// Get the type of the layer
-	virtual Core::VolumeType type() const { return Core::VolumeType::LABEL_E; }
-	
-	// GET_GRID_TRANSFORM:
-	// Get the transform of the layer
-	virtual Core::GridTransform get_grid_transform() const = 0;
-
-	// IS_VALID:
-	// Check whether the layer has valid data
-	virtual bool is_valid() const = 0;
-
-public:
-
-	// TODO: Need to generate this class
-};
-
-} // end namespace Seg3D
-
-#endif
+} // end namespace Core
