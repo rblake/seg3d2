@@ -44,8 +44,7 @@ CORE_ACTION(
 	CORE_ACTION_TYPE( "CurvatureAnisotropicDiffusionFilter", "Run the ITK Curvature Anisotropic Diffusion Filter." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
 	CORE_ACTION_KEY( "iterations", "5", "Number of iterations to perform." )
-	CORE_ACTION_KEY( "integration_step", "0.0625", "Number of divisions for each integration." )
-	CORE_ACTION_KEY( "conductance", "0.1", "Weight for specifying how closely connected values are." )
+	CORE_ACTION_KEY( "sensitivity", "0.1", "Weight for specifying how closely connected values are." )
 	CORE_ACTION_KEY( "preserve_data_format", "true", "ITK filters run in floating point percision,"
 	" this option will convert the result back into the original format." )
 	CORE_ACTION_KEY( "replace", "true", "Replace the old layer (true), or add an new layer (false)" )
@@ -60,8 +59,7 @@ public:
 		
 		// Action options
 		this->add_key( this->iterations_ );
-		this->add_key( this->integration_step_ );
-		this->add_key( this->conductance_ );
+		this->add_key( this->sensitivity_ );
 		this->add_key( this->preserve_data_format_ );
 		this->add_key( this->replace_ );
 	}
@@ -80,8 +78,7 @@ private:
 
 	Core::ActionParameter< std::string > layer_id_;
 	Core::ActionParameter< int > iterations_;
-	Core::ActionParameter< double > integration_step_;
-	Core::ActionParameter< double > conductance_;
+	Core::ActionParameter< double > sensitivity_;
 	Core::ActionParameter< bool > preserve_data_format_;
 	Core::ActionParameter< bool > replace_;
 	
@@ -91,8 +88,7 @@ public:
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, std::string layer_id, 
-		int iterations, double integration_step, 
-		double conductance, bool preserve_data_format, bool replace );
+		int iterations, double sensitivity, bool preserve_data_format, bool replace );
 	
 };
 	

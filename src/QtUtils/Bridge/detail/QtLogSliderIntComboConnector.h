@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,52 +26,47 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_ANISOTROPICDIFFUSIONFILTER_H
-#define APPLICATION_TOOLS_ANISOTROPICDIFFUSIONFILTER_H
+#ifndef QTUTILS_BRIDGE_DETAIL_QTLOGSLIDERINTCOMBOCONNECTOR_H
+#define QTUTILS_BRIDGE_DETAIL_QTLOGSLIDERINTCOMBOCONNECTOR_H
 
-#include <Application/Tool/SingleTargetTool.h>
+#include <QPointer>
 
-namespace Seg3D
+#include <Core/State/StateRangedValue.h>
+
+#include <QtUtils/Widgets/QtLogSliderIntCombo.h>
+#include <QtUtils/Bridge/detail/QtConnectorBase.h>
+
+namespace QtUtils
 {
 
-class AnisotropicDiffusionFilter : public SingleTargetTool
+class QtLogSliderIntComboConnector : public QtConnectorBase
 {
-SEG3D_TOOL(
-SEG3D_TOOL_NAME( "AnisotropicDiffusionFilter", "Filter for smoothing data" )
-SEG3D_TOOL_MENULABEL( "Anisotropic Diffusion" )
-SEG3D_TOOL_MENU( "filter_data_to_data" )
-SEG3D_TOOL_SHORTCUT_KEY( "Alt+A" )
-SEG3D_TOOL_URL( "http://seg3d.org/" )
-)
+	Q_OBJECT
 
 public:
-	AnisotropicDiffusionFilter( const std::string& toolid );
-	virtual ~AnisotropicDiffusionFilter();
+	QtLogSliderIntComboConnector( QtLogSliderIntCombo* parent, 
+		Core::StateRangedIntHandle& state, bool blocking = true );
+
+	virtual ~QtLogSliderIntComboConnector();
+
+	// -- slot functions for boost signals --
+private:
+	static void SetValue( QPointer< QtLogSliderIntComboConnector > qpointer,
+		int val, Core::ActionSource source );
+
+	static void SetRange( QPointer< QtLogSliderIntComboConnector > qpointer,
+		int min_val, int max_val, Core::ActionSource source );
 	
-	// -- state --
-public:
-	// Whether the layer needs to be replaced
-	Core::StateBoolHandle replace_state_;
-
-	// Number of iterations the filter needs to run
-	Core::StateRangedIntHandle iterations_state_;
-
-	// Number of steps needed
-	Core::StateRangedIntHandle steps_state_;
-
-	// The conductance for deciding what is a similar value
-	Core::StateRangedDoubleHandle conductance_state_;
-
-	// -- execute --
-public:
-	// Execute the tool and dispatch the action
-	void execute();
+	// -- slot functions for Qt signals --
+private Q_SLOTS:
+	void set_state_value( int val );
+	void set_state_range( int min_val, int max_val );
 
 private:
-	const static size_t VERSION_NUMBER_C;
-
+	QtLogSliderIntCombo* parent_;
+	Core::StateRangedIntHandle state_;
 };
 
-} // end namespace
+}
 
 #endif
