@@ -27,28 +27,28 @@
  */
 
 // ITK includes
-#include <itkCurvatureAnisotropicDiffusionImageFilter.h>
+#include <itkMedianImageFilter.h>
 
 // Application includes
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Tool/ITKFilter.h>
-#include <Application/Tools/Actions/ActionCurvatureAnisotropicDiffusionFilter.h>
+#include <Application/Tools/Actions/ActionMedianFilter.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
 // registered in the CMake file.
 // NOTE: Registration needs to be done outside of any namespace
-CORE_REGISTER_ACTION( Seg3D, CurvatureAnisotropicDiffusionFilter )
+CORE_REGISTER_ACTION( Seg3D, MedianFilter )
 
 namespace Seg3D
 {
 
-bool ActionCurvatureAnisotropicDiffusionFilter::validate( Core::ActionContextHandle& context )
+bool ActionMedianFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->layer_id_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
@@ -57,7 +57,7 @@ bool ActionCurvatureAnisotropicDiffusionFilter::validate( Core::ActionContextHan
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_.value(), 
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
 		this->replace_.value(), notifier ) )
 	{
 		context->report_need_resource( notifier );
@@ -65,16 +65,9 @@ bool ActionCurvatureAnisotropicDiffusionFilter::validate( Core::ActionContextHan
 	}
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->iterations_.value() < 1 )
+	if( this->radius_.value() < 1 )
 	{
-		context->report_error( "The number of iterations needs to be larger than zero." );
-		return false;
-	}
-	
-	// Conductance needs to be a positive number
-	if( this->sensitivity_.value() < 0.0 )
-	{
-		context->report_error( "The sensitivity needs to be larger than zero." );
+		context->report_error( "The radius needs to be larger than or equal to one." );
 		return false;
 	}
 	
@@ -87,16 +80,15 @@ bool ActionCurvatureAnisotropicDiffusionFilter::validate( Core::ActionContextHan
 // NOTE: The separation of the algorithm into a private class is for the purpose of running the
 // filter on a separate thread.
 
-class CurvatureAnisotropicDiffusionFilterAlgo : public ITKFilter
+class MedianFilterAlgo : public ITKFilter
 {
 
 public:
 	LayerHandle src_layer_;
 	LayerHandle dst_layer_;
-	
-	int	iterations_;
-	double sensitivity_;
+
 	bool preserve_data_format_;
+	int radius_;
 
 public:
 	// RUN:
@@ -108,7 +100,7 @@ public:
 	SCI_BEGIN_TYPED_RUN( this->src_layer_->get_data_type() )
 	{
 		// Define the type of filter that we use.
-		typedef itk::CurvatureAnisotropicDiffusionImageFilter< 
+		typedef itk::MedianImageFilter< 
 			TYPED_IMAGE_TYPE, FLOAT_IMAGE_TYPE > filter_type;
 
 		// Retrieve the image as an itk image from the underlying data structure
@@ -118,21 +110,16 @@ public:
 				
 		// Create a new ITK filter instantiation.	
 		typename filter_type::Pointer filter = filter_type::New();
-		
+
 		// Relay abort and progress information to the layer that is executing the filter.
 		this->observe_itk_filter( filter, this->dst_layer_ );
 
 		// Setup the filter parameters that we do not want to change.
 		filter->SetInput( input_image->get_image() );
-		filter->SetInPlace( false );
-		filter->SetNumberOfIterations( this->iterations_ );
 		
-		// We changed the behavior of this parameter to be more intuitive. It is now relative to
-		// the dynamic range of the data. So a similar setting will behave similarly on a
-		// different data set.
-		double range = this->src_layer_->get_volume()->get_max() - 
-			this->src_layer_->get_volume()->get_min();
-		filter->SetConductanceParameter( this->sensitivity_ * range );
+		typename filter_type::InputSizeType size;
+		size.Fill( this->radius_ );
+		filter->SetRadius( size );
 
 		// Run the actual ITK filter.
 		// This needs to be in a try/catch statement as certain filters throw exceptions when they
@@ -144,7 +131,7 @@ public:
 		catch ( ... ) 
 		{
 			StatusBar::SetMessage( Core::LogMessageType::ERROR_E,  
-				"CurvatureAnisotropicDiffusionFilter failed." );
+				"MedianFilter failed." );
 		}
 
 		// As ITK filters generate an inconsistent abort behavior, we record our own abort flag
@@ -170,25 +157,23 @@ public:
 	// The name of the filter, this information is used for generating new layer labels.
 	virtual std::string get_filter_name() const
 	{
-		return "AnisoDiff";
+		return "Median";
 	}
 };
 
 
-bool ActionCurvatureAnisotropicDiffusionFilter::run( Core::ActionContextHandle& context, 
+bool ActionMedianFilter::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
 	// Create algorithm
-	boost::shared_ptr<CurvatureAnisotropicDiffusionFilterAlgo> algo(
-		new CurvatureAnisotropicDiffusionFilterAlgo );
+	boost::shared_ptr<MedianFilterAlgo> algo( new MedianFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->iterations_ = this->iterations_.value();
-	algo->sensitivity_ = this->sensitivity_.value();
 	algo->preserve_data_format_ = this->preserve_data_format_.value();
+	algo->radius_ = this->radius_.value();
 
 	// Find the handle to the layer
-	algo->find_layer( this->layer_id_.value(), algo->src_layer_ );
+	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
 
 	if ( this->replace_.value() )
 	{
@@ -215,21 +200,17 @@ bool ActionCurvatureAnisotropicDiffusionFilter::run( Core::ActionContextHandle& 
 	return true;
 }
 
-
-void ActionCurvatureAnisotropicDiffusionFilter::Dispatch( Core::ActionContextHandle context, 
-	std::string layer_id, int iterations, double sensitivity, 
-	bool preserve_data_format, bool replace )
+void ActionMedianFilter::Dispatch( Core::ActionContextHandle context, 
+	std::string target_layer, bool replace, bool preserve_data_format, int radius )
 {	
 	// Create a new action
-	ActionCurvatureAnisotropicDiffusionFilter* action = 
-		new ActionCurvatureAnisotropicDiffusionFilter;
+	ActionMedianFilter* action = new ActionMedianFilter;
 
 	// Setup the parameters
-	action->layer_id_.value() = layer_id;
-	action->iterations_.value() = iterations;
-	action->sensitivity_.value() = sensitivity;
-	action->preserve_data_format_.value() = preserve_data_format;
+	action->target_layer_.value() = target_layer;
 	action->replace_.value() = replace;
+	action->preserve_data_format_.value() = preserve_data_format;
+	action->radius_.value() = radius;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
