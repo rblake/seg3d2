@@ -29,6 +29,7 @@
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Tools/InvertTool.h>
+#include <Application/Tools/Actions/ActionInvert.h>
 #include <Application/Layer/Layer.h>
 #include <Application/LayerManager/LayerManager.h>
 
@@ -39,61 +40,32 @@ namespace Seg3D
 {
 
 InvertTool::InvertTool( const std::string& toolid ) :
-	Tool( toolid )
+	SingleTargetTool( Core::VolumeType::DATA_E, toolid )
 {
-	// Need to set ranges and default values for all parameters
-	add_state( "target", this->target_layer_state_, "<none>" );
-	add_state( "replace", this->replace_state_, false );
-	
-	this->handle_layers_changed();
-	
-	this->add_connection ( LayerManager::Instance()->layers_changed_signal_.connect(
-		boost::bind( &InvertTool::handle_layers_changed, this ) ) );
-
+	this->add_state( "replace", this->replace_state_, false );
 }
 
 InvertTool::~InvertTool()
 {
-	disconnect_all();
+	this->disconnect_all();
 }
 
-void InvertTool::handle_layers_changed()
+void InvertTool::execute( Core::ActionContextHandle context )
 {
-	std::vector< LayerHandle > target_layers;
-	LayerManager::Instance()->get_layers( target_layers );
-	bool target_found = false;
-	
-	for( int i = 0; i < static_cast< int >( target_layers.size() ); ++i )
+	std::string layer_id;
+	bool replace;
 	{
-		if( ( this->target_layer_state_->get() == "<none>" ) && ( target_layers[i]->type() == 
-																 Core::VolumeType::DATA_E ) )
+		Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
+		if ( !this->valid_target_state_->get() )
 		{
-			this->target_layer_state_->set( target_layers[i]->get_layer_name(), 
-				Core::ActionSource::NONE_E );
-			target_found = true;
-			break;
+			return;
 		}
-		if( target_layers[i]->get_layer_name() == this->target_layer_state_->get() ) {
-			target_found = true;
-			break;
-		}
+		layer_id = this->target_layer_state_->get();
+		replace = this->replace_state_->get();
 	}
-	
-	if( !target_found )
-	this->target_layer_state_->set( "", Core::ActionSource::NONE_E );
-		
+
+	ActionInvert::Dispatch( context, layer_id, replace );
 }
 
-void InvertTool::activate()
-{
-}
-
-void InvertTool::deactivate()
-{
-}
-
-void InvertTool::dispatch_invert() const
-{
-}
 
 } // end namespace Seg3D
