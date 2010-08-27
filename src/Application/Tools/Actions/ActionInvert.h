@@ -26,43 +26,52 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_CANNYEDGEDETECTIONFILTERINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_CANNYEDGEDETECTIONFILTERINTERFACE_H
+#ifndef APPLICATION_TOOL_ACTIONS_ACTIONINVERT_H
+#define APPLICATION_TOOL_ACTIONS_ACTIONINVERT_H
 
-// Core includes
-#include <Core/Utils/Log.h>
-
-// Application includes
-#include <Application/Tool/ToolFactory.h>
-
-// Base class of the tool widget
-#include <Interface/AppInterface/ToolWidget.h>
+#include <Core/Action/Actions.h>
 
 namespace Seg3D
 {
-
-class CannyEdgeDetectionFilterInterfacePrivate;
-
-class CannyEdgeDetectionFilterInterface : public ToolWidget
+	
+class ActionInvert : public Core::Action
 {
-Q_OBJECT
 
-// -- Constructor/destructor --
+CORE_ACTION( 
+	CORE_ACTION_TYPE( "Invert", "Invert the values of the data layer" )
+	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this tool needs to be run." )
+	CORE_ACTION_KEY( "replace", "true", "Replace the old layer (true), or add an new layer (false)" )
+)
+	
+	// -- Constructor/Destructor --
 public:
-	CannyEdgeDetectionFilterInterface();
-	virtual ~CannyEdgeDetectionFilterInterface();
-
-// -- create interface --
+	ActionInvert()
+	{
+		// Action arguments
+		this->add_argument( this->layer_id_ );
+		
+		// Action options
+		this->add_key( this->replace_ );
+	}
+	
+	virtual ~ActionInvert() {}
+	
+	// -- Functions that describe action --
 public:
-	// BUILD_WIDGET:
-	// This function builds the actual GUI
-	virtual bool build_widget( QFrame* frame );
-
-// -- filter internals --
+	virtual bool validate( Core::ActionContextHandle& context );
+	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+	
+	// -- Action parameters --
 private:
-	boost::shared_ptr< CannyEdgeDetectionFilterInterfacePrivate > private_;
-};
 
-} // namespace Seg3D
+	Core::ActionParameter< std::string > layer_id_;
+	Core::ActionParameter< bool > replace_;
+	
+public:
+	static void Dispatch( Core::ActionContextHandle context, 
+		std::string layer_id, bool replace );
+};
+	
+} // end namespace Seg3D
 
 #endif
