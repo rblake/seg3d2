@@ -35,6 +35,9 @@
 // Boost includes
 #include <boost/utility.hpp>
 
+// Core includes
+#include <Core/Utils/ConnectionHandler.h>
+
 // Application includes
 // NOTE: Only need the forward declaration of Tool for defining this class
 #include <Application/Tool/ToolFWD.h> 
@@ -46,7 +49,7 @@ namespace Seg3D
 // Base class of each tool interface. These are not included inside the tool
 // to ensure that the GUI is properly separated from the application.
 
-class ToolInterface : public boost::noncopyable
+class ToolInterface : public Core::ConnectionHandler
 {
 
 	// -- constructor/destructor --
