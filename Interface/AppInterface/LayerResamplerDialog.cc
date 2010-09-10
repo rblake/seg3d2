@@ -26,44 +26,39 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Application includes
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <QtUtils/Bridge/QtBridge.h>
 
-// StateEnigne of the tool
-#include <Application/Tools/MedianFilter.h>
+#include <Interface/AppInterface/LayerResamplerDialog.h>
 
-// Action associated with tool
-#include <Application/Filters/Actions/ActionMedianFilter.h>
-
-// Register the tool into the tool factory
-SCI_REGISTER_TOOL( Seg3D, MedianFilter )
+#include "ui_LayerResamplerDialog.h"
 
 namespace Seg3D
 {
 
-MedianFilter::MedianFilter( const std::string& toolid ) :
-	SingleTargetTool( Core::VolumeType::DATA_E, toolid )
+class LayerResamplerDialogPrivate
 {
-	// Need to set ranges and default values for all parameters
-	this->add_state( "replace", this->replace_state_, false );
-	this->add_state( "preserve_data_format", this->preserve_data_format_state_, true );
-	this->add_state( "radius", this->radius_state_, 1, 1, 10, 1 );
-}
+public:
+	Ui::LayerResamplerDialog ui_;
+};
 
-MedianFilter::~MedianFilter()
+LayerResamplerDialog::LayerResamplerDialog( 
+	const LayerResamplerHandle& layer_resampler, 
+	QWidget* parent ) :
+	QDialog( parent ),
+	private_( new LayerResamplerDialogPrivate )
 {
-	disconnect_all();
-}
-	
-void MedianFilter::execute( Core::ActionContextHandle context )
-{
-	ActionMedianFilter::Dispatch( context,
-		this->target_layer_state_->get(),
-		this->replace_state_->get(),
-		this->preserve_data_format_state_->get(),
-		this->radius_state_->get() );
+	this->private_->ui_.setupUi( this );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.padding_combobox_, 
+		layer_resampler->padding_value_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.kernel_combobox_,
+		layer_resampler->kernel_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.sigma_spinbox_,
+		layer_resampler->gauss_sigma_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.cutoff_spinbox_,
+		layer_resampler->gauss_cutoff_state_ );
+	QtUtils::QtBridge::Show( this->private_->ui_.param_widget_,
+		layer_resampler->has_params_state_ );
 }
 
 } // end namespace Seg3D

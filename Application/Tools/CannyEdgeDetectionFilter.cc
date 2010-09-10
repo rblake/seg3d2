@@ -35,7 +35,7 @@
 #include <Application/Tools/CannyEdgeDetectionFilter.h>
 
 // Action associated with tool
-#include <Application/Tools/Actions/ActionCannyEdgeDetectionFilter.h>
+#include <Application/Filters/Actions/ActionCannyEdgeDetectionFilter.h>
 
 
 // Register the tool into the tool factory
