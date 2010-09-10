@@ -26,44 +26,32 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Application includes
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#ifndef INTERFACE_APPINTERFACE_LAYERRESAMPLERDIALOG_H
+#define INTERFACE_APPINTERFACE_LAYERRESAMPLERDIALOG_H
 
-// StateEnigne of the tool
-#include <Application/Tools/MedianFilter.h>
+#include <QDialog>
 
-// Action associated with tool
-#include <Application/Filters/Actions/ActionMedianFilter.h>
-
-// Register the tool into the tool factory
-SCI_REGISTER_TOOL( Seg3D, MedianFilter )
+#include <Application/Filters/LayerResampler.h>
 
 namespace Seg3D
 {
 
-MedianFilter::MedianFilter( const std::string& toolid ) :
-	SingleTargetTool( Core::VolumeType::DATA_E, toolid )
-{
-	// Need to set ranges and default values for all parameters
-	this->add_state( "replace", this->replace_state_, false );
-	this->add_state( "preserve_data_format", this->preserve_data_format_state_, true );
-	this->add_state( "radius", this->radius_state_, 1, 1, 10, 1 );
-}
+class LayerResamplerDialogPrivate;
+typedef boost::shared_ptr< LayerResamplerDialogPrivate > LayerResamplerDialogPrivateHandle;
 
-MedianFilter::~MedianFilter()
+class LayerResamplerDialog : public QDialog
 {
-	disconnect_all();
-}
-	
-void MedianFilter::execute( Core::ActionContextHandle context )
-{
-	ActionMedianFilter::Dispatch( context,
-		this->target_layer_state_->get(),
-		this->replace_state_->get(),
-		this->preserve_data_format_state_->get(),
-		this->radius_state_->get() );
-}
+	Q_OBJECT
+
+public:
+	LayerResamplerDialog( const LayerResamplerHandle& layer_resampler,
+		QWidget* parent );
+	~LayerResamplerDialog() {}
+
+private:
+	LayerResamplerDialogPrivateHandle private_;
+};
 
 } // end namespace Seg3D
+
+#endif
