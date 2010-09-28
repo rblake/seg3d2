@@ -226,9 +226,6 @@ bool ActionFillHolesFilter::run( Core::ActionContextHandle& context,
 	// Find the handle to the layer
 	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
 	
-	// Lock the src layer, so it cannot be used else where
-	algo->lock_for_use( algo->src_layer_ );
-	
 	algo->seeds_ = this->seeds_.value();
 	
 	if ( this->replace_.value() )
