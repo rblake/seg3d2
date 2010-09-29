@@ -98,6 +98,13 @@ MESSAGE(STATUS "Configuring tinyxml")
 ADD_SUBDIRECTORY(tinyxml)
 
 ##################################################
+# ADDING TINYXML
+##################################################
+
+MESSAGE(STATUS "Configuring GDCM")
+ADD_SUBDIRECTORY(gdcm)
+
+##################################################
 # ADDING ITK
 ##################################################
 
@@ -110,6 +117,8 @@ SET(ITK_INSTALL_NO_DEVELOPMENT 1)
 SET(ITK_INSTALL_NO_RUNTIME 1)
 SET(ITK_INSTALL_NO_DOCUMENTATION 1)
 SET(ITK_INSTALL_NO_LIBRARIES 1)
+SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
+INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
 
 ADD_SUBDIRECTORY(itk)
 
