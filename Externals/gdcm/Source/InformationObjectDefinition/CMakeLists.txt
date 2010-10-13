@@ -45,7 +45,7 @@ SET_TARGET_PROPERTIES(gdcmIOD PROPERTIES ${GDCM_LIBRARY_PROPERTIES} LINK_INTERFA
 IF(WIN32)
   SET_TARGET_PROPERTIES(gdcmIOD
                         PROPERTIES
-                        COMPILE_FLAGS "-W3 -wd4244 -wd4267 -wd4244")
+                        COMPILE_FLAGS "-W0 -wd4244 -wd4267 -wd4244")
 ENDIF(WIN32)
 
 #-----------------------------------------------------------------------------
