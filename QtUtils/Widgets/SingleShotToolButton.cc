@@ -26,27 +26,55 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPINTERFACE_SINGLESHOTTOOLBUTTON_H
-#define INTERFACE_APPINTERFACE_SINGLESHOTTOOLBUTTON_H
+#include <cassert>
 
-// Qt includes
 #include <QtGui>
 
-namespace Seg3D
+#include <QtUtils/Widgets/SingleShotToolButton.h>
+
+namespace QtUtils
 {
 
-class SingleShotToolButton : public QToolButton
+SingleShotToolButton::SingleShotToolButton( QWidget *parent ) :
+	QToolButton( parent )
 {
-Q_OBJECT
+	this->setCheckable( true );
+}
 
-public:
-	SingleShotToolButton( QWidget* parent = 0 );
-	virtual ~SingleShotToolButton();
+SingleShotToolButton::~SingleShotToolButton()
+{
+}
 
-protected:
-	virtual void mouseReleaseEvent( QMouseEvent* e );
-};
+void SingleShotToolButton::mouseReleaseEvent( QMouseEvent *e )
+{
+	if ( e->button() == Qt::LeftButton )
+	{
+		bool checked = this->isChecked();
+		bool signals_blocked = this->blockSignals( true );
+		QToolButton::mouseReleaseEvent( e );
+		if ( e->isAccepted() )
+		{
+			// Make sure the button is checked
+			this->setChecked( true );
+			// Restore signal blocking state
+			this->blockSignals( signals_blocked );			
+			
+			// If the button was previously not checked, emit the toggled signal
+			if ( !checked )
+			{
+				assert( this->isChecked() );
+				this->toggled( true );
+			}
+		}
+		else
+		{
+			this->blockSignals( signals_blocked );
+		}
+	}
+	else
+	{
+		QToolButton::mouseReleaseEvent( e );
+	}
+}
 
-} // end namespace Seg3D
-
-#endif
+} // end namespace QtUtils
