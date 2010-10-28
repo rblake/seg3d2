@@ -26,52 +26,52 @@
  DEALINGS IN THE SOFTWARE.
  */
  
-#ifndef APPLICATION_FILTERS_BASEFILTERLOCK_H 
-#define APPLICATION_FILTERS_BASEFILTERLOCK_H
- 
-// Boost includes
-#include <boost/smart_ptr.hpp> 
-#include <boost/utility.hpp> 
-#include <boost/thread/mutex.hpp> 
-#include <boost/thread/condition_variable.hpp> 
 
-// Core includes
-#include <Core/Utils/Singleton.h>
+// Application includes
+#include <Application/Filters/LayerFilterLock.h>
 
 namespace Seg3D
 {
 
-// This class prevents too many filters running simultaneously by allowing only
-// a certain amount of the filters to run in parallel. If too many threads are started
-// some will have to wait until others are done.
+CORE_SINGLETON_IMPLEMENTATION( LayerFilterLock );
 
-class BaseFilterLockPrivate;
-typedef boost::shared_ptr<BaseFilterLockPrivate> BaseFilterLockPrivateHandle;
-
-
-class BaseFilterLock : public boost::noncopyable
+class LayerFilterLockPrivate
 {
-	CORE_SINGLETON( BaseFilterLock );
-
-	// -- Constructor/Destructor --
-private:
-	BaseFilterLock();
-	virtual ~BaseFilterLock();
-		
-	// -- interface --
 public:
-	// Lock the resource. The function will continue if enough filter slots are available
-	void lock();
-	
-	// Unlock the resource.
-	void unlock();
-	
-	// -- internals --
-private:
-	BaseFilterLockPrivateHandle private_;
+	int max_filter_count_;
+	int current_filter_count_;
 
+	boost::mutex mutex_;
+	boost::condition_variable condition_variable_;
 };
-	
-} // end namespace Seg3D
 
-#endif
+LayerFilterLock::LayerFilterLock() :
+	private_( new LayerFilterLockPrivate )
+{
+	this->private_->max_filter_count_ = 4;
+	this->private_->current_filter_count_ = 0;
+}
+
+LayerFilterLock::~LayerFilterLock()
+{
+}
+
+void LayerFilterLock::lock()
+{
+	boost::unique_lock<boost::mutex> lock( this->private_->mutex_ );
+	while ( this->private_->current_filter_count_ >=  this->private_->max_filter_count_ )
+	{
+		this->private_->condition_variable_.wait( lock );
+	}
+	
+	this->private_->current_filter_count_++;
+}
+
+void LayerFilterLock::unlock()
+{
+	boost::unique_lock<boost::mutex> lock( this->private_->mutex_ );
+	this->private_->current_filter_count_--;
+	this->private_->condition_variable_.notify_all();
+}
+
+} // end namespace Core

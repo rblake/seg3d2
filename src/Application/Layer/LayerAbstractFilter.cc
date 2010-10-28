@@ -26,39 +26,20 @@
  DEALINGS IN THE SOFTWARE.
  */
  
-#ifndef APPLICATION_LAYERMANAGER_LAYERABSTRACTFILTER_H 
-#define APPLICATION_LAYERMANAGER_LAYERABSTRACTFILTER_H 
  
-// Boost includes
-#include <boost/smart_ptr.hpp> 
-#include <boost/utility.hpp> 
+// Application includes
+#include <Application/Layer/LayerAbstractFilter.h>
  
-// Core includes
-#include <Core/Utils/Runnable.h>
-
 namespace Seg3D
 {
 
-// CLASS BASEFILTER:
-// This class provides the basic underlying framework for running filters in a separate thread
-// from the application thread. It provides a series of functions common to all the filters.
-
-class LayerAbstractFilter;
-typedef boost::shared_ptr<LayerAbstractFilter> LayerAbstractFilterHandle;
-typedef boost::weak_ptr<LayerAbstractFilter>   LayerAbstractFilterWeakHandle;
-
-class LayerAbstractFilter : public Core::Runnable
+LayerAbstractFilter::LayerAbstractFilter()
 {
+}
 
-public:
-	LayerAbstractFilter();
-	virtual ~LayerAbstractFilter();
-	
-	// -- abort handling --	
-public:
-	virtual void wait_and_abort() = 0;
-};
+LayerAbstractFilter::~LayerAbstractFilter()
+{
+}
 
 } // end namespace Seg3D
 
-#endif

@@ -26,52 +26,52 @@
  DEALINGS IN THE SOFTWARE.
  */
  
+#ifndef APPLICATION_FILTERS_BASEFILTERLOCK_H 
+#define APPLICATION_FILTERS_BASEFILTERLOCK_H
+ 
+// Boost includes
+#include <boost/smart_ptr.hpp> 
+#include <boost/utility.hpp> 
+#include <boost/thread/mutex.hpp> 
+#include <boost/thread/condition_variable.hpp> 
 
-// Application includes
-#include <Application/Filters/BaseFilterLock.h>
+// Core includes
+#include <Core/Utils/Singleton.h>
 
 namespace Seg3D
 {
 
-CORE_SINGLETON_IMPLEMENTATION( BaseFilterLock );
+// This class prevents too many filters running simultaneously by allowing only
+// a certain amount of the filters to run in parallel. If too many threads are started
+// some will have to wait until others are done.
 
-class BaseFilterLockPrivate
+class LayerFilterLockPrivate;
+typedef boost::shared_ptr<LayerFilterLockPrivate> LayerFilterLockPrivateHandle;
+
+
+class LayerFilterLock : public boost::noncopyable
 {
+	CORE_SINGLETON( LayerFilterLock );
+
+	// -- Constructor/Destructor --
+private:
+	LayerFilterLock();
+	virtual ~LayerFilterLock();
+		
+	// -- interface --
 public:
-	int max_filter_count_;
-	int current_filter_count_;
-
-	boost::mutex mutex_;
-	boost::condition_variable condition_variable_;
-};
-
-BaseFilterLock::BaseFilterLock() :
-	private_( new BaseFilterLockPrivate )
-{
-	this->private_->max_filter_count_ = 4;
-	this->private_->current_filter_count_ = 0;
-}
-
-BaseFilterLock::~BaseFilterLock()
-{
-}
-
-void BaseFilterLock::lock()
-{
-	boost::unique_lock<boost::mutex> lock( this->private_->mutex_ );
-	while ( this->private_->current_filter_count_ >=  this->private_->max_filter_count_ )
-	{
-		this->private_->condition_variable_.wait( lock );
-	}
+	// Lock the resource. The function will continue if enough filter slots are available
+	void lock();
 	
-	this->private_->current_filter_count_++;
-}
+	// Unlock the resource.
+	void unlock();
+	
+	// -- internals --
+private:
+	LayerFilterLockPrivateHandle private_;
 
-void BaseFilterLock::unlock()
-{
-	boost::unique_lock<boost::mutex> lock( this->private_->mutex_ );
-	this->private_->current_filter_count_--;
-	this->private_->condition_variable_.notify_all();
-}
+};
+	
+} // end namespace Seg3D
 
-} // end namespace Core
+#endif
