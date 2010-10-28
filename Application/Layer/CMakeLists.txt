@@ -32,17 +32,19 @@
 ##################################################
 
 SET(APPLICATION_LAYER_SRCS
-  LayerFWD.h
-  LayerGroup.h
-  LayerGroup.cc
-  Layer.h
-  Layer.cc
-  DataLayer.h
-  DataLayer.cc
-  MaskLayer.h
-  MaskLayer.cc
-  LabelLayer.h
-  LabelLayer.cc
+	LayerFWD.h
+	LayerGroup.h
+	LayerGroup.cc
+	Layer.h
+	Layer.cc
+	LayerAbstractFilter.h
+	LayerAbstractFilter.cc
+	DataLayer.h
+	DataLayer.cc
+	MaskLayer.h
+	MaskLayer.cc
+	LabelLayer.h
+	LabelLayer.cc
 )
 
 SET(APPLICATION_LAYER_ACTIONS_SRCS
