@@ -26,15 +26,45 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Core/Action/ActionUndoBuffer.h>
+#include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerManager.h>
+#include <Application/LayerManager/LayerUndoBuffer.h>
 
-namespace Core
+#include <Application/LayerManager/Actions/ActionRedo.h>
+
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, Redo )
+
+namespace Seg3D
 {
 
-ActionUndoItem::ActionUndoItem( std::string& tag, ActionHandleList& undo_actions,
-    ActionHandle& redo_action ) :
-	tag_( tag ), undo_actions_( undo_actions ), redo_action_( redo_action )
+bool ActionRedo::validate( Core::ActionContextHandle& context )
 {
+	if ( ! ( LayerUndoBuffer::Instance()->has_redo() ) )
+	{
+		context->report_error( "No action to redo " );
+		return false;
+	}
+	
+	return true; // validated
 }
 
-} // end namespace Core
+bool ActionRedo::run( Core::ActionContextHandle& context, 
+	Core::ActionResultHandle& result )
+{
+	return LayerUndoBuffer::Instance()->redo( context );
+}
+
+Core::ActionHandle ActionRedo::Create()
+{
+	return Core::ActionHandle( new ActionRedo );
+}
+
+void ActionRedo::Dispatch( Core::ActionContextHandle context )
+{
+	Core::ActionDispatcher::PostAction( Create(), context );
+}
+
+} // end namespace Seg3D

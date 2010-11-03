@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,54 +26,46 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_FILTERS_ACTIONS_ACTIONINVERT_H
-#define APPLICATION_FILTERS_ACTIONS_ACTIONINVERT_H
+#include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerManager.h>
+#include <Application/LayerManager/LayerUndoBuffer.h>
 
-#include <Core/Action/Actions.h>
+#include <Application/LayerManager/Actions/ActionUndo.h>
+
+
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, Undo )
 
 namespace Seg3D
 {
-	
-class ActionInvert : public Core::Action
-{
 
-CORE_ACTION( 
-	CORE_ACTION_TYPE( "Invert", "Invert the values of the data layer" )
-	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this tool needs to be run." )
-	CORE_ACTION_KEY( "replace", "true", "Replace the old layer (true), or add an new layer (false)" )
-	CORE_ACTION_CHANGES_PROJECT_DATA()
-	CORE_ACTION_IS_UNDOABLE()
-)
-	
-	// -- Constructor/Destructor --
-public:
-	ActionInvert()
+bool ActionUndo::validate( Core::ActionContextHandle& context )
+{
+	if ( ! ( LayerUndoBuffer::Instance()->has_undo() ) )
 	{
-		// Action arguments
-		this->add_argument( this->layer_id_ );
-		
-		// Action options
-		this->add_key( this->replace_ );
+		context->report_error( "No action to undo." );
+		return false;
 	}
 	
-	virtual ~ActionInvert() {}
-	
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
-	// -- Action parameters --
-private:
+	return true; // validated
+}
 
-	Core::ActionParameter< std::string > layer_id_;
-	Core::ActionParameter< bool > replace_;
-	
-public:
-	static void Dispatch( Core::ActionContextHandle context, 
-		std::string layer_id, bool replace );
-};
-	
+bool ActionUndo::run( Core::ActionContextHandle& context, 
+	Core::ActionResultHandle& result )
+{
+	return LayerUndoBuffer::Instance()->undo( context );
+}
+
+Core::ActionHandle ActionUndo::Create()
+{
+	return Core::ActionHandle( new ActionUndo );
+}
+
+void ActionUndo::Dispatch( Core::ActionContextHandle context )
+{
+	Core::ActionDispatcher::PostAction( Create(), context );
+}
+
 } // end namespace Seg3D
-
-#endif
