@@ -94,6 +94,8 @@ INCLUDE_DIRECTORIES(${SCI_ZLIB_INCLUDE})
 
 ADD_DEFINITIONS(-DZ_PREFIX)
 
+SET(SCI_ZLIB_MANGLE 1 CACHE INTERNAL "Tell the system that we have a mangled zlib." FORCE)
+
 ###########################################
 # Add the library
 

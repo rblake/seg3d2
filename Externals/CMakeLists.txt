@@ -36,6 +36,13 @@ MESSAGE(STATUS "Configuring zlib")
 ADD_SUBDIRECTORY(zlib)
 
 ##################################################
+# ADDING OPENSSL
+##################################################
+
+MESSAGE(STATUS "Configuring openssl")
+ADD_SUBDIRECTORY(openssl)
+
+##################################################
 # ADDING MATLABIO
 ##################################################
 
