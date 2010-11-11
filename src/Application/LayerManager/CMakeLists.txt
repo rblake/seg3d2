@@ -34,17 +34,17 @@
 SET(APPLICATION_LAYERMANAGER_SRCS
 	LayerAvailabilityNotifier.h
 	LayerAvailabilityNotifier.cc
-  LayerManager.h
-  LayerManager.cc
+	LayerManager.h
+	LayerManager.cc
 	LayerScene.h
-  LayerCheckPoint.h
-  LayerCheckPoint.cc
-  LayerUndoBufferItem.h
-  LayerUndoBufferItem.cc
-  LayerUndoBuffer.h
-  LayerUndoBuffer.cc
-	Actions/ActionLayer.h
-	Actions/ActionLayer.cc
+	LayerCheckPoint.h
+	LayerCheckPoint.cc
+	LayerUndoBufferItem.h
+	LayerUndoBufferItem.cc
+	LayerUndoBuffer.h
+	LayerUndoBuffer.cc
+	LayerAction.h
+	LayerAction.cc
 )
 
 SET(APPLICATION_LAYERMANAGER_ACTIONS_SRCS
