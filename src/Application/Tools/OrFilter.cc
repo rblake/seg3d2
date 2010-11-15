@@ -26,50 +26,51 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_HISTOGRAMEQUALIZATIONFILTER_H
-#define APPLICATION_TOOLS_HISTOGRAMEQUALIZATIONFILTER_H
-
 // Application includes
-#include <Application/Tool/SingleTargetTool.h>
+#include <Application/Tool/ToolFactory.h>
+#include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerManager.h>
+
+// StateEngine of the tool
+#include <Application/Tools/OrFilter.h>
+
+// Action associated with tool
+#include <Application/Filters/Actions/ActionOrFilter.h>
+
+// Register the tool into the tool factory
+SCI_REGISTER_TOOL( Seg3D, OrFilter )
 
 namespace Seg3D
 {
 
-class HistogramEqualizationFilter : public SingleTargetTool
+OrFilter::OrFilter( const std::string& toolid ) :
+	SingleTargetTool( Core::VolumeType::MASK_E, toolid )
 {
-SEG3D_TOOL(
-SEG3D_TOOL_NAME( "HistogramEqualizationFilter", "Equalize the histgram" )
-SEG3D_TOOL_MENULABEL( "Histogram Equalization" )
-SEG3D_TOOL_MENU( "Advanced Filters" )
-SEG3D_TOOL_SHORTCUT_KEY( "Ctrl+Alt+Y" )
-SEG3D_TOOL_URL( "http://seg3d.org/" )
-SEG3D_TOOL_VERSION( "1" )
-)
+	// Create an empty list of label options
+	std::vector< LayerIDNamePair > empty_list( 1, 
+		std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
 
-public:
-	HistogramEqualizationFilter( const std::string& toolid );
-	virtual ~HistogramEqualizationFilter();
+	// Need to set ranges and default values for all parameters
+	this->add_state( "replace", this->replace_state_, false );
 
-	// -- state --
-public:
-	// Whether the layer needs to be replaced
-	Core::StateBoolHandle replace_state_;
+	// Whether we use a mask to find which components to use
+	this->add_state( "mask", this->mask_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_dependent_layer_input( this->mask_state_, Core::VolumeType::MASK_E );
+}
+	
+OrFilter::~OrFilter()
+{
+	this->disconnect_all();
+}
 
-	// Alpha parameter
-	Core::StateRangedDoubleHandle amount_state_;
+void OrFilter::execute( Core::ActionContextHandle context )
+{
+	ActionOrFilter::Dispatch( context,
+		this->target_layer_state_->get(),
+		this->mask_state_->get(),
+		this->replace_state_->get()	);		
+}
 
-	// Number of bins used to calculate histogram
-	Core::StateRangedIntHandle bins_state_;
+} // end namespace Seg3D
 
-	// Number of bins ignored in equalization
-	Core::StateRangedIntHandle ignore_bins_state_;
 
-	// -- execute --
-public:
-	// Execute the tool and dispatch the action
-	virtual void execute( Core::ActionContextHandle context );
-};
-
-} // end namespace
-
-#endif
