@@ -30,7 +30,7 @@
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/LayerGroup.h>
 #include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/LayerUndoBuffer.h>
+#include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/Actions/ActionDeleteLayers.h>
 
 // REGISTER ACTION:
@@ -59,7 +59,7 @@ bool ActionDeleteLayers::run( Core::ActionContextHandle& context,
 	// NOTE: This action will reset the undo buffers as components needed for the undo may have been
 	// deleted.
 	// NOTE: Most programs assume when a user confirms a delete that one cannot undo there after.
-	LayerUndoBuffer::Instance()->reset_undo_buffer();
+	UndoBuffer::Instance()->reset_undo_buffer();
 	
 	LayerGroupHandle group = LayerManager::FindLayerGroup( this->group_id_.value() );
 	LayerManager::Instance()->delete_layers( group );

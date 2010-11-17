@@ -26,57 +26,53 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_CLIPBOARD_CLIPBOARD_H
-#define APPLICATION_CLIPBOARD_CLIPBOARD_H
+#ifndef APPLICATION_CLIPBOARD_CLIPBOARDUNDOBUFFERITEM_H
+#define APPLICATION_CLIPBOARD_CLIPBOARDUNDOBUFFERITEM_H
 
-#include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-
-#include <Core/Utils/Singleton.h>
-
+// Application includes
 #include <Application/Clipboard/ClipboardItem.h>
+#include <Application/UndoBuffer/UndoBufferItem.h>
 
 namespace Seg3D
 {
 
 // Forward declarations
-class ClipboardPrivate;
-typedef boost::shared_ptr< ClipboardPrivate > ClipboardPrivateHandle;
+class ClipboardUndoBufferItem;
+class ClipboardUndoBufferItemPrivate;
+typedef boost::shared_ptr<ClipboardUndoBufferItem> ClipboardUndoBufferItemHandle;
+typedef boost::shared_ptr<ClipboardUndoBufferItemPrivate> ClipboardUndoBufferItemPrivateHandle;
 
-class Clipboard : public boost::noncopyable
+
+// Class that describes all the steps that need to be undertaken to undo a clipboard action.
+class ClipboardUndoBufferItem : public UndoBufferItem
 {
-	CORE_SINGLETON( Clipboard );
-	
-private:
-	Clipboard();
-	~Clipboard();
 
+	// -- constructor/destructor --
 public:
-	// GET_ITEM:
-	// Get the current item stored at slot index.
-	ClipboardItemConstHandle get_item( size_t index = 0 );
+	ClipboardUndoBufferItem( const std::string& tag, 
+		ClipboardItemHandle clipboard_item, size_t slot );
+	virtual ~ClipboardUndoBufferItem();
 
-	// GET_ITEM:
-	// Create a new item with the specified width, height, and data type at the slot
-	// index, and return a handle to it.
-	ClipboardItemHandle get_item( size_t width, size_t height, 
-		Core::DataType data_type, size_t index = 0 );
+	// -- apply undo/redo action --
+public:
 
-	// NUMBER_OF_SLOTS:
-	// Return the number of storage slots in the clipboard.
-	size_t number_of_slots();
+	// APPLY_AND_CLEAR_UNDO:
+	// Apply the undo information
+	virtual bool apply_and_clear_undo();
 
+	// -- size information --
+public:
+	// GET_BYTE_SIZE:
+	// The size of the item in memory ( approximately )
+	virtual size_t get_byte_size() const;
+
+	// COMPUTE_SIZE:
+	// Compute the size of the item
+	virtual void compute_size();
+
+	// -- internals --
 private:
-	friend class ClipboardUndoBufferItem;
-
-	// SET_ITEM:
-	// Set the item stored at the specified slot.
-	void set_item( ClipboardItemHandle item, size_t index = 0 );
-
-private:
-	ClipboardPrivateHandle private_;
-
+	ClipboardUndoBufferItemPrivateHandle private_;
 };
 
 } // end namespace Seg3D

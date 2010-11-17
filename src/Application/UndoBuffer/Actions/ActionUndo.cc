@@ -26,51 +26,44 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYERMANAGER_ACTIONS_ACTIONREDO_H
-#define APPLICATION_LAYERMANAGER_ACTIONS_ACTIONREDO_H
+#include <Core/Action/ActionDispatcher.h>
 
-#include <Core/Action/Actions.h>
-#include <Core/Interface/Interface.h>
+#include <Application/UndoBuffer/UndoBuffer.h>
+#include <Application/UndoBuffer/Actions/ActionUndo.h>
 
-#include <Application/Layer/LayerFWD.h>
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, Undo )
 
 namespace Seg3D
 {
 
-class ActionRedo : public Core::Action
+bool ActionUndo::validate( Core::ActionContextHandle& context )
 {
-	
-CORE_ACTION(
-	CORE_ACTION_TYPE( "Redo", "Redo a layer action.")
-	CORE_ACTION_CHANGES_PROJECT_DATA()
-)
-
-	// -- Constructor/Destructor --
-public:
-	ActionRedo()
+	if ( ! ( UndoBuffer::Instance()->has_undo() ) )
 	{
+		context->report_error( "No action to undo." );
+		return false;
 	}
-
-	virtual ~ActionRedo()
-	{
-	}
-
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
-public:
-	
-	// CREATE:
-	// Create an action that activates a layer
-	static Core::ActionHandle Create();
+	return true; // validated
+}
 
-	// DISPATCH:
-	// Dispatch an action that activates a layer
-	static void Dispatch( Core::ActionContextHandle context );
-};
+bool ActionUndo::run( Core::ActionContextHandle& context, 
+	Core::ActionResultHandle& result )
+{
+	return UndoBuffer::Instance()->undo( context );
+}
+
+Core::ActionHandle ActionUndo::Create()
+{
+	return Core::ActionHandle( new ActionUndo );
+}
+
+void ActionUndo::Dispatch( Core::ActionContextHandle context )
+{
+	Core::ActionDispatcher::PostAction( Create(), context );
+}
 
 } // end namespace Seg3D
-
-#endif
