@@ -26,45 +26,62 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/LayerUndoBuffer.h>
-
-#include <Application/LayerManager/Actions/ActionRedo.h>
-
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, Redo )
+#include <Application/Clipboard/Clipboard.h>
+#include <Application/Clipboard/ClipboardUndoBufferItem.h>
 
 namespace Seg3D
 {
 
-bool ActionRedo::validate( Core::ActionContextHandle& context )
+class ClipboardUndoBufferItemPrivate
 {
-	if ( ! ( LayerUndoBuffer::Instance()->has_redo() ) )
+public:	
+	// Clipboard item checkpoint
+	ClipboardItemHandle clipboard_item_;
+
+	// The corresponding clipboard slot number of this undo item
+	size_t slot_;
+
+	// Size of the item
+	size_t size_;
+};
+
+ClipboardUndoBufferItem::ClipboardUndoBufferItem( const std::string& tag,
+	ClipboardItemHandle clipboard_item, size_t slot) :
+	UndoBufferItem( tag ),
+	private_( new ClipboardUndoBufferItemPrivate )
+{
+	this->private_->size_ = 0;
+	this->private_->clipboard_item_ = clipboard_item;
+	this->private_->slot_ = slot;
+}
+
+ClipboardUndoBufferItem::~ClipboardUndoBufferItem()
+{
+}
+
+bool ClipboardUndoBufferItem::apply_and_clear_undo()
+{
+	Clipboard::Instance()->set_item( this->private_->clipboard_item_, this->private_->slot_ );
+	// Clear the checkpoint
+	this->private_->clipboard_item_.reset();
+	return true;
+}
+
+size_t ClipboardUndoBufferItem::get_byte_size() const
+{
+	return this->private_->size_;
+}
+
+void ClipboardUndoBufferItem::compute_size()
+{
+	if ( this->private_->clipboard_item_ )
 	{
-		context->report_error( "No action to redo " );
-		return false;
+		this->private_->size_ = this->private_->clipboard_item_->buffer_size();
 	}
-	
-	return true; // validated
-}
-
-bool ActionRedo::run( Core::ActionContextHandle& context, 
-	Core::ActionResultHandle& result )
-{
-	return LayerUndoBuffer::Instance()->redo( context );
-}
-
-Core::ActionHandle ActionRedo::Create()
-{
-	return Core::ActionHandle( new ActionRedo );
-}
-
-void ActionRedo::Dispatch( Core::ActionContextHandle context )
-{
-	Core::ActionDispatcher::PostAction( Create(), context );
+	else
+	{
+		this->private_->size_ = 0;
+	}
 }
 
 } // end namespace Seg3D
