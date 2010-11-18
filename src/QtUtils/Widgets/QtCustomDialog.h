@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
-
+ 
  The MIT License
-
+ 
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
-
-
+ 
+ 
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
-
+ 
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,47 +26,37 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef QTUTILS_BRIDGE_DETAIL_QTSLIDERINTCOMBOCONNECTOR_H
-#define QTUTILS_BRIDGE_DETAIL_QTSLIDERINTCOMBOCONNECTOR_H
+#ifndef QTUTILS_WIDGETS_QTCUSTOMDIALOG_H
+#define QTUTILS_WIDGETS_QTCUSTOMDIALOG_H
 
-#include <QPointer>
-
-#include <Core/State/StateRangedValue.h>
-
-#include <QtUtils/Widgets/QtSliderIntCombo.h>
-#include <QtUtils/Bridge/detail/QtConnectorBase.h>
+// QT includes
+#include <QtGui/QDialog>
+#include <QtGui/QCloseEvent>
 
 namespace QtUtils
 {
-
-class QtSliderIntComboConnector : public QtConnectorBase
-{
-	Q_OBJECT
-
-public:
-	QtSliderIntComboConnector( QtSliderIntCombo* parent, 
-		Core::StateRangedIntHandle& state, bool blocking = false );
-
-	virtual ~QtSliderIntComboConnector();
-
-	// -- slot functions for boost signals --
-private:
-	static void SetValue( QPointer< QtSliderIntComboConnector > qpointer,
-		int val, Core::ActionSource source );
-
-	static void SetRange( QPointer< QtSliderIntComboConnector > qpointer,
-		int min_val, int max_val, Core::ActionSource source );
 	
-	// -- slot functions for Qt signals --
-private Q_SLOTS:
-	void set_state_value( int val );
-	void set_state_range( int min_val, int max_val );
-
+class QtCustomDialog : public QDialog
+{
+Q_OBJECT
+	
+Q_SIGNALS:
+	void closed();
+	
+public:
+	// - Constructor / Destructor
+	QtCustomDialog( QWidget *parent = 0 );
+	virtual ~QtCustomDialog();
+	
 private:
-	QtSliderIntCombo* parent_;
-	Core::StateRangedIntHandle state_;
+	
+	// HIDEEVENT:
+	// This function is called by Qt to deliver an event that tells that the
+	// widget is being hidden. 
+	virtual void closeEvent( QCloseEvent* event );
+	
 };
-
-}
+	
+} // end namespace QtUtils
 
 #endif

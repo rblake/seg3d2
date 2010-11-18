@@ -29,23 +29,18 @@
 #ifndef INTERFACE_APPINTERFACE_MEASUREMENTDOCKWIDGET_H
 #define INTERFACE_APPINTERFACE_MEASUREMENTDOCKWIDGET_H
 
-// QT includes
-#include <QDockWidget>
-
-// STL includes
-#include <string>
-
 // Boost includes
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
+
+// QtUtils includes
+#include <QtUtils/Widgets/QtCustomDockWidget.h>
 
 namespace Seg3D
 {
 
 class MeasurementDockWidgetPrivate;
 
-class MeasurementDockWidget : public QDockWidget
+class MeasurementDockWidget : public QtUtils::QtCustomDockWidget
 {
 
 Q_OBJECT
