@@ -26,25 +26,22 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Core includes
-#include <Core/DataBlock/StdDataBlock.h>
-
 // Application includes
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/LayerFilter.h>
-#include <Application/Filters/Actions/ActionDilateFilter.h>
+#include <Application/Filters/Actions/ActionIterativeDilateErodeFilter.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
 // registered in the CMake file.
 // NOTE: Registration needs to be done outside of any namespace
-CORE_REGISTER_ACTION( Seg3D, DilateFilter )
+CORE_REGISTER_ACTION( Seg3D, IterativeDilateErodeFilter )
 
 namespace Seg3D
 {
 
-bool ActionDilateFilter::validate( Core::ActionContextHandle& context )
+bool ActionIterativeDilateErodeFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
 	std::string error;
@@ -63,7 +60,7 @@ bool ActionDilateFilter::validate( Core::ActionContextHandle& context )
 		context->report_need_resource( notifier );
 		return false;
 	}
-		
+
 	// Check for layer existance and type information
 	if ( ( this->mask_layer_.value() != "" ) && ( this->mask_layer_.value() != "<none>" ) )
 	{
@@ -89,20 +86,32 @@ bool ActionDilateFilter::validate( Core::ActionContextHandle& context )
 			return false;
 		}
 	}
-	
+		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->radius_.value() < 1 )
+	if( this->dilate_radius_.value() < 0 )
 	{
-		context->report_error( "The radius needs to be larger than or equal to one." );
+		context->report_error( "The radius needs to be larger than or equal to zero." );
 		return false;
 	}
 
-	if( this->radius_.value() > 254 )
+	if( this->dilate_radius_.value() > 254 )
 	{
 		context->report_error( "The radius is too large." );
 		return false;
 	}
-	
+
+	if( this->erode_radius_.value() < 0 )
+	{
+		context->report_error( "The radius needs to be larger than or equal to zero." );
+		return false;
+	}
+
+	if( this->erode_radius_.value() > 254 )
+	{
+		context->report_error( "The radius is too large." );
+		return false;
+	}
+
 	if ( this->slice_type_.value() != Core::SliceType::AXIAL_E &&
 		this->slice_type_.value() != Core::SliceType::CORONAL_E &&
 		this->slice_type_.value() != Core::SliceType::SAGITTAL_E )
@@ -110,7 +119,7 @@ bool ActionDilateFilter::validate( Core::ActionContextHandle& context )
 		context->report_error( "Invalid slice type" );
 		return false;
 	}
-	
+		
 	// Validation successful
 	return true;
 }
@@ -120,7 +129,7 @@ bool ActionDilateFilter::validate( Core::ActionContextHandle& context )
 // NOTE: The separation of the algorithm into a private class is for the purpose of running the
 // filter on a separate thread.
 
-class DilateFilterAlgo : public LayerFilter
+class IterativeDilateErodeFilterAlgo : public LayerFilter
 {
 
 public:
@@ -128,12 +137,14 @@ public:
 	LayerHandle mask_layer_;
 	LayerHandle dst_layer_;
 
-	int radius_;
+	int dilate_radius_;
+	int erode_radius_;
+
 	bool invert_mask_;
 	
 	bool only2d_;
 	int slice_type_;
-
+	
 public:
 	// RUN_FILTER:
 	// Implemtation of run of the Runnable base class, this function is called when the thread
@@ -155,17 +166,18 @@ public:
 		Core::DataBlock::index_type nx = input_data_block->get_nx();
 		Core::DataBlock::index_type ny = input_data_block->get_ny();
 		Core::DataBlock::index_type nz = input_data_block->get_nz();
-		Core::DataBlock::index_type nxy = nx * ny;
 		Core::DataBlock::index_type size = input_data_block->get_size();
 
 		unsigned char* data = reinterpret_cast<unsigned char*>( input_data_block->get_data() );
 	
-		Core::SliceType slice_type = static_cast<Core::SliceType::enum_type>( this->slice_type_ );
 		std::vector< std::vector<Core::DataBlock::index_type> > neighbors;
+		
+		Core::SliceType slice_type = static_cast<Core::SliceType::enum_type>( this->slice_type_ );
 		try
 		{
 			neighbors.resize( 0x40 );
-
+			Core::DataBlock::index_type nxy = nx * ny;
+			
 			for ( size_t k = 0; k < neighbors.size(); k++ )
 			{
 				if ( !( this->only2d_ ) || ( slice_type != Core::SliceType::SAGITTAL_E ) )
@@ -185,6 +197,34 @@ public:
 					if ( ! ( k & 0x10 ) ) neighbors[ k ].push_back( -nxy );
 					if ( ! ( k & 0x20 ) ) neighbors[ k ].push_back( nxy );
 				}
+				
+				if ( !( this->only2d_  ) || ( slice_type == Core::SliceType::AXIAL_E ) )
+				{
+					if ( ! ( k & 0x5 ) ) neighbors[ k ].push_back( -1 - nx );
+					if ( ! ( k & 0x6 ) ) neighbors[ k ].push_back( 1 - nx );
+
+					if ( ! ( k & 0x9 ) ) neighbors[ k ].push_back( -1 + nx );
+					if ( ! ( k & 0xA ) ) neighbors[ k ].push_back( 1 + nx );
+				}
+
+				if ( !( this->only2d_  ) || ( slice_type == Core::SliceType::CORONAL_E ) )
+				{
+					if ( ! ( k & 0x11 ) ) neighbors[ k ].push_back( -1 - nxy );
+					if ( ! ( k & 0x12 ) ) neighbors[ k ].push_back( 1 - nxy );
+
+					if ( ! ( k & 0x21 ) ) neighbors[ k ].push_back( -1 + nxy );
+					if ( ! ( k & 0x22 ) ) neighbors[ k ].push_back( 1 + nxy );
+				}
+
+				if ( !( this->only2d_  ) || ( slice_type == Core::SliceType::SAGITTAL_E ) )
+				{
+					if ( ! ( k & 0x14 ) ) neighbors[ k ].push_back( -nx - nxy );
+					if ( ! ( k & 0x18 ) ) neighbors[ k ].push_back( nx - nxy );
+
+					if ( ! ( k & 0x24 ) ) neighbors[ k ].push_back( -nx + nxy );
+					if ( ! ( k & 0x28 ) ) neighbors[ k ].push_back( nx + nxy );
+				}
+
 			}
 		}
 		catch ( ... )
@@ -192,7 +232,7 @@ public:
 			this->report_error( "Could not allocate enough memory." );
 			return;		
 		}
-		
+
 		// Inscribe mask
 		if ( this->mask_layer_ )
 		{
@@ -222,161 +262,163 @@ public:
 				}
 			}
 		}
-		
-		// Detect Edge
+	
+		unsigned char current_label = 2;
+		unsigned char previous_label = 1;
 		float current_progress = 0.0f;
-		float progress_multiplier = 0.1f / static_cast<float>( nz );
-
-		size_t k = 0;
-		int border = 0;		
-		for ( Core::DataBlock::index_type z = 0; z < nz; z++ )
+		float progress_multiplier = 1.0f / static_cast<float>( ( this->dilate_radius_ +
+			this->erode_radius_ ) * nz );
+		
+		for ( int i = 0; i < this->dilate_radius_; i++)
 		{
-			if ( z == 0 ) border |= 0x10; else border &= ~( 0x10 );
-			if ( z == nz - 1 ) border |= 0x20; else border &= ~( 0x20 );
-			
-			for ( Core::DataBlock::index_type y = 0; y < ny; y++ )
+			int border = 0;
+			Core::DataBlock::index_type k = 0;
+			for ( Core::DataBlock::index_type z = 0; z < nz; z++ )
 			{
-				if ( y == 0 ) border |= 0x04; else border &= ~( 0x04 );
-				if ( y == ny - 1 ) border |= 0x08; else border &= ~( 0x08 );
-
-				for ( Core::DataBlock::index_type x = 0; x < nx; x++, k++ )
+				if ( z == 0 ) border |= 0x10; else border &= ~( 0x10 );
+				if ( z == nz - 1 ) border |= 0x20; else border &= ~( 0x20 );
+				
+				for ( Core::DataBlock::index_type y = 0; y < ny; y++ )
 				{
-					if ( data[ k ] == 0 || data[ k ] == 255 ) continue;
-					
-					int border_x = border;
-					if ( x == 0 ) border_x |= 0x1;
-					if ( x == nx - 1 ) border_x |= 0x2;
+					if ( y == 0 ) border |= 0x04; else border &= ~( 0x04 );
+					if ( y == ny - 1 ) border |= 0x08; else border &= ~( 0x08 );
 
-					const std::vector<Core::DataBlock::index_type>& neigh = neighbors[ border_x ];
-					for ( size_t m = 0; m < neigh.size(); m++ )
+					for ( Core::DataBlock::index_type x = 0; x < nx; x++, k++ )
 					{
-						Core::DataBlock::index_type index = k + neigh[ m ];
-						if ( data[ index ] == 0 || data[ index ] == 255 ) data[ k ] = 2;
-					}
-				}
-			}
-			
-			float progress = static_cast<float>( z ) * progress_multiplier;
-		
-			if ( current_progress + 0.02f < progress )
-			{
-				current_progress = progress;
-				this->dst_layer_->update_progress( current_progress );
-				if ( this->check_abort() ) return;
-			}
-		}
-		
-		// Build pattern
-		Core::DataBlock::index_type xr = this->radius_;
-		Core::DataBlock::index_type yr = this->radius_;
-		Core::DataBlock::index_type zr = this->radius_;
-		
-		if ( this->only2d_ )
-		{
-			if ( this->slice_type_ == Core::SliceType::AXIAL_E ) zr = 0;
-			if ( this->slice_type_ == Core::SliceType::CORONAL_E ) yr = 0;
-			if ( this->slice_type_ == Core::SliceType::SAGITTAL_E ) xr = 0;
-		}
-		
-		Core::DataBlock::index_type xs = 2 * xr + 1;
-		Core::DataBlock::index_type ys = 2 * yr + 1;
-		Core::DataBlock::index_type zs = 2 * zr + 1;
+						if ( data[ k ] != previous_label ) continue;
+						
+						int border_x = border;
+						if ( x == 0 ) border_x |= 0x1;
+						if ( x == nx - 1 ) border_x |= 0x2;
 
-		Core::DataBlockHandle pattern = 
-			Core::StdDataBlock::New( xs, ys, zs, Core::DataType::UCHAR_E );
-		
-		if ( !pattern )
-		{
-			this->report_error( "Could not allocate enough memory." );
-			return;
-		}		
-		
-		unsigned char* pdata = reinterpret_cast<unsigned char *>( pattern->get_data() );
-		
-		k = 0;
-		for ( Core::DataBlock::index_type z = -zr; z <= zr; z++ )
-		{
-			for ( Core::DataBlock::index_type y = -yr; y <= yr; y++ )
-			{
-				for ( Core::DataBlock::index_type x = -xr; x <= xr; x++, k++ )
-				{
-					if ( sqrt( static_cast<double>( x*x + y*y + z*z ) ) <= this->radius_ ) 
-					{
-						pdata[ k ] = 1;
-					}
-					else
-					{
-						pdata[ k ] = 0;
-					}	
-				}
-			}
-		}
-		
-		// Fill in dilation
-		
-		progress_multiplier = 0.9f / static_cast<float>( nz );		
-		
-		Core::DataBlock::index_type idx = 0;
-		for ( Core::DataBlock::index_type z = 0; z < nz; z++ )
-		{			
-			for ( Core::DataBlock::index_type y = 0; y < ny; y++ )
-			{
-				for ( Core::DataBlock::index_type x = 0; x < nx; x++, idx++ )
-				{
-					if ( data[ idx ] != 2 ) continue;
-					
-					Core::DataBlock::index_type idx2 = 0;
-					for ( Core::DataBlock::index_type zz = -zr; zz <= zr; zz++ )
-					{
-						for ( Core::DataBlock::index_type yy = -yr; yy <= yr; yy++ )
+						const std::vector<Core::DataBlock::index_type>& neigh = neighbors[ border_x ];
+						for ( size_t m = 0; m < neigh.size(); m++ )
 						{
-							for ( Core::DataBlock::index_type xx = -xr; xx <= xr; xx++, idx2++ )
-							{					
-								if ( pdata[ idx2 ] )
-								{
-									Core::DataBlock::index_type px = x - xx;
-									if ( px < 0 || px >= nx ) continue;
-									Core::DataBlock::index_type py = y - yy;
-									if ( py < 0 || py >= ny ) continue;
-									Core::DataBlock::index_type pz = z - zz;
-									if ( pz < 0 || pz >= nz ) continue;
-									Core::DataBlock::index_type fidx = px + py * nx + pz * nxy;
-									if ( data[ fidx ] == 0 )
-									{
-										data[ fidx ] = 1;
-									}
-								}
-							}
+							Core::DataBlock::index_type index = k + neigh[ m ];
+							if ( data[ index ] == 0 ) data[ index ] = current_label;
 						}
 					}
 				}
-			}
 				
-			float progress = static_cast<float>( z ) * progress_multiplier + 0.1f;
-			
-			if ( current_progress + 0.02f < progress )
+				float progress = static_cast<float>( i *  nz + z ) * progress_multiplier;
+
+				if ( this->check_abort() )
+				{
+					return;
+				}
+				if ( current_progress + 0.02f < progress )
+				{
+					current_progress = progress;
+					this->dst_layer_->update_progress( current_progress );
+				}
+			}
+			current_label++;
+			previous_label++;
+		}
+		
+		Core::DataBlock::index_type data_size = input_data_block->get_size();
+		for ( Core::DataBlock::index_type k = 0; k < data_size;  k++ )
+		{
+			if ( data[ k ] == 0 || data[ k ] == 255 ) data[ k ] = 0; else data[ k ] = 1;
+		}
+
+		// Inscribe mask
+		if ( this->mask_layer_ )
+		{
+			MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->mask_layer_ );
+			if ( mask_layer )
 			{
-				current_progress = progress;
-				this->dst_layer_->update_progress( current_progress );
-				if ( this->check_abort() ) return;
+				Core::MaskDataBlockHandle mask_data_block = mask_layer->get_mask_volume()->
+					get_mask_data_block();			
+				Core::MaskDataBlock::shared_lock_type lock( mask_data_block->get_mutex() );
+				
+				unsigned char* mask_data = mask_data_block->get_mask_data();
+				unsigned char mask_value = mask_data_block->get_mask_value();
+				
+				if ( this->invert_mask_ )
+				{
+					for ( Core::DataBlock::index_type j = 0; j < size; j++ )
+					{
+						if ( data[ j ] == 1 && ( mask_data[ j ] & mask_value ) ) data[ j ] = 255;
+					}				
+				}
+				else
+				{
+					for ( Core::DataBlock::index_type j = 0; j < size; j++ )
+					{
+						if ( data[ j ] == 1 && !( mask_data[ j ] & mask_value ) ) data[ j ] = 255;
+					}
+				}
 			}
 		}
 
+		current_label = 2;
+		previous_label = 1;
+		
+		for ( int i = 0; i < this->erode_radius_; i++)
+		{
+			int border = 0;
+			Core::DataBlock::index_type k = 0;
+			for ( Core::DataBlock::index_type z = 0; z < nz; z++ )
+			{
+				if ( z == 0 ) border |= 0x10; else border &= ~( 0x10 );
+				if ( z == nz - 1 ) border |= 0x20; else border &= ~( 0x20 );
+				
+				for ( Core::DataBlock::index_type y = 0; y < ny; y++ )
+				{
+					if ( y == 0 ) border |= 0x04; else border &= ~( 0x04 );
+					if ( y == ny - 1 ) border |= 0x08; else border &= ~( 0x08 );
+
+					for ( Core::DataBlock::index_type x = 0; x < nx; x++, k++ )
+					{
+						if ( data[ k ] != 1 ) continue;
+						
+						int border_x = border;
+						if ( x == 0 ) border_x |= 0x1;
+						if ( x == nx - 1 ) border_x |= 0x2;
+
+						const std::vector<Core::DataBlock::index_type>& neigh = neighbors[ border_x ];
+						for ( size_t m = 0; m < neigh.size(); m++ )
+						{
+							Core::DataBlock::index_type index = k + neigh[ m ];
+							if ( data[ index ] == 1  || data[ index ] == 255 || 
+								data[ index ] == current_label ) continue;
+							data[ k ] = current_label;
+						}
+					}
+				}
+				
+				float progress = static_cast<float>( ( this->dilate_radius_ + i ) *  nz + z ) * progress_multiplier;
+			
+				if ( this->check_abort() )
+				{
+					return;
+				}
+				if ( current_progress + 0.02f < progress )
+				{
+					current_progress = progress;
+					this->dst_layer_->update_progress( current_progress );
+				}
+			}
+			current_label++;
+			previous_label++;
+		}
+		
 		if ( this->mask_layer_ )
 		{
 			for ( Core::DataBlock::index_type j = 0; j < size; j++ )
 			{
-				if ( data[ j ] == 255 ) data[ j ] = 0;
+				if ( data[ j ] == 255 ) data[ j ] = 1;
 			}
 		}
-		
+
 		Core::MaskDataBlockHandle output_mask;
 
-		if (!( Core::MaskDataBlockManager::Convert( input_data_block, 
-			this->src_layer_->get_grid_transform(), output_mask ) ) )
+		if (!( Core::MaskDataBlockManager::ConvertLabel( input_data_block, 
+			this->src_layer_->get_grid_transform(), output_mask, 1.0 ) ) )
 		{
-			this->report_error( "Could not allocate enough memory." );
-			return;	
+			this->report_error("Could not allocate enough memory.");
+			return;
 		}
 
 		Core::MaskVolumeHandle mask_volume( new Core::MaskVolume( 
@@ -384,10 +426,10 @@ public:
 			
 		if ( !mask_volume )
 		{
-			this->report_error( "Could not allocate enough memory." );
-			return;			
-		}	
-			
+			this->report_error("Could not allocate enough memory.");
+			return;
+		}
+						
 		this->dispatch_insert_mask_volume_into_layer( this->dst_layer_, mask_volume );
 	}
 	
@@ -395,7 +437,7 @@ public:
 	// The name of the filter, this information is used for generating new layer labels.
 	virtual std::string get_filter_name() const
 	{
-		return "Dilate Filter";
+		return "IterativeDilateErode Filter";
 	}
 
 	// GET_LAYER_PREFIX:
@@ -403,28 +445,31 @@ public:
 	// when a new layer is generated. 
 	virtual std::string get_layer_prefix() const
 	{
-		return "Dilate";	
+		return "IterativeDilateErode";	
 	}
+
 };
 
 
-bool ActionDilateFilter::run( Core::ActionContextHandle& context, 
+bool ActionIterativeDilateErodeFilter::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
 	// Create algorithm
-	boost::shared_ptr<DilateFilterAlgo> algo( new DilateFilterAlgo );
+	boost::shared_ptr<IterativeDilateErodeFilterAlgo> algo( new IterativeDilateErodeFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->radius_ = this->radius_.value();
+	algo->dilate_radius_ = this->dilate_radius_.value();
+	algo->erode_radius_ = this->erode_radius_.value();
+
 	algo->only2d_ = this->only2d_.value();
 	algo->slice_type_ = this->slice_type_.value();
-
+	
 	// Find the handle to the layer
-	if ( !(	algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
 	{
 		return false;
 	}
-	
+
 	if ( this->mask_layer_.value().size() > 0 && this->mask_layer_.value() != "<none>" )
 	{
 		if ( !( algo->find_layer( this->mask_layer_.value(), algo->mask_layer_ ) ) )
@@ -435,7 +480,7 @@ bool ActionDilateFilter::run( Core::ActionContextHandle& context,
 	}
 	
 	algo->invert_mask_ = this->mask_invert_.value();	
-	
+
 	if ( this->replace_.value() )
 	{
 		// Copy the handles as destination and source will be the same
@@ -464,22 +509,23 @@ bool ActionDilateFilter::run( Core::ActionContextHandle& context,
 	return true;
 }
 
-void ActionDilateFilter::Dispatch( Core::ActionContextHandle context, 
-	std::string target_layer, bool replace, int radius, std::string mask_layer,
-	bool mask_invert, bool only2d, int slice_type )
+void ActionIterativeDilateErodeFilter::Dispatch( Core::ActionContextHandle context, 
+	std::string target_layer, bool replace, int dilate_radius, int erode_radius, 
+	std::string mask_layer, bool mask_invert, bool only2d, int slice_type  )
 {	
 	// Create a new action
-	ActionDilateFilter* action = new ActionDilateFilter;
+	ActionIterativeDilateErodeFilter* action = new ActionIterativeDilateErodeFilter;
 
 	// Setup the parameters
 	action->target_layer_.value() = target_layer;
 	action->replace_.value() = replace;
-	action->radius_.value() = radius;
+	action->dilate_radius_.value() = dilate_radius;
+	action->erode_radius_.value() = erode_radius;
 	action->mask_layer_.value() = mask_layer;
 	action->mask_invert_.value() = mask_invert;
 	action->only2d_.value() = only2d;
 	action->slice_type_.value() = slice_type;
-
+		
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
