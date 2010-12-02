@@ -126,9 +126,15 @@ SET(ITK_INSTALL_NO_DOCUMENTATION 1)
 SET(ITK_INSTALL_NO_LIBRARIES 1)
 SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
 INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
-
-MESSAGE(STATUS "Configuring Seg3D2")
-
 ADD_SUBDIRECTORY(itk)
 
+##################################################
+# ADDING PYTHON
+##################################################
 
+IF(BUILD_WITH_PYTHON)
+  MESSAGE(STATUS "Configuring python")
+  ADD_SUBDIRECTORY(python)
+ENDIF(BUILD_WITH_PYTHON)
+
+MESSAGE(STATUS "Configuring Seg3D2")
