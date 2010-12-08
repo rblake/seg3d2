@@ -26,35 +26,38 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Application Includes
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Tool/Actions/ActionSaveToolPreferences.h>
+#include <Application/ProjectManager/ProjectManager.h>
+#include <Application/ProjectManager/Actions/ActionResetChangesMade.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
 // registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, SaveToolPreferences )
+CORE_REGISTER_ACTION( Seg3D, ResetChangesMade )
 
 namespace Seg3D
 {
 
-bool ActionSaveToolPreferences::validate( Core::ActionContextHandle& context )
+bool ActionResetChangesMade::validate( Core::ActionContextHandle& context )
 {
-	return true;
+	return true; // validated
 }
 
-bool ActionSaveToolPreferences::run( Core::ActionContextHandle& context, 
+bool ActionResetChangesMade::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	ToolFactory::Instance()->save_settings();
-
+	ProjectManager::Instance()->get_current_project()->reset_project_changed();
 	return true;
 }
-
-void ActionSaveToolPreferences::Dispatch( Core::ActionContextHandle context )
+	
+Core::ActionHandle ActionResetChangesMade::Create()
 {
-	ActionSaveToolPreferences* action = new ActionSaveToolPreferences;
-	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+	ActionResetChangesMade* action = new ActionResetChangesMade;
+	return Core::ActionHandle( action );
+}
+
+void ActionResetChangesMade::Dispatch( Core::ActionContextHandle context )
+{
+	Core::ActionDispatcher::PostAction( Create(), context );
 }
 
 } // end namespace Seg3D

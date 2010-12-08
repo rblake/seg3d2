@@ -29,6 +29,7 @@
 // Application Includes
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/PreferencesManager/Actions/ActionSavePreferences.h>
+#include <Application/Tool/Actions/ActionSaveToolPreferences.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
@@ -46,16 +47,17 @@ bool ActionSavePreferences::validate( Core::ActionContextHandle& context )
 bool ActionSavePreferences::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	std::string message = std::string("Please wait, while your preferences are being saved...");
-
-	Core::ActionProgressHandle progress = 
-		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
-
-	progress->begin_progress_reporting();
+//	std::string message = std::string("Please wait, while your preferences are being saved...");
+//
+//	Core::ActionProgressHandle progress = 
+//		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
+//
+//	progress->begin_progress_reporting();
 
 	PreferencesManager::Instance()->save_state();
+	ActionSaveToolPreferences::Dispatch( Core::Interface::GetWidgetActionContext() );
 
-	progress->end_progress_reporting();
+//	progress->end_progress_reporting();
 
 	return true;
 }
