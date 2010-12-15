@@ -2,6 +2,31 @@ cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 
 project(Python)
 
+##########################################################################
+# Version information                                                    #
+##########################################################################
+FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MAJOR_VERSIONSTR
+  REGEX "#define[ \t]+PY_MAJOR_VERSION[ \t]+[0-9]+")
+STRING(REGEX MATCH "[0-9]+" PY_MAJOR_VERSIONSTR ${PY_MAJOR_VERSIONSTR})
+
+FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MINOR_VERSIONSTR
+  REGEX "#define[ \t]+PY_MINOR_VERSION[ \t]+[0-9]+")
+STRING(REGEX MATCH "[0-9]+" PY_MINOR_VERSIONSTR ${PY_MINOR_VERSIONSTR})
+
+FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MICRO_VERSIONSTR
+  REGEX "#define[ \t]+PY_MICRO_VERSION[ \t]+[0-9]+")
+STRING(REGEX MATCH "[0-9]+" PY_MICRO_VERSIONSTR ${PY_MICRO_VERSIONSTR})
+
+IF(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+  MATH(EXPR PY_MAJOR "${PY_MAJOR_VERSIONSTR}")
+  MATH(EXPR PY_MINOR "${PY_MINOR_VERSIONSTR}")
+  MATH(EXPR PY_PATCH "${PY_MICRO_VERSIONSTR}")
+  SET(PYTHON_VERSION "${PY_MAJOR}.${PY_MINOR}.${PY_PATCH}")
+  MESSAGE(STATUS "Python version ${PYTHON_VERSION}")
+ELSE(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+  MESSAGE(FATAL_ERROR "Unable to parse Python version from ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h")
+ENDIF(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+
 # user configurable options
 
 option(WITH_TSC "profile with the Pentium timestamp counter" 0)
@@ -15,10 +40,6 @@ option(WITH_THREAD "compile in rudimentary thread support" 1)
 
 MARK_AS_ADVANCED(FORCE WITH_TSC ENABLE_IPV6 WITH_DOC_STRINGS Py_USING_UNICODE 
 				Py_DEBUG WITH_PYMALLOC HAVE_LARGEFILE_SUPPORT WITH_THREAD)
-
-set(PY_MAJOR 3)
-set(PY_MINOR 1)
-set(PY_PATCH 2)
 
 # do the configure checks
 
@@ -327,8 +348,8 @@ IF(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					#PC/config.c
 					PC/getpathp.c)
-	set_source_files_properties(PC/getpathp.c PROPERTIES 
-					COMPILE_FLAGS  "-DLANDMARK=L\\\"python\\\\lib\\\\os.py\\\" -DPYTHONPATH=L\\\".\\\\python\\\\lib\\\" ")
+#	set_source_files_properties(PC/getpathp.c PROPERTIES 
+#					COMPILE_FLAGS  "-DLANDMARK=L\\\"python\\\\lib\\\\os.py\\\" -DPYTHONPATH=L\\\".\\\\python\\\\lib\\\" ")
 ELSE(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					Modules/getpath.c)
