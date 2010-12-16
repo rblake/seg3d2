@@ -322,7 +322,7 @@ ADD_LIBRARY(${SCI_TEEM_LIBRARY} STATIC ${Teem_SOURCES})
 IF(WIN32)
   SET_TARGET_PROPERTIES(${SCI_TEEM_LIBRARY}
                         PROPERTIES
-                        COMPILE_FLAGS "-W3 -wd4090 -wd4267 -wd4244")
+                        COMPILE_FLAGS "-W3 -wd4090 -wd4267 -wd4244 -wd4101 -wd4005")
 ENDIF(WIN32)
 
 # Set up some library paths for installation.  Windows will ingore the
