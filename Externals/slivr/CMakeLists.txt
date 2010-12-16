@@ -82,3 +82,10 @@ IF(ENABLE_PIC)
                         PROPERTIES
                         COMPILE_FLAGS "-fPIC")
 ENDIF(ENABLE_PIC)
+
+
+IF(CMAKE_COMPILER_IS_GNUCC)
+  SET_TARGET_PROPERTIES(${SCI_SLIVR_LIBRARY}
+                        PROPERTIES
+                        COMPILE_FLAGS "-w")
+ENDIF(CMAKE_COMPILER_IS_GNUCC)

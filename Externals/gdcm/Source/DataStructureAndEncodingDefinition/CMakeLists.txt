@@ -66,4 +66,10 @@ IF(WIN32)
                         COMPILE_FLAGS "-W0 -wd4244 -wd4267 -wd4244")
 ENDIF(WIN32)
 
+IF(CMAKE_COMPILER_IS_GNUCC)
+  SET_TARGET_PROPERTIES(gdcmDSED
+                        PROPERTIES
+                        COMPILE_FLAGS "-w")
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
 

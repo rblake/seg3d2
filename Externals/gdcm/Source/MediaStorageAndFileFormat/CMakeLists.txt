@@ -145,6 +145,15 @@ IF(WIN32)
                         PROPERTIES
                         COMPILE_FLAGS "-W0 -wd4244 -wd4267 -wd4244")
 ENDIF(WIN32)
+
+IF(CMAKE_COMPILER_IS_GNUCC)
+  SET_TARGET_PROPERTIES(gdcmMSFF
+                        PROPERTIES
+                        COMPILE_FLAGS "-w")
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+
+
 IF(GDCM_USE_JPEGLS)
   TARGET_LINK_LIBRARIES(gdcmMSFF gdcmcharls)
 ENDIF(GDCM_USE_JPEGLS)
