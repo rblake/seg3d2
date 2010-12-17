@@ -46,7 +46,7 @@ MARK_AS_ADVANCED(FORCE WITH_TSC ENABLE_IPV6 WITH_DOC_STRINGS Py_USING_UNICODE
 include(ConfigureChecks.cmake)
 
 
-set(extraLibs)
+set(extraLibs "")
 
 set(THREAD_SRC)
 if(WITH_THREAD)
@@ -353,7 +353,7 @@ IF(WIN32)
 ELSE(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					Modules/getpath.c)
-	set_source_files_properties(Modules/getpath.c PROPERTIES COMPILE_FLAGS  -DVERSION=\\\"${PY_MAJOR}.${PY_MINOR}\\\")
+#	set_source_files_properties(Modules/getpath.c PROPERTIES COMPILE_FLAGS  -DVERSION=\\\"${PY_MAJOR}.${PY_MINOR}\\\")
 ENDIF(WIN32)				
 
 #set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM=\\"${PY_PLATFORM}\\")
@@ -370,7 +370,6 @@ ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
 #if(NOT HAVE_HYPOT)
 #  add_definitions(-DWITHOUT_COMPLEX)
 #endif(NOT HAVE_HYPOT)
-
 
 add_library(python  STATIC
               ${PARSER_SRCS}
