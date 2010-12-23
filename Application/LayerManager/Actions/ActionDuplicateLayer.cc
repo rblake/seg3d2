@@ -94,7 +94,7 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 	// Step (4):
 	// Register the new layer with the LayerManager. This will insert it into the right group.
 	LayerManager::Instance()->insert_layer( new_layer );
-	LayerManager::Instance()->set_active_layer(	new_layer );
+	LayerManager::Instance()->set_active_layer( new_layer );
 
 	// Step (5):
 	// Create an undo item for this action
