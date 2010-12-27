@@ -26,43 +26,52 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPCONTROLLER_APPCONTROLLERSTATEENGINE_H
-#define INTERFACE_APPCONTROLLER_APPCONTROLLERSTATEENGINE_H
+#include <Core/Interface/Interface.h>
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif 
-
-// STL includes
-#include <string>
-
-// QT includes
-#include <QtCore/QAbstractTableModel>
-#include <QtCore/QObject>
-#include <QtCore/QVariant>
+#include <Interface/Application/ControllerContext.h>
 
 namespace Seg3D
 {
 
-class AppControllerStateEngine : public QAbstractTableModel
+ControllerContext::ControllerContext( ControllerInterface* controller ) :
+	controller_( controller )
 {
+}
 
-Q_OBJECT
+ControllerContext::~ControllerContext()
+{
+}
 
-public:
-	AppControllerStateEngine( QObject* parent = 0 );
+void ControllerContext::report_error( const std::string& error )
+{
+	ControllerInterface::PostActionMessage( controller_, error );
+}
 
-	virtual ~AppControllerStateEngine();
+void ControllerContext::report_warning( const std::string& warning )
+{
+	ControllerInterface::PostActionMessage( controller_, warning );
+}
 
-	int rowCount( const QModelIndex &index ) const;
-	int columnCount( const QModelIndex &index ) const;
+void ControllerContext::report_message( const std::string& message )
+{
+	ControllerInterface::PostActionMessage( controller_, message );
+}
 
-	QVariant data( const QModelIndex& index, int role ) const;
-	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
+void ControllerContext::report_need_resource( const Core::NotifierHandle& notifier )
+{
+	std::string message = std::string( "'" ) + notifier->get_name() + std::string(
+	    "' is currently unavailable" );
+	ControllerInterface::PostActionMessage( controller_, message );
+}
 
-	void update() { reset(); }
-};
+void ControllerContext::report_done()
+{
+	if ( is_success() ) ControllerInterface::PostActionMessage( controller_, "" );
+}
 
-} // end namespace Seg3D
+Core::ActionSource ControllerContext::source() const
+{
+	return Core::ActionSource::COMMANDLINE_E;
+}
 
-#endif
+} //end namespace Seg3D

@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPCONTROLLER_APPUNDOBUFFER_H
-#define INTERFACE_APPCONTROLLER_APPUNDOBUFFER_H
+#ifndef INTERFACE_APPLICATION_CONTROLLERSTATEENGINE_H
+#define INTERFACE_APPLICATION_CONTROLLERSTATEENGINE_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
@@ -35,36 +35,30 @@
 
 // STL includes
 #include <string>
-#include <deque>
 
 // QT includes
 #include <QtCore/QAbstractTableModel>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
 
-// Core includes
-#include <Core/Utils/Log.h>
-
 namespace Seg3D
 {
 
-class AppControllerUndoBuffer : public QAbstractTableModel
+class ControllerStateEngine : public QAbstractTableModel
 {
 
 Q_OBJECT
 
 public:
-	AppControllerUndoBuffer( QObject* parent = 0 );
+	ControllerStateEngine( QObject* parent = 0 );
 
-	virtual ~AppControllerUndoBuffer();
+	virtual ~ControllerStateEngine();
 
 	int rowCount( const QModelIndex &index ) const;
 	int columnCount( const QModelIndex &index ) const;
 
 	QVariant data( const QModelIndex& index, int role ) const;
 	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
-
-	void add_log_entry( int message_type, std::string& message );
 
 	void update() { reset(); }
 };

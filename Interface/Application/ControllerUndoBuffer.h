@@ -26,54 +26,49 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPCONTROLLER_APPCONTROLLERCONTEXT_H
-#define INTERFACE_APPCONTROLLER_APPCONTROLLERCONTEXT_H
+#ifndef INTERFACE_APPLICATION_UNDOBUFFER_H
+#define INTERFACE_APPLICATION_UNDOBUFFER_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif 
 
-// Include all action related classes
-#include <Core/Action/Actions.h>
+// STL includes
+#include <string>
+#include <deque>
 
-// Include interface code
-#include <Interface/AppController/AppController.h>
+// QT includes
+#include <QtCore/QAbstractTableModel>
+#include <QtCore/QObject>
+#include <QtCore/QVariant>
+
+// Core includes
+#include <Core/Utils/Log.h>
 
 namespace Seg3D
 {
 
-class AppControllerContext;
-typedef boost::shared_ptr< AppControllerContext > AppControllerContextHandle;
-
-class AppControllerContext : public Core::ActionContext
+class ControllerUndoBuffer : public QAbstractTableModel
 {
 
-	// -- Constructor/destructor --
+Q_OBJECT
+
 public:
-	AppControllerContext( AppController* controller );
-	virtual ~AppControllerContext();
+	ControllerUndoBuffer( QObject* parent = 0 );
 
-	// -- Reporting functions --
-public:
-	virtual void report_error( const std::string& error );
-	virtual void report_warning( const std::string& warning );
-	virtual void report_message( const std::string& message );
-	virtual void report_need_resource( const Core::NotifierHandle& resource );
+	virtual ~ControllerUndoBuffer();
 
-	// -- Report that action was done --
-public:
-	virtual void report_done();
+	int rowCount( const QModelIndex &index ) const;
+	int columnCount( const QModelIndex &index ) const;
 
-	// -- Source/Status information --
-public:
-	virtual Core::ActionSource source() const;
+	QVariant data( const QModelIndex& index, int role ) const;
+	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
 
-private:
-	// To which controller does the action information need to be relayed
-	AppController::qpointer_type controller_;
+	void add_log_entry( int message_type, std::string& message );
 
+	void update() { reset(); }
 };
 
-} //end namespace Seg3D
+} // end namespace Seg3D
 
 #endif

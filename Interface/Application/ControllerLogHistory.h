@@ -26,52 +26,55 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Core/Interface/Interface.h>
+#ifndef INTERFACE_APPLICATION_CONTROLLERLOGHISTORY_H
+#define INTERFACE_APPLICATION_CONTROLLERLOGHISTORY_H
 
-#include <Interface/AppController/AppControllerContext.h>
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
+
+// STL includes
+#include <string>
+#include <deque>
+
+// QT includes
+#include <QtCore/QObject>
+#include <QtCore/QVariant>
+#include <QtCore/QModelIndex>
+
+// Core includes
+#include <Core/Utils/Log.h>
 
 namespace Seg3D
 {
 
-AppControllerContext::AppControllerContext( AppController* controller ) :
-	controller_( controller )
+class ControllerLogHistory : public QAbstractTableModel
 {
-}
 
-AppControllerContext::~AppControllerContext()
-{
-}
+Q_OBJECT
 
-void AppControllerContext::report_error( const std::string& error )
-{
-	AppController::PostActionMessage( controller_, error );
-}
+public:
+	ControllerLogHistory( size_t log_size, QObject* parent = 0 );
 
-void AppControllerContext::report_warning( const std::string& warning )
-{
-	AppController::PostActionMessage( controller_, warning );
-}
+	virtual ~ControllerLogHistory();
 
-void AppControllerContext::report_message( const std::string& message )
-{
-	AppController::PostActionMessage( controller_, message );
-}
+	int rowCount( const QModelIndex &index ) const;
+	int columnCount( const QModelIndex &index ) const;
 
-void AppControllerContext::report_need_resource( const Core::NotifierHandle& notifier )
-{
-	std::string message = std::string( "'" ) + notifier->get_name() + std::string(
-	    "' is currently unavailable" );
-	AppController::PostActionMessage( controller_, message );
-}
+	QVariant data( const QModelIndex& index, int role ) const;
+	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
 
-void AppControllerContext::report_done()
-{
-	if ( is_success() ) AppController::PostActionMessage( controller_, "" );
-}
+	void add_log_entry( int message_type, std::string& message );
 
-Core::ActionSource AppControllerContext::source() const
-{
-	return Core::ActionSource::COMMANDLINE_E;
-}
+private:
+	// Classes needed for storing the recent log history
+	typedef std::pair< int, std::string > log_entry_type;
+	typedef std::deque< log_entry_type > log_history_type;
 
-} //end namespace Seg3D
+	log_history_type log_history_;
+	size_t log_history_size_;
+};
+
+} // end namespace Seg3D
+
+#endif

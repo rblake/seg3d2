@@ -30,32 +30,32 @@
 #include <Core/State/StateEngine.h>
 
 // Interface includes
-#include <Interface/AppController/AppControllerStateEngine.h>
+#include <Interface/Application/ControllerStateEngine.h>
 
 
 namespace Seg3D
 {
 
-AppControllerStateEngine::AppControllerStateEngine(QObject* parent ) :
+ControllerStateEngine::ControllerStateEngine(QObject* parent ) :
 	QAbstractTableModel( parent )
 {
 }
 
-AppControllerStateEngine::~AppControllerStateEngine()
+ControllerStateEngine::~ControllerStateEngine()
 {
 }
 
-int AppControllerStateEngine::rowCount( const QModelIndex& ) const
+int ControllerStateEngine::rowCount( const QModelIndex& ) const
 {
 	return ( static_cast< int > ( Core::StateEngine::Instance()->number_of_states() ) );
 }
 
-int AppControllerStateEngine::columnCount( const QModelIndex& ) const
+int ControllerStateEngine::columnCount( const QModelIndex& ) const
 {
 	return ( 2 );
 }
 
-QVariant AppControllerStateEngine::data( const QModelIndex& index, int role ) const
+QVariant ControllerStateEngine::data( const QModelIndex& index, int role ) const
 {
 	if ( !index.isValid() ) return QVariant();
 
@@ -82,7 +82,7 @@ QVariant AppControllerStateEngine::data( const QModelIndex& index, int role ) co
 	return QVariant();
 }
 
-QVariant AppControllerStateEngine::headerData( int section, Qt::Orientation orientation, int role ) const
+QVariant ControllerStateEngine::headerData( int section, Qt::Orientation orientation, int role ) const
 {
 	if ( role != Qt::DisplayRole || orientation == Qt::Vertical )
 	{
