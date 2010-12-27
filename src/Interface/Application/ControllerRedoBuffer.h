@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPCONTROLLER_APPREDOBUFFER_H
-#define INTERFACE_APPCONTROLLER_APPREDOBUFFER_H
+#ifndef INTERFACE_APPLICATION_REDOBUFFER_H
+#define INTERFACE_APPLICATION_REDOBUFFER_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
@@ -48,15 +48,15 @@
 namespace Seg3D
 {
 
-class AppControllerRedoBuffer : public QAbstractTableModel
+class ControllerRedoBuffer : public QAbstractTableModel
 {
 
 Q_OBJECT
 
 public:
-	AppControllerRedoBuffer( QObject* parent = 0 );
+	ControllerRedoBuffer( QObject* parent = 0 );
 
-	virtual ~AppControllerRedoBuffer();
+	virtual ~ControllerRedoBuffer();
 
 	int rowCount( const QModelIndex &index ) const;
 	int columnCount( const QModelIndex &index ) const;

@@ -25,36 +25,34 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
+ 
+#include <QtCore/QSize>
 
-// Application includes
-#include <Application/UndoBuffer/UndoBuffer.h>
-
-// Interface includes
-#include <Interface/AppController/AppControllerUndoBuffer.h>
+#include <Interface/Application/ControllerActionHistory.h>
 
 namespace Seg3D
 {
 
-AppControllerUndoBuffer::AppControllerUndoBuffer( QObject* parent ) :
-	QAbstractTableModel( parent )
+ControllerActionHistory::ControllerActionHistory( QObject* parent ) :
+	QAbstractTableModel( parent ), history_( Core::ActionHistory::Instance() )
 {
 }
 
-AppControllerUndoBuffer::~AppControllerUndoBuffer()
+ControllerActionHistory::~ControllerActionHistory()
 {
 }
 
-int AppControllerUndoBuffer::rowCount( const QModelIndex& ) const
+int ControllerActionHistory::rowCount( const QModelIndex& /*index*/) const
 {
-	return static_cast< int > ( UndoBuffer::Instance()->num_undo_items() );
+	return ( static_cast< int > ( history_->history_size() ) );
 }
 
-int AppControllerUndoBuffer::columnCount( const QModelIndex& ) const
+int ControllerActionHistory::columnCount( const QModelIndex& /*index*/) const
 {
-	return 2;
+	return ( 2 );
 }
 
-QVariant AppControllerUndoBuffer::data( const QModelIndex& index, int role ) const
+QVariant ControllerActionHistory::data( const QModelIndex& index, int role ) const
 {
 	if ( !index.isValid() ) return QVariant();
 
@@ -64,18 +62,20 @@ QVariant AppControllerUndoBuffer::data( const QModelIndex& index, int role ) con
 	}
 	else if ( role == Qt::DisplayRole )
 	{
-		int sz = static_cast< int > ( UndoBuffer::Instance()->num_undo_items() );
+		int sz = static_cast< int > ( history_->history_size() );
 		if ( index.row() < sz )
 		{
 			if ( index.column() == 0 )
 			{
-				return ( QString::fromStdString( UndoBuffer::Instance()->
-					get_undo_tag( index.row() ) ) );
+				Core::ActionHandle action = history_->action( sz - index.row() - 1 );
+				if ( action.get() == 0 ) return QString( "" );
+				return QString::fromStdString( action->export_to_string() );
 			}
-			else if ( index.column() == 1 )
+			else
 			{
-				return ( QString::number( UndoBuffer::Instance()->
-					get_undo_byte_size( index.row() ) ) );
+				Core::ActionResultHandle result = history_->result( sz - index.row() - 1 );
+				if ( result.get() == 0 ) return QString( "" );
+				return QString::fromStdString( result->export_to_string() );
 			}
 		}
 		else
@@ -83,19 +83,26 @@ QVariant AppControllerUndoBuffer::data( const QModelIndex& index, int role ) con
 			return QVariant();
 		}
 	}
-
-	return QVariant();
+	else if ( role == Qt::SizeHintRole )
+	{
+		if ( index.column() == 0 ) return QSize( 200, 12 );
+		else return QSize( 100, 12 );
+	}
+	else
+	{
+		return QVariant();
+	}
 }
 
-QVariant AppControllerUndoBuffer::headerData( int section, Qt::Orientation orientation, int role ) const
+QVariant ControllerActionHistory::headerData( int section, Qt::Orientation orientation, int role ) const
 {
 	if ( role != Qt::DisplayRole || orientation == Qt::Vertical )
 	{
 		return QVariant();
 	}
 
-	if ( section == 0 ) return QString( "Undo Tag" );
-	if ( section == 1 ) return QString( "Undo Byte Size" );
+	if ( section == 0 ) return QString( "Action" );
+	if ( section == 1 ) return QString( "Result" );
 	else return QVariant();
 }
 

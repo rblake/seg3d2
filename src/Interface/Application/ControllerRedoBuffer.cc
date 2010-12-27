@@ -25,34 +25,36 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
- 
-#include <QtCore/QSize>
 
-#include <Interface/AppController/AppControllerActionHistory.h>
+// Application includes
+#include <Application/UndoBuffer/UndoBuffer.h>
+
+// Interface includes
+#include <Interface/Application/ControllerRedoBuffer.h>
 
 namespace Seg3D
 {
 
-AppControllerActionHistory::AppControllerActionHistory( QObject* parent ) :
-	QAbstractTableModel( parent ), history_( Core::ActionHistory::Instance() )
+ControllerRedoBuffer::ControllerRedoBuffer( QObject* parent ) :
+	QAbstractTableModel( parent )
 {
 }
 
-AppControllerActionHistory::~AppControllerActionHistory()
+ControllerRedoBuffer::~ControllerRedoBuffer()
 {
 }
 
-int AppControllerActionHistory::rowCount( const QModelIndex& /*index*/) const
+int ControllerRedoBuffer::rowCount( const QModelIndex& ) const
 {
-	return ( static_cast< int > ( history_->history_size() ) );
+	return static_cast< int > ( UndoBuffer::Instance()->num_redo_items() );
 }
 
-int AppControllerActionHistory::columnCount( const QModelIndex& /*index*/) const
+int ControllerRedoBuffer::columnCount( const QModelIndex& ) const
 {
-	return ( 2 );
+	return 2;
 }
 
-QVariant AppControllerActionHistory::data( const QModelIndex& index, int role ) const
+QVariant ControllerRedoBuffer::data( const QModelIndex& index, int role ) const
 {
 	if ( !index.isValid() ) return QVariant();
 
@@ -62,20 +64,18 @@ QVariant AppControllerActionHistory::data( const QModelIndex& index, int role ) 
 	}
 	else if ( role == Qt::DisplayRole )
 	{
-		int sz = static_cast< int > ( history_->history_size() );
+		int sz = static_cast< int > ( UndoBuffer::Instance()->num_redo_items() );
 		if ( index.row() < sz )
 		{
 			if ( index.column() == 0 )
 			{
-				Core::ActionHandle action = history_->action( sz - index.row() - 1 );
-				if ( action.get() == 0 ) return QString( "" );
-				return QString::fromStdString( action->export_to_string() );
+				return ( QString::fromStdString(  UndoBuffer::Instance()->
+					get_redo_tag( index.row() ) ) );
 			}
-			else
+			else if ( index.column() == 1 )
 			{
-				Core::ActionResultHandle result = history_->result( sz - index.row() - 1 );
-				if ( result.get() == 0 ) return QString( "" );
-				return QString::fromStdString( result->export_to_string() );
+				return ( QString::number( UndoBuffer::Instance()->
+					get_redo_byte_size( index.row() ) ) );
 			}
 		}
 		else
@@ -83,26 +83,19 @@ QVariant AppControllerActionHistory::data( const QModelIndex& index, int role ) 
 			return QVariant();
 		}
 	}
-	else if ( role == Qt::SizeHintRole )
-	{
-		if ( index.column() == 0 ) return QSize( 200, 12 );
-		else return QSize( 100, 12 );
-	}
-	else
-	{
-		return QVariant();
-	}
+	
+	return QVariant();
 }
 
-QVariant AppControllerActionHistory::headerData( int section, Qt::Orientation orientation, int role ) const
+QVariant ControllerRedoBuffer::headerData( int section, Qt::Orientation orientation, int role ) const
 {
 	if ( role != Qt::DisplayRole || orientation == Qt::Vertical )
 	{
 		return QVariant();
 	}
 
-	if ( section == 0 ) return QString( "Action" );
-	if ( section == 1 ) return QString( "Result" );
+	if ( section == 0 ) return QString( "Redo Tag" );
+	if ( section == 1 ) return QString( "Undo Byte Size" );
 	else return QVariant();
 }
 
