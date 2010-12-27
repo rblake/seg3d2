@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPPROJECTEXPORTWIZARD_APPPROJECTEXPORTWIZARD_H
-#define INTERFACE_APPPROJECTEXPORTWIZARD_APPPROJECTEXPORTWIZARD_H
+#ifndef INTERFACE_APPLICATION_APPPROJECTEXPORTWIZARD_H
+#define INTERFACE_APPLICATION_APPPROJECTEXPORTWIZARD_H
 
 //Qt includes
 #include <QtGui/QWizard>
@@ -39,13 +39,13 @@
 namespace Seg3D
 {
 
-class AppProjectExportWizard : public QWizard
+class ProjectExportWizard : public QWizard
 {
 Q_OBJECT
 
 public:
-	AppProjectExportWizard( const std::string& session_name, QWidget *parent = 0 );
-    virtual ~AppProjectExportWizard();
+	ProjectExportWizard( const std::string& session_name, QWidget *parent = 0 );
+    virtual ~ProjectExportWizard();
 
 private:
     void accept();
@@ -101,5 +101,5 @@ private:
 };
 
 }	// end namespace Seg3D
-#endif // APPPROJECTWIZARD_H
 
+#endif

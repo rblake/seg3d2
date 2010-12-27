@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPPROJECTWIZARD_APPPROJECTWIZARD_H
-#define INTERFACE_APPPROJECTWIZARD_APPPROJECTWIZARD_H
+#ifndef INTERFACE_APPLICATION_PROJECTWIZARD_H
+#define INTERFACE_APPLICATION_PROJECTWIZARD_H
 
 //Qt includes
 #include <QtGui/QWizard>
@@ -39,7 +39,7 @@
 namespace Seg3D
 {
 
-class AppProjectWizard : public QWizard
+class ProjectWizard : public QWizard
 {
 Q_OBJECT
 
@@ -48,14 +48,12 @@ Q_SIGNALS:
 	void canceled();
 
 public:
-    AppProjectWizard( QWidget *parent = 0 );
-    virtual ~AppProjectWizard();
+    ProjectWizard( QWidget *parent = 0 );
+    virtual ~ProjectWizard();
 
 private:
     void accept();
     void reject();
-
-
 };
 
 class ProjectInfoPage : public QWizardPage
@@ -96,7 +94,6 @@ private:
 
 };
 
-
 }	// end namespace Seg3D
-#endif // APPPROJECTWIZARD_H
 
+#endif

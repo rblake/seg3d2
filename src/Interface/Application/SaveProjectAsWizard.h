@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPPROJECTEXPORTWIZARD_APPSAVEPROJECTASWIZARD_H
-#define INTERFACE_APPPROJECTEXPORTWIZARD_APPSAVEPROJECTASWIZARD_H
+#ifndef INTERFACE_APPLICATION_SAVEPROJECTASWIZARD_H
+#define INTERFACE_APPLICATION_SAVEPROJECTASWIZARD_H
 
 //Qt includes
 #include <QtGui/QWizard>
@@ -40,13 +40,13 @@
 namespace Seg3D
 {
 
-class AppSaveProjectAsWizard : public QWizard
+class SaveProjectAsWizard : public QWizard
 {
 Q_OBJECT
 
 public:
-	AppSaveProjectAsWizard( QWidget *parent = 0 );
-    virtual ~AppSaveProjectAsWizard();
+	SaveProjectAsWizard( QWidget *parent = 0 );
+    virtual ~SaveProjectAsWizard();
 
 private:
     void accept();
@@ -116,6 +116,6 @@ private:
     QLabel *project_path_;
 };
 
-}	// end namespace Seg3D
-#endif // INTERFACE_APPPROJECTEXPORTWIZARD_APPSAVEPROJECTASWIZARD_H
+} // end namespace Seg3D
 
+#endif
