@@ -136,7 +136,8 @@ SET_TARGET_PROPERTIES(gdcmCommon PROPERTIES ${GDCM_LIBRARY_PROPERTIES} LINK_INTE
 IF(WIN32)
   SET_TARGET_PROPERTIES(gdcmCommon
                         PROPERTIES
-                        COMPILE_FLAGS "-W0 -wd4244 -wd4267 -wd4244")
+                        COMPILE_FLAGS "-W0 -wd4244 -wd4267 -wd4244"
+						LINK_FLAGS "/ignore:4221")
 ENDIF(WIN32)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
