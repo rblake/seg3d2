@@ -414,7 +414,7 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 			( boost::lambda::bind( &Core::StateBool::get, viewer_visible_states[ 5 ].get() ) &&
 			boost::lambda::bind( &Core::StateBool::get, layer->visible_state_[ 5 ].get() ) );
 		QtUtils::QtBridge::Enable( this->private_->ui_.visibility_button_, enable_states, condition );
-
+		
 		switch( this->get_volume_type() )
 		{
 			// This if for the Data Layers
@@ -1124,9 +1124,9 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 	}
 	else
 	{
-		qaction = menu.addAction( tr( "Export Mask as NRRD" ) );
+		qaction = menu.addAction( tr( "Export Segmentation as NRRD" ) );
 		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_nrrd() ) );
-		qaction = menu.addAction( tr( "Export Mask as Bitmap Series" ) );
+		qaction = menu.addAction( tr( "Export Segmentation as Bitmap Series" ) );
 		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_bmp() ) );
 	}
 	
@@ -1139,7 +1139,7 @@ void LayerWidget::delete_layer_from_context_menu()
 {	
 	// Check whether the users wants to save and whether the user wants to quit
 	int ret = QMessageBox::warning( this, "Delete Warning",
-		"Are you sure, you want to delete this layer? This action cannot be undone.",
+		"Are you sure, you want to delete this layer?",
 		QMessageBox::Yes | QMessageBox::No, QMessageBox::No  );
 
 	if( ret == QMessageBox::Yes )
