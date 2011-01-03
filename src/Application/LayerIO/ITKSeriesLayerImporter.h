@@ -26,16 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYERIO_NRRDLAYERIMPORTER_H
-#define APPLICATION_LAYERIO_NRRDLAYERIMPORTER_H
+#ifndef APPLICATION_LAYERIO_ITKSERIESLAYERIMPORTER_H
+#define APPLICATION_LAYERIO_ITKSERIESLAYERIMPORTER_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif 
 
+// Boost includes 
+#include <boost/filesystem.hpp>
+
 // Core includes
-#include <Core/DataBlock/NrrdData.h>
-#include <Core/DataBlock/NrrdDataBlock.h>
+#include <Core/DataBlock/StdDataBlock.h>
 
 // Application includes
 #include <Application/LayerIO/LayerImporter.h>
@@ -44,22 +46,30 @@
 namespace Seg3D
 {
 
-class NrrdLayerImporter : public LayerImporter
+class ITKSeriesLayerImporter;
+class ITKSeriesLayerImporterPrivate;
+typedef boost::shared_ptr<class ITKSeriesLayerImporterPrivate> ITKSeriesLayerImporterPrivateHandle;
+
+class ITKSeriesLayerImporter : public LayerImporter
 {
-	SCI_IMPORTER_TYPE( "Teem Importer", 
-					   ".nrrd;.nhdr", 30, 
-					   LayerImporterType::SINGLE_FILE_E )
+	// The ITKLayerImporter is capable of importing DICOMS, tiffs, and pngs.  It assumes that
+	// when a file name does not include an extension that it is a DICOM
+	SCI_IMPORTER_TYPE( "ITK FileSeries Importer",
+						".dcm;.DCM;.dicom;.DICOM;"
+						".tiff;.tif;.TIFF;.TIF;"
+						".png;.PNG;"
+						".jpg;.jpeg;.JPG;.JPEG;"
+						".bmp;.BMP;"
+						".vtk;.VTK", 5, 
+						LayerImporterType::FILE_SERIES_E )
 
 	// -- Constructor/Destructor --
 public:
 	// Construct a new layer file importer
-	NrrdLayerImporter( const std::string& filename ) :
-		LayerImporter( filename )
-	{
-	}
+	ITKSeriesLayerImporter( const std::string& filename );
 
 	// Virtual destructor for memory management of derived classes
-	virtual ~NrrdLayerImporter()
+	virtual ~ITKSeriesLayerImporter()
 	{
 	}
 
@@ -80,20 +90,32 @@ public:
 	// Get the type of data that is being imported
 	virtual Core::DataType get_data_type();
 
-	// GET_IMPORTER_MODES
+	// GET_IMPORTER_MODES:
 	// Get then supported importer modes
 	virtual int get_importer_modes();
 	
-protected:	
+	// --Import the data as a specific type --	
+public:	
+	// SET_FILE_LIST:
+	// we need a list of files to import, this function provides the list, the list must be set 
+	// before import_layer is called.
+	virtual bool set_file_list( const std::vector< std::string >& file_list );
+	
+protected:
 	// LOAD_DATA:
 	// Load the data from the file(s).
 	// NOTE: This function is called by import_layer internally.
 	virtual bool load_data( Core::DataBlockHandle& data_block, 
 		Core::GridTransform& grid_trans );
 
-private:
-	Core::NrrdDataHandle nrrd_data_;
+	// GET_LAYER_NAME:
+	// Return the string that will be used to name the layers.
+	virtual std::string get_layer_name();
 
+	// -- internals of the class --
+private:
+	ITKSeriesLayerImporterPrivateHandle private_;
+	
 };
 
 } // end namespace seg3D
