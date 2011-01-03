@@ -42,7 +42,9 @@ namespace Seg3D
 
 class MatlabLayerImporter : public LayerImporter
 {
-	SCI_IMPORTER_TYPE( "Matlab Importer", ".mat", 20, 0 )
+	SCI_IMPORTER_TYPE( "Matlab Importer", 
+					  ".mat", 20, 
+					  LayerImporterType::SINGLE_FILE_E )
 
 	// -- Constructor/Destructor --
 public:
