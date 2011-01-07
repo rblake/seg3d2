@@ -117,6 +117,13 @@ ADD_SUBDIRECTORY(tinyxml)
 # ADDING TINYXML
 ##################################################
 
+MESSAGE(STATUS "Configuring SQLite")
+ADD_SUBDIRECTORY(sqlite)
+
+##################################################
+# ADDING GDCM
+##################################################
+
 MESSAGE(STATUS "Configuring GDCM")
 ADD_SUBDIRECTORY(gdcm)
 
