@@ -114,7 +114,8 @@ public:
 
 		for ( size_t j = 0; j < static_cast<size_t>( this->amount_ + 1 );  j++ )
 		{
-			this->observe_itk_filter( filter, this->dst_layer_[ j ] );
+			this->forward_abort_to_filter( filter, this->dst_layer_[ j ] );
+			this->observe_itk_progress( filter, this->dst_layer_[ j ] );
 		}
 		
 		// Setup the filter parameters that we do not want to change.
@@ -140,7 +141,7 @@ public:
 				return;
 			}
 
-			this->report_error( "Could not allocate enough memory." );
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 

@@ -64,7 +64,7 @@ void DataManager::save_datamanager_state( const boost::filesystem::path& project
 {
 	this->prep_for_save( project_path, session_name );
 	Core::StateIO stateio;
-	stateio.initialize( "Seg3D2" );
+	stateio.initialize();
 	this->save_states( stateio );
 	stateio.export_to_file( project_path / "data" / "datamanager.xml" );
 }
@@ -136,7 +136,7 @@ void DataManager::prep_for_save( const boost::filesystem::path& project_path,
 				}
 				catch(  std::exception& e ) 
 				{
-					CORE_LOG_ERROR( e.what() );
+					CORE_LOG_WARNING( e.what() );
 				}
 			}
 			else

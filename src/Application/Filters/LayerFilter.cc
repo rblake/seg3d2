@@ -35,6 +35,9 @@
 #include <boost/thread/mutex.hpp> 
 #include <boost/thread/condition_variable.hpp> 
  
+// Core includes
+#include <Core/Utils/Log.h>
+
 // Application includes
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
@@ -83,6 +86,9 @@ public:
 	
 	// Keep track of abort status
 	bool abort_;
+	
+	// Keep track of stop status
+	bool stop_;
 	
 	// Mutex protecting abort status
 	boost::mutex mutex_;
@@ -140,11 +146,11 @@ void LayerFilterPrivate::finalize()
 	
 	if ( this->error_.size() )
 	{
-		StatusBar::SetMessage( Core::LogMessageType::ERROR_E, this->error_ );	
+		CORE_LOG_ERROR( this->error_ );	
 	}
 	else if ( this->success_.size() )
 	{
-		StatusBar::SetMessage( Core::LogMessageType::MESSAGE_E, this->success_ );	
+		CORE_LOG_SUCCESS( this->success_ );	
 	}
 
 	this->locked_layers_.clear();
@@ -173,6 +179,12 @@ void LayerFilter::raise_abort()
 	this->handle_abort();
 }
 
+void LayerFilter::raise_stop()
+{
+	boost::mutex::scoped_lock lock( this->private_->mutex_ );
+	this->private_->stop_ = true;
+	this->handle_stop();
+}
 
 bool LayerFilter::check_abort()
 {
@@ -180,6 +192,11 @@ bool LayerFilter::check_abort()
 	return this->private_->abort_;
 }
 
+bool LayerFilter::check_stop()
+{
+	boost::mutex::scoped_lock lock( this->private_->mutex_ );
+	return this->private_->stop_;
+}
 
 void LayerFilter::abort_and_wait()
 {
@@ -211,7 +228,18 @@ void LayerFilter::connect_abort( const  LayerHandle& layer )
 		&LayerFilter::raise_abort, this ) ) );
 }
 
+void LayerFilter::connect_stop( const  LayerHandle& layer )
+{
+	boost::mutex::scoped_lock lock( this->private_->mutex_ );
+	this->private_->add_connection( layer->stop_signal_.connect( boost::bind(
+		&LayerFilter::raise_stop, this ) ) );
+}
+
 void LayerFilter::handle_abort()
+{
+}
+
+void LayerFilter::handle_stop()
 {
 }
 

@@ -149,8 +149,8 @@ public:
 
 	ViewManipulatorHandle view_manipulator_;
 
-	// We're treating this as a boolean.  We use AtomicCounter because it provides thread safety.
-	Core::AtomicCounter mouse_pressed_;
+	boost::mutex mouse_pressed_mutex_;
+	bool mouse_pressed_;
 
 	// This flag is set before loading states of the viewer.
 	bool loading_;
@@ -886,6 +886,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->private_->adjusting_contrast_brightness_ = false;
 	this->private_->slice_lock_count_ = 0;
 	this->private_->view_manipulator_ = ViewManipulatorHandle( new ViewManipulator( this ) );
+	this->private_->mouse_pressed_ = false;
 
 	std::string sagittal = SAGITTAL_C + "=" + PreferencesManager::Instance()->x_axis_label_state_->get();
 	std::string coronal = CORONAL_C + "=" + PreferencesManager::Instance()->y_axis_label_state_->get();
@@ -936,6 +937,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_state( "volume_volume_rendering_visible", 
 		this->volume_volume_rendering_visible_state_, false );
 	this->add_state( "volume_light_visible", this->volume_light_visible_state_, true );
+	this->add_state( "volume_enable_fog", this->volume_enable_fog_state_, false );
 	this->add_state( "volume_show_invisible_slices", this->volume_show_invisible_slices_state_, true );
 
 	this->add_state( "lock", this->lock_state_, false );
@@ -982,6 +984,8 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_connection( this->volume_view_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_light_visible_state_->state_changed_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_enable_fog_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_slices_visible_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
@@ -1043,7 +1047,10 @@ void Viewer::mouse_move_event( const Core::MouseHistory& mouse_history, int butt
 void Viewer::mouse_press_event( const Core::MouseHistory& mouse_history, int button, int buttons,
     int modifiers )
 {
-	++this->private_->mouse_pressed_;
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = true;
+	}
 	
 	if ( !this->private_->mouse_press_handler_.empty() )
 	{
@@ -1079,7 +1086,10 @@ void Viewer::mouse_press_event( const Core::MouseHistory& mouse_history, int but
 void Viewer::mouse_release_event( const Core::MouseHistory& mouse_history, int button, int buttons,
     int modifiers )
 {
-	--this->private_->mouse_pressed_;
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = false;
+	}
 	
 	if ( !this->private_->mouse_release_handler_.empty() )
 	{
@@ -1110,6 +1120,14 @@ void Viewer::mouse_enter_event( int x, int y )
 
 void Viewer::mouse_leave_event()
 {
+#ifdef __APPLE__
+	// Mac doesn't give matching mouse release event if I leave the window with the mouse pressed.  
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = false;
+	}
+#endif
+
 	if ( this->private_->mouse_leave_handler_ )
 	{
 		this->private_->mouse_leave_handler_( this->shared_from_this() );
@@ -1417,7 +1435,8 @@ void Viewer::reset_mouse_handlers()
 
 bool Viewer::is_busy()
 {
-	return this->private_->mouse_pressed_ > 0;
+	boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );	
+	return this->private_->mouse_pressed_;
 }
 
 void Viewer::update_status_bar( int x, int y, const std::string& layer_id )

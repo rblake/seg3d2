@@ -660,8 +660,8 @@ void LayerManager::delete_layers(  std::vector< std::string > layers  )
 		this->group_internals_changed_signal_( group );
 	}
 	
-	this->layers_deleted_signal_( layer_vector );
 	this->layers_changed_signal_();
+	this->layers_deleted_signal_( layer_vector );
 	
 	if ( active_layer_changed && this->private_->active_layer_ )
 	{
@@ -909,7 +909,7 @@ bool LayerManager::post_load_states( const Core::StateIO& state_io )
 		LayerHandle active_layer = this->get_layer_by_id( this->active_layer_state_->get() );
 		if ( !active_layer )
 		{
-			CORE_LOG_ERROR( "Incorrect active layer state loaded from session" );
+			CORE_LOG_WARNING( "Incorrect active layer state loaded from session" );
 			active_layer = this->private_->group_list_.front()->layer_list_.back();	
 		}
 		Core::ScopedCounter signal_block( this->private_->signal_block_count_ );
@@ -1296,6 +1296,7 @@ void LayerManager::DispatchDeleteLayer( LayerHandle layer, filter_key_type key )
 		if ( layer->num_filter_keys() == 0 )
 		{
 			layer->reset_filter_handle();
+			layer->reset_allow_stop();
 			// Unlock the layer before deleting it, so when it's undeleted the data state is correct
 			layer->data_state_->set( Layer::AVAILABLE_C );
 			// Delete the layer from the layer manager.
@@ -1330,6 +1331,7 @@ void LayerManager::DispatchUnlockLayer( LayerHandle layer, filter_key_type key )
 		{
 			layer->data_state_->set( Layer::AVAILABLE_C );
 			layer->reset_filter_handle();
+			layer->reset_allow_stop();
 		}
 	}
 }
@@ -1359,15 +1361,18 @@ void LayerManager::DispatchUnlockOrDeleteLayer( LayerHandle layer, filter_key_ty
 			{
 				layer->data_state_->set( Layer::AVAILABLE_C );
 				layer->reset_filter_handle();
+				layer->reset_allow_stop();
 			}
 		}
 		else
 		{
 			if ( layer->num_filter_keys() != 0 )
 			{
-				CORE_THROW_LOGICERROR( "Could not delete that is connected to another filter" );
+				CORE_THROW_LOGICERROR( "Could not delete as filter is connected to another filter" );
 			}
 			layer->reset_filter_handle();
+			layer->reset_allow_stop();
+
 			std::vector< std::string > layer_vector;
 			layer_vector.push_back( layer->get_layer_id() );
 			LayerManager::Instance()->delete_layers( layer_vector );

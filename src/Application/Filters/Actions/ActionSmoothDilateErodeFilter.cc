@@ -186,7 +186,8 @@ public:
 		typename dilate_filter_type::Pointer dilate_filter = dilate_filter_type::New();
 
 		// Relay abort and progress information to the layer that is executing the filter.
-		this->observe_itk_filter( dilate_filter, this->dst_layer_, 0.0, 0.5 );
+		this->forward_abort_to_filter( dilate_filter, this->dst_layer_ );
+		this->observe_itk_progress( dilate_filter, this->dst_layer_, 0.0, 0.5 );
 
 		// Setup the filter parameters that we do not want to change.
 		dilate_filter->SetInput( input_image->get_image() );
@@ -215,7 +216,7 @@ public:
 				this->report_error( "Filter was aborted." );
 				return;
 			}
-			this->report_error("Could not allocate enough memory.");
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 
@@ -231,7 +232,8 @@ public:
 		typename erode_filter_type::Pointer erode_filter = erode_filter_type::New();
 
 		// Relay abort and progress information to the layer that is executing the filter.
-		this->observe_itk_filter( erode_filter, this->dst_layer_, 0.5, 1.0 );
+		this->forward_abort_to_filter( erode_filter, this->dst_layer_ );
+		this->observe_itk_progress( erode_filter, this->dst_layer_, 0.5, 0.5 );
 
 		// Setup the filter parameters that we do not want to change.
 		erode_filter->SetInput( dilate_filter->GetOutput() );
@@ -260,7 +262,7 @@ public:
 				this->report_error( "Filter was aborted." );
 				return;
 			}
-			this->report_error("Could not allocate enough memory.");
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 

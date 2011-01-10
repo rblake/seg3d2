@@ -78,7 +78,7 @@ void LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 		import_dialog.setAcceptMode( QFileDialog::AcceptOpen );
 		import_dialog.setFileMode( QFileDialog::ExistingFiles );
 		import_dialog.setViewMode( QFileDialog::Detail );
-		import_dialog.exec();
+		if( !import_dialog.exec() ) return;
 		
 		// Step (3): Get the selected filename and name filter
 		file_list = import_dialog.selectedFiles();
@@ -141,7 +141,7 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 	import_dialog.setAcceptMode( QFileDialog::AcceptOpen );
 	import_dialog.setFileMode( QFileDialog::ExistingFiles );
 	import_dialog.setViewMode( QFileDialog::Detail );
-	import_dialog.exec();
+	if( !import_dialog.exec() ) return;
 
 	QStringList file_list = import_dialog.selectedFiles();
 	if( file_list.size() == 0) return;
@@ -178,7 +178,9 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 		// Step 2: we get the get a boost::filesystem::path version of the file name so we can 
 		// take advantage of the filesystem functionality
 		boost::filesystem::path full_filename( importer->get_filename() );
-
+		
+		if( !boost::filesystem::exists( full_filename ) ) return;
+		
 		// Step 3: now we want to see if we can figure out the file name pattern.  We will start by
 		// checking to see if the sequence numbers are at the end of the file name.  
 		std::string filename = boost::filesystem::basename( full_filename );
@@ -227,7 +229,7 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 
 	importers[ 0 ]->set_file_list( files );
 
-	LayerImporterWidget layer_import_dialog( importers, files, main_window );
+	LayerImporterWidget layer_import_dialog( importers, files, main_window, true );
 	layer_import_dialog.exec();
 }
 	
@@ -253,8 +255,10 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 
 	QString filename = QFileDialog::getSaveFileName( main_window, "Export Data Layer As... ",
 		QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-		"NRRD files (*.nrrd);;DICOM files (*.dcm)" );
-		
+		"NRRD files (*.nrrd);;DICOM files (*.dcm);;TIFF files (*.tiff);;PNG files (*.png)" );
+	
+	if( filename == "" ) return;
+	
 	if( boost::filesystem::exists( boost::filesystem::path( filename.toStdString() ).parent_path() ) )
 	{
 		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
@@ -266,8 +270,7 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 	std::string exportername;
 	
 	if( extension == ".nrrd" ) exportername = "NRRD Exporter";
-	else if( extension == ".dcm" ) exportername = "ITK Exporter";
-	else return;
+	else if( extension != "" ) exportername = "ITK Data Exporter";
 		
 	LayerExporterHandle exporter;
 	if( ! ( LayerIO::Instance()->create_exporter( exporter, layer_handles, exportername, extension ) ) )

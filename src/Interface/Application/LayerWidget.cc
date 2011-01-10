@@ -204,13 +204,12 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 	this->private_->color_widget_ = new QtUtils::QtColorBarWidget( this );
 	this->private_->ui_.horizontalLayout_14->addWidget( this->private_->color_widget_ );
 	this->private_->color_widget_->setObjectName( QString::fromUtf8( "color_widget_" ) );
-	
-	// Text for when the abort button has been pressed
-	this->private_->ui_.abort_text_->setText( "Waiting for process to abort ..." );
 				
 	this->connect( this->private_->ui_.abort_button_,
 		SIGNAL ( pressed() ), this, SLOT( trigger_abort() ) );
-			
+
+	this->connect( this->private_->ui_.stop_button_,
+		SIGNAL ( pressed() ), this, SLOT( trigger_stop() ) );
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 	
@@ -303,12 +302,14 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 		QtUtils::QtBridge::Show( this->private_->ui_.info_bar_, 
 			layer->show_information_state_ );
 
-	
 		QtUtils::QtBridge::Show( this->private_->ui_.progress_bar_bar_, 
 			layer->show_progress_bar_state_ );
 		QtUtils::QtBridge::Show( this->private_->ui_.abort_bar_, 
 			layer->show_abort_message_state_ );
-		
+
+		QtUtils::QtBridge::Show( this->private_->ui_.stop_button_, 
+			layer->show_stop_button_state_ );
+
 		// Connect all the buttons to the viewers
 		QtUtils::QtBridge::Show( this->private_->ui_.viewer_0_button_, 
 			ViewerManager::Instance()->get_viewer( 0 )->viewer_visible_state_ );
@@ -761,7 +762,21 @@ void LayerWidget::trigger_abort()
 	Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
 		this->private_->layer_->show_abort_message_state_, true );
 
+	// Text for when the abort button has been pressed
+	this->private_->ui_.abort_text_->setText( "Waiting for process to abort ..." );
 	this->private_->layer_->abort_signal_();
+}
+
+void LayerWidget::trigger_stop()
+{
+	Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+		this->private_->layer_->show_progress_bar_state_, false );
+	Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+		this->private_->layer_->show_abort_message_state_, true );
+
+	// Text for when the abort button has been pressed
+	this->private_->ui_.abort_text_->setText( "Waiting for process to stop ..." );
+	this->private_->layer_->stop_signal_();
 }
 
 void LayerWidget::set_group_menu_status( bool status )
@@ -1117,23 +1132,35 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 	qaction = menu.addAction( tr( "Delete Layer" ) );
 	connect( qaction, SIGNAL( triggered() ), this, SLOT( delete_layer_from_context_menu() ) );
 	
+	QMenu* export_menu;
+	export_menu = new QMenu( this );
 	if( this->private_->layer_->get_type() == Core::VolumeType::DATA_E )
 	{
-		qaction = menu.addAction( tr( "Export Data" ) );
-		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_data() ) );
+		export_menu->setTitle( tr( "Export data as:" ) );
+		qaction = export_menu->addAction( tr( "DICOM" ) );
+		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_dicom() ) );
 	}
 	else
 	{
-		qaction = menu.addAction( tr( "Export Segmentation as NRRD" ) );
-		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_nrrd() ) );
-		qaction = menu.addAction( tr( "Export Segmentation as Bitmap Series" ) );
-		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_bmp() ) );
+		export_menu->setTitle( tr( "Export Segmentation as:" ) );
+		
+		qaction = export_menu->addAction( tr( "BITMAP" ) );
+		connect( qaction, SIGNAL( triggered() ), this, SLOT( export_bitmap() ) );
 	}
+	
+	qaction = export_menu->addAction( tr( "NRRD" ) );
+	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_nrrd() ) );
+	
+	qaction = export_menu->addAction( tr( "PNG" ) );
+	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_png() ) );
+	
+	qaction = export_menu->addAction( tr( "TIFF" ) );
+	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_tiff() ) );
+	
+	menu.addMenu( export_menu );
 	
 	menu.exec( event->globalPos() );
 }
-	
-	
 
 void LayerWidget::delete_layer_from_context_menu()
 {	
@@ -1151,62 +1178,61 @@ void LayerWidget::delete_layer_from_context_menu()
 	}
 }
 
-void LayerWidget::export_data(){
-	QString filename = QFileDialog::getSaveFileName( this, "Export Data Layer As... ",
-		QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-		"NRRD files (*.nrrd);;DICOM files (*.dcm)" );
-
-	if( boost::filesystem::exists( boost::filesystem::path( 
-		filename.toStdString() ).parent_path() ) )
-	{
-		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-			PreferencesManager::Instance()->export_path_state_, 
-			boost::filesystem::path( filename.toStdString() ).parent_path().string() );
-	}
-	
-	ActionExportLayer::Dispatch( Core::Interface::GetWidgetActionContext(), 
-		this->private_->layer_->get_layer_name(), filename.toStdString() );
-	
-}
-
-void LayerWidget::export_bmp()
+void LayerWidget::export_layer( const std::string& type_extension )
 {
-	QString filename = QFileDialog::getExistingDirectory( this, tr( "Choose Directory for Export..." ),
+	QString filepath = QFileDialog::getExistingDirectory( this, tr( "Choose Directory for Export..." ),
 		QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-		QFileDialog::ShowDirsOnly
-		| QFileDialog::DontResolveSymlinks );
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks );
 	
-	if( boost::filesystem::exists( boost::filesystem::path( filename.toStdString() ) ) )
+	if( LayerManager::Instance()->get_layer_by_id( this->get_layer_id() )->get_type() == 
+		Core::VolumeType::MASK_E )
 	{
-		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-			PreferencesManager::Instance()->export_path_state_, 
-			boost::filesystem::path( filename.toStdString() ).string() );
+		ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			this->private_->layer_->get_layer_name(), LayerExporterMode::SINGLE_MASK_E, 
+			filepath.toStdString(), type_extension );
 	}
+	else if( LayerManager::Instance()->get_layer_by_id( this->get_layer_id() )->get_type() == 
+		Core::VolumeType::DATA_E )
+	{	
+		std::string file_name = ( boost::filesystem::path( filepath.toStdString() ) / 
+			this->private_->layer_->get_layer_name() ).string();
 
-	ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), 
-		this->private_->layer_->get_layer_name(), LayerExporterMode::SINGLE_MASK_E, filename.toStdString(), true );
+		ActionExportLayer::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			this->private_->layer_->get_layer_name(), file_name, type_extension );
+	}
 	
+	if( filepath != "" )
+	{
+		Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 
+			PreferencesManager::Instance()->export_path_state_, filepath.toStdString() );
+	}
 }
-	
+
 void LayerWidget::export_nrrd()
 {
-	QString filename = QFileDialog::getExistingDirectory( this, tr( "Choose Directory for Export..." ),
-		QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-		QFileDialog::ShowDirsOnly
-		| QFileDialog::DontResolveSymlinks );
-	
-	if( boost::filesystem::exists( boost::filesystem::path( filename.toStdString() ) ) )
-	{
-		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-			PreferencesManager::Instance()->export_path_state_, 
-			boost::filesystem::path( filename.toStdString() ).string() );
-	}
-	
-	ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), 
-		this->private_->layer_->get_layer_name(), LayerExporterMode::SINGLE_MASK_E, filename.toStdString() );
-	
+	this->export_layer( ".nrrd" );
 }
-	
+
+void LayerWidget::export_dicom()
+{
+	this->export_layer( ".dcm" );
+}
+
+void LayerWidget::export_tiff()
+{
+	this->export_layer( ".tiff" );
+}
+
+void LayerWidget::export_bitmap()
+{
+	this->export_layer( ".bmp" );
+}
+
+void LayerWidget::export_png()
+{
+	this->export_layer( ".png" );
+}
+
 void LayerWidget::set_iso_surface_visibility( bool visibility )
 {
 	if( this->private_->layer_->get_type() == Core::VolumeType::MASK_E )

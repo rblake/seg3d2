@@ -50,6 +50,8 @@ SET(APPLICATION_LAYERIO_ACTIONS_SRCS
 SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
   ITKLayerImporter.h
   ITKLayerImporter.cc
+  ITKSeriesLayerImporter.h
+  ITKSeriesLayerImporter.cc
   MatlabLayerImporter.h
   MatlabLayerImporter.cc
   NrrdLayerImporter.h
@@ -60,8 +62,10 @@ SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
   GDCMLayerImporter.cc
 )
 SET(APPLICATION_LAYERIO_EXPORTERS_SRCS
-  ITKLayerExporter.h
-  ITKLayerExporter.cc
+  ITKDataLayerExporter.h
+  ITKDataLayerExporter.cc
+  ITKMaskLayerExporter.h
+  ITKMaskLayerExporter.cc
   NrrdLayerExporter.h
   NrrdLayerExporter.cc
 )
@@ -83,7 +87,8 @@ TARGET_LINK_LIBRARIES(Application_LayerIO
 					Application_InterfaceManager
 					Application_Layer
 					${SCI_BOOST_LIBRARY}
-					${SCI_GDCM_LIBRARY})
+					${SCI_GDCM_LIBRARY}
+					${SCI_MATLABIO_LIBRARY})
 
 # Register actions and importers
 REGISTER_LIBRARY_AND_CLASSES(Application_LayerIO 

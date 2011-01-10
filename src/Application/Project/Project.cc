@@ -105,8 +105,6 @@ bool Project::check_project_changed()
 	return changed_;
 }
 
-
-
 bool Project::initialize_from_file( const std::string& project_name )
 {
 	Core::StateIO stateio;
@@ -162,20 +160,19 @@ bool Project::delete_session( const std::string& session_name )
 	}
 	catch(  std::exception& e ) 
 	{
-		CORE_LOG_ERROR( e.what() );
+		CORE_LOG_WARNING( e.what() );
 		return false;
 	}
 	
 	this->data_manager_->remove_session( session_name );
 	
 	Core::StateIO stateio;
-	stateio.initialize( "Seg3D" );
+	stateio.initialize();
 	this->save_states( stateio );
 	stateio.export_to_file( this->project_path_ / ( this->project_name_state_->get() + ".s3d" ) );
 	
 	return true;
 }	
-
 	
 void Project::add_session_to_list( const std::string& session_name )
 {

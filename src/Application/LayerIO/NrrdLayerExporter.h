@@ -45,7 +45,7 @@ namespace Seg3D
 
 class NrrdLayerExporter : public LayerExporter
 {
-	SCI_EXPORTER_TYPE("NRRD Exporter", ".nrrd")
+	SCI_EXPORTER_TYPE( "NRRD Exporter", ".nrrd" )
 
 	// -- Constructor/Destructor --
 public:

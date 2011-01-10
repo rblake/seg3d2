@@ -191,6 +191,10 @@ private:
 	virtual void dragLeaveEvent( QDragLeaveEvent* event );
 	
 	virtual void contextMenuEvent( QContextMenuEvent * event );
+
+	// EXPORT_LAYER:
+	// funtcion that checks the type of the layer and calls the appropriate function to export the layer	
+	void export_layer( const std::string& type_extension );
 	
 private Q_SLOTS:
 
@@ -213,6 +217,10 @@ private Q_SLOTS:
 	// TRIGGER_ABORT:
 	// Trigger the abort signal of the layer
 	void trigger_abort();
+
+	// TRIGGER_STOP:
+	// Trigger the stop signal of the layer
+	void trigger_stop();
 	
 	// SET_BRIGHTNESS_CONTRAST_TO_DEFAULT:
 	// dispatches actions that set the values of the brightness and contrast back to defaults
@@ -227,17 +235,25 @@ private Q_SLOTS:
 	// dispatches an action that deletes the layer
 	void delete_layer_from_context_menu();
 	
-	// EXPORT_DATA:
-	// dispatches an action that exports the data
-	void export_data();
-	
-	// EXPORT_BMP:
-	// dispatches an action that exports the layer as a segmentation
-	void export_bmp();
-	
 	// EXPORT_NRRD:
-	// dispatches an action that exports the layer as a segmentation
+	// dispatches an action that exports the layer as a nrrd
 	void export_nrrd();
+	
+	// EXPORT_DICOM:
+	// dispatches an action that exports the layer as a dicom
+	void export_dicom();
+	
+	// EXPORT_TIFF
+	// dispatches an action that exports the layer as a tiff
+	void export_tiff();
+	
+	// EXPORT_BITMAP:
+	// dispatches an action that exports the layer as a bitmap
+	void export_bitmap();
+	
+	// EXPORT_PNG:
+	// dispatches an action that exports the layer as a png
+	void export_png();
 
 protected:
 	void resizeEvent( QResizeEvent *event );

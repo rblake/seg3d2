@@ -105,7 +105,8 @@ public:
 		filter_type::Pointer filter = filter_type::New();
 
 		// Relay abort and progress information to the layer that is executing the filter.
-		this->observe_itk_filter( filter, this->dst_layer_, 0.0, 0.75 );
+		this->forward_abort_to_filter( filter, this->dst_layer_ );
+		this->observe_itk_progress( filter, this->dst_layer_, 0.0, 0.75 );
 		
 		// Setup the filter parameters that we do not want to change.
 		filter->SetInput( input_image->get_image() );
@@ -122,7 +123,7 @@ public:
 		} 
 		catch ( ... ) 
 		{
-			this->report_error( "Internal error in filter." );
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 
@@ -147,7 +148,7 @@ public:
 		}
 		catch( ... )
 		{
-			this->report_error("Could not allocate enough memory.");
+			this->report_error( "Could not allocate enough memory." );
 			return;		
 		}
 		

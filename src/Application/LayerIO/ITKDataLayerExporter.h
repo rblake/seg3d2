@@ -49,7 +49,6 @@
 #include <Core/DataBlock/ITKDataBlock.h>
 
 // Application includes
-#include <Application/Layer/MaskLayer.h>
 #include <Application/Layer/DataLayer.h>
 #include <Application/LayerIO/LayerExporter.h>
 #include <Application/LayerIO/LayerIO.h>
@@ -57,17 +56,17 @@
 namespace Seg3D
 {
 
-class ITKLayerExporter : public LayerExporter
+class ITKDataLayerExporter : public LayerExporter
 {
-	SCI_EXPORTER_TYPE( "ITK Exporter", ".dcm;.bmp" )
+	SCI_EXPORTER_TYPE( "ITK Data Exporter", ".dcm;.tiff;.png;.bmp" )
 
 	// -- Constructor/Destructor --
 public:
 	// Construct a new layer file exporter
-	ITKLayerExporter( std::vector< LayerHandle >& layers );
+	ITKDataLayerExporter( std::vector< LayerHandle >& layers );
 
 	// Virtual destructor for memory management of derived classes
-	virtual ~ITKLayerExporter()
+	virtual ~ITKDataLayerExporter()
 	{
 	}
 
@@ -85,6 +84,10 @@ public:
 	// Get then supported exporter modes
 	virtual int get_exporter_modes();
 	
+	// SET_EXTENSION:
+	// function that sets the extension to be used by the exporter
+	virtual void set_extension( std::string extension ){ this->extension_ = extension; }
+	
 	// --Import the data as a specific type --	
 public:	
 
@@ -94,17 +97,12 @@ public:
 		const std::string& name );
 		
 private:
-	bool export_data_series( const std::string& file_path, const std::string& name );
-	bool export_bmp_mask_series( const std::string& file_path );
+	bool export_dcm_series( const std::string& file_path, const std::string& name );
+	bool export_itk_series( const std::string& file_path );
 	
-// private:
-// 	// SET_NAME_SERIES:
-// 	// Sets up the name series generator
-// 	void set_name_series( itk::NumericSeriesFileNames::Pointer& name_series_generator, 
-// 		const std::string& file_path, const std::string& file_name, const size_t size );
-
 private:
 	Core::DataType pixel_type_;
+	std::string extension_;
 
 };
 

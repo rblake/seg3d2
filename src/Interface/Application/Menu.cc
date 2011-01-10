@@ -468,12 +468,12 @@ void Menu::about()
 		QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ) +
 		QString( "</h3>" ) +
 		QString(
-			"<p align=\"justify\">Seg3D is a free volume segmentation and image processing tool created by the "
-			"NIH Center for Integrative Biomedical (CIBC) located at the Scientific Computing "
-			"and Imaging Instititute (SCI) at the University of Utah and developed in "
-			"collaboration with Numira Biosciences. "
+			"<p align=\"justify\">Seg3D is a free volume segmentation and image processing tool"
+			" that was created by the NIH NCRR Center for Integrative Biomedical (CIBC) located "
+			"at the Scientific Computing and Imaging Instititute (SCI) at the University of Utah"
+			" and was developed in collaboration with Numira Biosciences. "
 		    "Seg3D combines a flexible manual segmentation interface with powerful "
-		    "image processing and segmentation algorithms from the Insight "
+		    "image processing and segmentation tools from the Insight "
 		    "Toolkit.</p>") );
 }
 
@@ -543,8 +543,18 @@ void Menu::open_project_from_file()
 
 				std::string path = full_path.parent_path().string();
 
+
 				if( boost::filesystem::exists( full_path ) )
 				{	
+					if ( ! ProjectManager::Instance()->check_if_file_is_valid_project( full_path ) )
+					{
+						QMessageBox::critical( this->main_window_, 
+							"Error reading project file",
+							"Error reading project file:\n"
+							"The project file was saved with newer version of Seg3D" );
+						return;
+					}
+
 					ActionLoadProject::Dispatch( Core::Interface::GetWidgetActionContext(), path );
 				}
 			}
@@ -563,6 +573,15 @@ void Menu::open_project_from_file()
 
 			if( boost::filesystem::exists( full_path ) )
 			{	
+				if ( ! ProjectManager::Instance()->check_if_file_is_valid_project( full_path ) )
+				{
+					QMessageBox::critical( this->main_window_, 
+						"Error reading project file",
+						"Error reading project file:\n"
+						"The project file was saved with newer version of Seg3D" );
+					return;
+				}
+
 				ActionLoadProject::Dispatch( Core::Interface::GetWidgetActionContext(), path );
 			}
 		}
@@ -613,6 +632,9 @@ void Menu::set_recent_file_list( std::vector< std::string > recent_projects )
 		{
 			QString project_path = QString::fromStdString( ( Core::SplitString( 
 				recent_projects[ i ], "|" ) )[ 0 ] );
+			
+			std::string filepath;
+			Core::ImportFromString( project_path.toStdString(), filepath );
 				
 			QString project_name = QString::fromStdString( ( Core::SplitString( 
 				recent_projects[ i ], "|" ) )[ 1 ] );
@@ -620,7 +642,7 @@ void Menu::set_recent_file_list( std::vector< std::string > recent_projects )
 			qaction = file_menu_recents_->addAction( project_name );
 			qaction->setToolTip( tr( "Load this recent project" ) );
 			
-			boost::filesystem::path path = boost::filesystem::path( project_path.toStdString() ) /
+			boost::filesystem::path path = boost::filesystem::path( filepath ) /
 				boost::filesystem::path( project_name.toStdString() );
 			
 			QtUtils::QtBridge::Connect( qaction, boost::bind( &Menu::ConfirmRecentFileLoad,

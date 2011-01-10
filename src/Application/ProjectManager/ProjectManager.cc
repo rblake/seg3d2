@@ -63,6 +63,7 @@ ProjectManager::ProjectManager() :
 		PreferencesManager::Instance()->project_path_state_->get() );
 	this->add_state( "default_project_name_counter", this->default_project_name_counter_state_, 0 );
 	this->add_state( "project_saved", this->project_saved_state_, false );
+	this->project_saved_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
 
 	try
 	{
@@ -95,18 +96,44 @@ ProjectManager::ProjectManager() :
 	// Connect the signals from the LayerManager to the GUI
 	this->add_connection( this->current_project_->project_name_state_->value_changed_signal_.connect( 
 		boost::bind( &ProjectManager::rename_project, this, _1, _2 ) ) );
-
+	
+	this->set_last_saved_session_time_stamp();
 	AutoSave::Instance()->start();
 }
 
 ProjectManager::~ProjectManager()
 {
 }
+
+bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::path& path )
+{
+	Core::StateIO stateio;
+	// Check whether the XML file can be imported
+	if ( ! stateio.import_from_file( path ) ) return false;
+	
+	// Check whether the version is equal or lower to the program version
+	if ( stateio.get_major_version() > Core::Application::GetMajorVersion() )
+	{
+		return false;
+	}
+	
+	// Check the minor version
+	if ( stateio.get_major_version() == Core::Application::GetMajorVersion() )
+	{
+		if ( stateio.get_minor_version() > Core::Application::GetMinorVersion() )
+		{
+			return false;
+		}
+	}
+
+	// Everything seems OK
+	return true;
+}
 	
 void ProjectManager::save_projectmanager_state()
 {
 	Core::StateIO stateio;
-	stateio.initialize( "Seg3D2" );
+	stateio.initialize();
 	this->save_states( stateio );
 	stateio.export_to_file( this->local_projectmanager_path_ / "projectmanager.xml" );
 }
@@ -187,18 +214,18 @@ void ProjectManager::rename_project( const std::string& new_name, Core::ActionSo
 		//this->current_project_->set_project_path( path / new_name );
 		this->set_project_path( path / new_name );
 
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"The project name has been successfully changed to: '" + new_name  + "'" );
+		CORE_LOG_SUCCESS( "The project name has been successfully changed to: '" + new_name  + "'" );
 	}
 	else
 	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::ERROR_E, 
+		CORE_LOG_ERROR(  
 			"There has been a problem setting the name of the project to: '" + new_name  + "'" );
 	}
 	
 }
 
-void ProjectManager::new_project( const std::string& project_name, const std::string& project_path, bool save_on_creation )
+void ProjectManager::new_project( const std::string& project_name, const std::string& project_path, 
+	bool save_on_creation )
 {
 	// Reset the application.
 	Core::Application::Reset();
@@ -230,7 +257,6 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 		{
 			boost::filesystem::path path = project_path;
 			path = path / project_name;
-
 			this->set_project_path( path );
 			this->save_project( true );
 			this->set_last_saved_session_time_stamp();
@@ -243,12 +269,15 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 		PreferencesManager::Instance()->auto_save_state_->set( false );
 	}
 
+	
 	this->changing_projects_ = false;
 
 }
 	
 void ProjectManager::open_project( const std::string& project_path )
 {	
+	ASSERT_IS_APPLICATION_THREAD();
+
 	// Reset the application.
 	Core::Application::Reset();
 	
@@ -263,58 +292,65 @@ void ProjectManager::open_project( const std::string& project_path )
 	this->set_last_saved_session_time_stamp();
 	this->changing_projects_ = false;
 
-	StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-	   "Project: '" + this->current_project_->project_name_state_->get()
+	CORE_LOG_SUCCESS( "Project: '" + this->current_project_->project_name_state_->get()
 	   + "' has been successfully opened." );
 	
 	this->set_last_saved_session_time_stamp();
 	AutoSave::Instance()->recompute_auto_save();
-	
+
+	this->project_saved_state_->set( true );
 }
 	
-void ProjectManager::save_project( bool autosave /*= false*/, std::string session_name )
+bool ProjectManager::save_project( bool autosave /*= false*/, std::string session_name /*= "" */ )
 {
 	ASSERT_IS_APPLICATION_THREAD();
 	this->session_saving_ = true;
+	bool save_success = false;
 	try
 	{
 		if( this->save_project_session( autosave, session_name ) )
 		{
-			this->save_project_only( this->current_project_path_state_->get(), 
-				this->current_project_->project_name_state_->get() );
+			if( this->save_project_only( this->current_project_path_state_->get(), 
+				this->current_project_->project_name_state_->get() ) )
+			{
+				save_success = true;
+			}
 		}
 	}
-	catch( std::exception& )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
-	}	
-	catch( Core::Exception& )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
-	}	
 	catch( ... )
 	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
+		save_success = false;
 	}	
 
 	this->session_saving_ = false;
 	
-	if( autosave )
+	if( save_success )
 	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave completed successfully for project: '" 
-			+  this->current_project_->project_name_state_->get() + "'" );
+		if( autosave )
+		{
+			CORE_LOG_SUCCESS( "Autosave completed successfully for project: '" 
+				+  this->current_project_->project_name_state_->get() + "'" );
+		}
+		else
+		{
+			CORE_LOG_SUCCESS( "Project: '" + this->current_project_->project_name_state_->get() 
+				+ "' has been successfully saved" );
+		}
 	}
 	else
 	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Project: '" + this->current_project_->project_name_state_->get() 
-			+ "' has been successfully saved" );
+		if( autosave )
+		{
+			CORE_LOG_ERROR( "Autosave FAILED for project: '" 
+				+  this->current_project_->project_name_state_->get() + "'" );
+		}
+		else
+		{
+			CORE_LOG_ERROR( "Save FAILED for project: '" 
+				+  this->current_project_->project_name_state_->get() + "'" );
+		}
 	}
-
+	return save_success;
 }
 	
 bool ProjectManager::export_project( const std::string& export_path, const std::string& project_name, const std::string& session_name )
@@ -433,9 +469,12 @@ void ProjectManager::cleanup_projects_list()
 		{
 			std::vector< std::string > single_project_vector = 
 				Core::SplitString( projects_vector[ i ], "|" );
+            
+            std::string filepath;
+            Core::ImportFromString( single_project_vector[ 0 ], filepath );
 
 			boost::filesystem::path path = complete( boost::filesystem::path( 
-				single_project_vector[ 0 ].c_str(), boost::filesystem::native ) );
+				filepath.c_str(), boost::filesystem::native ) );
 
 			boost::filesystem::path project_path = path / single_project_vector[ 1 ] 
 				/ ( single_project_vector[ 1 ] + ".s3d" );
@@ -552,7 +591,7 @@ bool ProjectManager::save_project_only( const std::string& project_path_string, 
 	project_path = project_path / project_name / ( project_name + ".s3d" );
 
 	Core::StateIO stateio;
-	stateio.initialize( "Seg3D2" );
+	stateio.initialize();
 	this->current_project_->save_states( stateio );
 	stateio.export_to_file( project_path );
 	
@@ -618,8 +657,7 @@ bool ProjectManager::project_save_as( const std::string& export_path, const std:
 
 	this->set_last_saved_session_time_stamp();
 
-	StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-		"'Save As' has been successfully completed." );
+	CORE_LOG_SUCCESS( "'Save As' has been successfully completed." );
 
 	this->set_last_saved_session_time_stamp();
 	AutoSave::Instance()->recompute_auto_save();
