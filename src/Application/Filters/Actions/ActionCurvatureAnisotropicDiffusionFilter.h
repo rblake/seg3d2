@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONCURVATUREANISOTROPICDIFFUSIONFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONCURVATUREANISOTROPICDIFFUSIONFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
+
 
 namespace Seg3D
 {
 
-	
 class ActionCurvatureAnisotropicDiffusionFilter : public Core::Action
 {
 

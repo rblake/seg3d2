@@ -67,7 +67,7 @@ typedef std::vector< ActionHandle > ActionHandleList;
 // An action is not copyable as that would invalidate 
 // the ActionParameter pointers used internally.
 
-class Action : public boost::enable_shared_from_this< Action >
+class Action : public boost::enable_shared_from_this< Action >, boost::noncopyable
 {
 	// -- Constructor/Destructor --
 public:
@@ -125,17 +125,18 @@ public:
 	// Chekc whether the action is undoable
 	bool is_undoable() const;
 	
-	// -- query overloadable data ( from the action info if not overloaded ) --
-public:
 	// CHANGES_PROJECT_DATA:
 	// Query whether the action changes the data
-	virtual bool changes_project_data();
-	
 	// NOTE: This function is overloadable from the default subclass definition. As certain 
 	// functions like Set, Add, etc, have this property depend on the actual object they operate
 	// on. For example setting a layer state variable should change this, whereas a interface
 	// variable should not. For these functions the default implementation that picks up this
 	// property from the macro can thence be overwritten.
+	virtual bool changes_project_data();
+	
+	// CHANGES_PROVENANCE_DATA:
+	// Query whether the action changes the provenance data base
+	bool changes_provenance_data() const;
 	
 	// -- Run/Validate interface --
 public:
@@ -206,22 +207,28 @@ public:
 	// for a provenance record.
 	virtual void clear_cache();
 
-private:
-
-	// IMPLEMENTATION OF ADD_PARAMETER, ADD_ARGUMENT AND ADD_CACHEDHANDLE:
-	// These take pointers to the base class, the ones defined above work
-	// with references of the parameters for more convenience.
-	void add_argument_ptr( ActionParameterBase* param );
-	void add_key_ptr( ActionParameterBase* param );
-
-	// Typedefs
+	// -- functionality for setting parameter list --
+protected:
+	// Typedef for list of pointers to the actual parameters
 	typedef std::vector< ActionParameterBase* > parameter_list_type;
+	
+	// ADD_ARGUMENT_PTR:
+	size_t add_argument_ptr( ActionParameterBase* param );
 
+	// ADD_KEY_PTR
+	size_t add_key_ptr( ActionParameterBase* param );
+
+	/// GET_PARAMETER:
+	// Get the nth parameter stored in this in action. The function returns 0
+	// if the index is out of range
+	ActionParameterBase* get_parameter( size_t index );
+
+private:
 	// Vector that stores the required arguments of the action.
-	parameter_list_type arguments_;
+	parameter_list_type parameters_;
 
-	// Vector that stores the option key value pairs of the action.
-	parameter_list_type keys_;
+	// Which parameter is the first key
+	size_t first_key_;
 };
 
 // CORE_ACTION:
@@ -245,10 +252,22 @@ private:
 "<key name=\"" name "\" default=\"" default_value "\"> " description "</key>"
 
 #define CORE_ACTION_CHANGES_PROJECT_DATA() \
-"<changes_project_data/>"
+"<property>changes_project_data</property>"
+
+#define CORE_ACTION_CHANGES_PROVENANCE_DATA() \
+"<property>changes_provenance_data</property>"
 
 #define CORE_ACTION_IS_UNDOABLE() \
-"<undoable/>"
+"<property>is_undoable</property>"
+
+#define CORE_ACTION_PROPERTY( name ) \
+"<property>" name "</property>"
+
+#define CORE_ACTION_PROVENANCE_ID_PARAMETER( name ) \
+"<property name=\"" name "\">provenance_id</property>"
+
+#define CORE_ACTION_PROVENANCE_ID_LIST_PARAMETER( name ) \
+"<property name=\"" name "\">provenance_id_list</property>"
 
 #define CORE_ACTION(definition_string) \
 public: \

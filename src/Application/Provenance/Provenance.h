@@ -26,11 +26,34 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/LayerAction.h>
+#ifndef APPLICATION_PROVENANCE_PROVENANCE_H
+#define APPLICATION_PROVENANCE_PROVENANCE_H
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#pragma once
+#endif
 
 namespace Seg3D
 {
 
+// PROVENANCEID:
+// The full provenance database is organized by provenance IDs. These are ids are unique numbers
+// used in the provenance database to store provenance records.
+
+typedef long long ProvenanceID;
+
+// GENERATEPROVENANCEID:
+// Generate a new provenance ID
+ProvenanceID GenerateProvenanceID();
+
+// GETPROVENANCECOUNT:
+// Retrieve the current value from the provenance counter
+ProvenanceID GetProvenanceCount();
+
+// SETPROVENANCECOUNT:
+// Set the current value of the provenance counter
+void SetProvenanceCount( ProvenanceID count );
+
 } // end namespace Seg3D
+
+#endif

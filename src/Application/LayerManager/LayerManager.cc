@@ -66,7 +66,9 @@ public:
 	void reset();
 
 	size_t signal_block_count_;
-	LayerManager::group_list_type group_list_;
+	
+	typedef std::list < LayerGroupHandle > group_list_type;
+	group_list_type group_list_;
 	LayerHandle active_layer_;
 	LayerManager* layer_manager_;
 };
@@ -126,7 +128,7 @@ void LayerManagerPrivate::reset()
 	Core::DataBlockManager::Instance()->clear();
 
 	// Cycle through all the groups and delete all the layers
-	LayerManager::group_list_type::iterator group_iterator = this->group_list_.begin();
+	LayerManagerPrivate::group_list_type::iterator group_iterator = this->group_list_.begin();
 	while ( group_iterator != this->group_list_.end() )
 	{
 		( *group_iterator )->clear();
@@ -191,7 +193,7 @@ bool LayerManager::insert_layer( LayerHandle layer )
 		
 		
 				
-		for ( group_list_type::iterator it = this->private_->group_list_.begin(); 
+		for ( LayerManagerPrivate::group_list_type::iterator it = this->private_->group_list_.begin(); 
 			 it != this->private_->group_list_.end(); ++it )
 		{
 			// for testing 
@@ -287,7 +289,7 @@ bool LayerManager::move_group_above( std::string group_to_move_id, std::string g
 
 void LayerManager::insert_group( LayerGroupHandle group_above, LayerGroupHandle group_below )
 {
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		if( ( *i ) == group_below )
@@ -421,7 +423,7 @@ void LayerManager::get_layers_in_order( std::vector< LayerHandle >& vector_of_la
 {
 	lock_type lock( this->get_mutex() ); 
 	
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
@@ -498,7 +500,7 @@ LayerGroupHandle LayerManager::get_layer_group( std::string group_id )
 {
     lock_type lock( this->get_mutex() );
     
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		if (( *i )->get_group_id() == group_id ) 
@@ -513,7 +515,7 @@ LayerHandle LayerManager::get_layer_by_id( const std::string& layer_id )
 {
 	lock_type lock( this->get_mutex() );
 
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
@@ -542,7 +544,7 @@ LayerHandle LayerManager::get_layer_by_name( const std::string& layer_name )
 {
 	lock_type lock( this->get_mutex() );
 
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
@@ -561,7 +563,7 @@ void LayerManager::get_groups( std::vector< LayerGroupHandle > &vector_of_groups
 {
     lock_type lock( this->get_mutex() );
     
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		vector_of_groups.push_back( *i );
@@ -572,8 +574,8 @@ void LayerManager::get_layers( std::vector< LayerHandle > &vector_of_layers )
 {
     lock_type lock( this->get_mutex() );
     
-	for( group_list_type::reverse_iterator i = this->private_->group_list_.rbegin(); 
-		i != this->private_->group_list_.rend(); ++i )
+	for( LayerManagerPrivate::group_list_type::reverse_iterator i = 
+		this->private_->group_list_.rbegin(); i != this->private_->group_list_.rend(); ++i )
 	{
 	    for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
 		j != ( *i )->layer_list_.end(); ++j )
@@ -689,7 +691,8 @@ LayerSceneHandle LayerManager::compose_layer_scene( size_t viewer_id )
 	LayerSceneHandle layer_scene( new LayerScene );
 
 	// For each layer group
-	group_list_type::reverse_iterator group_iterator = this->private_->group_list_.rbegin();
+	LayerManagerPrivate::group_list_type::reverse_iterator group_iterator = 
+		this->private_->group_list_.rbegin();
 	for ( ; group_iterator != this->private_->group_list_.rend(); group_iterator++)
 	{
 		
@@ -767,7 +770,7 @@ Core::BBox LayerManager::get_layers_bbox()
 	lock_type lock( this->get_mutex() );
 
 	Core::BBox bbox;
-	group_list_type::iterator group_iterator = this->private_->group_list_.begin();
+	LayerManagerPrivate::group_list_type::iterator group_iterator = this->private_->group_list_.begin();
 	for ( ; group_iterator != this->private_->group_list_.end(); group_iterator++)
 	{
 		LayerGroupHandle group = *group_iterator;
@@ -840,8 +843,8 @@ bool LayerManager::post_save_states( Core::StateIO& state_io )
 	state_io.push_current_element();
 	state_io.set_current_element( groups_element );
 	
-	for( group_list_type::reverse_iterator i = this->private_->group_list_.rbegin(); 
-		i != this->private_->group_list_.rend(); ++i )
+	for( LayerManagerPrivate::group_list_type::reverse_iterator i = 
+		this->private_->group_list_.rbegin(); i != this->private_->group_list_.rend(); ++i )
 	{
 		if( ( *i )->has_a_valid_layer() )
 		{
@@ -1616,7 +1619,7 @@ void LayerManager::handle_layer_name_changed( std::string layer_id, std::string 
 int LayerManager::find_free_color()
 {
 	std::set< int > used_colors;
-	for( group_list_type::iterator i = this->private_->group_list_.begin(); 
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
 		i != this->private_->group_list_.end(); ++i )
 	{
 		for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
@@ -1642,8 +1645,8 @@ size_t LayerManager::get_group_position( LayerGroupHandle group )
 {
 	ASSERT_IS_APPLICATION_THREAD();
 
-	group_list_type::const_iterator it =  this->private_->group_list_.begin();
-	group_list_type::const_iterator it_end = this->private_->group_list_.end();
+	LayerManagerPrivate::group_list_type::const_iterator it =  this->private_->group_list_.begin();
+	LayerManagerPrivate::group_list_type::const_iterator it_end = this->private_->group_list_.end();
 	size_t position = 0;
 	while ( it != it_end && ( *it ) != group )
 	{
@@ -1678,7 +1681,8 @@ void LayerManager::undelete_layers( const std::vector< LayerHandle >& layers,
 		{
 			LayerHandle layer = layers[ i ];
 			LayerGroupHandle layer_group = layer->get_layer_group();
-			group_list_type::iterator group_it = std::find( this->private_->group_list_.begin(),
+			LayerManagerPrivate::group_list_type::iterator group_it = std::find( 
+				this->private_->group_list_.begin(),
 				this->private_->group_list_.end(), layer_group );
 			if ( group_it == this->private_->group_list_.end() )
 			{

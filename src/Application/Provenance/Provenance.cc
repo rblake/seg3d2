@@ -26,11 +26,64 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/LayerAction.h>
+// Boost includes
+#include <boost/thread.hpp>
+
+// Application includes
+#include <Application/Provenance/Provenance.h>
 
 namespace Seg3D
 {
+
+class ProvenanceCounter 
+{
+public:
+	ProvenanceCounter() :
+		count_ ( 0 )
+	{
+	}
+
+	ProvenanceID generate()
+	{
+		lock_type lock( this->mutex_ );
+		count_++;
+		return count_;
+	}
+
+	ProvenanceID get()
+	{
+		lock_type lock( this->mutex_ );
+		return count_;
+	}
+
+	void set( ProvenanceID count )
+	{
+		lock_type lock( this->mutex_ );
+		count_ = count;
+	}
+
+private:
+	typedef boost::mutex::scoped_lock lock_type;
+	boost::mutex mutex_;
+	ProvenanceID count_;
+};
+
+static ProvenanceCounter ProvenanceCounter;
+
+ProvenanceID GenerateProvenanceID()
+{
+	return ProvenanceCounter.generate();
+}
+
+
+ProvenanceID GetProvenanceCount()
+{
+	return ProvenanceCounter.get();	
+}
+
+void SetProvenanceCount( ProvenanceID count )
+{
+	ProvenanceCounter.set( count );
+}
 
 } // end namespace Seg3D

@@ -56,6 +56,8 @@ class ActionInfoPrivate
 		std::vector<std::string> argument_;
 		// Vector of descriptions per argument
 		std::vector<std::string> argument_description_;
+		// Vector of properties per argument
+		std::vector<unsigned int> argument_properties_;
 		
 		// Vector of keys that can be added
 		std::vector<std::string> key_;		
@@ -63,19 +65,18 @@ class ActionInfoPrivate
 		std::vector<std::string> key_default_value_;
 		// Vector of descriptions for each key
 		std::vector<std::string> key_description_;
-		
+		// Vector of properties per argument
+		std::vector<unsigned int> key_properties_;
+				
 		// Description of how to use the action
 		std::string usage_;
 		
+		// Properties of the action
+		unsigned int properties_;
+
 		// Test whether the action described was valid or not
 		// NOTE: If not valid the program will not register the action
 		bool valid_;
-		
-		// Whether the action will change the data of the program
-		bool changes_project_data_;
-		
-		// Whether an action is undoable
-		bool undoable_;
 };
 
 
@@ -83,15 +84,12 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 	private_( new ActionInfoPrivate )
 {
 	this->private_->valid_ = false;
+	this->private_->properties_ = 0;
 
 	CORE_LOG_MESSAGE( std::string( "Registering action: " ) + definition );
 
 	// NOTE: We need to add an end line, otherwise tinyXML does not accept the xml string
 	this->private_->definition_ = definition + "\n";
-	
-	// This is the default value
-	this->private_->changes_project_data_ = false;
-	this->private_->undoable_ = false;
 
 	// Define a document
 	TiXmlDocument doc;
@@ -144,6 +142,7 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 			
 			this->private_->argument_.push_back( name );
 			this->private_->argument_description_.push_back( description );
+			this->private_->argument_properties_.push_back( 0 );
 		}
 		else if ( type == "action" )
 		{
@@ -199,15 +198,65 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 			this->private_->key_.push_back( name );
 			this->private_->key_default_value_.push_back( default_value );
 			this->private_->key_description_.push_back( description );		
+			this->private_->key_properties_.push_back( 0 );
 		}
-		else if ( type == "changes_project_data" )
+		else if ( type == "property" )
 		{
-			this->private_->changes_project_data_ = true;
+			std::string property;
+			if ( parameter_element->GetText() )
+			{
+				property = parameter_element->GetText();
+			}	
+
+			std::string name;
+			if ( parameter_element->Attribute( "name" ) )
+			{
+				unsigned int property_value = 0;
+				if ( property == "provenance_id" )
+				{
+					property_value |= ACTION_INFO_PROPERTY_ID_E;
+				}
+				if ( property == "provenance_id_list" )
+				{
+					property_value |= ACTION_INFO_PROPERTY_ID_LIST_E;				
+				}
+			
+				name = parameter_element->Attribute( "name" );
+				for ( size_t k = 0; k < this->private_->argument_.size(); k++ )
+				{
+					if ( this->private_->argument_[ k ] == name )
+					{
+						this->private_->argument_properties_[ k ] |= property_value;
+					}
+				}
+
+				for ( size_t k = 0; k < this->private_->key_.size(); k++ )
+				{
+					if ( this->private_->key_[ k ] == name )
+					{
+						this->private_->key_properties_[ k ] |= property_value;
+					}
+				}				
+			}
+			else
+			{		
+				if ( property == "changes_provenance_data" )
+				{
+					this->private_->properties_ |= ACTION_INFO_CHANGES_PROVENANCE_DATA_E;
+				}
+			
+				if ( property == "changes_project_data" )
+				{
+					this->private_->properties_ |= ACTION_INFO_CHANGES_PROJECT_DATA_E;
+				}
+
+				if ( property == "is_undoable" )
+				{
+					this->private_->properties_ |= ACTION_INFO_IS_UNDOABLE_E;
+				}
+			}
 		}
-		else if ( type == "undoable" )
-		{
-			this->private_->undoable_ = true;
-		}	}
+	}
 
 	if ( found_action == false )
 	{
@@ -263,11 +312,6 @@ size_t ActionInfo::get_num_key_value_pairs() const
 {
 	return this->private_->key_.size();
 }
-
-bool ActionInfo::get_changes_project_data() const
-{
-	return this->private_->changes_project_data_;
-}
 	
 std::string ActionInfo::get_argument( size_t index ) const
 {
@@ -279,6 +323,12 @@ std::string ActionInfo::get_argument_description( size_t index ) const
 {
 	if ( index >= this->private_->argument_.size() ) return "";
 	return this->private_->argument_description_[ index ];
+}
+	
+unsigned int ActionInfo::get_argument_properties( size_t index ) const
+{
+	if ( index >= this->private_->argument_properties_.size() ) return 0;
+	return this->private_->argument_properties_[ index ];
 }
 	
 std::string ActionInfo::get_key( size_t index ) const
@@ -308,14 +358,30 @@ std::string ActionInfo::get_key_description( size_t index ) const
 	return this->private_->key_description_[ index ];
 }
 
+unsigned int ActionInfo::get_key_properties( size_t index ) const
+{
+	if ( index >= this->private_->key_properties_.size() ) return 0;
+	return this->private_->key_properties_[ index ];
+}
+	
 bool ActionInfo::is_valid() const
 {
 	return this->private_->valid_;
 }
 
+bool ActionInfo::changes_project_data() const
+{
+	return this->private_->properties_ & ACTION_INFO_CHANGES_PROJECT_DATA_E;
+}
+
+bool ActionInfo::changes_provenance_data() const
+{
+	return this->private_->properties_ & ACTION_INFO_CHANGES_PROVENANCE_DATA_E;
+}
+
 bool ActionInfo::is_undoable() const
 {
-	return this->private_->undoable_;
+	return this->private_->properties_ & ACTION_INFO_IS_UNDOABLE_E;
 }
 
 // Define a mutex that protects all of the ActionInfo classes

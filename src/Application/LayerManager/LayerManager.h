@@ -78,9 +78,6 @@ public:
 	// --JS
 	virtual int get_session_priority() { return SessionPriority::LAYER_MANAGER_PRIORITY_E; }
 
-public:
-	typedef std::list < LayerGroupHandle > group_list_type;
-
 	// -- Accessor Functions --
 public:
     // Functions for getting a copy of the Layers and Groups with the proper locking
@@ -213,7 +210,7 @@ private:
 	
 	int find_free_color();
 
-	// Typedef's for the Mutex
+	// -- locking --
 public: 
 	typedef Core::StateEngine::mutex_type mutex_type;
 	typedef Core::StateEngine::lock_type lock_type;
@@ -474,8 +471,7 @@ public:
 		std::vector<Core::MaskDataSliceHandle> mask, 
 		filter_key_type key = filter_key_type( 0 ) );
 
-	// == function for obtaining the current layer and group id counters
-	
+	// -- functions for obtaining the current layer and group id counters --
 	typedef std::vector<int> id_count_type;
 	
 	// GETLAYERIDCOUNT:

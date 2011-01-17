@@ -31,36 +31,15 @@
 # Set sources
 ##################################################
 
-SET(APPLICATION_LAYER_SRCS
-	LayerFWD.h
-	LayerGroup.h
-	LayerGroup.cc
-	Layer.h
-	Layer.cc
-	LayerAbstractFilter.h
-	LayerAbstractFilter.cc
-	DataLayer.h
-	DataLayer.cc
-	MaskLayer.h
-	MaskLayer.cc
-	LabelLayer.h
-	LabelLayer.cc
-)
+SET(APPLICATION_PROVENANCE_SRCS
+  Provenance.h
+  Provenance.cc
+  )
 
-SET(APPLICATION_LAYER_ACTIONS_SRCS
-)
-
-CORE_ADD_LIBRARY(Application_Layer ${APPLICATION_LAYER_SRCS}
-            ${APPLICATION_LAYER_ACTIONS_SRCS} )
+CORE_ADD_LIBRARY(Application_Provenance ${APPLICATION_PROVENANCE_SRCS} )
             
-TARGET_LINK_LIBRARIES(Application_Layer
-                      Core_Action
+TARGET_LINK_LIBRARIES(Application_Provenance
                       Core_Application
-                      Core_Interface
-                      Core_Isosurface
-					  Core_State
                       Core_Utils
-                      Application_InterfaceManager
-					  Application_Provenance
                       ${SCI_BOOST_LIBRARY})
-					  
+
