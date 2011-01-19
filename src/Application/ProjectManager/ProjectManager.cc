@@ -186,6 +186,12 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 			AutoSave::Instance()->recompute_auto_save();
 			this->project_saved_state_->set( true );
 		}
+		
+		// now lets try and setup the provenance database
+		if( !this->current_project_->create_database_scheme() )
+		{
+			CORE_LOG_ERROR( "Unable to create provenance database!" );
+		}
 	}
 	else
 	{
@@ -211,6 +217,12 @@ void ProjectManager::open_project( const std::string& project_path )
 		
 	this->current_project_->initialize_from_file( path.leaf() );
 	this->add_to_recent_projects( path.parent_path().string(), path.leaf() );
+	
+	// now lets try and setup the provenance database
+	if( !this->current_project_->create_database_scheme() )
+	{
+		CORE_LOG_ERROR( "Unable to create provenance database!" );
+	}
 
 	this->set_last_saved_session_time_stamp();
 	this->changing_projects_ = false;
@@ -392,6 +404,16 @@ bool ProjectManager::create_project_folders( boost::filesystem::path& path, cons
 	try // to create a project data folder
 	{
 		boost::filesystem::create_directory( path / project_name / "data");
+	}
+	catch ( std::exception& e ) // any errors that we might get thrown
+	{
+		CORE_LOG_ERROR( e.what() );
+		return false;
+	}
+	
+	try // to create a project data folder
+	{
+		boost::filesystem::create_directory( path / project_name / "provenance");
 	}
 	catch ( std::exception& e ) // any errors that we might get thrown
 	{

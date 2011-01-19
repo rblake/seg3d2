@@ -42,6 +42,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
+// Sqlite includes
+#include <Externals/sqlite/sqlite3.h>
+
 // Application indludes
 #include <Application/Session/Session.h>
 #include <Application/Project/DataManager.h>
@@ -64,7 +67,7 @@ class Project;
 typedef boost::shared_ptr< Project > ProjectHandle;
 
 // Class definition
-class Project : public Core::StateHandler
+class Project : public Core::StateHandler, public Core::RecursiveLockable 
 {
 
 	// -- constructor/destructor --
@@ -178,7 +181,13 @@ private:
 	// CLEANUP_SESSION_LIST:
 	// this function cleans up sessions in the session list that have been deleted by the user
 	void cleanup_session_list();
-
+	
+	void add_to_provenance_database( Core::ActionHandle action, Core::ActionResultHandle result );
+	
+	// CHECK_DATABASE:
+	// temporary function that shows the contents of the database
+	void check_database();
+	
 public:
 	// SET_PROJECT_CHANGED:
 	// Set that the session has been modified
@@ -187,7 +196,13 @@ public:
 	// RESET_PROJECT_CHANGED:
 	// Reset the flag that remembers that a session has changed
 	void reset_project_changed();
-
+	
+	// CREATE_DATABASE_SCHEME:
+	// this creates the provenance database
+	bool create_database_scheme();
+	
+	bool register_action_in_database( Core::ActionHandle action );
+	
 private:
 	// Session current using
 	SessionHandle current_session_;
@@ -203,6 +218,9 @@ private:
 	
 	// Whether the project has changed
 	bool changed_;
+	
+	// The provenance database
+	sqlite3* provenance_database_;
 	
 };
 

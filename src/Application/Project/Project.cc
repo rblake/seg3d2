@@ -72,12 +72,17 @@ Project::Project( const std::string& project_name ) :
 
 	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
 		boost::bind( &Project::set_project_changed, this, _1, _2 ) ) );
+		
+	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
+		boost::bind( &Project::add_to_provenance_database, this, _1, _2 ) ) );
 }
 	
 Project::~Project()
 {
 	this->disconnect_all();
 }
+
+
 
 void Project::set_project_changed( Core::ActionHandle action, Core::ActionResultHandle result )
 {
@@ -379,6 +384,151 @@ bool Project::save_as( boost::filesystem::path path, const std::string& project_
 
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Provenance Database Functionality //////////////////////////////////
+
+bool Project::create_database_scheme()
+{
+	if( !boost::filesystem::exists( ( this->project_path_ / "provenance" ) ) ) 
+	{
+		try // to create a project provenance folder because it doesnt exist
+		{
+			boost::filesystem::create_directory( this->project_path_ / "provenance");
+		}
+		catch ( std::exception& e ) // any errors that we might get thrown
+		{
+			CORE_LOG_ERROR( e.what() );
+			return false;
+		}
+	}
+	boost::filesystem::path  database_path = this->project_path_ / "provenance" / "provenancedatabase.sqlite";
+
+	if( boost::filesystem::exists( database_path ) ) return true;
+
+	lock_type lock( this->get_mutex() );
+	if ( sqlite3_open( database_path.string().c_str(), &this->provenance_database_ ) == SQLITE_OK )
+	{
+		std::vector< std::string > create_table_commands;
+		create_table_commands.push_back(
+			// this table will store the actual provenance step
+			"CREATE TABLE provenance_step "
+			"(provenance_id INTEGER NOT NULL, "
+			"output_sequence_number INTEGER NOT NULL, "
+			"action_id VARCHAR(255) NOT NULL, "
+			"user VARCHAR(255) NOT NULL, "
+			"mask_bit INTEGER NOT NULL, "
+			"generation_number INTEGER NOT NULL, "
+			"PRIMARY KEY (provenance_id));" );
+			
+		create_table_commands.push_back(
+			// this is a table relating the input provenance_ids to the output
+			"CREATE TABLE provenance_relations "
+			"(id INTEGER NOT NULL, "
+			"output_provenance_id INTEGER NOT NULL, "
+			"input_provenance_id INTEGER NOT NULL, "
+			"PRIMARY KEY (id));" );
+		
+		create_table_commands.push_back(
+			// this table represents the actions that cause new provenance_id's
+			"CREATE TABLE actions "
+			"(id INTEGER NOT NULL, "
+			"action_id VARCHAR(255) NOT NULL, "
+			"number_of_inputs INTEGER NOT NULL, "
+			"number_of_outputs INTEGER NOT NULL, "
+			"PRIMARY KEY (id), "
+			"UNIQUE (action_id));" );
+			
+		create_table_commands.push_back(
+			// this is a table relating settings to actions
+			"CREATE TABLE action_settings "
+			"(setting_id INTEGER NOT NULL, "
+			"action_id VARCHAR(255) NOT NULL, "
+			"setting_name VARCHAR(255) NOT NULL, "
+			"setting_value VARCHAR(255) NOT NULL, "
+			"PRIMARY KEY (setting_id));" );
+		
+		for( unsigned int i = 0; i < create_table_commands.size(); ++i )
+		{
+			char** error = NULL;
+			sqlite3_exec( this->provenance_database_, create_table_commands[i].c_str(), NULL, 0, error );
+		}
+		sqlite3_close( this->provenance_database_ );
+	}
+	
+	// at this point the database file should be created, so we check to make sure they have.
+	if( !boost::filesystem::exists( database_path ) ) return false;
+	
+	return true;
+}
+
+// This function is mostly just a placeholder.  Currently it just registers the actions.  We will probably want to 
+// create a Providence Object and then add it to the db.
+void  Project::add_to_provenance_database( Core::ActionHandle action, Core::ActionResultHandle result )
+{
+	this->register_action_in_database( action );
+	return;
+
+}
+
+// This function simple registers actions in the database as they come in.  It will only put one 
+// entry per actiontype.
+bool Project::register_action_in_database( Core::ActionHandle action )
+{
+	lock_type lock( this->get_mutex() );
+	bool success = false;
+	
+	boost::filesystem::path  database_path = this->project_path_ / "provenance" / "provenancedatabase.sqlite";
+
+	if ( sqlite3_open( database_path.string().c_str(), 
+		&this->provenance_database_ ) == SQLITE_OK )
+	{
+		std::string action_name = action->get_type();
+		
+		const char* tail;
+		sqlite3_stmt* statement = NULL;
+		std::string insert_statement = "INSERT INTO actions (action_id, number_of_inputs, number_of_outputs) VALUES(?, ?, ?)";
+		sqlite3_prepare_v2( this->provenance_database_, insert_statement.c_str(), 
+			static_cast< int >( insert_statement.size() ), &statement, &tail );
+		sqlite3_bind_text( statement, 1, action_name.c_str(), 
+			static_cast< int >( action_name.size() ), SQLITE_TRANSIENT );
+		sqlite3_bind_int( statement, 2, 1 );
+		sqlite3_bind_int( statement, 3, 1 );
+		success = ( sqlite3_step( statement ) == SQLITE_DONE );
+		sqlite3_finalize( statement );
+		sqlite3_close( this->provenance_database_ );
+
+	}
+	
+	this->check_database();
+	return success;
+}
+
+void Project::check_database()
+{
+	lock_type lock( this->get_mutex() );
+	bool success = false;
+	int counter = 0;
+	boost::filesystem::path  database_path = this->project_path_ / "provenance" / "provenancedatabase.sqlite";
+
+	if ( sqlite3_open(  database_path.string().c_str(), 
+		&this->provenance_database_ ) == SQLITE_OK )
+	{
+		const char* tail;
+		sqlite3_stmt* statement = NULL;
+		std::string select_statement = "SELECT * FROM actions ORDER BY id DESC";
+		sqlite3_prepare_v2( this->provenance_database_, select_statement.c_str(), 
+			static_cast< int >( select_statement.size() ), &statement, &tail );
+		int i = 0;
+		while ( sqlite3_step( statement ) == SQLITE_ROW )
+		{
+			std::string action_name =std::string( (char*)sqlite3_column_text( statement, 1 ) );
+			success = true;
+			counter++;
+		} 
+		sqlite3_finalize( statement );
+		sqlite3_close( this->provenance_database_ );
+	}
+}
 
 
 

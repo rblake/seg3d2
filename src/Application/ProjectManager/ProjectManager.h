@@ -228,7 +228,7 @@ private:
 
 	bool								session_saving_;
 	bool								changing_projects_;
-	sqlite3	*							recent_projects_database_;
+	sqlite3*							recent_projects_database_;
 
 };
 

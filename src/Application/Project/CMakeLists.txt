@@ -53,5 +53,6 @@ TARGET_LINK_LIBRARIES(Application_Project
 					  Application_Session
                       Application_InterfaceManager
 		              Application_LayerManager
-                      ${SCI_BOOST_LIBRARY})
+                      ${SCI_BOOST_LIBRARY}
+                      ${SCI_SQLITE_LIBRARY})
                     
