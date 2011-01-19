@@ -152,7 +152,6 @@ void SaveAsInfoPage::initializePage()
 	QString finishText = wizard()->buttonText( QWizard::FinishButton );
 	finishText.remove('&');
 
-	boost::filesystem::path desktop_path;
 	this->project_path_lineedit_->setText( QString::fromStdString( 
 		ProjectManager::Instance()->current_project_path_state_->get() ) );
 	registerField( "projectPath", this->project_path_lineedit_ );
@@ -160,11 +159,13 @@ void SaveAsInfoPage::initializePage()
 	
 void SaveAsInfoPage::set_path()
 {
-    QDir project_directory_;
-	QString path = QFileDialog::getExistingDirectory ( this, "Directory",
-		this->project_path_lineedit_->text() );
+	this->warning_message_->hide();
+
+    QDir project_directory_ = QDir( QFileDialog::getExistingDirectory ( this, 
+		tr( "Choose Save Directory..." ), this->project_path_lineedit_->text(), 
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks  ) );
 	
-	if ( boost::filesystem::exists( boost::filesystem::path( path.toStdString() ) ) )
+	if( project_directory_.exists() )
     {
        this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
     }
@@ -185,6 +186,7 @@ bool SaveAsInfoPage::validatePage()
 		boost::filesystem::path( this->project_path_lineedit_->text().toStdString() ) / 
 		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() );
 		
+	// We check to see if the path they are choosing already exists
 	if( boost::filesystem::exists( new_path ) )
 	{
 		if( ( ProjectManager::Instance()->current_project_->project_name_state_->get() == 
@@ -209,15 +211,44 @@ bool SaveAsInfoPage::validatePage()
 		}
 		
 		Q_EMIT need_to_set_delete_path( QString::fromStdString( new_path.string() ) );
-
+		
+		Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 
+			PreferencesManager::Instance()->export_path_state_, new_path.parent_path().string() );
+		
+		return true;
 	}
 	
+	// Check to see if the directory that we are trying to save in exists
 	if( !boost::filesystem::exists( new_path.parent_path() ) )
 	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location does not exist, please chose a valid location." ) );
 		this->warning_message_->show();
 		return false;
 	}
+
+	// Finally we check to see if we can write to that directory
+	try // to create a project sessions folder
+	{
+		boost::filesystem::create_directory( new_path );
+	}
+	catch ( ... ) // any errors that we might get thrown would indicate that we cant write here
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location is not writable, please chose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// if we have made it to here we have created a new directory lets remove it.
+	boost::filesystem::remove( new_path );
+	
 	this->warning_message_->hide();
+
+	Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 
+		PreferencesManager::Instance()->export_path_state_, new_path.parent_path().string() );
+	
+
 	return true;
 }
 

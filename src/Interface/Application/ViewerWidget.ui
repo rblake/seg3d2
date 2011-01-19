@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>442</width>
+    <width>463</width>
     <height>279</height>
    </rect>
   </property>
@@ -208,7 +208,7 @@ QComboBox::icon{
                 <widget class="QComboBox" name="viewer_mode_">
                  <property name="minimumSize">
                   <size>
-                   <width>82</width>
+                   <width>100</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -921,6 +921,11 @@ QComboBox::icon{
                  <property name="text">
                   <string>...</string>
                  </property>
+                 <property name="icon">
+                  <iconset resource="../../Resources/QtResources.qrc">
+                   <normaloff>:/Images/ClipOff.png</normaloff>
+                   <normalon>:/Images/Clip.png</normalon>:/Images/ClipOff.png</iconset>
+                 </property>
                 </widget>
                </item>
                <item>
@@ -1131,6 +1136,33 @@ QComboBox::icon{
                  </property>
                  <property name="text">
                   <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../../Resources/QtResources.qrc">
+                   <normaloff>:/Images/DataVolumeOff.png</normaloff>
+                   <normalon>:/Images/DataVolume.png</normalon>:/Images/DataVolumeOff.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QToolButton" name="show_bounding_box_button_">
+                 <property name="minimumSize">
+                  <size>
+                   <width>21</width>
+                   <height>21</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>21</width>
+                   <height>21</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Show bounding box</string>
+                 </property>
+                 <property name="text">
+                  <string>...</string>
                  </property>
                  <property name="icon">
                   <iconset resource="../../Resources/QtResources.qrc">
