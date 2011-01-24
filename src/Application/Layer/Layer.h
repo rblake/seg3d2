@@ -50,8 +50,10 @@
 #include <Core/Volume/Volume.h>
 
 // Application includes
+#include <Application/Provenance/Provenance.h>
 #include <Application/Layer/LayerFWD.h>
 #include <Application/Layer/LayerAbstractFilter.h>
+
 
 namespace Seg3D
 {
@@ -193,12 +195,12 @@ public:
 	// An exclusive group of boolean states that control the visibility of different parts
 	Core::BooleanStateGroupHandle gui_state_group_;
 
-protected:
-	// State that stores the generation of its datablock
-	Core::StateLongLongHandle generation_state_;
-	
 	// State that keeps track of the provenance number
 	Core::StateLongLongHandle provenance_id_state_;
+
+protected:
+	// State that stores the generation of its datablock
+	Core::StateLongLongHandle generation_state_;	
 
 	// -- Accessors --
 public:

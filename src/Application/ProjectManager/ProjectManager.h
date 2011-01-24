@@ -62,11 +62,11 @@ class ProjectManager;
 class RecentProject
 {
 public:
-RecentProject::RecentProject( std::string name, std::string path, std::string date, std::string id ) :
-	name_( name ),
-	path_( path ),
-	date_( date ),
-	id_( id )
+	RecentProject( std::string name, std::string path, std::string date, std::string id ) :
+		name_( name ),
+		path_( path ),
+		date_( date ),
+		id_( id )
 {
 }
 virtual ~RecentProject(){}

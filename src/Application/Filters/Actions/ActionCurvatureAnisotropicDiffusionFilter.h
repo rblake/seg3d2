@@ -35,7 +35,7 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerAction.h>
+//#include <Application/LayerManager/LayerAction.h>
 
 
 namespace Seg3D

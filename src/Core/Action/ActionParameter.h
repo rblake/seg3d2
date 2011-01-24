@@ -117,19 +117,20 @@ public:
 	{
 	}
 
+	// -- access to value --
+public:
+
 	ActionParameter& operator=( const T& value )
 	{
 		value_ = value;
 		return *this;
 	}
 
-	const T& operator()()
+	const T& get()
 	{
 		return value_;
 	}
-
-	// -- access to value --
-public:
+	
 	// General access to the parameter value
 	T& value()
 	{

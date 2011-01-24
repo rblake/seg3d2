@@ -41,8 +41,8 @@ SET(APPLICATION_LAYERMANAGER_SRCS
 	LayerCheckPoint.cc
 	LayerUndoBufferItem.h
 	LayerUndoBufferItem.cc
-	LayerAction.h
-	LayerAction.cc
+#	LayerAction.h
+#	LayerAction.cc
 )
 
 SET(APPLICATION_LAYERMANAGER_ACTIONS_SRCS

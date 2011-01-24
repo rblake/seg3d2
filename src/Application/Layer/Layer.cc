@@ -81,8 +81,6 @@ public:
 
 	// Stop processing flag
 	bool stop_;
-	
-	
 };
 
 void LayerPrivate::handle_locked_state_changed( bool locked )

@@ -41,6 +41,7 @@ namespace Seg3D
 // used in the provenance database to store provenance records.
 
 typedef long long ProvenanceID;
+typedef std::vector<ProvenanceID> ProvenanceIDList;
 
 // GENERATEPROVENANCEID:
 // Generate a new provenance ID

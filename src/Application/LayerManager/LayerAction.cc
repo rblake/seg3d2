@@ -33,4 +33,36 @@
 namespace Seg3D
 {
 
+class LayerActionPrivate
+{
+public:
+	// VALIDATE_LAYER_DEPENDENDIES:
+	// This function serves two purposes:
+	// (1) It checks if any layer ids are provenanceids. If this is the case all the provenance ids
+	// are translated into normal layer ids. 
+	// (2) It checks whether all the layerids or the provenanceids exist in the current layer
+	// layermanager
+	// NOTE: This function should be run on at the start of the validate phase of the layer action
+	bool validate_layer_dependencies( ActionContextHandle& context );
+
+
+};
+
+bool LayerActionPrivate::validate_layer_dependencies( ActionContextHandle& context )
+{
+	
+
+}
+
+LayerAction::LayerAction() :
+	private_( new LayerActionPrivate )
+
+bool LayerAction::validate( ActionContextHandle& context )
+{
+	this->private
+}
+
+
+
+
 } // end namespace Seg3D

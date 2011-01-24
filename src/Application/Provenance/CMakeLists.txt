@@ -34,6 +34,8 @@
 SET(APPLICATION_PROVENANCE_SRCS
   Provenance.h
   Provenance.cc
+#  ProvenanceBuffer.h
+#  ProvenanceBuffer.cc
   )
 
 CORE_ADD_LIBRARY(Application_Provenance ${APPLICATION_PROVENANCE_SRCS} )

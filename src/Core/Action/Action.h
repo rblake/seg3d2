@@ -242,6 +242,39 @@ private:
 
 } // end namespace Core
 
+#define CORE_ACTION_INTERNAL( definition_string, info_class ) \
+public: \
+	static std::string Definition() { return GetActionInfo()->get_definition(); }\
+	static std::string Type() { return GetActionInfo()->get_type(); } \
+	static Core::ActionInfo::handle_type GetActionInfo() \
+	{\
+		return GetTypedActionInfo(); \
+	}\
+	virtual Core::ActionInfoHandle get_action_info() const { return GetActionInfo(); } \
+	\
+	static info_class::handle_type GetTypedActionInfo() \
+	{\
+		static bool initialized_; \
+		static info_class::handle_type info_; \
+		if ( !initialized_ ) \
+		{\
+			{\
+				info_class::lock_type lock( info_class::GetMutex() );\
+				std::string definition = std::string( "<?xml version=\"1.0\"?>\n" definition_string "\n" ); \
+				if ( !info_ ) info_ = info_class::handle_type( new info_class( definition ) ); \
+			}\
+			{\
+				info_class::lock_type lock( info_class::GetMutex() );\
+				initialized_ = true;\
+			}\
+		}\
+		return info_;\
+	} \
+	virtual info_class::handle_type get_typed_action_infp() const { return GetTypedActionInfo();  }
+
+#define CORE_ACTION(definition_string) \
+CORE_ACTION_INTERNAL(definition_string, Core::ActionInfo )
+
 #define CORE_ACTION_TYPE( name, description ) \
 "<action name=\"" name "\">" description "</action>"
 
@@ -251,49 +284,23 @@ private:
 #define CORE_ACTION_KEY( name, default_value, description ) \
 "<key name=\"" name "\" default=\"" default_value "\"> " description "</key>"
 
+#define CORE_ACTION_PROPERTY( property ) \
+"<property>" property "</property>"
+
+#define CORE_ACTION_ARGUMENT_PROPERTY( name, property ) \
+"<property name=\"" name "\">" property "</property>"
+
+#define CORE_ACTION_KEY_PROPERTY( name, property ) \
+"<property name=\"" name "\">" property "</property>"
+
 #define CORE_ACTION_CHANGES_PROJECT_DATA() \
-"<property>changes_project_data</property>"
+CORE_ACTION_PROPERTY( "changes_project_data" )
 
 #define CORE_ACTION_CHANGES_PROVENANCE_DATA() \
-"<property>changes_provenance_data</property>"
+CORE_ACTION_PROPERTY( "changes_provenance_data" )
 
 #define CORE_ACTION_IS_UNDOABLE() \
-"<property>is_undoable</property>"
-
-#define CORE_ACTION_PROPERTY( name ) \
-"<property>" name "</property>"
-
-#define CORE_ACTION_PROVENANCE_ID_PARAMETER( name ) \
-"<property name=\"" name "\">provenance_id</property>"
-
-#define CORE_ACTION_PROVENANCE_ID_LIST_PARAMETER( name ) \
-"<property name=\"" name "\">provenance_id_list</property>"
-
-#define CORE_ACTION(definition_string) \
-public: \
-	static std::string Definition() { return GetActionInfo()->get_definition(); }\
-	static std::string Type() { return GetActionInfo()->get_type(); } \
-	static std::string Usage() { return GetActionInfo()->get_usage(); } \
-	static Core::ActionInfoHandle GetActionInfo() \
-	{\
-		static bool initialized_; \
-		static Core::ActionInfoHandle info_; \
-		if ( !initialized_ ) \
-		{\
-			{\
-				Core::ActionInfo::lock_type lock( Core::ActionInfo::GetMutex() );\
-				std::string definition = std::string( "<?xml version=\"1.0\"?>\n" definition_string "\n" ); \
-				if ( !info_ ) info_ = Core::ActionInfoHandle( new Core::ActionInfo( definition ) ); \
-			}\
-			{\
-				Core::ActionInfo::lock_type lock( Core::ActionInfo::GetMutex() );\
-				initialized_ = true;\
-			}\
-		}\
-		return info_;\
-	} \
-	\
-	virtual Core::ActionInfoHandle get_action_info() const { return GetActionInfo(); }
+CORE_ACTION_PROPERTY( "is_undoable" )
 
 #endif
 

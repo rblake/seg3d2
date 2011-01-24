@@ -35,12 +35,11 @@
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
-#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionDuplicateLayer : public LayerAction
+class ActionDuplicateLayer : public Core::Action
 {
 
 CORE_ACTION( 

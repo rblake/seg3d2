@@ -55,17 +55,10 @@ typedef boost::shared_ptr< ActionInfoPrivate > ActionInfoPrivateHandle;
 
 class ActionInfo : public boost::noncopyable
 {
-	// -- properties of each action or argument --
+	// -- typedefs --
 public:
-	enum 
-	{
-		ACTION_INFO_CHANGES_PROVENANCE_DATA_E = 0x0001,
-		ACTION_INFO_CHANGES_PROJECT_DATA_E = 0x0002,
-		ACTION_INFO_IS_UNDOABLE_E = 0x0004,
-		ACTION_INFO_PROPERTY_ID_E = 0x0008,
-		ACTION_INFO_PROPERTY_ID_LIST_E = 0x0010
-	};
-
+	typedef boost::shared_ptr<ActionInfo> handle_type;
+	
 	// -- constructor --
 public:
 	ActionInfo( const std::string& definition );
@@ -87,6 +80,10 @@ public:
 	// Get the description of the action
 	std::string get_description() const;
 	
+	// GET_PROPERTIES:
+	// Get the properties of the action
+	std::vector<std::string> get_properties() const;
+	
 	// GET_NUM_ARGUMENTS:
 	// The number of arguments for this action
 	size_t get_num_arguments() const;
@@ -105,7 +102,7 @@ public:
 	
 	// GET_ARGUMENT_PROPERTIES:
 	// Get the properties of argument <index>
-	unsigned int get_argument_properties( size_t index ) const;	
+	std::vector<std::string> get_argument_properties( size_t index ) const;	
 		
 	// GET_KEY:
 	// The name of key <index>
@@ -125,8 +122,10 @@ public:
 
 	// GET_KEY_PROPERTIES:
 	// Get the properties of key <index>
-	unsigned int get_key_properties( size_t index ) const;	
+	std::vector<std::string> get_key_properties( size_t index ) const;	
 
+	// -- action properties --
+public:
 	// IS_VALID:
 	// Check the validity of the action description
 	bool is_valid() const;

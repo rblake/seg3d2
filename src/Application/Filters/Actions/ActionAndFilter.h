@@ -31,7 +31,9 @@
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
 #include <Application/Layer/Layer.h>
+// #include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
@@ -67,7 +69,8 @@ public:
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+	virtual bool run( Core::ActionContextHandle& context, 
+		Core::ActionResultHandle& result );
 	
 	// -- Action parameters --
 private:
