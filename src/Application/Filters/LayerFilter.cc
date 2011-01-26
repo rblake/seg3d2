@@ -710,7 +710,7 @@ bool LayerFilter::create_provenance_record( Core::ActionHandle provenance_action
 //	
 //	this->private_->provenance_item_ = LayerProvenanceItemHandle( 
 //		new LayerProvenanceItem( ) );
-
+return true;
 }
 
 } // end namespace Seg3D
