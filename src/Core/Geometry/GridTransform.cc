@@ -92,14 +92,20 @@ Transform GridTransform::transform() const
 
 bool GridTransform::operator==( const GridTransform& gt ) const
 {
-	return ( nx_ == gt.nx_ && ny_ == gt.ny_ && nz_ == gt.nz_ && 
+	return ( this->nx_ == gt.nx_ && this->ny_ == gt.ny_ && this->nz_ == gt.nz_ && 
 		Transform::operator==( gt ) );
 }
 
 bool GridTransform::operator!=( const GridTransform& gt ) const
 {
-	return ( nx_ != gt.nx_ || ny_ != gt.ny_ || nz_ != gt.nz_ || 
+	return ( this->nx_ != gt.nx_ || this->ny_ != gt.ny_ || this->nz_ != gt.nz_ || 
 		Transform::operator!=( gt ) );
+}
+
+double GridTransform::get_diagonal_length() const
+{
+	return project( Vector( static_cast<double>( this->nx_ ), static_cast<double>( this->ny_ ), 
+		 static_cast<double>( this->nz_ ) ) ).length();
 }
 
 void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transform, 
@@ -134,6 +140,7 @@ void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transf
 	}
 	
 	Point src_origin = src_transform.project( Point( 0, 0, 0 ) );
+	
 	std::vector< size_t > src_size( 3 );
 	src_size[ 0 ] = src_transform.get_nx();
 	src_size[ 1 ] = src_transform.get_ny();
@@ -156,6 +163,24 @@ void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transf
 				dst_size[ i ] = src_size[ j ];
 				break;
 			}			
+		}
+	}
+	
+
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( permutation[ i ] < 0 )
+		{
+			if ( src_transform.get_originally_node_centered() )
+			{
+				dst_origin[ i ] = dst_origin[ i ] - 
+					static_cast<double> ( dst_size[ i ] ) * spacing[ i ];
+			}
+			else
+			{
+				dst_origin[ i ] = dst_origin[ i ] - 
+					static_cast<double> ( dst_size[ i ] - 1 ) * spacing[ i ];
+			}
 		}
 	}
 	

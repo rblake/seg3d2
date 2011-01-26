@@ -134,14 +134,20 @@ public:
 	// The density of the fog in 3D view
 	Core::StateRangedDoubleHandle fog_density_state_;
 
+	// The sampling rate of volume rendering
+	Core::StateRangedDoubleHandle volume_sample_rate_state_;
+
 	// Clipping planes enabled state
 	Core::StateBoolHandle enable_clip_plane_state_[ 6 ];
 
-	// Zenith angle (theta) of the clipping planes
-	Core::StateRangedDoubleHandle clip_plane_theta_state_[ 6 ];
+	// X component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_x_state_[ 6 ];
 
-	// Azimuth angle (phi) of the clipping planes
-	Core::StateRangedDoubleHandle clip_plane_phi_state_[ 6 ];
+	// Y component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_y_state_[ 6 ];
+
+	// Z component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_z_state_[ 6 ];
 
 	// Distance of the clipping planes
 	Core::StateRangedDoubleHandle clip_plane_distance_state_[ 6 ];
@@ -154,6 +160,9 @@ public:
 
 	// Whether to show controls for clipping
 	Core::StateBoolHandle show_clipping_control_state_;
+
+	// Whether to show controls for volume rendering
+	Core::StateBoolHandle show_volume_rendering_control_state_;
 
 	// TODO: The next ones should not be state variables
 	// --JGS

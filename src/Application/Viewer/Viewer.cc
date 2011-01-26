@@ -53,6 +53,7 @@
 #include <Application/Viewer/Actions/ActionAutoView.h>
 #include <Application/ViewerManager/Actions/ActionPickPoint.h>
 #include <Application/ViewerManager/ViewerManager.h>
+#include <Application/LayerManager/Actions/ActionComputeIsosurface.h>
 
 namespace Seg3D
 {
@@ -85,6 +86,8 @@ public:
 	void delete_layers( std::vector< LayerHandle > layers );
 	void set_active_layer( LayerHandle layer );
 	void set_viewer_labels();
+	void handle_flip_horizontal_changed( bool flip );
+	void handle_flip_vertical_changed( bool flip );
 	void reset();
 
 	// -- Helper functions --
@@ -473,7 +476,6 @@ void ViewerPrivate::change_view_mode( std::string mode, Core::ActionSource sourc
 		this->viewer_->lock_state_->set( false );
 	}
 
-
 	if ( !this->cursor_handler_ || !this->cursor_handler_( this->viewer_->shared_from_this() ) )
 	{
 		this->viewer_->set_cursor( mode == Viewer::VOLUME_C ? Core::CursorShape::ARROW_E : 
@@ -486,13 +488,22 @@ void ViewerPrivate::change_view_mode( std::string mode, Core::ActionSource sourc
 	}
 
 	Core::VolumeSliceType slice_type( Core::VolumeSliceType::AXIAL_E );
+	Core::StateView2DHandle view2d = this->viewer_->axial_view_state_;
 	if ( mode == Viewer::CORONAL_C )
 	{
 		slice_type = Core::VolumeSliceType::CORONAL_E;
+		view2d = this->viewer_->coronal_view_state_;
 	}
 	else if ( mode == Viewer::SAGITTAL_C )
 	{
 		slice_type =  Core::VolumeSliceType::SAGITTAL_E;
+		view2d = this->viewer_->sagittal_view_state_;
+	}
+
+	{
+		Core::ScopedCounter block_counter( this->signals_block_count_ );
+		this->viewer_->flip_horizontal_state_->set( view2d->get().scalex() < 0.0 );
+		this->viewer_->flip_vertical_state_->set( view2d->get().scaley() < 0.0 );
 	}
 
 	volume_slice_map_type::iterator it = this->volume_slices_.begin();
@@ -876,6 +887,42 @@ void ViewerPrivate::reset()
 	this->viewer_->redraw_all();
 }
 
+void ViewerPrivate::handle_flip_horizontal_changed( bool flip )
+{
+	if ( this->signals_block_count_ > 0 || this->loading_ )
+	{
+		return;
+	}
+	
+	Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast< Core::StateView2D >(
+		this->viewer_->get_active_view_state() );
+	if ( view2d_state )
+	{
+		Core::View2D view2d = view2d_state->get();
+		double abs_scalex = Core::Abs( view2d.scalex() );
+		view2d.scalex( flip ? -abs_scalex : abs_scalex );
+		view2d_state->set( view2d );
+	}
+}
+
+void ViewerPrivate::handle_flip_vertical_changed( bool flip )
+{
+	if ( this->signals_block_count_ > 0 || this->loading_ )
+	{
+		return;
+	}
+
+	Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast< Core::StateView2D >(
+		this->viewer_->get_active_view_state() );
+	if ( view2d_state )
+	{
+		Core::View2D view2d = view2d_state->get();
+		double abs_scaley = Core::Abs( view2d.scaley() );
+		view2d.scaley( flip ? -abs_scaley : abs_scaley );
+		view2d_state->set( view2d );
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Implementation of class Viewer
 //////////////////////////////////////////////////////////////////////////
@@ -906,6 +953,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 
 	this->add_state( "view_mode", view_mode_state_, mode, sagittal + "|" + coronal 
 		 + "|" + axial + "|" + VOLUME_C + "=Volume" );
+	this->view_mode_state_->set_session_priority( Core::StateBase::DEFAULT_LOAD_E + 1 );
 		 
 	this->add_connection( PreferencesManager::Instance()->x_axis_label_state_->state_changed_signal_.
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
@@ -913,9 +961,9 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
 	this->add_connection( PreferencesManager::Instance()->z_axis_label_state_->state_changed_signal_.
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
+
 	this->add_connection( PreferencesManager::Instance()->grid_size_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
-
 	this->add_connection( PreferencesManager::Instance()->show_slice_number_state_->
 		state_changed_signal_.connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
 	this->add_connection( PreferencesManager::Instance()->background_color_state_->
@@ -923,12 +971,27 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_connection( PreferencesManager::Instance()->zero_based_slice_numbers_state_->
 		state_changed_signal_.connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
 	
-	this->view_mode_state_->set_session_priority( Core::StateBase::DEFAULT_LOAD_E + 1 );
-
+	const std::vector< Core::StateColorHandle >& color_states = PreferencesManager::Instance()->color_states_;
+	for ( size_t i = 0; i < color_states.size(); ++i )
+	{
+		this->add_connection( color_states[ i ]->state_changed_signal_.connect( 
+			boost::bind( &Viewer::redraw_scene, this ) ) );
+	}
+	
 	this->add_state( "axial_view", axial_view_state_ );
 	this->add_state( "coronal_view", coronal_view_state_ );
 	this->add_state( "sagittal_view", sagittal_view_state_ );
 	this->add_state( "volume_view", volume_view_state_ );
+
+	this->add_state( "flip_horizontal", this->flip_horizontal_state_, false );
+	this->flip_horizontal_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
+	this->add_state( "flip_vertical", this->flip_vertical_state_, false );
+	this->flip_vertical_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
+
+	this->add_connection( this->flip_horizontal_state_->value_changed_signal_.connect( boost::bind(
+		&ViewerPrivate::handle_flip_horizontal_changed, this->private_, _1 ) ) );
+	this->add_connection( this->flip_vertical_state_->value_changed_signal_.connect( boost::bind(
+		&ViewerPrivate::handle_flip_vertical_changed, this->private_, _1 ) ) );
 
 	this->private_->view_states_[ 0 ] = this->sagittal_view_state_;
 	this->private_->view_states_[ 1 ] = this->coronal_view_state_;
@@ -947,8 +1010,9 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		this->volume_volume_rendering_visible_state_, false );
 	this->add_state( "volume_light_visible", this->volume_light_visible_state_, true );
 	this->add_state( "volume_enable_fog", this->volume_enable_fog_state_, false );
-	this->add_state( "volume_enable_clipping", this->volume_enable_clipping_state_, false );
+	this->add_state( "volume_enable_clipping", this->volume_enable_clipping_state_, true );
 	this->add_state( "volume_show_invisible_slices", this->volume_show_invisible_slices_state_, true );
+	this->add_state( "volume_show_bounding_box", this->volume_show_bounding_box_state_, true );
 
 	this->add_state( "lock", this->lock_state_, false );
 	this->add_state( "overlay_visible", this->overlay_visible_state_, true );
@@ -976,9 +1040,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_connection( this->lock_state_->value_changed_signal_.connect(
 		boost::bind( &ViewerPrivate::viewer_lock_state_changed, this->private_, _1 ) ) );
 
-	// Connect state variables that should trigger redraw.
-	// NOTE: For those state variables that will trigger both redraw and redraw_overlay, 
-	// "delay_update" is set to true for redraw.
+	// Connect state variables that should trigger redraw_all.
 	this->add_connection( this->view_mode_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_all, this ) ) );
 	this->add_connection( this->axial_view_state_->state_changed_signal_.connect(
@@ -989,10 +1051,10 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		boost::bind( &Viewer::redraw_all, this) ) );
 	this->add_connection( this->slice_number_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_all, this ) ) );
-		
-	// NOTE: This one is false as it is not updated by the next list
 	this->add_connection( this->volume_view_state_->state_changed_signal_.connect(
-		boost::bind( &Viewer::redraw_scene, this ) ) );
+		boost::bind( &Viewer::redraw_all, this ) ) );
+		
+	// Connect state variables that should trigger redraw_scene.
 	this->add_connection( this->volume_light_visible_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_enable_fog_state_->state_changed_signal_.connect(
@@ -1003,8 +1065,12 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_isosurfaces_visible_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_volume_rendering_visible_state_->state_changed_signal_.
+		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_show_invisible_slices_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_show_bounding_box_state_->state_changed_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
 
 	// Connect state variables that should trigger redraw_overlay
 	this->add_connection( this->slice_grid_state_->state_changed_signal_.connect(
@@ -1378,7 +1444,7 @@ bool Viewer::key_press_event( int key, int modifiers, int x, int y )
 					this->view_mode_state_, Viewer::AXIAL_C );	
 				handled_successfully = true;
 				break;
-			}				
+			}	
 		}
 		
 		if( handled_successfully ) 
@@ -1388,7 +1454,14 @@ bool Viewer::key_press_event( int key, int modifiers, int x, int y )
 		}
 		
 	}
-			
+
+	if ( modifiers == Core::KeyModifier::NO_MODIFIER_E &&
+		key == Core::Key::KEY_O_E )
+	{
+		ActionComputeIsosurface::Dispatch( Core::Interface::GetKeyboardActionContext() );
+		return true;
+	}
+	
 	// function wasn't handled, hence return false.
 	return false;
 }
@@ -1763,6 +1836,15 @@ bool Viewer::post_load_states( const Core::StateIO& state_io )
 			this->private_->active_layer_slice_->number_of_slices() ) - 1 );
 		this->slice_number_state_->set( static_cast< int >( 
 			this->private_->active_layer_slice_->get_slice_number() ) );
+	}
+
+	// Set the view flip states
+	Core::StateView2DHandle view2d = boost::dynamic_pointer_cast< Core::StateView2D >( 
+		this->get_active_view_state() );
+	if ( view2d )
+	{
+		this->flip_horizontal_state_->set( view2d->get().scalex() < 0.0 );
+		this->flip_vertical_state_->set( view2d->get().scaley() < 0.0 );
 	}
 
 	this->private_->loading_ = false;

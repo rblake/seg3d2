@@ -296,6 +296,8 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 			layer_group->origin_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.spacing_label_,
 			layer_group->spacing_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.centering_label_,
+			layer->centering_state_ );
 
 		QtUtils::QtBridge::Connect( this->private_->ui_.info_button_, 
 			layer->show_information_state_ );
@@ -1166,7 +1168,7 @@ void LayerWidget::delete_layer_from_context_menu()
 {	
 	// Check whether the users wants to save and whether the user wants to quit
 	int ret = QMessageBox::warning( this, "Delete Warning",
-		"Are you sure, you want to delete this layer?",
+		"Are you sure you want to delete this layer?",
 		QMessageBox::Yes | QMessageBox::No, QMessageBox::No  );
 
 	if( ret == QMessageBox::Yes )

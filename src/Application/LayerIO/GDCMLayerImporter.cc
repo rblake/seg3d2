@@ -174,6 +174,9 @@ GDCMLayerImporter::GDCMLayerImporter( const std::string& filename ) :
 
 bool GDCMLayerImporter::import_header()
 {
+	gdcm::ImageHelper::SetForcePixelSpacing( true );
+	gdcm::ImageHelper::SetForceRescaleInterceptSlope( true );
+
 	gdcm::ImageReader reader;
 	reader.SetFileName( this->private_->file_list_[ 0 ].c_str() );
 	if ( !reader.Read() )
@@ -279,6 +282,12 @@ bool GDCMLayerImporter::import_header()
 	const double* spacing = image.GetSpacing();
 	const double* origin = image.GetOrigin();
 
+	const double* dircos = image.GetDirectionCosines();
+	this->private_->row_direction_ = Core::Vector( dircos[ 0 ], dircos[ 1 ], dircos[ 2 ] );
+	this->private_->col_direction_ = Core::Vector( dircos[ 3 ], dircos[ 4 ], dircos[ 5 ] );
+	this->private_->slice_direction_ = Core::Cross( this->private_->row_direction_, 
+		this->private_->col_direction_ );
+
 	this->private_->origin_[ 0 ] = origin[ 0 ];
 	this->private_->origin_[ 1 ] = origin[ 1 ];
 	this->private_->origin_[ 2 ] = origin[ 2 ];
@@ -288,18 +297,53 @@ bool GDCMLayerImporter::import_header()
 	
 	if ( spacing[ 2 ] == 1.0 )
 	{
-		this->private_->z_spacing_ = this->private_->get_slice_thickness( ds );
+		gdcm::Tag slice_thickness_tag( 0x0018,0x0050 );
+
+		bool found_thickness = false;
+		
+		if( ds.FindDataElement( slice_thickness_tag ) ) // Slice Thickness
+		{
+			const gdcm::DataElement& de = ds.GetDataElement( slice_thickness_tag );
+			if ( ! de.IsEmpty() )
+			{
+				gdcm::Attribute< 0x0018, 0x0050 > slice_thickness;
+				slice_thickness.SetFromDataElement( de );
+				double thickness = slice_thickness.GetValue( 0 );
+				if ( thickness > 0.0 )
+				{
+					this->private_->z_spacing_ = thickness;
+					this->private_->slice_direction_ = Core::Vector( 0.0, 0.0, 1.0 );
+					found_thickness = true;
+				}
+			}
+		}
+		
+		if ( this->private_->file_list_.size() > 1 )
+		{
+			gdcm::ImageReader reader2;
+			reader2.SetFileName( this->private_->file_list_[ 1 ].c_str() );
+			if ( !reader2.Read() )
+			{
+				this->set_error( "Can't read file " + this->private_->file_list_[ 1 ] );
+				return false;
+			}
+			
+			const gdcm::Image &image2 = reader2.GetImage();
+			const double* origin2 = image2.GetOrigin();
+			
+			double spacing = origin2[ 2 ] - origin[ 2 ];
+			if ( spacing != 0.0 ) this->private_->z_spacing_ = spacing; else spacing = 1.0;
+			this->private_->slice_direction_ = Core::Vector( 0.0, 0.0, 1.0 );
+		}
+		else if ( found_thickness == false )
+		{
+			this->private_->z_spacing_ = 1.0;
+		}
 	}
 	else
 	{
 		this->private_->z_spacing_ = spacing[ 2 ];
 	}
-
-	const double* dircos = image.GetDirectionCosines();
-	this->private_->row_direction_ = Core::Vector( dircos[ 0 ], dircos[ 1 ], dircos[ 2 ] );
-	this->private_->col_direction_ = Core::Vector( dircos[ 3 ], dircos[ 4 ], dircos[ 5 ] );
-	this->private_->slice_direction_ = Core::Cross( this->private_->row_direction_, 
-		this->private_->col_direction_ );
 
 	return true;
 }
@@ -332,6 +376,7 @@ bool GDCMLayerImporter::load_data( Core::DataBlockHandle& data_block,
 	this->private_->grid_transform_.load_basis( this->private_->origin_, 
 		this->private_->row_direction_, this->private_->col_direction_, 
 		this->private_->slice_direction_ );
+	this->private_->grid_transform_.set_originally_node_centered( false );
 
 	data_block = Core::StdDataBlock::New( this->private_->grid_transform_,
 		this->private_->pixel_type_ );

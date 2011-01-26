@@ -34,7 +34,6 @@
 #include <Core/Utils/Log.h>
 #include <Core/Interface/Interface.h>
 #include <Core/State/Actions/ActionAdd.h>
-#include <Core/State/Actions/ActionFlip.h>
 #include <Core/State/Actions/ActionSet.h>
 
 // Application includes
@@ -105,19 +104,7 @@ void ViewerWidgetPrivate::HandleViewModeChanged( ViewerWidgetQWeakHandle viewer_
 
 	QCoreApplication::postEvent( viewer_widget.data(), new QResizeEvent( 
 		viewer_widget->size(), viewer_widget->size() ) );
-
-	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-	bool is_volume_view = viewer_widget->private_->viewer_->is_volume_view();
-
-	if( !is_volume_view )
-	{
-		Core::StateView2D* view2d_state = static_cast< Core::StateView2D* >( 
-			viewer_widget->private_->viewer_->get_active_view_state().get() );
-		viewer_widget->private_->ui_.flip_horizontal_button_->setChecked( view2d_state->x_flipped() );
-		viewer_widget->private_->ui_.flip_vertical_button_->setChecked( view2d_state->y_flipped() );
-	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Class ViewerWidget
@@ -146,6 +133,7 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->buttons_.push_back( this->private_->ui_.isosurfaces_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.slices_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.show_invisible_slices_button_ );
+	this->private_->buttons_.push_back( this->private_->ui_.show_bounding_box_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.volume_rendering_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.overlay_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.picking_lines_visible_button_ );
@@ -176,18 +164,14 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->render_widget_->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Expanding );
 	this->private_->ui_.viewer_layout_->addWidget( this->private_->render_widget_ );
 	
-	// Hide the buttons we don't use yet
-	this->private_->ui_.volume_rendering_visible_button_->hide();
-
 	// Update state of the widget to reflect current state
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		
-		this->connect( this->private_->ui_.flip_horizontal_button_, SIGNAL( clicked() ),
-			SLOT( flip_view_horiz() ) );
-
-		this->connect( this->private_->ui_.flip_vertical_button_, SIGNAL( clicked() ),
-			SLOT( flip_view_vert() ) );
+		QtUtils::QtBridge::Connect( this->private_->ui_.flip_horizontal_button_,
+			this->private_->viewer_->flip_horizontal_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.flip_vertical_button_,
+			this->private_->viewer_->flip_vertical_state_ );
 	
 		QtUtils::QtBridge::Connect( this->private_->ui_.viewer_mode_, 
 			this->private_->viewer_->view_mode_state_ );
@@ -203,6 +187,8 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			this->private_->viewer_->volume_slices_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.show_invisible_slices_button_,
 			this->private_->viewer_->volume_show_invisible_slices_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.show_bounding_box_button_,
+			this->private_->viewer_->volume_show_bounding_box_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.picking_lines_visible_button_,
 			this->private_->viewer_->slice_picking_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.overlay_visible_button_,
@@ -244,8 +230,6 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.picking_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
-		QtUtils::QtBridge::Show( this->private_->ui_.overlay_visible_button_, 
-			viewer->view_mode_state_, show_buttons_condition );
 
 		// Show the following buttons when it's volume view
 		show_buttons_condition = boost::lambda::bind( 
@@ -264,6 +248,10 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 		QtUtils::QtBridge::Show( this->private_->ui_.snap_to_axis_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.show_invisible_slices_button_,
+			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.show_bounding_box_button_,
+			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.volume_rendering_visible_button_,
 			viewer->view_mode_state_, show_buttons_condition );
 
 		// When view mode changes, we need to rearrange the toolbar and update the flip buttons
@@ -376,26 +364,4 @@ void ViewerWidget::deselect()
 	this->private_->ui_.border_->setStyleSheet( StyleSheet::VIEWERNOTSELECTED_C );
 }
 	
-void ViewerWidget::flip_view_horiz()
-{
-	if( ! this->private_->viewer_->is_volume_view() )
-	{
-		Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast<Core::StateView2D>( 
-			this->private_->viewer_->get_active_view_state() );
-		Core::ActionFlip::Dispatch( Core::Interface::GetWidgetActionContext(),
-			view2d_state, Core::FlipDirectionType::HORIZONTAL_E );
-	}
-}
-
-void ViewerWidget::flip_view_vert()
-{
-	if( ! this->private_->viewer_->is_volume_view() )
-	{
-		Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast<Core::StateView2D>( 
-			this->private_->viewer_->get_active_view_state() );
-		Core::ActionFlip::Dispatch( Core::Interface::GetWidgetActionContext(),
-		view2d_state, Core::FlipDirectionType::VERTICAL_E );
-	}
-}
-
 } // end namespace Seg3D

@@ -116,19 +116,22 @@ public:
 
 	NrrdKernelSpec* mask_kernel_;
 	NrrdKernelSpec* data_kernel_;
-	NrrdResampleContext* rsmc_;
+
+	std::vector< NrrdResampleContext* > resample_contexts_; // Per layer
+	std::vector< Core::GridTransform > output_transforms_; // Per layer
+	NrrdResampleContext* current_resample_context_;
+	Core::GridTransform current_output_transform_;
 
 public:
 	ResampleAlgo( const std::string& kernel, double param1, double param2 );
 	virtual ~ResampleAlgo();
 
-	bool compute_output_grid_transform( const std::string& input_layerid, 
-		Core::GridTransform& grid_transform );
+	bool compute_output_grid_transform( LayerHandle layer, NrrdResampleContext* resample_context, Core::GridTransform& grid_transform );
 
 	void detect_padding_only();
 
-	bool nrrd_resmaple( Nrrd* nin, Nrrd* nout, NrrdKernelSpec* unuk );
-	void resmaple_data_layer( DataLayerHandle input, DataLayerHandle output );
+	bool nrrd_resample( Nrrd* nin, Nrrd* nout, NrrdKernelSpec* unuk );
+	void resample_data_layer( DataLayerHandle input, DataLayerHandle output );
 	void resample_mask_layer( MaskLayerHandle input, MaskLayerHandle output );
 
 	void pad_and_crop_data_layer( DataLayerHandle input, DataLayerHandle output );
@@ -164,9 +167,6 @@ public:
 ResampleAlgo::ResampleAlgo( const std::string& kernel, double param1, double param2 )
 {
 	this->padding_only_ = false;
-	this->rsmc_ = nrrdResampleContextNew();
-	this->rsmc_->verbose = 0;
-	nrrdResampleDefaultCenterSet( this->rsmc_, nrrdCenterCell );
 	this->data_kernel_ = nrrdKernelSpecNew();
 	this->mask_kernel_ = nrrdKernelSpecNew();
 
@@ -211,7 +211,10 @@ ResampleAlgo::~ResampleAlgo()
 {
 	nrrdKernelSpecNix( this->data_kernel_ );
 	nrrdKernelSpecNix( this->mask_kernel_ );
-	nrrdResampleContextNix( this->rsmc_ );
+	for( size_t i = 0; i < this->resample_contexts_.size(); i++ )
+	{
+		nrrdResampleContextNix( this->resample_contexts_[ i ] );
+	}
 }
 
 // NOTE: This function is copied from the _nrrdResampleOutputUpdate function
@@ -285,11 +288,9 @@ static void UpdateNrrdAxisInfo( Nrrd* nout, NrrdResampleContext* rsmc )
 		: NRRD_BASIC_INFO_KEYVALUEPAIRS_BIT ) );
 }
 
-bool ResampleAlgo::compute_output_grid_transform( const std::string& input_layerid, 
-												 Core::GridTransform& grid_transform )
+bool ResampleAlgo::compute_output_grid_transform( LayerHandle layer, 
+	NrrdResampleContext* resample_context, Core::GridTransform& grid_transform )
 {
-	LayerHandle layer;
-	this->find_layer( input_layerid, layer );
 	Core::DataBlockHandle input_datablock;
 	switch ( layer->get_type() )
 	{
@@ -307,27 +308,45 @@ bool ResampleAlgo::compute_output_grid_transform( const std::string& input_layer
 	
 	Core::NrrdDataHandle nrrd_in( new Core::NrrdData( input_datablock, 
 		layer->get_grid_transform() ) );
+	for ( unsigned int axis = 0; axis < nrrd_in->nrrd()->dim; ++axis )
+	{
+		// Make sure both min and max are set since UpdateNrrdAxisInfo relies on this.  NrrdData
+		// creates nrrds with only min and spacing.
+		// Is there a Teem function for doing this?  nrrdAxisInfoMinMaxSet always sets min to 0.
+		NrrdAxisInfo nrrd_axis_info = nrrd_in->nrrd()->axis[ axis ];
+		if( nrrd_axis_info.center == nrrdCenterCell )
+		{
+			nrrd_in->nrrd()->axis[ axis ].max = nrrd_axis_info.min + 
+				( nrrd_axis_info.size * nrrd_axis_info.spacing );
+		}
+		else // Assume node-centering
+		{
+			nrrd_in->nrrd()->axis[ axis ].max = nrrd_axis_info.min + 
+				( (nrrd_axis_info.size - 1 ) * nrrd_axis_info.spacing );
+		}
+	}
+
 	Nrrd* nout = nrrdNew();
 
 	int error = 0;
-	error |= nrrdResampleNrrdSet( this->rsmc_, nrrd_in->nrrd() );
+	error |= nrrdResampleNrrdSet( resample_context, nrrd_in->nrrd() );
 	for ( unsigned int axis = 0; axis < nrrd_in->nrrd()->dim && !error; ++axis )
 	{
-		error |= nrrdResampleKernelSet( this->rsmc_, axis, 
+		error |= nrrdResampleKernelSet( resample_context, axis, 
 			this->mask_kernel_->kernel, this->mask_kernel_->parm );
-		error |= nrrdResampleSamplesSet( this->rsmc_, axis, this->dimesions_[ axis ] );
-		error |= nrrdResampleRangeFullSet( this->rsmc_, axis );
+		error |= nrrdResampleSamplesSet( resample_context, axis, this->dimesions_[ axis ] );
+		error |= nrrdResampleRangeFullSet( resample_context, axis );
 	}
 	
 	if ( error 
-		|| _nrrdResampleInputDimensionUpdate( this->rsmc_ )
-		|| _nrrdResampleInputCentersUpdate( this->rsmc_ )
-		|| _nrrdResampleInputSizesUpdate( this->rsmc_ )
-		|| _nrrdResampleLineAllocateUpdate( this->rsmc_ )
-		|| _nrrdResampleVectorAllocateUpdate( this->rsmc_ )
-		|| _nrrdResampleLineFillUpdate( this->rsmc_ )
-		|| _nrrdResampleVectorFillUpdate( this->rsmc_ )
-		|| _nrrdResamplePermutationUpdate( this->rsmc_ ) )
+		|| _nrrdResampleInputDimensionUpdate( resample_context )
+		|| _nrrdResampleInputCentersUpdate( resample_context )
+		|| _nrrdResampleInputSizesUpdate( resample_context )
+		|| _nrrdResampleLineAllocateUpdate( resample_context )
+		|| _nrrdResampleVectorAllocateUpdate( resample_context )
+		|| _nrrdResampleLineFillUpdate( resample_context )
+		|| _nrrdResampleVectorFillUpdate( resample_context )
+		|| _nrrdResamplePermutationUpdate( resample_context ) )
 	{
 		nrrdNuke( nout );
 		return false;
@@ -337,40 +356,44 @@ bool ResampleAlgo::compute_output_grid_transform( const std::string& input_layer
 	nout->axis[ 1 ].size = this->dimesions_[ 1 ];
 	nout->axis[ 2 ].size = this->dimesions_[ 2 ];
 	nout->dim = 3;
-	UpdateNrrdAxisInfo( nout, this->rsmc_ );
+	UpdateNrrdAxisInfo( nout, resample_context );
 	Core::NrrdDataHandle nrrd_out( new Core::NrrdData( nout ) );
 	grid_transform = nrrd_out->get_grid_transform();
 
 	return true;
 }
 
-bool ResampleAlgo::nrrd_resmaple( Nrrd* nin, Nrrd* nout, NrrdKernelSpec* unuk )
+bool ResampleAlgo::nrrd_resample( Nrrd* nin, Nrrd* nout, NrrdKernelSpec* unuk )
 {
 	int error = 0;
-	error |= nrrdResampleNrrdSet( this->rsmc_, nin );
+	error |= nrrdResampleNrrdSet( this->current_resample_context_, nin );
 	for ( unsigned int axis = 0; axis < nin->dim && !error; ++axis )
 	{
-		error |= nrrdResampleKernelSet( this->rsmc_, axis, unuk->kernel, unuk->parm );
-		error |= nrrdResampleSamplesSet( this->rsmc_, axis, this->dimesions_[ axis ] );
+		error |= nrrdResampleKernelSet( this->current_resample_context_, axis, unuk->kernel, 
+			unuk->parm );
+		error |= nrrdResampleSamplesSet( this->current_resample_context_, axis, 
+			this->dimesions_[ axis ] );
 		if ( this->resample_to_grid_ )
 		{
-			error |= nrrdResampleRangeSet( this->rsmc_, axis, this->range_min_[ axis ], 
-				this->range_max_[ axis ] );
+			error |= nrrdResampleRangeSet( this->current_resample_context_, axis, 
+				this->range_min_[ axis ], this->range_max_[ axis ] );
 		}
 		else
 		{
-			error |= nrrdResampleRangeFullSet( this->rsmc_, axis );
+			error |= nrrdResampleRangeFullSet( this->current_resample_context_, axis );
 		}
 	}
 	if ( !error )
 	{
-		error |= nrrdResampleExecute( this->rsmc_, nout );
+		// For some reason the grid transform of nout isn't set (no min, max, or origin info)
+		// unu resample works, so maybe we're doing something wrong?  Working around this for now.
+		error |= nrrdResampleExecute( this->current_resample_context_, nout );
 	}
 
 	return !error;
 }
 
-void ResampleAlgo::resmaple_data_layer( DataLayerHandle input, DataLayerHandle output )
+void ResampleAlgo::resample_data_layer( DataLayerHandle input, DataLayerHandle output )
 {
 	if ( this->padding_only_ )
 	{
@@ -389,21 +412,21 @@ void ResampleAlgo::resmaple_data_layer( DataLayerHandle input, DataLayerHandle o
 	{
 		if ( this->padding_ == ActionResample::ZERO_C )
 		{
-			nrrdResamplePadValueSet( this->rsmc_, 0.0 );
+			nrrdResamplePadValueSet( this->current_resample_context_, 0.0 );
 		}
 		else if ( this->padding_ == ActionResample::MIN_C )
 		{
-			nrrdResamplePadValueSet( this->rsmc_, input->get_data_volume()->
+			nrrdResamplePadValueSet( this->current_resample_context_, input->get_data_volume()->
 				get_data_block()->get_min() );
 		}
 		else
 		{
-			nrrdResamplePadValueSet( this->rsmc_, input->get_data_volume()->
+			nrrdResamplePadValueSet( this->current_resample_context_, input->get_data_volume()->
 				get_data_block()->get_max() );
 		}
 	}
 	output->update_progress_signal_( 0.1 );
-	if ( !nrrd_resmaple( nrrd_in->nrrd(), nrrd_out, this->data_kernel_ ) )
+	if ( !nrrd_resample( nrrd_in->nrrd(), nrrd_out, this->data_kernel_ ) )
 	{
 		nrrdNuke( nrrd_out );
 		CORE_LOG_ERROR( "Failed to resample layer '" + input->get_layer_id() +"'" );
@@ -413,7 +436,7 @@ void ResampleAlgo::resmaple_data_layer( DataLayerHandle input, DataLayerHandle o
 		Core::NrrdDataHandle nrrd_data( new Core::NrrdData( nrrd_out ) );
 		Core::DataBlockHandle data_block = Core::NrrdDataBlock::New( nrrd_data );
 		Core::DataVolumeHandle data_volume( new Core::DataVolume( 
-			nrrd_data->get_grid_transform(), data_block ) );
+			this->current_output_transform_, data_block ) );
 		this->dispatch_insert_data_volume_into_layer( output, data_volume, true );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -445,10 +468,10 @@ void ResampleAlgo::resample_mask_layer( MaskLayerHandle input, MaskLayerHandle o
 	if ( this->resample_to_grid_ )
 	{
 		// Pad the mask layer with 0
-		nrrdResamplePadValueSet( this->rsmc_, 0.0 );
+		nrrdResamplePadValueSet( this->current_resample_context_, 0.0 );
 	}
 	output->update_progress_signal_( 0.1 );
-	if ( !nrrd_resmaple( nrrd_in->nrrd(), nrrd_out, this->mask_kernel_ ) )
+	if ( !nrrd_resample( nrrd_in->nrrd(), nrrd_out, this->mask_kernel_ ) )
 	{
 		nrrdNuke( nrrd_out );
 		CORE_LOG_ERROR( "Failed to resample layer '" + input->get_layer_id() +"'" );
@@ -465,7 +488,7 @@ void ResampleAlgo::resample_mask_layer( MaskLayerHandle input, MaskLayerHandle o
 		}
 
 		Core::MaskVolumeHandle mask_volume( new Core::MaskVolume( 
-			nrrd_data->get_grid_transform(), mask_data_block ) );
+			this->current_output_transform_, mask_data_block ) );
 		this->dispatch_insert_mask_volume_into_layer( output, mask_volume );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -482,30 +505,33 @@ void ResampleAlgo::resample_mask_layer( MaskLayerHandle input, MaskLayerHandle o
 
 void ResampleAlgo::run_filter()
 {
-	if ( this->resample_to_grid_ )
-	{
-		this->detect_padding_only();
-		nrrdResampleBoundarySet( this->rsmc_, nrrdBoundaryPad );
-	}
-	else
-	{
-		nrrdResampleBoundarySet( this->rsmc_, nrrdBoundaryBleed );
-	}
-	
 	for ( size_t i = 0; i < this->src_layers_.size(); ++i )
 	{
+		this->current_output_transform_ = this->output_transforms_[ i ];
+		this->current_resample_context_ = this->resample_contexts_[ i ];
+		
+		if ( this->resample_to_grid_ )
+		{
+			this->detect_padding_only();
+			nrrdResampleBoundarySet( this->current_resample_context_, nrrdBoundaryPad );
+		}
+		else
+		{
+			nrrdResampleBoundarySet( this->current_resample_context_, nrrdBoundaryBleed );
+		}
+
 		switch ( this->src_layers_[ i ]->get_type() )
 		{
-		case Core::VolumeType::DATA_E:
-			this->resmaple_data_layer(
-				boost::dynamic_pointer_cast< DataLayer >( this->src_layers_[ i ] ),
-				boost::dynamic_pointer_cast< DataLayer >( this->dst_layers_[ i ] ) );
-			break;
-		case Core::VolumeType::MASK_E:
-			this->resample_mask_layer(
-				boost::dynamic_pointer_cast< MaskLayer >( this->src_layers_[ i ] ),
-				boost::dynamic_pointer_cast< MaskLayer >( this->dst_layers_[ i ] ) );
-			break;
+			case Core::VolumeType::DATA_E:
+				this->resample_data_layer(
+					boost::dynamic_pointer_cast< DataLayer >( this->src_layers_[ i ] ),
+					boost::dynamic_pointer_cast< DataLayer >( this->dst_layers_[ i ] ) );
+				break;
+			case Core::VolumeType::MASK_E:
+				this->resample_mask_layer(
+					boost::dynamic_pointer_cast< MaskLayer >( this->src_layers_[ i ] ),
+					boost::dynamic_pointer_cast< MaskLayer >( this->dst_layers_[ i ] ) );
+				break;
 		}
 
 		if ( ! this->dst_layers_[ i ] )
@@ -732,8 +758,11 @@ void ResampleAlgo::pad_and_crop_data_layer( DataLayerHandle input, DataLayerHand
 	
 	if ( !this->check_abort() )
 	{
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
 		this->dispatch_insert_data_volume_into_layer( output, Core::DataVolumeHandle(
-			new Core::DataVolume( output->get_grid_transform(), output_datablock ) ), true );
+			new Core::DataVolume( output_grid_transform, output_datablock ) ), true );
 		this->dispatch_unlock_layer( output );
 		if ( this->replace_ )
 		{
@@ -866,9 +895,11 @@ void ResampleAlgo::pad_and_crop_mask_layer( MaskLayerHandle input, MaskLayerHand
 			this->report_error( "Could not allocate enough memory." );
 			return;
 		}
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
 		Core::MaskVolumeHandle mask_volume( new Core::MaskVolume(
-			output->get_grid_transform(), dst_mask_data_block ) );
-		
+			output_grid_transform, dst_mask_data_block ) );
 		this->dispatch_insert_mask_volume_into_layer( output, mask_volume );
 		this->dispatch_unlock_layer( output );
 		if ( this->replace_ )
@@ -1014,22 +1045,14 @@ bool ActionResample::run( Core::ActionContextHandle& context,
 		this->private_->resample_to_layer_;
 	algo->padding_ = this->private_->padding_;
 
-	// Compute grid transform for the output layers
 	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
-	Core::GridTransform output_transform;
-	if ( this->private_->resample_to_grid_ || this->private_->resample_to_layer_ )
-	{
-		output_transform = this->private_->grid_transform_;
-	}
-	else
-	{
-		algo->compute_output_grid_transform( layer_ids[ 0 ], output_transform );
-	}
-
+	
 	// Set up input and output layers
 	size_t num_of_layers = layer_ids.size();
 	algo->src_layers_.resize( num_of_layers );
 	algo->dst_layers_.resize( num_of_layers );
+	algo->resample_contexts_.resize( num_of_layers );
+	algo->output_transforms_.resize( num_of_layers );
 	std::vector< std::string > dst_layer_ids( num_of_layers );
 	for ( size_t j = 0; j < num_of_layers; ++j )
 	{
@@ -1044,20 +1067,36 @@ bool ActionResample::run( Core::ActionContextHandle& context,
 			algo->lock_for_use( algo->src_layers_[ i ] );
 		}
 
+		// Compute grid transform for the output layers
+		algo->resample_contexts_[ i ] = nrrdResampleContextNew();
+		algo->resample_contexts_[ i ]->verbose = 0;
+		nrrdResampleDefaultCenterSet( algo->resample_contexts_[ i ], nrrdCenterCell );
+		if ( this->private_->resample_to_grid_ || this->private_->resample_to_layer_ )
+		{
+			algo->output_transforms_[ i ] = this->private_->grid_transform_;
+			algo->output_transforms_[ i ].set_originally_node_centered( 
+				algo->src_layers_[ i ]->get_grid_transform().get_originally_node_centered() );
+		}
+		else
+		{
+			algo->compute_output_grid_transform( algo->src_layers_[ i ], 
+				algo->resample_contexts_[ i ], algo->output_transforms_[ i ] );
+		}
+
 		switch ( algo->src_layers_[ i ]->get_type() )
 		{
-		case Core::VolumeType::DATA_E:
-			algo->create_and_lock_data_layer( output_transform, 
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			break;
-		case Core::VolumeType::MASK_E:
-			algo->create_and_lock_mask_layer( output_transform,
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
-				static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
-			break;
-		default:
-			assert( false );
+			case Core::VolumeType::DATA_E:
+				algo->create_and_lock_data_layer( algo->output_transforms_[ i ], 
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				break;
+			case Core::VolumeType::MASK_E:
+				algo->create_and_lock_mask_layer( algo->output_transforms_[ i ],
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
+					static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
+				break;
+			default:
+				assert( false );
 		}
 
 		if ( !algo->dst_layers_[ i ] )
@@ -1081,11 +1120,12 @@ bool ActionResample::run( Core::ActionContextHandle& context,
 		Core::Transform inverse_src_trans = algo->src_layers_[ 0 ]->
 			get_grid_transform().get_inverse();
 		// Compute the range of the destination grid in world space
-		// NOTE: Since we assume cell centering, the actual range of the grid should be
+		// NOTE: If the destination grid is cell centered, the actual range of the grid should be
 		// extended by half a voxel in each direction
-		Core::Point start( -0.5, -0.5, -0.5 );
-		Core::Point end( algo->dimesions_[ 0 ] - 0.5, algo->dimesions_[ 1 ] - 0.5, 
-			algo->dimesions_[ 2 ] - 0.5 );
+		double offset = this->private_->grid_transform_.get_originally_node_centered() ? 0.0 : 0.5;
+		Core::Point start( -offset, -offset, -offset );
+		Core::Point end( algo->dimesions_[ 0 ] - 1 + offset, algo->dimesions_[ 1 ] - 1 + offset, 
+			algo->dimesions_[ 2 ] - 1 + offset );
 		start = this->private_->grid_transform_ * start;
 		end = this->private_->grid_transform_ * end;
 

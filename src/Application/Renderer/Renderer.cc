@@ -40,6 +40,7 @@
 #include <Core/Graphics/UnitCube.h>
 #include <Core/TextRenderer/TextRenderer.h>
 #include <Core/Graphics/ColorMap.h>
+#include <Core/VolumeRenderer/VolumeRenderer.h>
 
 // Application includes
 #include <Application/Layer/DataLayer.h>
@@ -134,6 +135,7 @@ public:
 	Core::Texture2DHandle pattern_texture_;
 	Core::TextRendererHandle text_renderer_;
 	Core::Texture2DHandle text_texture_;
+	Core::VolumeRendererHandle volume_renderer_;
 
 	size_t viewer_id_;
 	bool rendering_enabled_;
@@ -421,7 +423,7 @@ void RendererPrivate::draw_slice( LayerSceneItemHandle layer_item,
 		// Compute the size of the slice on screen
 		Core::Vector slice_x( slice_width, 0.0, 0.0 );
 		slice_x = proj_mat * slice_x;
-		double slice_screen_width = slice_x.x() / 2.0 * this->renderer_->width_;
+		double slice_screen_width = Core::Abs( slice_x.x() ) / 2.0 * this->renderer_->width_;
 		double slice_screen_height = slice_height / slice_width * slice_screen_width;
 		float pattern_repeats_x = static_cast< float >( slice_screen_width / PATTERN_SIZE_C );
 		float pattern_repeats_y = static_cast< float >( slice_screen_height / PATTERN_SIZE_C );
@@ -542,9 +544,6 @@ void RendererPrivate::draw_orientation_arrows( const Core::View3D& view_3d )
 	glViewport( this->renderer_->width_ - dimension, 
 		this->renderer_->height_ - dimension, dimension, dimension );
 
-	// NOTE: Clear the depth buffer so the axes will not be occluded.
-	glClear( GL_DEPTH_BUFFER_BIT );
-
 	// Compute the orientation of the axes
 	Core::Vector eye_dir = view_3d.eyep() - view_3d.lookat();
 	eye_dir.normalize();
@@ -585,6 +584,7 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->slice_shader_.reset( new SliceShader );
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
+	this->private_->volume_renderer_.reset( new Core::VolumeRenderer );
 	this->private_->viewer_id_ = viewer_id;
 }
 
@@ -617,6 +617,7 @@ void Renderer::post_initialize()
 
 		this->private_->slice_shader_->initialize();
 		this->private_->isosurface_shader_->initialize();
+		this->private_->volume_renderer_->initialize();
 		this->private_->pattern_texture_.reset( new Core::Texture2D );
 		this->private_->pattern_texture_->set_image( PATTERN_SIZE_C, PATTERN_SIZE_C, 
 			GL_ALPHA, MASK_PATTERNS_C, GL_ALPHA, GL_UNSIGNED_BYTE );
@@ -708,6 +709,9 @@ bool Renderer::render()
 		bool enable_clipping = viewer->volume_enable_clipping_state_->get();
 		bool draw_slices = viewer->volume_slices_visible_state_->get();
 		bool draw_isosurfaces = viewer->volume_isosurfaces_visible_state_->get();
+		bool render_volume = viewer->volume_volume_rendering_visible_state_->get();
+		double sample_rate = ViewerManager::Instance()->volume_sample_rate_state_->get();
+		bool draw_bbox = viewer->volume_show_bounding_box_state_->get();
 		bool show_invisible_slices = viewer->volume_show_invisible_slices_state_->get();
 		size_t num_of_viewers = ViewerManager::Instance()->number_of_viewers();
 		for ( size_t i = 0; i < num_of_viewers && draw_slices; i++ )
@@ -744,8 +748,7 @@ bool Renderer::render()
 
 		double fog_density = ViewerManager::Instance()->fog_density_state_->get();
 		bool clip_plane_enable[ 6 ];
-		double clip_plane_theta[ 6 ];
-		double clip_plane_phi[ 6 ];
+		Core::Vector clip_plane_normal[ 6 ];
 		double clip_plane_distance[ 6 ];
 		bool clip_plane_reverse_normal[ 6 ];
 		if ( enable_clipping )
@@ -753,8 +756,9 @@ bool Renderer::render()
 			for ( size_t i = 0; i < 6; ++i )
 			{
 				clip_plane_enable[ i ] = ViewerManager::Instance()->enable_clip_plane_state_[ i ]->get();
-				clip_plane_theta[ i ] = ViewerManager::Instance()->clip_plane_theta_state_[ i ]->get();
-				clip_plane_phi[ i ] = ViewerManager::Instance()->clip_plane_phi_state_[ i ]->get();
+				clip_plane_normal[ i ].x( ViewerManager::Instance()->clip_plane_x_state_[ i ]->get() );
+				clip_plane_normal[ i ].y( ViewerManager::Instance()->clip_plane_y_state_[ i ]->get() );
+				clip_plane_normal[ i ].z( ViewerManager::Instance()->clip_plane_z_state_[ i ]->get() );
 				clip_plane_distance[ i ] = ViewerManager::Instance()->clip_plane_distance_state_[ i ]->get();
 				clip_plane_reverse_normal[ i ] = 
 					ViewerManager::Instance()->clip_plane_reverse_norm_state_[ i ]->get();
@@ -789,16 +793,13 @@ bool Renderer::render()
 
 			for ( int i = 0; i < 6; ++i )
 			{
-				if ( !clip_plane_enable[ i ] )
+				if ( !clip_plane_enable[ i ] || clip_plane_normal[ i ].normalize() == 0.0 )
 				{
 					continue;
 				}
-				double theta = Core::DegreeToRadian( clip_plane_theta[ i ] );
-				double phi = Core::DegreeToRadian( clip_plane_phi[ i ] );
 				int sign = clip_plane_reverse_normal[ i ] ? -1 : 1;
-				double cos_theta = cos( theta );
-				GLdouble eqn[ 4 ] = { sign * cos_theta * cos( phi ), sign * cos_theta * sin( phi ),
-					sign * sin( theta ), -sign * clip_plane_distance[ i ] };
+				GLdouble eqn[ 4 ] = { sign * clip_plane_normal[ i ].x(), sign * clip_plane_normal[ i ].y(),
+					sign * clip_plane_normal[ i ].z(), -sign * clip_plane_distance[ i ] };
 				glClipPlane( GL_CLIP_PLANE0 + i, eqn );
 				glEnable( GL_CLIP_PLANE0 + i );
 			}
@@ -814,6 +815,7 @@ bool Renderer::render()
 			this->private_->draw_slices_3d( bbox, layer_scenes, depths, view_modes );
 			this->private_->slice_shader_->disable();
 		}
+
 		if ( draw_isosurfaces)
 		{
 			this->private_->isosurface_shader_->enable();
@@ -823,13 +825,61 @@ bool Renderer::render()
 			this->private_->isosurface_shader_->disable();
 		}
 
+		if ( draw_bbox )
+		{
+			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+			glColor4f( 1.0, 1.0, 1.0, 1.0 );
+			Core::Point corner1 = bbox.min();
+			Core::Point corner2 = bbox.max();
+			glBegin( GL_QUAD_STRIP );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glEnd();
+			glBegin( GL_QUADS );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glEnd();
+			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+		}
+
+		// NOTE: Volume rendering should happen the last
+		if ( render_volume )
+		{
+			LayerHandle layer = LayerManager::Instance()->get_active_layer();
+			if ( layer && layer->get_type() == Core::VolumeType::DATA_E )
+			{
+				DataLayer* data_layer = static_cast< DataLayer* >( layer.get() );
+				double data_min = data_layer->min_value_state_->get();
+				double data_range = data_layer->max_value_state_->get() - data_min;
+				double display_max = data_layer->display_max_value_state_->get();
+				double window_size = display_max - data_layer->display_min_value_state_->get();
+				window_size = Core::Max( 0.01 * data_range, window_size );
+				double scale = data_range > 0 ? data_range / window_size : 1.0;
+				double bias = data_range > 0 ? 1.0 - ( scale * display_max
+					- data_min ) / data_range : 0.0;
+				this->private_->volume_renderer_->render( data_layer->get_data_volume(), 
+					view3d, sample_rate, with_lighting, with_fog, scale, bias );
+			}
+		}
+	
 		if ( enable_clipping )
 		{
 			glPopAttrib();
 		}
-
-		// NOTE: The orientation axes should be drawn the last, because it clears the depth buffer.
-		this->private_->draw_orientation_arrows( view3d );
 		
 		glDisable( GL_BLEND );
 	}
@@ -893,6 +943,13 @@ bool Renderer::render_overlay()
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
 		this->private_->viewer_id_ ) + ": starting redraw overlay" );
 
+	// Enable blending
+	glEnable( GL_BLEND );
+	// NOTE: The result of the following blend function is that, color channels contains
+	// colors modulated by alpha, alpha channel stores the value of "1-alpha"
+	glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA , 
+		GL_ZERO, GL_ONE_MINUS_SRC_ALPHA  );
+
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
 
@@ -900,16 +957,23 @@ bool Renderer::render_overlay()
 	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( this->private_->viewer_id_ );
+	bool show_overlay = viewer->overlay_visible_state_->get();
 
 	if ( viewer->is_volume_view() )
 	{
+		Core::View3D view3d( viewer->volume_view_state_->get() );
 		state_lock.unlock();
+
+		if ( show_overlay )
+		{
+			glEnable( GL_DEPTH_TEST );
+			this->private_->draw_orientation_arrows( view3d );	
+		}
 	}
 	else
 	{
 		bool show_grid = viewer->slice_grid_state_->get();
 		bool show_picking_lines = viewer->slice_picking_visible_state_->get();
-		bool show_overlay = viewer->overlay_visible_state_->get();
 		bool show_slice_num = PreferencesManager::Instance()->show_slice_number_state_->get();
 		bool zero_based_slice_numbers = PreferencesManager::Instance()->
 			zero_based_slice_numbers_state_->get();
@@ -955,12 +1019,6 @@ bool Renderer::render_overlay()
 		Core::Transform::BuildOrtho2DMatrix( proj_mat, left, right, bottom, top );
 
 		glDisable( GL_DEPTH_TEST );
-		// Enable blending
-		glEnable( GL_BLEND );
-		// NOTE: The result of the following blend function is that, color channels contains
-		// colors modulated by alpha, alpha channel stores the value of "1-alpha"
-		glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA , 
-			GL_ZERO, GL_ONE_MINUS_SRC_ALPHA  );
 
 		gluOrtho2D( 0, this->width_ - 1, 0, this->height_ - 1 );
 		glMatrixMode( GL_MODELVIEW );
@@ -1109,9 +1167,9 @@ bool Renderer::render_overlay()
 			this->private_->text_texture_->disable();
 			CORE_CHECK_OPENGL_ERROR();
 		} // end rendering text
-
-		glDisable( GL_BLEND );
 	}
+
+	glDisable( GL_BLEND );
 
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
 		this->private_->viewer_id_ ) + ": done redraw overlay" );

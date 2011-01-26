@@ -168,8 +168,13 @@ void TransformAlgo::transform_data_layer( DataLayerHandle input, DataLayerHandle
 
 	if ( !this->check_abort() )
 	{
+		// Centering should be preserved for each layer
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
+
 		this->dispatch_insert_data_volume_into_layer( output, Core::DataVolumeHandle(
-			new Core::DataVolume( output->get_grid_transform(), output_datablock ) ), 
+			new Core::DataVolume( output_grid_transform, output_datablock ) ), 
 			true );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -295,7 +300,7 @@ bool ActionTransform::validate( Core::ActionContextHandle& context )
 	this->private_->output_grid_trans_.load_basis( this->private_->origin_.value(), 
 		Core::Vector( spacing[ 0 ], 0, 0 ), Core::Vector( 0, spacing[ 1 ], 0 ), 
 		Core::Vector( 0, 0, spacing[ 2 ] ) );
-
+	
 	// Validation successful
 	return true;
 }
@@ -329,19 +334,19 @@ bool ActionTransform::run( Core::ActionContextHandle& context,
 		}
 
 		switch ( algo->src_layers_[ i ]->get_type() )
-		{
-		case Core::VolumeType::DATA_E:
-			algo->create_and_lock_data_layer( this->private_->output_grid_trans_, 
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			break;
-		case Core::VolumeType::MASK_E:
-			algo->create_and_lock_mask_layer( this->private_->output_grid_trans_,
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
-				static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
-			break;
-		default:
-			assert( false );
+		{	
+			case Core::VolumeType::DATA_E:
+				algo->create_and_lock_data_layer( this->private_->output_grid_trans_, 
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				break;
+			case Core::VolumeType::MASK_E:
+				algo->create_and_lock_mask_layer( this->private_->output_grid_trans_,
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
+					static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
+				break;
+			default:
+				assert( false );
 		}
 		dst_layer_ids[ i ] = algo->dst_layers_[ i ]->get_layer_id();
 	}

@@ -216,8 +216,13 @@ void CropAlgo::crop_data_layer( DataLayerHandle input, DataLayerHandle output )
 
 	if ( !this->check_abort() )
 	{
+		// Centering should be preserved for each layer
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
+
 		this->dispatch_insert_data_volume_into_layer( output, Core::DataVolumeHandle(
-			new Core::DataVolume( output->get_grid_transform(), output_datablock ) ), 
+			new Core::DataVolume( output_grid_transform, output_datablock ) ), 
 			true );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -406,6 +411,8 @@ bool ActionCrop::validate( Core::ActionContextHandle& context )
 		this->private_->end_y_ - this->private_->start_y_ + 1 ) );
 	this->private_->output_grid_trans_.set_nz( static_cast< size_t >( 
 		this->private_->end_z_ - this->private_->start_z_ + 1 ) );
+	this->private_->output_grid_trans_.set_originally_node_centered(
+		grid_trans.get_originally_node_centered() );
 
 	// Validation successful
 	return true;

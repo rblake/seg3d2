@@ -67,9 +67,12 @@ public:
 		path_( path ),
 		date_( date ),
 		id_( id )
-{
-}
-virtual ~RecentProject(){}
+	{
+	}
+	
+	virtual ~RecentProject()
+	{
+	}
 
 public:
 	std::string path_;
@@ -229,7 +232,6 @@ private:
 	bool								session_saving_;
 	bool								changing_projects_;
 	sqlite3*							recent_projects_database_;
-
 };
 
 } // end namespace seg3d
