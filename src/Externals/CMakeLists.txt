@@ -74,16 +74,6 @@ MESSAGE(STATUS "Configuring glew")
 ADD_SUBDIRECTORY(glew)
 
 ##################################################
-# ADDING SLIVR
-##################################################
-
-# FOR NOW SLIVR IS DISABLED AS IT DOES NOT COMPILE
-# WITH GLEWMX - WHICH IS THE CORRECT GLEW SETTING
-
-MESSAGE(STATUS "Configuring slivr")
-ADD_SUBDIRECTORY(slivr)
-
-##################################################
 # ADDING FREETYPE
 ##################################################
 
