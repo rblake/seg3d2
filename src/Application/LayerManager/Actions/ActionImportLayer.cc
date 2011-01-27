@@ -46,30 +46,30 @@ namespace Seg3D
 
 bool ActionImportLayer::validate( Core::ActionContextHandle& context )
 {
-	boost::filesystem::path full_filename( filename_.value() );
+	boost::filesystem::path full_filename( filename_ );
 	
 	if ( !( boost::filesystem::exists ( full_filename ) ) )
 	{
-		context->report_error( std::string( "File '" ) + this->filename_.value() +
+		context->report_error( std::string( "File '" ) + this->filename_ +
 			"' does not exist." );
 		return false;
 	}
 
 	if ( !this->layer_importer_ )
 	{
-		if ( !( LayerIO::Instance()->create_importer( this->filename_.value(),  
-			this->layer_importer_, this->importer_.value() ) ) )
+		if ( !( LayerIO::Instance()->create_importer( this->filename_,  
+			this->layer_importer_, this->importer_ ) ) )
 		{
 			context->report_error( std::string( "Could not create importer with name '" ) +
-				this->importer_.value() + "' for file '" + this->filename_.value() + "'." );
+				this->importer_ + "' for file '" + this->filename_ + "'." );
 			return false;
 		}	
 	}
 
 	LayerImporterMode mode = LayerImporterMode::INVALID_E;
-	if ( !( ImportFromString( this->mode_.value(), mode ) ) )
+	if ( !( ImportFromString( this->mode_, mode ) ) )
 	{
-		context->report_error( std::string( "Import mode '") +  this->mode_.value() + 
+		context->report_error( std::string( "Import mode '") +  this->mode_ + 
 			"' is not a valid layer importer mode." );
 		return false;
 	}
@@ -77,13 +77,13 @@ bool ActionImportLayer::validate( Core::ActionContextHandle& context )
 	if ( !( this->layer_importer_->import_header() ) )
 	{
 		context->report_error( std::string( "Could not interpret file '" +
-			this->filename_.value() + "' with importer '" + this->importer_.value() + "'" ) );
+			this->filename_ + "' with importer '" + this->importer_ + "'" ) );
 		return false;
 	}
 	
 	if ( !( this->layer_importer_->get_importer_modes() & mode ) )
 	{
-		context->report_error( std::string( "Import mode '") +  this->mode_.value() + 
+		context->report_error( std::string( "Import mode '") +  this->mode_ + 
 			"' is not available for this importer." );
 		return false;	
 	}
@@ -108,7 +108,7 @@ bool ActionImportLayer::run( Core::ActionContextHandle& context, Core::ActionRes
 	progress->begin_progress_reporting();
 	
 	LayerImporterMode mode = LayerImporterMode::INVALID_E;
-	ImportFromString( this->mode_.value(), mode );
+	ImportFromString( this->mode_, mode );
 
 	std::vector<LayerHandle> layers;
 	if ( !( this->layer_importer_->import_layer( mode, layers ) ) ) 
@@ -146,23 +146,22 @@ void ActionImportLayer::clear_cache()
 	this->layer_importer_.reset();
 }
 
-Core::ActionHandle ActionImportLayer::Create( const std::string& filename, 
+void ActionImportLayer::Dispatch( Core::ActionContextHandle context, const std::string& filename, 
 	const std::string& mode, const std::string importer )
 {
 	// Create new action
 	ActionImportLayer* action = new ActionImportLayer;
 	
 	// Set action parameters
-	action->filename_.value() = filename;
-	action->mode_.value()	  = mode;
-	action->importer_.value() = importer;
+	action->filename_ = filename;
+	action->mode_ = mode;
+	action->importer_= importer;
 	
-	// Post the new action
-	return Core::ActionHandle( action );
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
-Core::ActionHandle ActionImportLayer::Create( const LayerImporterHandle& importer, 
-	LayerImporterMode mode )
+void ActionImportLayer::Dispatch( Core::ActionContextHandle context, 
+	const LayerImporterHandle& importer, LayerImporterMode mode )
 {
 	// Create new action
 	ActionImportLayer* action = new ActionImportLayer;
@@ -171,24 +170,11 @@ Core::ActionHandle ActionImportLayer::Create( const LayerImporterHandle& importe
 	action->layer_importer_ = importer;
 
 	// We need to fill in these to ensure the action can be replayed without the importer present
-	action->filename_.value() = importer->get_filename();
-	action->mode_.value()     = ExportToString(mode);
-	action->importer_.value() = importer->name();
+	action->filename_ = importer->get_filename();
+	action->mode_ = ExportToString(mode);
+	action->importer_ = importer->name();
 	
-	// Post the new action
-	return Core::ActionHandle( action );
-}
-
-void ActionImportLayer::Dispatch( Core::ActionContextHandle context, const std::string& filename, 
-	const std::string& mode, const std::string importer )
-{
-	Core::ActionDispatcher::PostAction( Create( filename, mode, importer ), context );
-}
-
-void ActionImportLayer::Dispatch( Core::ActionContextHandle context, 
-	const LayerImporterHandle& importer, LayerImporterMode mode )
-{
-	Core::ActionDispatcher::PostAction( Create( importer, mode ), context );
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 	
 } // end namespace Seg3D

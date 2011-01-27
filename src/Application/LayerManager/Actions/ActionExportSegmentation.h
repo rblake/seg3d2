@@ -55,11 +55,7 @@ CORE_ACTION(
 public:
 	ActionExportSegmentation()
 	{
-		add_argument( this->layers_ );
-		add_argument( this->file_path_ );
-		add_key( this->mode_ );
-		add_key( this->extension_ );
-		add_key( this->exporter_ );
+		this->add_parameters( this->layers_, this->file_path_, this->mode_, this->extension_, this->exporter_ );
 	}
 	
 	virtual ~ActionExportSegmentation()
@@ -86,37 +82,27 @@ public:
 	// -- Action parameters --
 private:
 	// Where the layer should be exported
-	Core::ActionParameter< std::string > file_path_;
+	std::string file_path_;
 	
 	// How should the file be exported
-	Core::ActionParameter< std::string > mode_;
+	std::string mode_;
 	
 	// Which type of exporter should we use
-	Core::ActionParameter< std::string > exporter_;
+	std::string exporter_;
 	
 	// The layers to be exported
-	Core::ActionParameter< std::string > layers_;
-	
-	Core::ActionParameter< std::string > extension_;
+	std::string layers_;
+
+	std::string extension_;
 	
 	// Short cut to the layer exporter that has already loaded the data if the file
 	// was read through the GUI
 	LayerExporterHandle layer_exporter_;
 	
-	
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE:
-	// Create action that exports a segmentation
-	static Core::ActionHandle Create( const LayerExporterHandle& exporter, LayerExporterMode mode,
-		const std::string& file_path, std::string extension );
-	
-	static Core::ActionHandle Create( const std::string& layer_id, LayerExporterMode mode,
-		const std::string& file_path, std::string extension );
-		
+
 	// DISPATCH:
-	// To avoid reading a file twice, this action has a special option, so it can take an
-	// importer that has already loaded the file. This prevents it from being read twice
 	static void Dispatch( Core::ActionContextHandle context, const LayerExporterHandle& exporter, 
 		LayerExporterMode mode, const std::string& file_path, std::string extension = ".nrrd" );
 	

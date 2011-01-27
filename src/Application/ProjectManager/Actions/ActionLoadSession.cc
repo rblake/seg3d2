@@ -42,7 +42,7 @@ namespace Seg3D
 bool ActionLoadSession::validate( Core::ActionContextHandle& context )
 {
  	if( ProjectManager::Instance()->current_project_->
-		validate_session_name( this->session_name_.value() ) )
+		validate_session_name( this->session_name_ ) )
  	{
 		return true;
  	}
@@ -55,7 +55,7 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 	bool success = false;
 
 	std::string message = std::string("Please wait while session: '") + 
-		this->session_name_.value() + std::string("' is loaded...");
+		this->session_name_ + std::string("' is loaded...");
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
@@ -65,7 +65,7 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 	// -- For now add logging of exceptions if session cannot be loaded correctly --
 	try
 	{
-		if( ProjectManager::Instance()->load_project_session( this->session_name_.value() ) )
+		if( ProjectManager::Instance()->load_project_session( this->session_name_ ) )
 		{
 			success = true;
 		}
@@ -99,19 +99,14 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 	return success;
 }
 
-Core::ActionHandle ActionLoadSession::Create( const std::string& session_name )
-{
-	ActionLoadSession* action = new ActionLoadSession;
-	
-	action->session_name_.value() = session_name;
-	
-	return Core::ActionHandle( action );
-}
-
 void ActionLoadSession::Dispatch( Core::ActionContextHandle context, 
 	const std::string& session_name )
 {
-	Core::ActionDispatcher::PostAction( Create( session_name ), context );
+	ActionLoadSession* action = new ActionLoadSession;
+	
+	action->session_name_ = session_name;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

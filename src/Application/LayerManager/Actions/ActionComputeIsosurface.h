@@ -53,8 +53,7 @@ CORE_ACTION(
 public:
 	ActionComputeIsosurface()
 	{
-		this->add_argument( this->layer_id_ );
-		this->add_argument( this->quality_factor_ );
+		this->add_parameters( this->layer_id_, this->quality_factor_ );
 	}
 	
 	virtual ~ActionComputeIsosurface()
@@ -68,18 +67,13 @@ public:
 
 private:
 	// This parameter contains the id of the layer group
-	Core::ActionParameter< std::string > layer_id_;
+	std::string layer_id_;
 	
 	// This parameter describes the quality factor of the iso surface
-	Core::ActionParameter< double > quality_factor_;
+	double quality_factor_;
 
 	// -- Dispatch this action from the interface --
 public:
-
-	// CREATE:
-	// Create an action that computes the isosurface for the selected layer
-	static Core::ActionHandle Create( MaskLayerHandle mask_layer, double quality_factor );
-
 	// DISPATCH
 	// Create and dispatch action that computes the isosurface for the selected layer
 	static void Dispatch( Core::ActionContextHandle context, MaskLayerHandle mask_layer, 

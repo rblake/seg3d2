@@ -48,7 +48,7 @@ bool ActionConfidenceConnectedFilter::validate( Core::ActionContextHandle& conte
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
@@ -57,27 +57,27 @@ bool ActionConfidenceConnectedFilter::validate( Core::ActionContextHandle& conte
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
 		notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
 	}
 
-	if ( this->seeds_.value().size() == 0 )
+	if ( this->seeds_.size() == 0 )
 	{
 		context->report_error( "There needs to be at least one seed point." );
 		return false;
 	}
 		
-	if ( this->iterations_.value() < 1 )
+	if ( this->iterations_ < 1 )
 	{
 		context->report_error( "The number of iterations must be at least 1." );
 		return false;
 	}
 	
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->multiplier_.value() <= 0.0 )
+	if( this->multiplier_ <= 0.0 )
 	{
 		context->report_error( "The multiplier needs to be larger than zero." );
 		return false;
@@ -197,11 +197,11 @@ bool ActionConfidenceConnectedFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<ConfidenceConnectedFilterAlgo> algo( new ConfidenceConnectedFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->iterations_ = this->iterations_.value();
-	algo->multiplier_ = this->multiplier_.value();
+	algo->iterations_ = this->iterations_;
+	algo->multiplier_ = this->multiplier_;
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
+	algo->find_layer( this->target_layer_, algo->src_layer_ );
 
 	// Check the seed points against the source layer dimensions
 	Core::GridTransform grid_trans = algo->src_layer_->get_grid_transform();
@@ -209,7 +209,7 @@ bool ActionConfidenceConnectedFilter::run( Core::ActionContextHandle& context,
 	int nx = static_cast< int >( grid_trans.get_nx() );
 	int ny = static_cast< int >( grid_trans.get_ny() );
 	int nz = static_cast< int >( grid_trans.get_nz() );
-	const std::vector< Core::Point > seeds = this->seeds_.value();
+	const std::vector< Core::Point > seeds = this->seeds_;
 	for ( size_t i = 0; i < seeds.size(); ++i )
 	{
 		Core::Point seed = inverse_trans * seeds[ i ];
@@ -255,10 +255,10 @@ void ActionConfidenceConnectedFilter::Dispatch( Core::ActionContextHandle contex
 	ActionConfidenceConnectedFilter* action = new ActionConfidenceConnectedFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->seeds_.value() = seeds;
-	action->iterations_.value() = iterations;
-	action->multiplier_.value() = multiplier;
+	action->target_layer_ = target_layer;
+	action->seeds_ = seeds;
+	action->iterations_ = iterations;
+	action->multiplier_ = multiplier;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

@@ -52,7 +52,7 @@ CORE_ACTION(
 public:
 	ActionDeleteLayers()
 	{
-		this->add_argument( this->layers_ );
+		this->add_parameter( this->layers_ );
 	}
 	
 	virtual ~ActionDeleteLayers()
@@ -74,16 +74,10 @@ public:
 
 private:
 	// This parameter contains the id of the layer group
-	Core::ActionParameter< std::string > layers_;
-	std::vector< std::string > layers_vector_;
-	
+	std::string layers_;
 
 	// -- Dispatch this action from the interface --
 public:
-
-	// CREATE:
-	// Create an action that deletes the selected layers
-	static Core::ActionHandle Create( std::vector< std::string > layers );
 
 	// DISPATCH
 	// Create and dispatch action that deletes the selected layers

@@ -48,7 +48,7 @@ bool ActionDistanceFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::MASK_E, error ) )
 	{
 		context->report_error( error );
@@ -57,7 +57,7 @@ bool ActionDistanceFilter::validate( Core::ActionContextHandle& context )
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), false, notifier ) )
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, false, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
@@ -168,11 +168,11 @@ bool ActionDistanceFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<DistanceFilterAlgo> algo( new DistanceFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->use_index_space_ = this->use_index_space_.value();
-	algo->inside_positive_ = this->inside_positive_.value();
+	algo->use_index_space_ = this->use_index_space_;
+	algo->inside_positive_ = this->inside_positive_;
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
@@ -203,9 +203,9 @@ void ActionDistanceFilter::Dispatch( Core::ActionContextHandle context,
 	ActionDistanceFilter* action = new ActionDistanceFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->use_index_space_.value() = use_index_space;
-	action->inside_positive_.value() = inside_positive;
+	action->target_layer_ = target_layer;
+	action->use_index_space_ = use_index_space;
+	action->inside_positive_ = inside_positive;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

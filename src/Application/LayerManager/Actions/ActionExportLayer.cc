@@ -44,37 +44,44 @@ namespace Seg3D
 
 bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 {
-	if( this->layer_.value() != "" )
+	// Check whether the layer exists and is of the right type and return an
+	// error if not
+	std::string error;
+	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, error ) ) )
 	{
-		std::vector< LayerHandle > layer_handles;
-		
-		LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_name( this->layer_.value() );
-		if( !temp_handle ) return false;
-		else layer_handles.push_back( temp_handle );
+		context->report_error( error );
+		return false;
+	}
+
+	std::vector< LayerHandle > layer_handles;
 	
-		if( this->extension_ == "" )
-		{
-			this->extension_ = boost::filesystem::path( this->file_path_.value() ).extension();
-		}
-		
-		if( this->exporter_.value() == "" )
-		{
-			if( this->extension_ == ".nrrd" ) this->exporter_.value() = "NRRD Exporter";
-			else if( this->extension_ != "" ) this->exporter_.value() = "ITK Data Exporter";
-		}
-		
-		if( ! ( LayerIO::Instance()->create_exporter( this->layer_exporter_, layer_handles, 
-			this->exporter_.value(), this->extension_ ) ) )
-		{
-			return false;
-		}
-	}	
+	LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_name( this->layer_id_ );
+	if( !temp_handle ) return false;
+	else layer_handles.push_back( temp_handle );
+
+	if( this->extension_ == "" )
+	{
+		this->extension_ = boost::filesystem::path( this->file_path_ ).extension();
+	}
+	
+	if( this->exporter_ == "" )
+	{
+		if( this->extension_ == ".nrrd" ) this->exporter_ = "NRRD Exporter";
+		else if( this->extension_ != "" ) this->exporter_ = "ITK Data Exporter";
+	}
+	
+	if( ! ( LayerIO::Instance()->create_exporter( this->layer_exporter_, layer_handles, 
+		this->exporter_, this->extension_ ) ) )
+	{
+		context->report_error( "Could not create the specified exporter." );
+		return false;
+	}
 	
 	// first we validate the path for saving the segmentation
-	boost::filesystem::path segmentation_path( this->file_path_.value() );
+	boost::filesystem::path segmentation_path( this->file_path_ );
 	if ( !( boost::filesystem::exists ( segmentation_path.parent_path() ) ) )
 	{
-		context->report_error( std::string( "The path '" ) + this->file_path_.value() +
+		context->report_error( std::string( "The path '" ) + this->file_path_ +
 			"' does not exist." );
 		return false;
 	}
@@ -84,7 +91,7 @@ bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 
 bool ActionExportLayer::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
 {
-	boost::filesystem::path filename_and_path = boost::filesystem::path( this->file_path_.value() );
+	boost::filesystem::path filename_and_path = boost::filesystem::path( this->file_path_ );
 	std::string filename_without_extension = filename_and_path.filename();
 	filename_without_extension = filename_without_extension.substr( 0, 
 		filename_without_extension.find_last_of( "." ) );
@@ -104,48 +111,36 @@ bool ActionExportLayer::run( Core::ActionContextHandle& context, Core::ActionRes
 	return true;
 }
 
-Core::ActionHandle ActionExportLayer::Create( const LayerExporterHandle& exporter, 
-	const std::string& file_path  )
-{
-	// Create new action
-	ActionExportLayer* action = new ActionExportLayer;
-	
-	action->layer_exporter_ = exporter;
-	action->file_path_.value() = file_path;
-	
-	// Post the new action
-	return Core::ActionHandle( action );
-}
-
-Core::ActionHandle ActionExportLayer::Create( const std::string& layer, 
-	const std::string& file_path, const std::string extension  )
-{
-	// Create new action
-	ActionExportLayer* action = new ActionExportLayer;
-
-	action->layer_.value() = layer;
-	action->file_path_.value() = file_path;
-	action->extension_ = extension;
-
-	// Post the new action
-	return Core::ActionHandle( action );
-}
-
 void ActionExportLayer::clear_cache()
 {
+	this->layer_exporter_.reset();
 }
 
-void ActionExportLayer::Dispatch( Core::ActionContextHandle context, 
-	const LayerExporterHandle& exporter, const std::string& file_path )
-{
-	Core::ActionDispatcher::PostAction( Create( exporter, file_path ), context );
-}
 
 void ActionExportLayer::Dispatch( Core::ActionContextHandle context, const std::string& layer, 
 	const std::string& file_path, const std::string extension )
 {
-	Core::ActionDispatcher::PostAction( Create( layer, file_path, extension ), context );
+	// Create new action
+	ActionExportLayer* action = new ActionExportLayer;
+
+	action->layer_id_ = layer;
+	action->file_path_ = file_path;
+	action->extension_ = extension;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
+void ActionExportLayer::Dispatch( Core::ActionContextHandle context, LayerExporterHandle exporter, 
+		const std::string& file_path )
+{
+	// Create new action
+	ActionExportLayer* action = new ActionExportLayer;
+
+	action->layer_exporter_ = exporter;
+	action->file_path_ = file_path;
+	action->extension_ = "";
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+}
 
 } // end namespace Seg3D

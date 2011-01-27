@@ -47,7 +47,7 @@ bool ActionDuplicateLayer::validate( Core::ActionContextHandle& context )
 {
 	// Step (1): Check whether the layer actually exists 
 	std::string error;
-	if ( !( LayerManager::CheckLayerExistance( this->layer_id_.value(), error ) ) )
+	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, error ) ) )
 	{
 		context->report_error( error );
 		return false;
@@ -55,7 +55,7 @@ bool ActionDuplicateLayer::validate( Core::ActionContextHandle& context )
 	
 	// Step (2): Check whether the layer is available for making a copy from it
 	Core::NotifierHandle notifier;
-	if ( !LayerManager::CheckLayerAvailabilityForUse( this->layer_id_.value(), notifier ) )
+	if ( !LayerManager::CheckLayerAvailabilityForUse( this->layer_id_, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
@@ -73,7 +73,7 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 
 	// Step (2):
 	// Find the layer that needs to be duplicated
-	LayerHandle layer = LayerManager::FindLayer( this->layer_id_.value() );
+	LayerHandle layer = LayerManager::FindLayer( this->layer_id_ );
 
 	if ( !layer )
 	{
@@ -111,35 +111,25 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 	return true;
 }
 
-Core::ActionHandle ActionDuplicateLayer::Create( const std::string& layer_id )
+void ActionDuplicateLayer::Dispatch( Core::ActionContextHandle context, 
+	const std::string& layer_id )
 {
 	ActionDuplicateLayer* action = new ActionDuplicateLayer;
-	action->layer_id_.value() = layer_id;
+	action->layer_id_ = layer_id;
 	
-	return Core::ActionHandle( action );
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
-
-Core::ActionHandle ActionDuplicateLayer::Create( )
+void ActionDuplicateLayer::Dispatch( Core::ActionContextHandle context )
 {
 	ActionDuplicateLayer* action = new ActionDuplicateLayer;
 	LayerHandle active_layer = LayerManager::Instance()->get_active_layer();
 	if ( active_layer )
 	{
-		action->layer_id_.value() = active_layer->get_layer_id();
+		action->layer_id_ = active_layer->get_layer_id();
 	}
-	return Core::ActionHandle( action );
-}
-
-void ActionDuplicateLayer::Dispatch( Core::ActionContextHandle context, 
-	const std::string& layer_id )
-{
-	Core::ActionDispatcher::PostAction( Create( layer_id ), context );
-}
-
-void ActionDuplicateLayer::Dispatch( Core::ActionContextHandle context )
-{
-	Core::ActionDispatcher::PostAction( Create(), context );
+	
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

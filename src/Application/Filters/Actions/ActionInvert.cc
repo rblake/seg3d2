@@ -229,7 +229,7 @@ bool ActionInvert::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existence and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistance( this->layer_id_.value(), error ) )
+	if ( ! LayerManager::CheckLayerExistance( this->layer_id_, error ) )
 	{
 		context->report_error( error );
 		return false;
@@ -237,8 +237,8 @@ bool ActionInvert::validate( Core::ActionContextHandle& context )
 
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_.value(), 
-		this->replace_.value(), notifier ) )
+	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_, 
+		this->replace_, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
@@ -255,12 +255,12 @@ bool ActionInvert::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< InvertFilterAlgo > algo( new InvertFilterAlgo );
 
 	// Find the handle to the layer	
-	if ( !( algo->find_layer( this->layer_id_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->layer_id_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -309,8 +309,8 @@ void ActionInvert::Dispatch( Core::ActionContextHandle context,
 	ActionInvert* action = new ActionInvert;
 
 	// Setup the parameters
-	action->layer_id_.value() = layer_id;
-	action->replace_.value() = replace;
+	action->layer_id_ = layer_id;
+	action->replace_ = replace;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

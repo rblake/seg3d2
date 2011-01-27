@@ -56,11 +56,10 @@ public:
 
 private:
 	// TODO: Need to replace this with viewerid instead of number
-	Core::ActionParameter< int > viewer_;
-	Core::ActionParameter< Core::Point > point_;
+	int viewer_;
+	Core::Point point_;
 
 public:
-	static Core::ActionHandle Create( size_t src_viewer, const Core::Point& pt );
 	static void Dispatch( Core::ActionContextHandle context, 
 		size_t src_viewer, const Core::Point& pt );
 };

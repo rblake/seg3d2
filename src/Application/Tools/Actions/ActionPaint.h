@@ -85,8 +85,6 @@ private:
 	ActionPaintPrivateHandle private_;
 
 public:
-	static Core::ActionHandle Create( const PaintInfo& paint_info );
-	
 	static void Dispatch( Core::ActionContextHandle context, const PaintInfo& paint_info );
 };
 

@@ -52,7 +52,7 @@ public:
 	ActionConnectedComponentSizeFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
+		this->add_parameters( this->target_layer_, this->log_scale_ );
 	}
 	
 	virtual ~ActionConnectedComponentSizeFilter()
@@ -67,8 +67,8 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< bool > log_scale_;
+	std::string target_layer_;
+	bool log_scale_;
 
 	// -- Dispatch this action from the interface --
 public:

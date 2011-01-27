@@ -26,43 +26,56 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_UNDOBUFFER_ACTIONS_ACTIONREDO_H
-#define APPLICATION_UNDOBUFFER_ACTIONS_ACTIONREDO_H
+#include <Core/Utils/Variant.h>
 
-#include <Core/Action/Actions.h>
-
-namespace Seg3D
+namespace Core
 {
 
-class ActionRedo : public Core::Action
+VariantBase::~VariantBase()
 {
-	
-CORE_ACTION(
-	CORE_ACTION_TYPE( "Redo", "Redo a layer action.")
-	CORE_ACTION_CHANGES_PROJECT_DATA()
-)
+}
 
-	// -- Constructor/Destructor --
-public:
-	ActionRedo()
+Variant::Variant()
+{
+}
+
+Variant::~Variant()
+{
+}
+
+std::string Variant::export_to_string() const
+{
+	// Export a value that is still typed or has been convereted to a string
+	// if typed_value exist, we need to convert it
+	if ( this->typed_value_.get() )
 	{
+		return this->typed_value_->export_to_string();
 	}
-
-	virtual ~ActionRedo()
+	else
 	{
+		// in case typed_value does not exist it must be recorded as a string
+		return this->string_value_;
 	}
+}
 
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
-public:
-	// DISPATCH:
-	// Dispatch an action that activates a layer
-	static void Dispatch( Core::ActionContextHandle context );
-};
+bool Variant::import_from_string( const std::string& str )
+{
+	// As we do not know the implied type. It can only be recorded as a string
+	this->typed_value_.reset();
+	this->string_value_ = str;
 
-} // end namespace Seg3D
+	return true;
+}
 
-#endif
+std::string ExportToString( const Variant& variant )
+{
+	return variant.export_to_string();
+}
+
+
+bool ImportFromString( const std::string& str, Variant& variant )
+{
+	return variant.import_from_string( str );
+}
+
+} // namespace Core

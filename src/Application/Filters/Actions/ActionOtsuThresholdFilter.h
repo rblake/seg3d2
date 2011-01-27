@@ -52,10 +52,7 @@ public:
 	ActionOtsuThresholdFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->amount_ );
+		this->add_parameters( this->target_layer_, this->amount_ );
 	}
 	
 	virtual ~ActionOtsuThresholdFilter()
@@ -70,12 +67,11 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< int > amount_;
+	std::string target_layer_;
+	int amount_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 

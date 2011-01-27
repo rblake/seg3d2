@@ -52,7 +52,7 @@ bool ActionFillHolesFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existence and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::MASK_E, error ) )
 	{
 		context->report_error( error );
@@ -61,7 +61,7 @@ bool ActionFillHolesFilter::validate( Core::ActionContextHandle& context )
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
 		notifier ) )
 	{
 		context->report_need_resource( notifier );
@@ -396,14 +396,14 @@ bool ActionFillHolesFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<FillHolesFilterAlgo> algo( new FillHolesFilterAlgo );
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
 	
-	algo->seeds_ = this->seeds_.value();
+	algo->seeds_ = this->seeds_;
 	
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -438,9 +438,9 @@ void ActionFillHolesFilter::Dispatch( Core::ActionContextHandle context,
 	ActionFillHolesFilter* action = new ActionFillHolesFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->seeds_.value() = seeds;
-	action->replace_.value() = replace;
+	action->target_layer_ = target_layer;
+	action->seeds_ = seeds;
+	action->replace_ = replace;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

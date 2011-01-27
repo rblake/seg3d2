@@ -62,11 +62,6 @@ public:
 	
 	// -- Dispatch this action from the interface --
 public:
-	
-	// CREATE:
-	// Create an action that saves the preferences
-	static Core::ActionHandle Create();
-	
 	// DISPATCH:
 	// Dispatch an action that saves the preferences
 	static void Dispatch( Core::ActionContextHandle context );

@@ -46,11 +46,11 @@ namespace Seg3D
 bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 {
 	std::string extension = "";
-	boost::filesystem::path full_filename( this->project_path_.value() );
+	boost::filesystem::path full_filename( this->project_path_ );
 	extension = boost::filesystem::extension( full_filename );
 	if( extension == ".s3d" )
 	{
-		this->project_path_.value() = full_filename.parent_path().string();
+		this->project_path_ = full_filename.parent_path().string();
 	}
 	else
 	{
@@ -59,7 +59,7 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 	
 	if ( !( boost::filesystem::exists ( full_filename ) ) )
 	{
-		context->report_error( std::string( "File '" ) + this->project_path_.value() +
+		context->report_error( std::string( "File '" ) + this->project_path_ +
 			"' does not exist." );
 		return false;
 	}
@@ -70,7 +70,7 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 bool ActionLoadProject::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	boost::filesystem::path full_filename( project_path_.value() );
+	boost::filesystem::path full_filename( project_path_ );
 	std::string message = std::string("Please wait, while loading project '") + 
 		full_filename.leaf() + std::string("' ...");
 
@@ -79,7 +79,7 @@ bool ActionLoadProject::run( Core::ActionContextHandle& context,
 
 	progress->begin_progress_reporting();
 
-	ProjectManager::Instance()->open_project( this->project_path_.value() );
+	ProjectManager::Instance()->open_project( this->project_path_ );
 	
 	progress->end_progress_reporting();
 
@@ -94,19 +94,14 @@ bool ActionLoadProject::run( Core::ActionContextHandle& context,
 	return true;
 }
 
-Core::ActionHandle ActionLoadProject::Create( const std::string& project_path )
-{
-	ActionLoadProject* action = new ActionLoadProject;
-	
-	action->project_path_.value() = project_path;
-	
-	return Core::ActionHandle( action );
-}
-
 void ActionLoadProject::Dispatch( Core::ActionContextHandle context, 
 	const std::string& project_path )
 {
-	Core::ActionDispatcher::PostAction( Create( project_path ), context );
+	ActionLoadProject* action = new ActionLoadProject;
+	
+	action->project_path_ = project_path;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

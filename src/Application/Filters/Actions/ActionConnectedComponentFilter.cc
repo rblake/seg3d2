@@ -52,7 +52,7 @@ bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& contex
 {
 	// Check for layer existence and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::MASK_E, error ) )
 	{
 		context->report_error( error );
@@ -61,7 +61,7 @@ bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& contex
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
 		notifier ) )
 	{
 		context->report_need_resource( notifier );
@@ -70,17 +70,17 @@ bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& contex
 
 	// Check for layer existence and type information
 	bool use_mask = false;
-	if ( this->mask_.value().size() > 0 && this->mask_.value() != "<none>" )
+	if ( this->mask_.size() > 0 && this->mask_ != "<none>" )
 	{
 		std::string error;
-		if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_.value(), 
+		if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_, 
 			Core::VolumeType::MASK_E, error ) )
 		{
 			context->report_error( error );
 			return false;
 		}	
 		
-		if ( ! LayerManager::CheckLayerSize( this->mask_.value(), this->target_layer_.value(),
+		if ( ! LayerManager::CheckLayerSize( this->mask_, this->target_layer_,
 			error ) )
 		{
 			context->report_error( error );
@@ -89,7 +89,7 @@ bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& contex
 
 		// Check for layer availability 
 		Core::NotifierHandle notifier;
-		if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->mask_.value(), 
+		if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->mask_, 
 			notifier ) )
 		{
 			context->report_need_resource( notifier );
@@ -99,7 +99,7 @@ bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& contex
 		use_mask = true;
 	}
 
-	if ( this->seeds_.value().size() == 0 && use_mask == false )
+	if ( this->seeds_.size() == 0 && use_mask == false )
 	{
 		context->report_error( "There needs to be at least one seed point." );
 		return false;
@@ -436,21 +436,21 @@ bool ActionConnectedComponentFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<ConnectedComponentFilterAlgo> algo( new ConnectedComponentFilterAlgo );
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
+	algo->find_layer( this->target_layer_, algo->src_layer_ );
 	
-	if ( this->mask_.value().size() > 0 && this->mask_.value() != "<none>" )
+	if ( this->mask_.size() > 0 && this->mask_ != "<none>" )
 	{
-		if ( !( algo->find_layer( this->mask_.value(), algo->mask_layer_ ) ) )
+		if ( !( algo->find_layer( this->mask_, algo->mask_layer_ ) ) )
 		{
 			return false;
 		}
 		algo->lock_for_use( algo->mask_layer_ );
 	}
 	
-	algo->invert_mask_ = this->invert_mask_.value();
-	algo->seeds_ = this->seeds_.value();
+	algo->invert_mask_ = this->invert_mask_;
+	algo->seeds_ = this->seeds_;
 	
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -486,11 +486,11 @@ void ActionConnectedComponentFilter::Dispatch( Core::ActionContextHandle context
 	ActionConnectedComponentFilter* action = new ActionConnectedComponentFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->seeds_.value() = seeds;
-	action->replace_.value() = replace;
-	action->mask_.value() = mask;
-	action->invert_mask_.value() = invert_mask;
+	action->target_layer_ = target_layer;
+	action->seeds_ = seeds;
+	action->replace_ = replace;
+	action->mask_ = mask;
+	action->invert_mask_ = invert_mask;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

@@ -40,7 +40,7 @@ namespace Seg3D
 bool ActionDeleteSession::validate( Core::ActionContextHandle& context )
 {
 	if( ProjectManager::Instance()->current_project_->
-		validate_session_name( this->session_name_.value() ) )
+		validate_session_name( this->session_name_ ) )
 	{
 		return true;
 	}
@@ -52,7 +52,7 @@ bool ActionDeleteSession::run( Core::ActionContextHandle& context,
 {
 	bool success = false;
 
-	std::string message = std::string( "Deleting session: '" ) + this->session_name_.value()
+	std::string message = std::string( "Deleting session: '" ) + this->session_name_
 		+ std::string( "'" );
 
 	Core::ActionProgressHandle progress = 
@@ -60,7 +60,7 @@ bool ActionDeleteSession::run( Core::ActionContextHandle& context,
 
 	progress->begin_progress_reporting();
 
-	if( ProjectManager::Instance()->delete_project_session( this->session_name_.value() ) )
+	if( ProjectManager::Instance()->delete_project_session( this->session_name_ ) )
 	{
 		success = true;
 	}
@@ -70,19 +70,13 @@ bool ActionDeleteSession::run( Core::ActionContextHandle& context,
 	return success;
 }
 
-Core::ActionHandle ActionDeleteSession::Create( const std::string& session_name )
-{
-	ActionDeleteSession* action = new ActionDeleteSession;
-	
-	action->session_name_.value() = session_name;
-	
-	return Core::ActionHandle( action );
-}
-
 void ActionDeleteSession::Dispatch( Core::ActionContextHandle context, 
 	const std::string& session_name )
 {
-	Core::ActionDispatcher::PostAction( Create( session_name ), context );
+	ActionDeleteSession* action = new ActionDeleteSession;
+	action->session_name_ = session_name;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

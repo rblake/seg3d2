@@ -48,7 +48,7 @@ bool ActionHistogramEqualizationFilter::validate( Core::ActionContextHandle& con
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
@@ -57,29 +57,29 @@ bool ActionHistogramEqualizationFilter::validate( Core::ActionContextHandle& con
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
-		this->replace_.value(), notifier ) )
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
+		this->replace_, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
 	}
 		
 	// Check amount
-	if( this->amount_.value() < 0.0 || this->amount_.value() > 1.0 )
+	if( this->amount_ < 0.0 || this->amount_ > 1.0 )
 	{
 		context->report_error( "Equalization amount needs to be between 0.0 and 1.0." );
 		return false;
 	}
 
 	// Check bins
-	if( this->bins_.value() < 2 )
+	if( this->bins_ < 2 )
 	{
 		context->report_error( "Bins needs to be bigger than 1." );
 		return false;
 	}
 
 	// Check how many bins to ignore
-	if( this->ignore_bins_.value() < 0 )
+	if( this->ignore_bins_ < 0 )
 	{
 		context->report_error( "Number of bins to ignore needs to be bigger than or equal to 0." );
 		return false;
@@ -164,17 +164,17 @@ bool ActionHistogramEqualizationFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<HistogramEqualizationFilterAlgo> algo( new HistogramEqualizationFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->amount_ = this->amount_.value();
-	algo->bins_ = this->bins_.value();
-	algo->ignore_bins_ = this->ignore_bins_.value();
+	algo->amount_ = this->amount_;
+	algo->bins_ = this->bins_;
+	algo->ignore_bins_ = this->ignore_bins_;
 
 	// Find the handle to the layer
-	if ( !(	algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !(	algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -209,11 +209,11 @@ void ActionHistogramEqualizationFilter::Dispatch( Core::ActionContextHandle cont
 	ActionHistogramEqualizationFilter* action = new ActionHistogramEqualizationFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->replace_.value() = replace;
-	action->amount_.value() = amount;
-	action->bins_.value() = bins;
-	action->ignore_bins_.value() = ignore_bins;
+	action->target_layer_ = target_layer;
+	action->replace_ = replace;
+	action->amount_ = amount;
+	action->bins_ = bins;
+	action->ignore_bins_ = ignore_bins;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

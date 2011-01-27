@@ -51,21 +51,21 @@ bool ActionThresholdSegmentationLSFilter::validate( Core::ActionContextHandle& c
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->layer_id_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->layer_id_, 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
 		return false;
 	}
 	
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_, 
 		Core::VolumeType::MASK_E, error ) )
 	{
 		context->report_error( error );
 		return false;
 	}		
 
-	if ( ! LayerManager::CheckLayerSize( this->layer_id_.value(), this->mask_.value(), 
+	if ( ! LayerManager::CheckLayerSize( this->layer_id_, this->mask_, 
 		error ) )
 	{
 		context->report_error( error );
@@ -74,14 +74,14 @@ bool ActionThresholdSegmentationLSFilter::validate( Core::ActionContextHandle& c
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_.value(), 
+	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_, 
 		false, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
 	}
 	
-	if ( ! LayerManager::CheckLayerAvailability( this->mask_.value(), 
+	if ( ! LayerManager::CheckLayerAvailability( this->mask_, 
 		false, notifier ) )
 	{
 		context->report_need_resource( notifier );
@@ -89,7 +89,7 @@ bool ActionThresholdSegmentationLSFilter::validate( Core::ActionContextHandle& c
 	}			
 				
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->iterations_.value() < 1 )
+	if( this->iterations_ < 1 )
 	{
 		context->report_error( "The number of iterations needs to be larger than zero." );
 		return false;
@@ -262,7 +262,6 @@ public:
 	{
 		return "TSLevelSet";	
 	}	
-	
 
 private:
 
@@ -296,21 +295,21 @@ bool ActionThresholdSegmentationLSFilter::run( Core::ActionContextHandle& contex
 		new ThresholdSegmentationLSFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->iterations_ = this->iterations_.value();
-	algo->threshold_range_ = this->threshold_range_.value();
-	algo->curvature_ = this->curvature_.value();
-	algo->propagation_ = this->propagation_.value();
-	algo->edge_ = this->edge_.value();
+	algo->iterations_ = this->iterations_;
+	algo->threshold_range_ = this->threshold_range_;
+	algo->curvature_ = this->curvature_;
+	algo->propagation_ = this->propagation_;
+	algo->edge_ = this->edge_;
 	
 	algo->action_ = this->shared_from_this();
 
 	// Find the handle to the layer
-	if ( !(	algo->find_layer( this->layer_id_.value(), algo->data_layer_ ) ) )
+	if ( !(	algo->find_layer( this->layer_id_, algo->data_layer_ ) ) )
 	{
 		return false;
 	}
 
-	if ( !(	algo->find_layer( this->mask_.value(), algo->mask_layer_ ) ) )
+	if ( !(	algo->find_layer( this->mask_, algo->mask_layer_ ) ) )
 	{
 		return false;
 	}
@@ -346,13 +345,13 @@ void ActionThresholdSegmentationLSFilter::Dispatch(  Core::ActionContextHandle c
 		new ActionThresholdSegmentationLSFilter;
 
 	// Setup the parameters
-	action->layer_id_.value() = layer_id;
-	action->mask_.value() = mask;
-	action->iterations_.value() = iterations;
-	action->threshold_range_.value() = threshold_range;
-	action->curvature_.value() = curvature;
-	action->propagation_.value() = propagation;
-	action->edge_.value() = edge;
+	action->layer_id_ = layer_id;
+	action->mask_ = mask;
+	action->iterations_ = iterations;
+	action->threshold_range_ = threshold_range;
+	action->curvature_ = curvature;
+	action->propagation_ = propagation;
+	action->edge_ = edge;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

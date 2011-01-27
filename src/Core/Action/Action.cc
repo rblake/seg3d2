@@ -43,8 +43,7 @@
 namespace Core
 {
 
-Action::Action() :
-	first_key_( 0 )
+Action::Action() 
 {
 }
 
@@ -97,18 +96,9 @@ std::string Action::get_default_key_value( size_t index ) const
 	return this->get_action_info()->get_default_key_value( index );
 }
 
-size_t Action::add_argument_ptr( ActionParameterBase* param )
+void Action::add_parameter_internal( const ActionParameterBaseHandle& parameter )
 {
-	this->parameters_.push_back( param );
-	this->first_key_++;
-	return this->parameters_.size();
-}
-
-size_t Action::add_key_ptr( ActionParameterBase* param )
-{
-	param->import_from_string( this->get_default_key_value( this->parameters_.size() - this->first_key_ ) );
-	this->parameters_.push_back( param );
-	return this->parameters_.size();
+	this->parameters_.push_back( parameter );
 }
 
 void Action::clear_cache()
@@ -120,22 +110,21 @@ std::string Action::export_to_string() const
 	// Add action name to string
 	std::string command = std::string( this->get_type() ) + " ";
 
+	size_t num_arguments = this->get_action_info()->get_num_arguments();
+
 	// Loop through all the arguments and add them
-	for ( size_t j = 0; j < this->first_key_; j++ )
+	for ( size_t j = 0; j < num_arguments && j < this->parameters_.size(); j++ )
 	{
-		if ( j < this->first_key_ )
-		{
-			command += this->parameters_[ j ]->export_to_string() + " ";
-		}
+		command += this->parameters_[ j ]->export_to_string() + " ";
 	}
 	
-	for ( size_t j = this->first_key_; j < parameters_.size(); j++ )
+	for ( size_t j = num_arguments; j < this->parameters_.size(); j++ )
 	{
 		if ( parameters_[ j ] == 0 )
 		{
 			CORE_THROW_LOGICERROR( "Encountered incorrectly constructed action" );
 		}
-		command += this->get_key( j ) + "=" + this->parameters_[ j ]->export_to_string() + " ";
+		command += this->get_key( j - num_arguments ) + "=" + this->parameters_[ j ]->export_to_string() + " ";
 	}
 
 	// Return the command
@@ -167,7 +156,9 @@ bool Action::import_from_string( const std::string& action, std::string& error )
 		return false;
 	}
 
-	for ( size_t j = 0; j < this->first_key_; j++ )
+	size_t num_arguments = this->get_action_info()->get_num_arguments();
+
+	for ( size_t j = 0; j < num_arguments; j++ )
 	{
 		if ( !( Core::ScanValue( action, pos, value, error ) ) )
 		{
@@ -208,12 +199,12 @@ bool Action::import_from_string( const std::string& action, std::string& error )
 			return false;		
 		}
 
-		if ( this->parameters_[ index + this->first_key_ ] == 0 )
+		if ( this->parameters_[ index + num_arguments ] == 0 )
 		{
 			CORE_THROW_LOGICERROR( "Encountered incorrectly constructed action" );
 		}
 		
-		this->parameters_[ index + this->first_key_ ]->import_from_string( value );
+		this->parameters_[ index + num_arguments ]->import_from_string( value );
 	}
 
 	return true;

@@ -52,7 +52,7 @@ bool ActionConnectedComponentSizeFilter::validate( Core::ActionContextHandle& co
 {
 	// Check for layer existence and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::MASK_E, error ) )
 	{
 		context->report_error( error );
@@ -61,7 +61,7 @@ bool ActionConnectedComponentSizeFilter::validate( Core::ActionContextHandle& co
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
 		notifier ) )
 	{
 		context->report_need_resource( notifier );
@@ -215,7 +215,7 @@ bool ActionConnectedComponentSizeFilter::run( Core::ActionContextHandle& context
 	boost::shared_ptr<ConnectedComponentSizeFilterAlgo> algo( new ConnectedComponentSizeFilterAlgo );
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
+	algo->find_layer( this->target_layer_, algo->src_layer_ );
 	
 	// Lock the src layer, so it cannot be used else where
 	algo->lock_for_use( algo->src_layer_ );
@@ -224,7 +224,7 @@ bool ActionConnectedComponentSizeFilter::run( Core::ActionContextHandle& context
 	algo->create_and_lock_data_layer_from_layer( algo->src_layer_, algo->dst_layer_ );
 
 	// Copy the parameters
-	algo->log_scale_ = this->log_scale_.value();
+	algo->log_scale_ = this->log_scale_;
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
@@ -245,8 +245,8 @@ void ActionConnectedComponentSizeFilter::Dispatch( Core::ActionContextHandle con
 	ActionConnectedComponentSizeFilter* action = new ActionConnectedComponentSizeFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->log_scale_.value() = log_scale;
+	action->target_layer_ = target_layer;
+	action->log_scale_ = log_scale;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

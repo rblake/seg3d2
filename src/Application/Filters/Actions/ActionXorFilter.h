@@ -52,12 +52,7 @@ CORE_ACTION(
 public:
 	ActionXorFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->mask_layer_ );
-
-		// Action options
-		this->add_key( this->replace_ );		
+		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_ );		
 	}
 	
 	virtual ~ActionXorFilter()
@@ -72,13 +67,12 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::string > mask_layer_;
-	Core::ActionParameter< bool > replace_;
+	std::string target_layer_;
+	std::string mask_layer_;
+	bool replace_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 

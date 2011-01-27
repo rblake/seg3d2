@@ -51,9 +51,9 @@ namespace Seg3D
 class ActionPermutePrivate
 {
 public:
-	Core::ActionParameter< std::vector< std::string > > layer_ids_;
-	Core::ActionParameter< std::vector< int > > permutation_;
-	Core::ActionParameter< bool > replace_;
+	std::vector< std::string > layer_ids_;
+	std::vector< int > permutation_;
+	bool replace_;
 
 	Core::GridTransform output_grid_trans_;
 };
@@ -202,15 +202,13 @@ ActionPermute::ActionPermute() :
 	private_( new ActionPermutePrivate )
 {
 	// Action arguments
-	this->add_argument( this->private_->layer_ids_ );
-	this->add_argument( this->private_->permutation_ );
-
-	this->add_key( this->private_->replace_ );
+	this->add_parameters( this->private_->layer_ids_, this->private_->permutation_,
+		this->private_->replace_ );
 }
 
 bool ActionPermute::validate( Core::ActionContextHandle& context )
 {
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
 		context->report_error( "No input layers specified" );
@@ -242,14 +240,14 @@ bool ActionPermute::validate( Core::ActionContextHandle& context )
 		// Check for layer availability 
 		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_.value(), notifier ) )
+			this->private_->replace_, notifier ) )
 		{
 			context->report_need_resource( notifier );
 			return false;
 		}
 	}
 	
-	const std::vector< int >& permutation = this->private_->permutation_.value();
+	const std::vector< int >& permutation = this->private_->permutation_;
 	bool found_x = false, found_y = false, found_z = false;
 	if ( permutation.size() == 3 )
 	{
@@ -316,11 +314,11 @@ bool ActionPermute::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< PermuteAlgo > algo( new PermuteAlgo );
 
 	// Set up parameters
-	algo->permutation_ = this->private_->permutation_.value();
-	algo->replace_ = this->private_->replace_.value();
+	algo->permutation_ = this->private_->permutation_;
+	algo->replace_ = this->private_->replace_;
 
 	// Set up input and output layers
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	size_t num_of_layers = layer_ids.size();
 	algo->src_layers_.resize( num_of_layers );
 	algo->dst_layers_.resize( num_of_layers );
@@ -385,9 +383,9 @@ void ActionPermute::Dispatch( Core::ActionContextHandle context,
 							  bool replace )
 {
 	ActionPermute* action = new ActionPermute;
-	action->private_->layer_ids_.set_value( layer_ids );
-	action->private_->permutation_.set_value( permutation );
-	action->private_->replace_.set_value( replace );
+	action->private_->layer_ids_ = layer_ids;
+	action->private_->permutation_ = permutation;
+	action->private_->replace_ = replace;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

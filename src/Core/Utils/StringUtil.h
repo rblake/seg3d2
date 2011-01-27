@@ -105,19 +105,19 @@ std::string ExportToString( const std::set< int >& value );
 bool ImportFromString( const std::string& str, bool& value );
 
 bool ImportFromString( const std::string& str, char& value );
-bool ImportFromString(const std::string& str, unsigned char& value);
+bool ImportFromString( const std::string& str, unsigned char& value);
 
 bool ImportFromString( const std::string& str, short& value );
-bool ImportFromString(const std::string& str, unsigned short& value);
+bool ImportFromString( const std::string& str, unsigned short& value);
 
 bool ImportFromString( const std::string& str, int& value );
-bool ImportFromString(const std::string& str, unsigned int& value);
+bool ImportFromString( const std::string& str, unsigned int& value);
 
-bool ImportFromString(const std::string& str, long& value);
-bool ImportFromString(const std::string& str, unsigned long& value);
+bool ImportFromString( const std::string& str, long& value);
+bool ImportFromString( const std::string& str, unsigned long& value);
 
-bool ImportFromString(const std::string& str, long long& value);
-bool ImportFromString(const std::string& str, unsigned long long& value);
+bool ImportFromString( const std::string& str, long long& value);
+bool ImportFromString( const std::string& str, unsigned long long& value);
 
 bool ImportFromString( const std::string& str, float& value );
 bool ImportFromString( const std::string& str, double& value );

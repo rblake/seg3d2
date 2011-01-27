@@ -46,6 +46,7 @@ CORE_ACTION(
 	CORE_ACTION_ARGUMENT( "layer", "The name of the data layer to be exported." )
 	CORE_ACTION_ARGUMENT( "file_path", "A path, including the name of the file where the layer should be exported to." )
 	CORE_ACTION_KEY( "exporter", "", "Optional name for a specific exporter." )
+	CORE_ACTION_KEY( "extension", "", "Extension used for saving file." )
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 )
 
@@ -53,9 +54,7 @@ CORE_ACTION(
 public:
 	ActionExportLayer()
 	{
-		add_argument( this->layer_ );
-		add_argument( this->file_path_ );
-		add_key( this->exporter_ );
+		this->add_parameters( this->layer_id_ , this->file_path_, this->exporter_, this->extension_ );
 	}
 	
 	virtual ~ActionExportLayer()
@@ -82,40 +81,31 @@ public:
 	// -- Action parameters --
 private:
 	// Where the layer should be exported
-	Core::ActionParameter< std::string > file_path_;
+	std::string file_path_;
 
 	// Which type of exporter should we use
-	Core::ActionParameter< std::string > exporter_;
+	std::string exporter_;
 	
 	// the name of the layer to be exported
-	Core::ActionParameter< std::string > layer_;
+	std::string layer_id_;
+
+	// Extension for saving data
+	std::string extension_;
 	
 	// Short cut to the layer exporter that has already loaded the data if the file
 	// was read through the GUI
 	LayerExporterHandle layer_exporter_;
 	
-	std::string extension_;
 	
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE:
-	// Create action that exports a segmentation
-	static Core::ActionHandle Create( const LayerExporterHandle& exporter,
-		const std::string& file_path );
-		
-	static Core::ActionHandle Create( const std::string& layer, const std::string& file_path,
-		const std::string extension );
 
 	// DISPATCH:
-	// To avoid reading a file twice, this action has a special option, so it can take an
-	// importer that has already loaded the file. This prevents it from being read twice
-	static void Dispatch( Core::ActionContextHandle context, const LayerExporterHandle& exporter, 
-		const std::string& file_path );
-		
 	static void Dispatch( Core::ActionContextHandle context, const std::string& layer, 
 		const std::string& file_path, const std::string extension = "" );
 		
-	
+	static void Dispatch( Core::ActionContextHandle context, LayerExporterHandle exporter, 
+		const std::string& layer );	
 };
 	
 } // end namespace Seg3D

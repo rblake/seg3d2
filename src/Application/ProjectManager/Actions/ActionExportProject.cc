@@ -44,13 +44,13 @@ namespace Seg3D
 bool ActionExportProject::validate( Core::ActionContextHandle& context )
 {
 	if( !ProjectManager::Instance()->current_project_->
-		validate_session_name( this->session_name_.value() ) )
+		validate_session_name( this->session_name_ ) )
 	{
 		return false;
 	}
 	
 	boost::filesystem::path path = complete( boost::filesystem::path( 
-		this->export_path_.value().c_str(), boost::filesystem::native ) );
+		this->export_path_.c_str(), boost::filesystem::native ) );
 
 	if( !boost::filesystem::exists( path ) )
 	{
@@ -65,7 +65,7 @@ bool ActionExportProject::run( Core::ActionContextHandle& context,
 {
 	bool success = false;
 
-	std::string message = std::string( "Exporting project: '" ) + this->project_name_.value()
+	std::string message = std::string( "Exporting project: '" ) + this->project_name_
 		+ std::string( "'" );
 
 	Core::ActionProgressHandle progress = 
@@ -73,8 +73,8 @@ bool ActionExportProject::run( Core::ActionContextHandle& context,
 
 	progress->begin_progress_reporting();
 
-	if( ProjectManager::Instance()->export_project( this->export_path_.value(),
-		this->project_name_.value(), this->session_name_.value() ) )
+	if( ProjectManager::Instance()->export_project( this->export_path_,
+		this->project_name_, this->session_name_ ) )
 	{
 		success = true;
 	}
@@ -84,23 +84,17 @@ bool ActionExportProject::run( Core::ActionContextHandle& context,
 	return success;
 }
 
-Core::ActionHandle ActionExportProject::Create( const std::string& export_path, 
-	const std::string& project_name, const std::string& session_name )
-{
-	ActionExportProject* action = new ActionExportProject;
-	
-	action->export_path_.value() = export_path;
-	action->project_name_.value() = project_name;
-	action->session_name_.value() = session_name;
-	
-	return Core::ActionHandle( action );
-}
-
 void ActionExportProject::Dispatch( Core::ActionContextHandle context, 
 	const std::string& export_path, const std::string& project_name, 
 	const std::string& session_name )
 {
-	Core::ActionDispatcher::PostAction( Create( export_path, project_name, session_name ), context );
+	ActionExportProject* action = new ActionExportProject;
+	
+	action->export_path_ = export_path;
+	action->project_name_ = project_name;
+	action->session_name_ = session_name;
+	
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

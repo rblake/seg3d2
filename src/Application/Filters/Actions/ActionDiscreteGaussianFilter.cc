@@ -48,7 +48,7 @@ bool ActionDiscreteGaussianFilter::validate( Core::ActionContextHandle& context 
 {
 	// Check for layer existance and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
@@ -57,15 +57,15 @@ bool ActionDiscreteGaussianFilter::validate( Core::ActionContextHandle& context 
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
-		this->replace_.value(), notifier ) )
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
+		this->replace_, notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
 	}
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->blurring_distance_.value() < 0.0 )
+	if( this->blurring_distance_ < 0.0 )
 	{
 		context->report_error( "The blurring distance needs to be larger than zero." );
 		return false;
@@ -174,7 +174,6 @@ public:
 	{
 		return "Gaussian";	
 	}
-
 };
 
 
@@ -185,16 +184,16 @@ bool ActionDiscreteGaussianFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<DiscreteGaussianFilterAlgo> algo( new DiscreteGaussianFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->preserve_data_format_ = this->preserve_data_format_.value();
-	algo->blurring_distance_ = this->blurring_distance_.value();
+	algo->preserve_data_format_ = this->preserve_data_format_;
+	algo->blurring_distance_ = this->blurring_distance_;
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;			
 	}
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -230,10 +229,10 @@ void ActionDiscreteGaussianFilter::Dispatch( Core::ActionContextHandle context,
 	ActionDiscreteGaussianFilter* action = new ActionDiscreteGaussianFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->replace_.value() = replace;
-	action->preserve_data_format_.value() = preserve_data_format;
-	action->blurring_distance_.value() = blurring_distance;
+	action->target_layer_ = target_layer;
+	action->replace_ = replace;
+	action->preserve_data_format_ = preserve_data_format;
+	action->blurring_distance_ = blurring_distance;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

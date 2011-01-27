@@ -53,9 +53,7 @@ public:
 	ActionFillHolesFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->seeds_ );
-		this->add_key( this->replace_ );
+		this->add_parameters( this->target_layer_, this->seeds_, this->replace_ );
 	}
 	
 	virtual ~ActionFillHolesFilter()
@@ -70,9 +68,9 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::vector< Core::Point > > seeds_;
-	Core::ActionParameter< bool > replace_;
+	std::string target_layer_;
+	std::vector< Core::Point > seeds_;
+	bool replace_;
 	
 	// -- Dispatch this action from the interface --
 public:

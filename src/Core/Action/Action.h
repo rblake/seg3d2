@@ -45,8 +45,9 @@
 
 // Core includes
 #include <Core/Utils/EnumClass.h>
-#include <Core/Utils/Log.h>
 #include <Core/Utils/IntrusiveBase.h>
+#include <Core/Utils/Log.h>
+#include <Core/Utils/Variant.h>
 
 // Action includes
 #include <Core/Action/ActionInfo.h>
@@ -149,7 +150,6 @@ public:
 	//       and correct faulty input. Run on the other hand is not allowed to
 	//       change anything in the action, as it is posted to any observers
 	//       after the action is validated.
-
 	virtual bool validate( ActionContextHandle& context ) = 0;
 
 	// RUN:
@@ -159,33 +159,16 @@ public:
 	// program relies on report_done() from the context to be triggered when
 	// the asynchronous part has finished. In any other case the ActionDispatcher
 	// will issue the report_done() when run returns.
-
 	virtual bool run( ActionContextHandle& context, ActionResultHandle& result ) = 0;
+
+	// CLEAR_CACHE:
+	// Clear any objects that were given as a short cut to improve performance.
+	// NOTE: An action should not contain any persistent handles, as actions may be kept
+	// for a provenance record.
+	virtual void clear_cache();
+
 	// -- Action parameters --
-
 public:
-
-	// ADD_ARGUMENT:
-	// A argument to the action needs to be registered with the base
-	// class so we can import and export the arguments to a string.
-	// This function links the arguments of the action to an internal
-	// record of all the arguments
-	template< class ARGUMENT >
-	void add_argument( ARGUMENT& argument )
-	{
-		this->add_argument_ptr( &argument );
-	}
-
-	// ADD_KEY:
-	// A key needs to be registered with the base class
-	// so we can import and export the keys to a string.
-	// This function links the keys of the action to an internal
-	// key value pair system to records all the keys
-	template< class KEY >
-	void add_key( KEY& param )
-	{
-		this->add_key_ptr( &param );
-	}
 
 	// EXPORT_TO_STRING:
 	// Export the action command into a string, so it can stored
@@ -201,35 +184,78 @@ public:
 	// Same as function above, but without the error report
 	bool import_from_string( const std::string& action );
 
-	// CLEAR_CACHE:
-	// Clear any objects that were given as a short cut to improve performance.
-	// NOTE: An action should not contain any persistent handles, as actions may be kept
-	// for a provenance record.
-	virtual void clear_cache();
-
 	// -- functionality for setting parameter list --
 protected:
-	// Typedef for list of pointers to the actual parameters
-	typedef std::vector< ActionParameterBase* > parameter_list_type;
-	
-	// ADD_ARGUMENT_PTR:
-	size_t add_argument_ptr( ActionParameterBase* param );
+	// ADD_PARAMETER and ADD_PARAMETERS
+	template< class A >
+	void add_parameter( A& parA )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+	}
 
-	// ADD_KEY_PTR
-	size_t add_key_ptr( ActionParameterBase* param );
+	template< class A >
+	void add_parameters( A& parA )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+	}
 
-	/// GET_PARAMETER:
-	// Get the nth parameter stored in this in action. The function returns 0
-	// if the index is out of range
-	ActionParameterBase* get_parameter( size_t index );
+	template< class A, class B >
+	void add_parameters( A& parA, B& parB )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+	}
+
+	template< class A, class B, class C >
+	void add_parameters( A& parA, B& parB, C& parC )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
+	}
+
+	template< class A, class B, class C, class D >
+	void add_parameters( A& parA, B& parB, C& parC, D& parD )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
+	}
+
+	template< class A, class B, class C, class D, class E >
+	void add_parameters( A& parA, B& parB, C& parC, D& parD, E& parE )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<E>( &parE ) ) );
+	}
+
+	template< class A, class B, class C, class D, class E, class F >
+	void add_parameters( A& parA, B& parB, C& parC, D& parD, E& parE, F& parF )
+	{
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<E>( &parE ) ) );
+		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<F>( &parF ) ) );
+	}
 
 private:
+	// Typedef for list of pointers to the actual parameters
+	typedef std::vector< ActionParameterBaseHandle > parameter_list_type;
+
+	// ADD_PARAMETER_INTERNAL
+	// Add a parameter to the internal structure of the action
+	void add_parameter_internal( const ActionParameterBaseHandle& parameter );
+
 	// Vector that stores the required arguments of the action.
 	parameter_list_type parameters_;
-
-	// Which parameter is the first key
-	size_t first_key_;
 };
+
 
 // CORE_ACTION:
 // Action type should be defined at the top of each action. It renders code that

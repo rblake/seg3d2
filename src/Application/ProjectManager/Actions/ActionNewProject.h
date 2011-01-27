@@ -49,8 +49,7 @@ CORE_ACTION(
 public:
 	ActionNewProject()
 	{
-		this->add_argument( this->project_path_ );
-		this->add_argument( this->project_name_ );
+		this->add_parameters( this->project_path_, this->project_name_ );
 	}
 
 	virtual ~ActionNewProject()
@@ -65,19 +64,13 @@ public:
 private:
 
 	// This parameter contains the name of the session to be loaded
-	Core::ActionParameter< std::string > project_name_;
+	std::string project_name_;
 
 	// This parameter contains the index of the session to be loaded
-	Core::ActionParameter< std::string > project_path_;
+	std::string project_path_;
 	
 	// -- Dispatch this action from the interface --
 public:
-	
-	// CREATE:
-	// Create an action that loads a session
-	static Core::ActionHandle Create( const std::string& project_path, 
-		const std::string& project_name );
-	
 	// DISPATCH:
 	// Dispatch an action loads a session
 	static void Dispatch( Core::ActionContextHandle context, const std::string& project_path, 
@@ -86,4 +79,4 @@ public:
 
 } // end namespace Seg3D
 
-#endif  //ACTIONNEWPROJECT_H
+#endif

@@ -55,13 +55,8 @@ public:
 	ActionHistogramEqualizationFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->replace_ );		
-		this->add_key( this->amount_ );
-		this->add_key( this->bins_ );
-		this->add_key( this->ignore_bins_ );
+		this->add_parameters( this->target_layer_, this->replace_, this->amount_,
+			this->bins_, this->ignore_bins_ );
 	}
 	
 	virtual ~ActionHistogramEqualizationFilter()
@@ -76,12 +71,12 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
+	std::string target_layer_;
 
-	Core::ActionParameter< bool > replace_;	
-	Core::ActionParameter< double > amount_;
-	Core::ActionParameter< int > bins_;
-	Core::ActionParameter< int > ignore_bins_;
+	bool replace_;	
+	double amount_;
+	int bins_;
+	int ignore_bins_;
 	
 	// -- Dispatch this action from the interface --
 public:

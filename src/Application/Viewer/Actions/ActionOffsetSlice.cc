@@ -40,8 +40,8 @@ namespace Seg3D
 class ActionOffsetSlicePrivate
 {
 public:
-	Core::ActionParameter< size_t > viewer_id_;
-	Core::ActionParameter< int > offset_;
+	size_t viewer_id_;
+	int offset_;
 
 	ViewerHandle viewer_;
 
@@ -55,8 +55,7 @@ ActionOffsetSlice::ActionOffsetSlice() :
 {
 	this->private_->actual_offset_ = 0;
 
-	this->add_argument( this->private_->viewer_id_ );
-	this->add_argument( this->private_->offset_ );
+	this->add_parameters( this->private_->viewer_id_, this->private_->offset_ );
 }
 
 ActionOffsetSlice::~ActionOffsetSlice()
@@ -65,7 +64,7 @@ ActionOffsetSlice::~ActionOffsetSlice()
 
 bool ActionOffsetSlice::validate( Core::ActionContextHandle& context )
 {
-	if ( this->private_->offset_.value() == 0 )
+	if ( this->private_->offset_ == 0 )
 	{
 		context->report_error( "Offset value can not be 0" );
 		this->private_->viewer_.reset();
@@ -75,18 +74,18 @@ bool ActionOffsetSlice::validate( Core::ActionContextHandle& context )
 	if ( !this->private_->viewer_ )
 	{
 		this->private_->viewer_ = ViewerManager::Instance()->
-			get_viewer( this->private_->viewer_id_.value() );
+			get_viewer( this->private_->viewer_id_ );
 		if ( !this->private_->viewer_ )
 		{
 			context->report_error( std::string( "Invalid viewer ID " ) 
-				+ Core::ExportToString( this->private_->viewer_id_.value() ) );
+				+ Core::ExportToString( this->private_->viewer_id_ ) );
 			return false;
 		}
 
 		if ( this->private_->viewer_->is_volume_view() )
 		{
 			context->report_error( "Viewer " + Core::ExportToString( 
-				this->private_->viewer_id_.value() ) + " is in volume mode" );
+				this->private_->viewer_id_ ) + " is in volume mode" );
 			this->private_->viewer_.reset();
 			return false;
 		}
@@ -108,7 +107,7 @@ bool ActionOffsetSlice::run( Core::ActionContextHandle& context,
 	if ( this->private_->viewer_ )
 	{
 		this->private_->actual_offset_ = this->private_->viewer_->
-			offset_slice( this->private_->offset_.value() );
+			offset_slice( this->private_->offset_ );
 		this->private_->viewer_.reset();
 		return true;
 	}
@@ -116,19 +115,15 @@ bool ActionOffsetSlice::run( Core::ActionContextHandle& context,
 	return false;
 }
 
-Core::ActionHandle ActionOffsetSlice::Create( const ViewerHandle& viewer, int offset )
-{
-	ActionOffsetSlice* action = new ActionOffsetSlice;
-	action->private_->viewer_ = viewer;
-	action->private_->viewer_id_.set_value( viewer->get_viewer_id() );
-	action->private_->offset_.set_value( offset );
-	return Core::ActionHandle( action );
-}
-
 void ActionOffsetSlice::Dispatch( Core::ActionContextHandle context, 
 								 const ViewerHandle& viewer, int offset )
 {
-	Core::ActionDispatcher::PostAction( Create( viewer, offset ), context );
+	ActionOffsetSlice* action = new ActionOffsetSlice;
+	action->private_->viewer_ = viewer;
+	action->private_->viewer_id_ = viewer->get_viewer_id();
+	action->private_->offset_ = offset;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 }

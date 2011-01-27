@@ -54,14 +54,8 @@ CORE_ACTION(
 public:
 	ActionMaskDataFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->mask_layer_ );
-
-		// Action options
-		this->add_key( this->replace_ );		
-		this->add_key( this->invert_mask_ );
-		this->add_key( this->replace_with_ );
+		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_,
+			this->invert_mask_, this->replace_with_ );
 	}
 	
 	virtual ~ActionMaskDataFilter()
@@ -76,11 +70,11 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::string > mask_layer_;
-	Core::ActionParameter< bool > replace_;
-	Core::ActionParameter< bool > invert_mask_;
-	Core::ActionParameter< std::string > replace_with_;
+	std::string target_layer_;
+	std::string mask_layer_;
+	bool replace_;
+	bool invert_mask_;
+	std::string replace_with_;
 	
 	// -- Dispatch this action from the interface --
 public:

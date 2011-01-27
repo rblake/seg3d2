@@ -38,7 +38,6 @@
 #include <Core/Interface/Interface.h>
 
 
-
 namespace Seg3D
 {
 
@@ -47,6 +46,7 @@ class ActionSaveSession : public Core::Action
 	
 CORE_ACTION(
 	CORE_ACTION_TYPE( "SaveSession", "Save a new session." )
+	CORE_ACTION_ARGUMENT( "sessionname", "Name of the session to load." )
 	CORE_ACTION_KEY( "autosave", "false", "Whether this action was triggered by the autosave feature." )
 )
 
@@ -54,8 +54,7 @@ CORE_ACTION(
 public:
 	ActionSaveSession()
 	{
-		this->add_key( this->is_autosave_ );
-		this->add_argument( this->session_name_ );
+		this->add_parameters( this->session_name_, this->is_autosave_ );
 	}
 
 	virtual ~ActionSaveSession()
@@ -69,16 +68,11 @@ public:
 	
 private:
 	// This parameter contains the id of the layer
-	Core::ActionParameter< bool > is_autosave_;
-	Core::ActionParameter< std::string > session_name_;
+	bool is_autosave_;
+	std::string session_name_;
 	
 	// -- Dispatch this action from the interface --
 public:
-	
-	// CREATE:
-	// Create an action that activates a layer
-	static Core::ActionHandle Create( bool is_autosave, const std::string& session_name );
-	
 	// DISPATCH:
 	// Dispatch an action that activates a layer
 	static void Dispatch( Core::ActionContextHandle context, bool is_autosave, 
@@ -90,4 +84,4 @@ private:
 
 } // end namespace Seg3D
 
-#endif  //ACTIONSAVESESSION_H
+#endif

@@ -58,9 +58,7 @@ CORE_ACTION(
 public:
 	ActionImportLayer()
 	{
-		this->add_argument( this->filename_ );
-		this->add_key( this->mode_ );
-		this->add_key( this->importer_ );
+		this->add_parameters( this->filename_, this->mode_, this->importer_ );
 	}
 	
 	virtual ~ActionImportLayer()
@@ -88,13 +86,13 @@ public:
 private:
 
 	// The filename of the file to load
-	Core::ActionParameter< std::string > filename_;
+	std::string filename_;
 
 	// How should the file be loaded
-	Core::ActionParameter< std::string > mode_;
+	std::string mode_;
 
 	// Which type of importer should we use
-	Core::ActionParameter< std::string > importer_;
+	std::string importer_;
 
 	// Short cut to the layer importer that has already loaded the data if the file
 	// was read through the GUI

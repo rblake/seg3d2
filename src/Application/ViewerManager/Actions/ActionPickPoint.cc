@@ -37,8 +37,7 @@ namespace Seg3D
 
 ActionPickPoint::ActionPickPoint()
 {
-	this->add_argument( this->viewer_ );
-	this->add_argument( this->point_ );
+	this->add_parameters( this->viewer_, this->point_ );
 }
 
 ActionPickPoint::~ActionPickPoint()
@@ -54,28 +53,23 @@ bool ActionPickPoint::validate( Core::ActionContextHandle& context )
 bool ActionPickPoint::run( Core::ActionContextHandle& context,
 						  Core::ActionResultHandle& result )
 {
-	if ( this->viewer_.value() >= 0 )
+	if ( this->viewer_ >= 0 )
 	{
-		ViewerManager::Instance()->pick_point( static_cast< size_t >( this->viewer_.value() ),
-			this->point_.value() );
+		ViewerManager::Instance()->pick_point( static_cast< size_t >( this->viewer_ ),
+			this->point_ );
 		return true;
 	}
 	return false;
 }
 
-Core::ActionHandle ActionPickPoint::Create( size_t viewer, const Core::Point& pt )
-{
-	ActionPickPoint* action = new ActionPickPoint;
-	action->viewer_.value() = static_cast< int >( viewer );
-	action->point_.value() = pt;
-
-	return Core::ActionHandle( action );
-}
-
 void ActionPickPoint::Dispatch( Core::ActionContextHandle context, size_t viewer, 
 	const Core::Point& pt )
 {
-	Core::ActionDispatcher::PostAction( Create( viewer, pt ), context );
+	ActionPickPoint* action = new ActionPickPoint;
+	action->viewer_ = static_cast< int >( viewer );
+	action->point_ = pt;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

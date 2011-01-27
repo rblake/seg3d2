@@ -50,10 +50,7 @@ public:
 	ActionInvert()
 	{
 		// Action arguments
-		this->add_argument( this->layer_id_ );
-		
-		// Action options
-		this->add_key( this->replace_ );
+		this->add_parameters( this->layer_id_, this->replace_ );
 	}
 	
 	virtual ~ActionInvert() {}
@@ -66,8 +63,8 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > layer_id_;
-	Core::ActionParameter< bool > replace_;
+	std::string layer_id_;
+	bool replace_;
 	
 public:
 	static void Dispatch( Core::ActionContextHandle context, 

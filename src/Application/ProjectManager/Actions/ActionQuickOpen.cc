@@ -47,13 +47,11 @@ namespace Seg3D
 bool ActionQuickOpen::validate( Core::ActionContextHandle& context )
 {
 	return true;
-
 }
 
 bool ActionQuickOpen::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-
 	ProjectManager::Instance()->new_project( "", "", false );
 	if ( ProjectManager::Instance()->get_current_project() )
 	{
@@ -66,15 +64,10 @@ bool ActionQuickOpen::run( Core::ActionContextHandle& context,
 	return true;
 }
 
-Core::ActionHandle ActionQuickOpen::Create()
-{
-	ActionQuickOpen* action = new ActionQuickOpen;
-	return Core::ActionHandle( action );
-}
-
 void ActionQuickOpen::Dispatch( Core::ActionContextHandle context )
 {
-	Core::ActionDispatcher::PostAction( Create(), context );
+	ActionQuickOpen* action = new ActionQuickOpen;
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

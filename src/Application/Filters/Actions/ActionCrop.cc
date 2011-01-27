@@ -51,10 +51,10 @@ namespace Seg3D
 class ActionCropPrivate
 {
 public:
-	Core::ActionParameter< std::vector< std::string > > layer_ids_;
-	Core::ActionParameter< Core::Point > origin_;
-	Core::ActionParameter< Core::Vector > size_;
-	Core::ActionParameter< bool > replace_;
+	std::vector< std::string > layer_ids_;
+	Core::Point origin_;
+	Core::Vector size_;
+	bool replace_;
 
 	int start_x_;
 	int start_y_;
@@ -310,17 +310,13 @@ ActionCrop::ActionCrop() :
 	private_( new ActionCropPrivate )
 {
 	// Action arguments
-	this->add_argument( this->private_->layer_ids_ );
-	this->add_argument( this->private_->origin_ );
-	this->add_argument( this->private_->size_ );
-
-	// Action options
-	this->add_key( this->private_->replace_ );
+	this->add_parameters( this->private_->layer_ids_, this->private_->origin_, 
+		this->private_->size_, this->private_->replace_ );
 }
 
 bool ActionCrop::validate( Core::ActionContextHandle& context )
 {
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
 		context->report_error( "No input layers specified" );
@@ -352,15 +348,15 @@ bool ActionCrop::validate( Core::ActionContextHandle& context )
 		// Check for layer availability 
 		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_.value(), notifier ) )
+			this->private_->replace_, notifier ) )
 		{
 			context->report_need_resource( notifier );
 			return false;
 		}
 	}
 	
-	const Core::Point& origin = this->private_->origin_.value();
-	const Core::Vector& size = this->private_->size_.value();
+	const Core::Point& origin = this->private_->origin_;
+	const Core::Vector& size = this->private_->size_;
 
 	if ( size[ 0 ] < 0 || size[ 1 ] < 0 || size[ 2 ] < 0 )
 	{
@@ -425,7 +421,7 @@ bool ActionCrop::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< CropAlgo > algo( new CropAlgo );
 
 	// Set up parameters
-	algo->replace_ = this->private_->replace_.value();
+	algo->replace_ = this->private_->replace_;
 	algo->start_x_ = this->private_->start_x_;
 	algo->start_y_ = this->private_->start_y_;
 	algo->start_z_ = this->private_->start_z_;
@@ -434,7 +430,7 @@ bool ActionCrop::run( Core::ActionContextHandle& context,
 	algo->end_z_ = this->private_->end_z_;
 
 	// Set up input and output layers
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	size_t num_of_layers = layer_ids.size();
 	algo->src_layers_.resize( num_of_layers );
 	algo->dst_layers_.resize( num_of_layers );
@@ -488,10 +484,10 @@ void ActionCrop::Dispatch( Core::ActionContextHandle context,
 							  const Core::Vector& size, bool replace )
 {
 	ActionCrop* action = new ActionCrop;
-	action->private_->layer_ids_.set_value( layer_ids );
-	action->private_->origin_.set_value( origin );
-	action->private_->size_.set_value( size );
-	action->private_->replace_.set_value( replace );
+	action->private_->layer_ids_ = layer_ids;
+	action->private_->origin_ = origin;
+	action->private_->size_ = size;
+	action->private_->replace_ = replace;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

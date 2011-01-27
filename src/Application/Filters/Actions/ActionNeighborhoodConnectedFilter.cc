@@ -52,7 +52,7 @@ bool ActionNeighborhoodConnectedFilter::validate( Core::ActionContextHandle& con
 {
 	// Check for layer existence and type information
 	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
 		Core::VolumeType::DATA_E, error ) )
 	{
 		context->report_error( error );
@@ -61,14 +61,14 @@ bool ActionNeighborhoodConnectedFilter::validate( Core::ActionContextHandle& con
 	
 	// Check for layer availability 
 	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
 		notifier ) )
 	{
 		context->report_need_resource( notifier );
 		return false;
 	}
 
-	if ( this->seeds_.value().size() == 0 )
+	if ( this->seeds_.size() == 0 )
 	{
 		context->report_error( "There needs to be at least one seed point." );
 		return false;
@@ -278,7 +278,7 @@ bool ActionNeighborhoodConnectedFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<NeighborhoodConnectedFilterAlgo> algo( new NeighborhoodConnectedFilterAlgo );
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
@@ -293,7 +293,7 @@ bool ActionNeighborhoodConnectedFilter::run( Core::ActionContextHandle& context,
 	try
 	{
 		std::vector< int > index( 3 );
-		const std::vector< Core::Point > seeds = this->seeds_.value();
+		const std::vector< Core::Point > seeds = this->seeds_;
 		for ( size_t i = 0; i < seeds.size(); ++i )
 		{
 			Core::Point seed = inverse_trans * seeds[ i ];
@@ -346,8 +346,8 @@ void ActionNeighborhoodConnectedFilter::Dispatch( Core::ActionContextHandle cont
 	ActionNeighborhoodConnectedFilter* action = new ActionNeighborhoodConnectedFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->seeds_.value() = seeds;
+	action->target_layer_ = target_layer;
+	action->seeds_ = seeds;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

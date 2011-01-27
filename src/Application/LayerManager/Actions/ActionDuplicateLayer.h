@@ -53,7 +53,7 @@ CORE_ACTION(
 public:
 	ActionDuplicateLayer()
 	{
-		this->add_argument( layer_id_ );
+		this->add_parameters( this->layer_id_ );
 	}
 	
 	virtual ~ActionDuplicateLayer()
@@ -68,18 +68,10 @@ public:
 	
 private:
 	// The name of the group where the mask needs to be added
-	Core::ActionParameter< std::string > layer_id_;
+	std::string layer_id_;
 	
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE:
-	// Create an action that duplicates a certain layer
-	static Core::ActionHandle Create( const std::string& layer_id );
-
-	// CREATE:
-	// Create an action that duplicates the active layer
-	static Core::ActionHandle Create();
-	
 	// DISPATCH:
 	// Dispatch action that duplicates a certain layer
 	static void Dispatch( Core::ActionContextHandle context, const std::string& layer_id );

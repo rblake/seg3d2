@@ -60,14 +60,12 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	
-	Core::ActionParameter< double > upper_threshold_;
-	Core::ActionParameter< double > lower_threshold_;
+	std::string target_layer_;
+	double upper_threshold_;
+	double lower_threshold_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 

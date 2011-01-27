@@ -52,8 +52,7 @@ public:
 	ActionNeighborhoodConnectedFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->seeds_ );
+		this->add_parameters( this->target_layer_, this->seeds_ );
 	}
 	
 	virtual ~ActionNeighborhoodConnectedFilter()
@@ -68,8 +67,8 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::vector< Core::Point > > seeds_;
+	std::string target_layer_;
+	std::vector< Core::Point > seeds_;
 	
 	// -- Dispatch this action from the interface --
 public:

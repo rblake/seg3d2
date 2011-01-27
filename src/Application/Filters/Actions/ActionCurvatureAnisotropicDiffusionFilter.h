@@ -61,13 +61,8 @@ public:
 	ActionCurvatureAnisotropicDiffusionFilter()
 	{
 		// Action arguments
-		this->add_argument( this->layer_id_ );
-		
-		// Action options
-		this->add_key( this->preserve_data_format_ );
-		this->add_key( this->replace_ );
-		this->add_key( this->iterations_ );
-		this->add_key( this->sensitivity_ );
+		this->add_parameters( this->layer_id_, this->preserve_data_format_, this->replace_, 
+			this->iterations_, this->sensitivity_ );
 	}
 	
 	virtual ~ActionCurvatureAnisotropicDiffusionFilter()
@@ -82,11 +77,11 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > layer_id_;
-	Core::ActionParameter< bool > preserve_data_format_;
-	Core::ActionParameter< bool > replace_;
-	Core::ActionParameter< int > iterations_;
-	Core::ActionParameter< double > sensitivity_;
+	std::string layer_id_;
+	bool preserve_data_format_;
+	bool replace_;
+	int iterations_;
+	double sensitivity_;
 	
 	// -- Dispatch this action from the interface --
 public:

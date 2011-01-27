@@ -46,24 +46,22 @@ namespace Seg3D
 
 bool ActionNewProject::validate( Core::ActionContextHandle& context )
 {
-
 	return true;
-
 }
 
 bool ActionNewProject::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
 	std::string message = std::string("Please wait while project: '") + 
-		this->project_name_.value() + std::string("' is created...");
+		this->project_name_ + std::string("' is created...");
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
 
 	progress->begin_progress_reporting();
 
-	ProjectManager::Instance()->new_project( this->project_name_.value(), 
-		this->project_path_.value() );
+	ProjectManager::Instance()->new_project( this->project_name_, 
+		this->project_path_ );
 
 	progress->end_progress_reporting();
 
@@ -78,21 +76,15 @@ bool ActionNewProject::run( Core::ActionContextHandle& context,
 	return true;
 }
 
-Core::ActionHandle ActionNewProject::Create( const std::string& project_path, 
-	const std::string& project_name )
-{
-	ActionNewProject* action = new ActionNewProject;
-	
-	action->project_path_.value() = project_path;
-	action->project_name_.value() = project_name;
-	
-	return Core::ActionHandle( action );
-}
-
 void ActionNewProject::Dispatch( Core::ActionContextHandle context,
 	const std::string& project_path, const std::string& project_name )
 {
-	Core::ActionDispatcher::PostAction( Create( project_path, project_name ), context );
+	ActionNewProject* action = new ActionNewProject;
+	
+	action->project_path_ = project_path;
+	action->project_name_ = project_name;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

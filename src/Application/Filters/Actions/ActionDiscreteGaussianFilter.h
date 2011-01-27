@@ -55,14 +55,8 @@ CORE_ACTION(
 public:
 	ActionDiscreteGaussianFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->replace_ );
-		this->add_key( this->preserve_data_format_ );
-		
-		this->add_key( this->blurring_distance_ );
+		this->add_parameters( this->target_layer_, this->replace_,
+			this->preserve_data_format_, this->blurring_distance_ );
 	}
 	
 	virtual ~ActionDiscreteGaussianFilter()
@@ -77,15 +71,13 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< bool > replace_;
-	Core::ActionParameter< bool > preserve_data_format_;
-	
-	Core::ActionParameter< double > blurring_distance_;
+	std::string target_layer_;
+	bool replace_;
+	bool preserve_data_format_;
+	double blurring_distance_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, std::string target_layer, bool replace,

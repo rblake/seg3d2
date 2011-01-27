@@ -44,50 +44,59 @@ namespace Seg3D
 
 bool ActionDeleteLayers::validate( Core::ActionContextHandle& context )
 {
-	if( this->layers_.value() != "" )
+	if( this->layers_ != "" )
 	{
-		this->layers_vector_ = Core::SplitString( this->layers_.value(), "|" );
+		std::vector< std::string > layer_vector;
+		layer_vector = Core::SplitString( this->layers_, "|" );
+	
+		for ( size_t j = 0; j < layer_vector.size(); j++ )
+		{	
+			std::string error;
+			if ( !( LayerManager::CheckLayerExistance( layer_vector[ j ],  error ) ) )
+			{
+				context->report_error( error );
+				return false;
+			}
+		}
+		
+		if( layer_vector.size() ) return true;
 	}
 	
-	if( this->layers_vector_.size() == 0 ) return false;
-
-	return true; // validated
+	context->report_error( "No valid layer ids can be found in the layerid input." );
+	return false; 
 }
 
 bool ActionDeleteLayers::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
+	std::vector< std::string > layer_vector;
+	layer_vector = Core::SplitString( this->layers_, "|" );
+		
 	// Create an undo item for this action
 	LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Delete layer(s)" ) );
 	// Tell which action has to be re-executed to obtain the result
 	item->set_redo_action( this->shared_from_this() );
 	// Tell which layers are to be deleted so they can be added back 
-	for ( size_t i = 0; i < this->layers_vector_.size(); ++i )
+	for ( size_t i = 0; i < layer_vector.size(); ++i )
 	{
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( this->layers_vector_[ i ] );
+		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_vector[ i ] );
 		layer->abort_signal_();
 		item->add_layer_to_add( layer );
 	}
 	// Add the complete record to the undo buffer
 	UndoBuffer::Instance()->insert_undo_item( context, item );
 
-	LayerManager::Instance()->delete_layers( this->layers_vector_ );
+	LayerManager::Instance()->delete_layers( layer_vector );
 	
 	return true;
 }
 
-Core::ActionHandle ActionDeleteLayers::Create( std::vector< std::string > layers )
-{
-	ActionDeleteLayers* action = new ActionDeleteLayers;
-	action->layers_vector_ = layers;
-
-	return Core::ActionHandle( action );
-}
-
-
 void ActionDeleteLayers::Dispatch( Core::ActionContextHandle context, std::vector< std::string > layers )
 {
-	Core::ActionDispatcher::PostAction( Create( layers ), context );
+	ActionDeleteLayers* action = new ActionDeleteLayers;
+	action->layers_ = Core::ExportToString( layers );
+	
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

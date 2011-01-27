@@ -47,7 +47,7 @@ CORE_ACTION(
 public:
 	ActionCloseTool()
 	{
-		this->add_argument( this->toolid_ );
+		this->add_parameter( this->toolid_ );
 	}
 
 	virtual ~ActionCloseTool()
@@ -61,14 +61,10 @@ public:
 
 	// -- Action parameters --
 private:
-	Core::ActionParameter< std::string > toolid_;
+	std::string toolid_;
 
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE
-	// Create action that closes a tool
-	static Core::ActionHandle Create( const std::string& toolid );
-
 	// DISPATCH
 	// Create and dispatch action that closes a tool
 	static void Dispatch( Core::ActionContextHandle context, const std::string& toolid );

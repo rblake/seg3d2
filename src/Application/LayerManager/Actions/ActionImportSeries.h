@@ -58,9 +58,7 @@ CORE_ACTION(
 public:
 	ActionImportSeries()
 	{
-		this->add_argument( this->filename_ );
-		this->add_key( this->mode_ );
-		this->add_key( this->importer_ );
+		this->add_parameters( this->filename_, this->mode_, this->importer_ );
 	}
 	
 	virtual ~ActionImportSeries()
@@ -88,13 +86,13 @@ public:
 private:
 
 	// The filename of the file to load
-	Core::ActionParameter< std::string > filename_;
+	std::string filename_;
 
 	// How should the file be loaded
-	Core::ActionParameter< std::string > mode_;
+	std::string mode_;
 
 	// Which type of importer should we use
-	Core::ActionParameter< std::string > importer_;
+	std::string importer_;
 
 	// Short cut to the layer importer that has already loaded the data if the file
 	// was read through the GUI
@@ -102,15 +100,6 @@ private:
 	
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE:
-	// Create action that imports a layer
-	static Core::ActionHandle Create( const std::string& filename, const std::string& mode = "data",
-		const std::string importer = "" );
-
-	// CREATE:
-	// Create action that imports a layer
-	static Core::ActionHandle Create( const LayerImporterHandle& importer, LayerImporterMode mode );
-	
 	// DISPATCH:
 	// Create and dispatch action that moves the layer above 
 	static void Dispatch( Core::ActionContextHandle context, const std::string& filename, 
