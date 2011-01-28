@@ -762,13 +762,18 @@ bool Renderer::render()
 		// We have got everything we want from the state engine, unlock before we do any rendering
 		state_lock.unlock();
 
+		double znear, zfar;
+		view3d.compute_clipping_planes( bbox, znear, zfar );
+		// If the scene is completely behind the camera, no need to render
+		if ( zfar < 0 )
+		{
+			return true;
+		}
+
 		glEnable( GL_DEPTH_TEST );
 		glEnable( GL_BLEND );
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-		double znear, zfar;
-		view3d.compute_clipping_planes( bbox, znear, zfar );
-		
 		gluPerspective( view3d.fov(), this->width_ / ( 1.0 * this->height_ ), znear, zfar );
 		glMatrixMode( GL_MODELVIEW );
 		glLoadIdentity();
@@ -801,6 +806,8 @@ bool Renderer::render()
 			glPopMatrix();
 		}
 
+		CORE_CHECK_OPENGL_ERROR();
+		
 		if ( draw_slices )
 		{
 			this->private_->slice_shader_->enable();
@@ -808,6 +815,7 @@ bool Renderer::render()
 			this->private_->slice_shader_->set_fog( with_fog );
 			this->private_->draw_slices_3d( bbox, layer_scenes, depths, view_modes );
 			this->private_->slice_shader_->disable();
+			CORE_CHECK_OPENGL_ERROR();
 		}
 
 		if ( draw_isosurfaces)
@@ -817,6 +825,7 @@ bool Renderer::render()
 			this->private_->isosurface_shader_->set_fog( with_fog );
 			this->private_->draw_isosurfaces( isosurfaces );
 			this->private_->isosurface_shader_->disable();
+			CORE_CHECK_OPENGL_ERROR();
 		}
 
 		if ( draw_bbox )
@@ -884,6 +893,7 @@ bool Renderer::render()
 		glMultMatrixd( proj_mat.data() );
 		glMatrixMode( GL_MODELVIEW );
 		glLoadIdentity();
+		CORE_CHECK_OPENGL_ERROR();
 
 		this->private_->slice_shader_->enable();
 		this->private_->slice_shader_->set_lighting( false );
@@ -893,6 +903,7 @@ bool Renderer::render()
 		{
 			this->private_->draw_slice( ( *layer_scene )[ layer_num ], proj_mat );
 		} 
+		CORE_CHECK_OPENGL_ERROR();
 
 		this->private_->slice_shader_->disable();
 		glDisable( GL_BLEND );

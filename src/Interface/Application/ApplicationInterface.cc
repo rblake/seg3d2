@@ -110,6 +110,8 @@ namespace Seg3D
 		QPointer< Menu > menu_;
 		QPointer< StatusBarWidget > status_bar_;
 		
+		QPointer< QWidget > focused_item_; 
+		
 		bool critical_message_active_;
 	
 	};
@@ -281,8 +283,7 @@ void ApplicationInterface::closeEvent( QCloseEvent* event )
 	// We are going to save the PreferencesManager when we exit
 	ActionSavePreferences::Dispatch( Core::Interface::GetWidgetActionContext() );
 	
-	if ( ProjectManager::Instance()->current_project_->is_valid() && 
-		ProjectManager::Instance()->current_project_->check_project_changed() )
+	if ( ProjectManager::Instance()->current_project_->check_project_changed() )
 	{
 
 		// Check whether the users wants to save and whether the user wants to quit
@@ -420,6 +421,8 @@ void ApplicationInterface::set_project_name( std::string project_name )
 
 void ApplicationInterface::begin_progress( Core::ActionProgressHandle handle )
 {
+	this->private_->focused_item_ = QApplication::focusWidget();
+	
 	// Disable updates from Qt.
 	this->setUpdatesEnabled( false );
 
@@ -471,6 +474,11 @@ void ApplicationInterface::end_progress( Core::ActionProgressHandle /*handle*/ )
 	this->private_->progress_->cleanup_progress_widget();
 	
 	this->setUpdatesEnabled( true );
+	
+	if(	this->private_->focused_item_ ) // if the item still exists, give it focus.
+	{
+		this->private_->focused_item_->setFocus();
+}
 }
 
 void ApplicationInterface::report_progress( Core::ActionProgressHandle handle )
