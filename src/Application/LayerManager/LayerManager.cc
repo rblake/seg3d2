@@ -530,6 +530,26 @@ LayerHandle LayerManager::get_layer_by_id( const std::string& layer_id )
 	return LayerHandle();
 }
 
+LayerHandle LayerManager::get_layer_by_provenance_id( ProvenanceID provenance_id )
+{
+	lock_type lock( this->get_mutex() );
+
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
+		i != this->private_->group_list_.end(); ++i )
+	{
+		for( layer_list_type::iterator j = ( *i )->layer_list_.begin(); 
+			j != ( *i )->layer_list_.end(); ++j )
+		{
+			if( ( *j )->provenance_id_state_->get() == provenance_id )
+			{
+				return ( *j );
+			}
+		}
+	}
+	return LayerHandle();
+}
+
+
 DataLayerHandle LayerManager::get_data_layer_by_id( const std::string& layer_id )
 {
 	return boost::dynamic_pointer_cast<DataLayer>( get_layer_by_id( layer_id ) );

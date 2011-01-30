@@ -221,12 +221,16 @@ void Layer::initialize_states( const std::string& name, bool creating )
 
 	// == Selected by the LayerGroup ==
 	this->add_state( "selected", selected_state_, false );
+	this->selected_state_->set_is_project_data( false );
 
 	// == The generation number of the data, or -1 if there is no data ==
 	this->add_state( "generation", this->generation_state_, -1 );
 
 	// == The generation number of the data, or -1 if there is no data ==
 	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
+	
+	// == The meta data id that records which meta data set applies to the data ==
+	this->add_state( "meta_data_id", this->meta_data_id_state_, -1 );
 	
 	// == The layer state indicating whether data is bein processed ==
 	this->add_state( "data", this->data_state_,  creating ? CREATING_C : AVAILABLE_C  , 

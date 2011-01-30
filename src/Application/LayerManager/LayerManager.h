@@ -113,6 +113,10 @@ public:
 	// this function returns a handle to a layer with the name that is passed
 	LayerHandle get_layer_by_name( const std::string& layer_name );
 
+	// GET_LAYER_BY_PROVENANCE_ID:
+	// this function returns a handle to a layer with the provenance id that was given
+	LayerHandle get_layer_by_provenance_id( ProvenanceID provenance_id );
+
 	// GET_DATA_LAYER_BY_ID:
 	// this function returns a handle to the layer with the id that is passed
 	DataLayerHandle get_data_layer_by_id( const std::string& layer_id );
