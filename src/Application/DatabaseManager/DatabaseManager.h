@@ -26,55 +26,63 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROVENANCE_PROVENANCESTEP_H
-#define APPLICATION_PROVENANCE_PROVENANCESTEP_H
+#ifndef APPLICATION_DATABASEMANAGER_DATABASEMANAGER_H
+#define APPLICATION_DATABASEMANAGER_DATABASEMANAGER_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
-#pragma once
-#endif
+# pragma once
+#endif 
+
+#include <map>
+
+// Boost includes
+#include <boost/filesystem.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/any.hpp>
+
+// Sqlite includes
+#include <Externals/sqlite/sqlite3.h>
+
 
 namespace Seg3D
 {
 
-// PROVENANCEID:
-// The full provenance database is organized by provenance IDs. These are ids are unique numbers
-// used in the provenance database to store provenance records.
-typedef long long ProvenanceID;
-typedef std::vector<ProvenanceID> ProvenanceIDList;
+typedef std::vector< std::map< std::string, boost::any > > ResultSet;
 
-// GENERATEPROVENANCEID:
-// Generate a new provenance ID
-ProvenanceID GenerateProvenanceID();
+// Forward declaration
+class DatabaseManagerPrivate;
 
-// GETPROVENANCECOUNT:
-// Retrieve the current value from the provenance counter
-ProvenanceID GetProvenanceCount();
-
-// SETPROVENANCECOUNT:
-// Set the current value of the provenance counter
-void SetProvenanceCount( ProvenanceID count );
-
-class ProvenanceStepPrivate;
-
-class ProvenanceStep
+// Class definition
+class DatabaseManager 
 {
-
+	// -- Constructor/Destructor --
 public:
-	ProvenanceStep( const ProvenanceIDList& inputs, const std::string& action );
-	virtual ~ProvenanceStep();
+	DatabaseManager();
+	virtual ~DatabaseManager();
 	
 public:
-	ProvenanceID get_provenance_id() const;
-	std::string get_action() const;
-	std::string get_user() const;
-	bool get_inputs( ProvenanceIDList& provenance_vector ) const;
-	void set_inputs(  ProvenanceIDList inputs  );
+	bool initialize_database( const boost::filesystem::path& database_path, 
+		const std::vector< std::string > database_create_tables_statements );
+		
+	bool database_query( const std::string& sql_query, ResultSet& results );
+		
+	bool database_query_no_return( const std::string& sql_query );
+		
+	bool database_checkpoint();
+	
+	std::string get_error();
+	
+	void close_database();
+	
+private:
+	bool load_or_save_database( bool is_save );
 
 private:
-	boost::shared_ptr< ProvenanceStepPrivate > private_;
+	boost::shared_ptr< DatabaseManagerPrivate > private_;
 
 };
 
-} // end namespace Seg3D
+} // end namespace seg3d
 
-#endif //APPLICATION_PROVENANCE_PROVENANCESTEP_H
+#endif
+

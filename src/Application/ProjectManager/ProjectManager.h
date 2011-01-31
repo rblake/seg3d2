@@ -62,7 +62,7 @@ class ProjectManager;
 class RecentProject
 {
 public:
-	RecentProject( std::string name, std::string path, std::string date, std::string id ) :
+	RecentProject( std::string name, std::string path, std::string date, int id ) :
 		name_( name ),
 		path_( path ),
 		date_( date ),
@@ -78,11 +78,11 @@ public:
 	std::string name_;
 	std::string path_;
 	std::string date_;
-	std::string id_;
+	int id_;
 };	
 
 // Class definition
-class ProjectManager : public Core::StateHandler, public Core::RecursiveLockable 
+class ProjectManager : public Core::StateHandler, public Core::RecursiveLockable, private DatabaseManager 
 {
 	CORE_SINGLETON( ProjectManager );
 
@@ -221,7 +221,7 @@ private:
 	bool delete_recent_projects_entry( const std::string& project_name, 
 		const std::string& project_path, const std::string& project_date );
 		
-	
+	void checkpoint_recent_projects_database();
 
 private:
 	boost::posix_time::ptime			last_saved_session_time_stamp_;

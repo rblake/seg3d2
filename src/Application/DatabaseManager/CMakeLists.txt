@@ -31,29 +31,15 @@
 # Set sources
 ##################################################
 
-SET(APPLICATION_PROJECT_SRCS
-  Project.h
-  Project.cc
-  DataManager.h
-  DataManager.cc
-)
+SET(APPLICATION_DATABASEMANAGER_SRCS
+  DatabaseManager.h
+  DatabaseManager.cc
+  )
 
-SET(APPLICATION_PROJECT_ACTIONS_SRCS
-)
-
-CORE_ADD_LIBRARY(Application_Project ${APPLICATION_PROJECT_SRCS}
-            ${APPLICATION_PROJECT_ACTIONS_SRCS} )
+CORE_ADD_LIBRARY(Application_DatabaseManager ${APPLICATION_DATABASEMANAGER_SRCS} )
             
-TARGET_LINK_LIBRARIES(Application_Project
-                      Core_Action
-                      Core_State
-                      Core_Utils
+TARGET_LINK_LIBRARIES(Application_DatabaseManager
                       Core_Application
-                      Core_Interface
-					  Application_Session
-                      Application_InterfaceManager
-		              Application_LayerManager
-		              Application_Provenance
-                      ${SCI_BOOST_LIBRARY}
-                      ${SCI_SQLITE_LIBRARY})
-                    
+                      Core_Utils
+                      ${SCI_BOOST_LIBRARY})
+

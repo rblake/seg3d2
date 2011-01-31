@@ -45,9 +45,11 @@
 // Sqlite includes
 #include <Externals/sqlite/sqlite3.h>
 
-// Application indludes
+// Application includes
+#include <Application/Provenance/Provenance.h>
 #include <Application/Session/Session.h>
 #include <Application/Project/DataManager.h>
+#include <Application/DatabaseManager/DatabaseManager.h>
 
 
 // Core includes
@@ -67,7 +69,7 @@ class Project;
 typedef boost::shared_ptr< Project > ProjectHandle;
 
 // Class definition
-class Project : public Core::StateHandler, public Core::RecursiveLockable 
+class Project : public Core::StateHandler, public Core::RecursiveLockable, private DatabaseManager 
 {
 
 	// -- constructor/destructor --
@@ -164,11 +166,9 @@ private:
 	// this function cleans up sessions in the session list that have been deleted by the user
 	void cleanup_session_list();
 	
-	void add_to_provenance_database( Core::ActionHandle action, Core::ActionResultHandle result );
-	
-	// CHECK_DATABASE:
-	// temporary function that shows the contents of the database
-	void check_database();
+	// ADD_TO_PROVENANCE_DATABASE:
+	// adds the provenance step to the database
+	bool add_to_provenance_database( ProvenanceStep& step );
 	
 public:
 	// SET_PROJECT_CHANGED:
@@ -183,7 +183,11 @@ public:
 	// this creates the provenance database
 	bool create_database_scheme();
 	
-	bool register_action_in_database( Core::ActionHandle action );
+	bool register_action_in_database( Core::ActionHandle action, Core::ActionResultHandle result );
+	
+	void close_provenance_database();
+	
+	void checkpoint_provenance_database();
 	
 private:
 	// Session current using
@@ -200,6 +204,12 @@ private:
 	
 	// The provenance database
 	sqlite3* provenance_database_;
+	
+	bool database_initialized_;
+	
+	int action_count_;
+	
+	std::string last_action_inserted_;
 	
 };
 

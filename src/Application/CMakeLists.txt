@@ -27,6 +27,7 @@
 #
 
 
+ADD_SUBDIRECTORY(DatabaseManager)
 ADD_SUBDIRECTORY(Filters)
 ADD_SUBDIRECTORY(InterfaceManager)
 ADD_SUBDIRECTORY(Layer)

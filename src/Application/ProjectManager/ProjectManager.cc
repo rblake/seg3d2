@@ -91,10 +91,8 @@ ProjectManager::ProjectManager() :
 	}
 	
 	// Here we check to see if the recent projects database exists, otherwise we create it
-	if( !boost::filesystem::exists( this->recent_projects_database_path_ ) )
-	{
-		this->create_database_scheme();
-	}
+	this->create_database_scheme();
+
 	
 	// Here we clean out any projects that dont exist where we think they should
 	this->cleanup_recent_projects_database();
@@ -102,10 +100,6 @@ ProjectManager::ProjectManager() :
 	this->set_initializing( false );
 		
 	this->current_project_ = ProjectHandle( new Project( "untitled_project" ) );
-
-// 	// Connect the signals from the LayerManager to the GUI
-// 	this->add_connection( this->current_project_->project_name_state_->value_changed_signal_.connect( 
-// 		boost::bind( &ProjectManager::rename_project, this, _1, _2 ) ) );
 	
 	this->set_last_saved_session_time_stamp();
 	
@@ -148,94 +142,10 @@ void ProjectManager::save_projectmanager_state()
 	stateio.initialize();
 	this->save_states( stateio );
 	stateio.export_to_file( this->local_projectmanager_path_ );
+	this->checkpoint_recent_projects_database();
+	this->current_project_->checkpoint_provenance_database();
 }
 	
-
-// void ProjectManager::rename_project( const std::string& new_name, Core::ActionSource source )
-// {
-// 
-// 	// If this is the first time the name has been set, then we set it, and return
-// 	if( !this->current_project_->is_valid() )
-// 	{
-// 		this->current_project_->set_valid( true );
-// 		return;
-// 	}
-// 
-// 	// return if rename gets called while we are in the middle of changing a project
-// 	if( changing_projects_ )
-// 	{
-// 		return;
-// 	}
-// 	
-// 	std::vector< std::string > old_name_vector = 
-// 		Core::SplitString( this->recent_projects_state_->get()[ 0 ], "|" );
-// 	
-// 	// If the vector made from the old name, is less than 2, then we return
-// 	if( old_name_vector.size() < 2 )
-// 		return;
-// 
-// 	std::string old_name = old_name_vector[ 1 ];
-// 
-// 	// If the new name is the same as the old name we return
-// 	if( old_name == new_name )
-// 		return;
-// 	
-// 	// If the old name is empty then something is wrong and we return
-// 	if( old_name == "" )
-// 	{
-// 		return;
-// 	}
-// 	
-// 	boost::filesystem::path path = complete( boost::filesystem::path( this->
-// 		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
-// 	try
-// 	{
-// 		boost::filesystem::rename( ( path / old_name ), ( path / new_name ) );
-// 		boost::filesystem::rename( ( path / new_name / ( old_name + ".s3d" ) ), 
-// 			( path / new_name / ( new_name + ".s3d" ) ) );
-// 	}
-// 	catch ( std::exception& e ) 
-// 	{
-// 		CORE_LOG_ERROR( e.what() );
-// 	}
-// 	
-// 	this->current_project_->project_name_state_->set( new_name );
-// 	
-// 	std::vector< std::string > temp_projects_vector = this->recent_projects_state_->get();
-// 
-// 	// first we are going to remove this project from the list if its in there.
-// 	for( size_t i = 0; i < temp_projects_vector.size(); ++i )
-// 	{
-// 		if( temp_projects_vector[ i ] != "" )
-// 		{
-// 			std::string from_project_list = ( ( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 0 ] 
-// 				+ "|" + ( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 1 ] );
-// 			std::string from_path_and_name = ( path.string() + "|" + old_name );
-// 			
-// 			if( from_project_list == from_path_and_name )
-// 			{
-// 				temp_projects_vector.erase( temp_projects_vector.begin() + i );
-// 			}
-// 		}
-// 	}
-// 	this->recent_projects_state_->set( temp_projects_vector );
-// 	
-// 	if( this->save_project_only( this->current_project_path_state_->get(), new_name ) )
-// 	{
-// 		this->add_to_recent_projects( this->current_project_path_state_->get(), new_name );
-// 		
-// 		//this->current_project_->set_project_path( path / new_name );
-// 		this->set_project_path( path / new_name );
-// 
-// 		CORE_LOG_SUCCESS( "The project name has been successfully changed to: '" + new_name  + "'" );
-// 	}
-// 	else
-// 	{
-// 		CORE_LOG_ERROR(  
-// 			"There has been a problem setting the name of the project to: '" + new_name  + "'" );
-// 	}
-// 	
-// }
 
 void ProjectManager::new_project( const std::string& project_name, const std::string& project_path, 
 	bool save_on_creation )
@@ -271,16 +181,16 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 			boost::filesystem::path path = project_path;
 			path = path / project_name;
 			this->set_project_path( path );
+			
+			// now lets try and setup the provenance database
+			if( !this->current_project_->create_database_scheme() )
+			{
+				CORE_LOG_ERROR( "Unable to create provenance database!" );
+			}
 			this->save_project( true );
 			this->set_last_saved_session_time_stamp();
 			AutoSave::Instance()->recompute_auto_save();
 			this->project_saved_state_->set( true );
-		}
-		
-		// now lets try and setup the provenance database
-		if( !this->current_project_->create_database_scheme() )
-		{
-			CORE_LOG_ERROR( "Unable to create provenance database!" );
 		}
 	}
 	else
@@ -335,6 +245,7 @@ bool ProjectManager::save_project( bool autosave /*= false*/, std::string sessio
 	{
 		if( this->save_project_session( autosave, session_name ) )
 		{
+			//this->current_project_->checkpoint_provenance_database();
 			if( this->save_project_only( this->current_project_path_state_->get(), 
 				this->current_project_->project_name_state_->get() ) )
 			{
@@ -377,6 +288,7 @@ bool ProjectManager::save_project( bool autosave /*= false*/, std::string sessio
 				"'Save As' as soon as possible to preserve your data." );
 		}
 	}
+	this->checkpoint_recent_projects_database();
 	return save_success;
 }
 	
@@ -628,11 +540,11 @@ bool ProjectManager::project_save_as( const std::string& export_path, const std:
 
 	this->create_project_folders( path, project_name );
 	
-	
 	if( this->project_saved_state_->get() == true )
 	{
+		this->current_project_->close_provenance_database();
 		this->save_project_only( export_path, project_name );
-		
+	
 		if( !this->current_project_->save_as( path, project_name ) ) return false;
 		this->set_project_path( path / project_name );
 		this->current_project_->project_name_state_->set( project_name );
@@ -656,6 +568,8 @@ bool ProjectManager::project_save_as( const std::string& export_path, const std:
 	
 	this->changing_projects_ = true;
 	
+	this->current_project_->create_database_scheme();
+	
 	this->add_to_recent_projects( export_path, project_name );
 	
 	return true;
@@ -667,124 +581,85 @@ bool ProjectManager::project_save_as( const std::string& export_path, const std:
 
 void ProjectManager::create_database_scheme()
 {
-	lock_type lock( this->get_mutex() );
-	if ( sqlite3_open( this->recent_projects_database_path_.string().c_str(), 
-		&this->recent_projects_database_ ) == SQLITE_OK )
+	std::string create_query = "CREATE TABLE recentprojects "
+		"(id INTEGER NOT NULL, "
+		"name VARCHAR(255) NOT NULL, "
+		"path VARCHAR(255) NOT NULL, "
+		"date VARCHAR(255) NOT NULL, "
+		"PRIMARY KEY (id));";
+		
+	std::vector< std::string > create_statements;
+	create_statements.push_back( create_query );
+	
+	if( !this->initialize_database( this->recent_projects_database_path_, create_statements ) )
 	{
-		std::string create_query = "CREATE TABLE recentprojects "
-			"(id INTEGER NOT NULL, "
-			"name VARCHAR(255) NOT NULL, "
-			"path VARCHAR(255) NOT NULL, "
-			"date VARCHAR(255) NOT NULL, "
-			"PRIMARY KEY (id));";
-
-		sqlite3_exec( this->recent_projects_database_, create_query.c_str(), NULL, 0, NULL );
-		sqlite3_close( this->recent_projects_database_ );	
+		CORE_LOG_ERROR( this->get_error() );	
 	}
 }
 
 bool ProjectManager::insert_recent_projects_entry( const std::string& project_name, 
 	const std::string& project_path, const std::string& project_date )
 {
-	lock_type lock( this->get_mutex() );
-	bool success = false;
-	if ( sqlite3_open( this->recent_projects_database_path_.string().c_str(), 
-		&this->recent_projects_database_ ) == SQLITE_OK )
-	{
-		const char* tail;
-		sqlite3_stmt* statement = NULL;
-		std::string delete_statement = "DELETE FROM recentprojects WHERE (name = ?) AND (path = ?)";
-		sqlite3_prepare_v2( this->recent_projects_database_, delete_statement.c_str(), 
-			static_cast< int >( delete_statement.size() ), &statement, &tail );
-		sqlite3_bind_text( statement, 1, project_name.c_str(), 
-			static_cast< int >( project_name.size() ), SQLITE_TRANSIENT );
-		sqlite3_bind_text( statement, 2, project_path.c_str(), 
-			static_cast< int >( project_path.size() ), SQLITE_TRANSIENT );
-		success = ( sqlite3_step( statement ) == SQLITE_DONE );
-		sqlite3_finalize( statement );
-
-		statement = NULL;
-		std::string insert_statement = "INSERT INTO recentprojects (name, path, date) VALUES(?, ?, ?)";
-		sqlite3_prepare_v2( this->recent_projects_database_, insert_statement.c_str(), 
-			static_cast< int >( insert_statement.size() ), &statement, &tail );
-		sqlite3_bind_text( statement, 1, project_name.c_str(), 
-			static_cast< int >( project_name.size() ), SQLITE_TRANSIENT );
-		sqlite3_bind_text( statement, 2, project_path.c_str(), 
-			static_cast< int >( project_path.size() ), SQLITE_TRANSIENT );
-		sqlite3_bind_text( statement, 3, project_date.c_str(), 
-			static_cast< int >( project_date.size() ), SQLITE_TRANSIENT );
-		success = ( sqlite3_step( statement ) == SQLITE_DONE );
-		sqlite3_finalize( statement );
-		sqlite3_close( this->recent_projects_database_ );
-	}
-
-	if( success )
+	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
+		+ "') AND (path = '" + project_path + "')";
+		
+	this->database_query_no_return( delete_statement );
+		
+	std::string insert_statement = "INSERT INTO recentprojects (name, path, date) "
+		"VALUES('" + project_name + "', '" + project_path + "', '" + project_date + "')";
+		
+	if( this->database_query_no_return( insert_statement ) )
 	{
 		// if we've successfully added recent projects to our database
 		// then we let everyone know things have changed.
-		this->recent_projects_changed_signal_();		
+		this->recent_projects_changed_signal_();
+		return true;		
+	}	
+	else
+	{
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
 	}
-
-	return success;
+		
 }
 
 bool ProjectManager::delete_recent_projects_entry( const std::string& project_name, 
 	const std::string& project_path, const std::string& project_date )
 {
-	lock_type lock( this->get_mutex() );
-	bool success = false;
-	if ( sqlite3_open( this->recent_projects_database_path_.string().c_str(), 
-		&this->recent_projects_database_ ) == SQLITE_OK )
-	{
-		const char* tail;
-		sqlite3_stmt* statement = NULL;
-		std::string delete_statement = 
-			"DELETE FROM recentprojects WHERE (name = ?) AND (path = ?) AND (date = ?)";
-		sqlite3_prepare_v2( this->recent_projects_database_, delete_statement.c_str(), 
-			static_cast< int >( delete_statement.size() ), &statement, &tail );
-		sqlite3_bind_text( statement, 1, project_name.c_str(), 
-			static_cast< int >( project_name.size() ), SQLITE_TRANSIENT );
-		sqlite3_bind_text( statement, 2, project_path.c_str(), 
-			static_cast< int >( project_path.size() ), SQLITE_TRANSIENT );
-		sqlite3_bind_text( statement, 3, project_date.c_str(), 
-			static_cast< int >( project_date.size() ), SQLITE_TRANSIENT );
-		success = ( sqlite3_step( statement ) == SQLITE_DONE );
-		sqlite3_finalize( statement );
-		sqlite3_close( this->recent_projects_database_ );
-	}
+	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
+		+ "') AND (path = '" + project_path + "')";
 
-	return success;
+	if( !this->database_query_no_return( delete_statement ) )
+	{
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
+	}
+	
+	return true;
 }
 
 
 bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProject >& recent_projects )
 {
-	lock_type lock( this->get_mutex() );
-	bool success = false;
-
-	if ( sqlite3_open( this->recent_projects_database_path_.string().c_str(), 
-		&this->recent_projects_database_ ) == SQLITE_OK )
+	ResultSet result_set;
+	std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC";
+	if( !this->database_query( select_statement, result_set ) )
 	{
-		const char* tail;
-		sqlite3_stmt* statement = NULL;
-		std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC";
-		sqlite3_prepare_v2( this->recent_projects_database_, select_statement.c_str(), 
-			static_cast< int >( select_statement.size() ), &statement, &tail );
-		int i = 0;
-		while ( sqlite3_step( statement ) == SQLITE_ROW )
-		{
-			recent_projects.push_back( RecentProject( 
-				std::string( (char*)sqlite3_column_text( statement, 1 ) ),
-				std::string( (char*)sqlite3_column_text( statement, 2 ) ),
-				std::string( (char*)sqlite3_column_text( statement, 3 ) ), 
-				std::string( (char*)sqlite3_column_text( statement, 0 ) ) ) );
-
-			success = true;
-		} 
-		sqlite3_finalize( statement );
-		sqlite3_close( this->recent_projects_database_ );
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
 	}
-	return success;
+	
+	for( size_t i = 0; i < result_set.size(); ++i )
+	{
+		recent_projects.push_back( RecentProject( 
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "name" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "path" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "date" ] ), 
+			boost::any_cast< int >( ( result_set[ i ] )[ "id" ] ) ) );
+	}
+	
+	return true;
+	
 
 }
 
@@ -807,5 +682,11 @@ void ProjectManager::cleanup_recent_projects_database()
 		}
 	}
 }
+
+void ProjectManager::checkpoint_recent_projects_database()
+{
+	this->database_checkpoint();
+}
+
 
 } // end namespace seg3D

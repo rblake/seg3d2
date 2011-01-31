@@ -29,8 +29,13 @@
 // Boost includes
 #include <boost/thread.hpp>
 
+// Core includes
+#include <Core/Application/Application.h>
+
 // Application includes
 #include <Application/Provenance/Provenance.h>
+
+
 
 namespace Seg3D
 {
@@ -84,6 +89,55 @@ ProvenanceID GetProvenanceCount()
 void SetProvenanceCount( ProvenanceID count )
 {
 	ProvenanceCounter.set( count );
+}
+
+class ProvenanceStepPrivate
+{
+public:
+	ProvenanceIDList inputs_;
+	std::string action_;
+	std::string user_;
+	ProvenanceID id_;	
+};
+
+
+ProvenanceStep::ProvenanceStep( const ProvenanceIDList& inputs, const std::string& action ) :
+	private_( new ProvenanceStepPrivate )
+{
+	this->private_->inputs_ = inputs;
+	this->private_->action_ = action;
+	this->private_->id_ = GenerateProvenanceID();
+	Core::Application::Instance()->get_user_name( this->private_->user_ );
+}
+
+ProvenanceStep::~ProvenanceStep()
+{
+}
+
+Seg3D::ProvenanceID ProvenanceStep::get_provenance_id() const
+{
+	return this->private_->id_;
+}
+
+std::string ProvenanceStep::get_action() const
+{
+	return this->private_->action_;
+}
+
+std::string ProvenanceStep::get_user() const
+{
+	return this->private_->user_;
+}
+
+bool ProvenanceStep::get_inputs( ProvenanceIDList& provenance_vector ) const
+{
+	provenance_vector = this->private_->inputs_;
+	return ( provenance_vector.size() > 0 );
+}
+
+void ProvenanceStep::set_inputs( ProvenanceIDList inputs )
+{
+	this->private_->inputs_ = inputs;
 }
 
 } // end namespace Seg3D
