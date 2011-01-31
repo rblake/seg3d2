@@ -26,54 +26,31 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-//Interface Includes
-#include <QtUtils/Bridge/QtBridge.h>
+#ifndef INTERFACE_TOOLINTERFACE_MeasurementToolINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_MeasurementToolINTERFACE_H
 
-//Qt Gui Includes
-#include <Interface/ToolInterface/MeasureToolInterface.h>
-#include "ui_MeasureToolInterface.h"
-
-//Application Includes
-#include <Application/Tools/MeasureTool.h>
-
-SCI_REGISTER_TOOLINTERFACE( Seg3D, MeasureToolInterface )
+// Base class of the tool widget include
+#include <Interface/Application/ToolWidget.h>
 
 namespace Seg3D
 {
 
-class MeasureToolInterfacePrivate
+class MeasurementToolInterfacePrivate;
+
+class MeasurementToolInterface : public ToolWidget
 {
+Q_OBJECT
+
+// Constructor/destructor
 public:
-	Ui::MeasureToolInterface ui_;
+	MeasurementToolInterface();
+	virtual ~MeasurementToolInterface();
+	virtual bool build_widget( QFrame* frame );
+
+private:
+    boost::shared_ptr< MeasurementToolInterfacePrivate > private_;
 };
 
-// constructor
-MeasureToolInterface::MeasureToolInterface() :
-	private_( new MeasureToolInterfacePrivate )
-{
-}
-
-// destructor
-MeasureToolInterface::~MeasureToolInterface()
-{
-}
-
-// build the interface and connect it to the state manager
-bool MeasureToolInterface::build_widget( QFrame* frame )
-{
-	//Step 1 - build the Qt GUI Widget
-	this->private_->ui_.setupUi( frame );
-
-	//Step 2 - get a pointer to the tool
-	ToolHandle base_tool_ = tool();
-	MeasureTool* tool = dynamic_cast< MeasureTool* > ( base_tool_.get() );
-	
-	//Step 3 - connect the gui to the tool through the QtBridge
-
-	//Send a message to the log that we have finished with building the Measure Tool Interface
-	CORE_LOG_MESSAGE( "Finished building an Measure Tool Interface" );
-
-	return ( true );
-} // end build_widget	
-
 } // end namespace Seg3D
+
+#endif
