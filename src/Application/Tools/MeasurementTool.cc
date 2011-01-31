@@ -27,11 +27,11 @@
  */
 
 // Application includes
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Tools/MeasurementTool.h>
-//#include <Application/Filters/Actions/ActionInvert.h>
+//#include <Application/Filters/Actions/ActionMeasure.h>
 #include <Application/Layer/Layer.h>
 #include <Application/LayerManager/LayerManager.h>
+#include <Application/Tool/ToolFactory.h>
+#include <Application/Tools/MeasurementTool.h>
 
 // Register the tool into the tool factory
 SCI_REGISTER_TOOL( Seg3D, MeasurementTool )
