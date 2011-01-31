@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,32 +26,36 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
+#ifndef INTERFACE_TOOLINTERFACE_TEXTDELEGATE_H
+#define INTERFACE_TOOLINTERFACE_TEXTDELEGATE_H
 
-// Base class of the tool widget include
-#include <Interface/Application/ToolWidget.h>
+// Qt includes
+#include <QtGui/QItemDelegate>
 
 namespace Seg3D
 {
 
-class MeasurementToolInterfacePrivate;
-typedef boost::shared_ptr< MeasurementToolInterfacePrivate > MeasurementToolInterfacePrivateHandle;
-
-class MeasurementToolInterface : public ToolWidget
+class TextDelegate : public QItemDelegate
 {
-Q_OBJECT
+	Q_OBJECT
 
-// Constructor/destructor
 public:
-	MeasurementToolInterface();
-	virtual ~MeasurementToolInterface();
-	virtual bool build_widget( QFrame* frame );
+	TextDelegate( int text_column, QObject * parent = 0 );
+
+	void paint( QPainter *painter, const QStyleOptionViewItem &option, 
+		const QModelIndex &index ) const;
+	QWidget* createEditor( QWidget *parent, const QStyleOptionViewItem &option, 
+		const QModelIndex &index ) const;
+	void setEditorData( QWidget *editor, const QModelIndex &index ) const ;
+	void setModelData( QWidget *editor, QAbstractItemModel *model, const QModelIndex &index ) const;
+
+private Q_SLOTS:
+	void commit_editor();
 
 private:
-    MeasurementToolInterfacePrivateHandle private_;
+	int text_column_;
 };
 
 } // end namespace Seg3D
 
-#endif
+#endif 
