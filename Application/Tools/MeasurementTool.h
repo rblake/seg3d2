@@ -26,28 +26,31 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_MEASURETOOL_H
-#define APPLICATION_TOOLS_MEASURETOOL_H
+#ifndef APPLICATION_TOOLS_MEASUREMENTTOOL_H
+#define APPLICATION_TOOLS_MEASUREMENTTOOL_H
 
 namespace Seg3D
 {
 
-class MeasureTool : public Tool
+class MeasurementToolPrivate;
+typedef boost::shared_ptr< MeasurementToolPrivate > MeasurementToolPrivateHandle;
+
+class MeasurementTool : public Tool
 {
 
 SEG3D_TOOL
 (
-	SEG3D_TOOL_NAME( "MeasureTool", "Tool for creating measurements in slices" )
+	SEG3D_TOOL_NAME( "MeasurementTool", "Tool for creating measurements in slices" )
 	SEG3D_TOOL_MENULABEL( "Measure" )
 	SEG3D_TOOL_MENU( "Tools" )
 	SEG3D_TOOL_SHORTCUT_KEY( "Ctrl+ALT+0" )
-	SEG3D_TOOL_URL( "http://www.sci.utah.edu/SCIRunDocs/index.php/CIBC:Seg3D2:MeasureTool:1" )
+	SEG3D_TOOL_URL( "http://www.sci.utah.edu/SCIRunDocs/index.php/CIBC:Seg3D2:MeasurementTool:1" )
 )
 
 	// -- constructor/destructor --
 public:
-	MeasureTool( const std::string& toolid );
-	virtual ~MeasureTool();
+	MeasurementTool( const std::string& toolid );
+	virtual ~MeasurementTool();
 
 	// EXECUTE:
 	// Fire off the action that executes the filter
@@ -56,6 +59,8 @@ public:
 	// -- state --
 public:
 
+private:
+	MeasurementToolPrivateHandle private_;
 };
 
 } // end namespace
