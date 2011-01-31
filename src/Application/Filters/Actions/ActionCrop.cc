@@ -316,6 +316,8 @@ ActionCrop::ActionCrop() :
 
 bool ActionCrop::validate( Core::ActionContextHandle& context )
 {
+	// TODO: This needs cleanup
+	// --JGS
 	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
@@ -346,13 +348,8 @@ bool ActionCrop::validate( Core::ActionContextHandle& context )
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			this->private_->replace_, context ) ) return false;
 	}
 	
 	const Core::Point& origin = this->private_->origin_;

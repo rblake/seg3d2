@@ -337,6 +337,8 @@ ActionArithmeticFilter::ActionArithmeticFilter() :
 
 bool ActionArithmeticFilter::validate( Core::ActionContextHandle& context )
 {
+	// TODO:
+	// This code needs cleanup
 	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
@@ -369,13 +371,8 @@ bool ActionArithmeticFilter::validate( Core::ActionContextHandle& context )
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
-		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			i == 0 && this->private_->replace_, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+		if ( ! LayerManager::CheckLayerAvailability( layer_ids[ i ], 
+			i == 0 && this->private_->replace_, context ) ) return false;
 	}
 
 	// Validate parser inputs, outputs, and expression

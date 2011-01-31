@@ -296,7 +296,6 @@ protected:
 	// this function clears out all existing layers before we load a project from file
 	virtual bool pre_load_states( const Core::StateIO& state_io );
 	
-	
 private:
 	friend class LayerManagerPrivate;
 	LayerManagerPrivateHandle private_;
@@ -318,33 +317,42 @@ public:
 	// Find a data layer inside the layer manager
 	static DataLayerHandle FindDataLayer( const std::string& layer_id );
 
+//// Functions that need to be removed ///////////
 	// FINDLAYERGROUP:
 	// Find a group inside the layer manager
+	// TODO: Need to make this one obsolete for provenance reasons everyhting will have to be
+	// done with layerid lists
+	// --JGS
 	static LayerGroupHandle FindLayerGroup( const std::string& group_id );
-
-	// CHECKLAYEREXISTANCE:
-	// Check whether a layer exists.
-	// If it does not exist, the function returns false and an error is string is returned.
-	static bool CheckLayerExistance( const std::string& layer_id, std::string& error );
 
 	// CHECKGROUPEXISTANCE:
 	// Check whether a group exists.
 	// If it does not exist, the function returns false and an error is string is returned.
+	// TODO: Need to make this one obsolete for provenance reasons everyhting will have to be
+	// done with layerid lists
+	// --JGS
 	static bool CheckGroupExistance( const std::string& layer_id, std::string& error );
+//////////////////////////////////////////////////
+
+	// CHECKLAYEREXISTANCE:
+	// Check whether a layer exists.
+	// If it does not exist, the function returns false and an error is string is returned.
+	static bool CheckLayerExistance( const std::string& layer_id, 
+		Core::ActionContextHandle context );
 	
 	// CHECKLAYEREXISTANCEANDTYPE:
 	// Check whether a layer exists and whether it is of the right type.
 	// If it does not exist or is not of the right type, the function returns false and
 	// an error is string is returned.
 	static bool CheckLayerExistanceAndType( const std::string& layer_id, Core::VolumeType type, 
-		std::string& error );
+		Core::ActionContextHandle context  );
 
 	// CHECKLAYERSIZE:
 	// Check whether a layer has the right size.
 	// If it does not have the right size, the function returns false and an error is string is 
 	// returned.	
 	static bool CheckLayerSize( const std::string& layer_id1, const std::string& layer_id2,
-		std::string& error );
+		Core::ActionContextHandle context  );
 			
 	// CHECKLAYERAVAILABILITYFORPROCESSING:
 	// Check whether a layer is available for processing, at the end of the filter the data will
@@ -352,11 +360,11 @@ public:
 	// If a layer is not available a notifier is returned that tells can be used to assess when to
 	// check for availability again. Even though the notifier may return another process may have
 	// grabbed it in the mean time. In that case a new notifier will need to be issued by rechecking
-	// availability. Only when the this function OKs the  
+	// availability. 
 	// NOTE: Availability needs to be tested to ensure that another process is not working on this
 	// this layer. 
 	static bool CheckLayerAvailabilityForProcessing( const std::string& layer_id, 
-		Core::NotifierHandle& notifier );
+		Core::ActionContextHandle context  );
 
 	// CHECKLAYERAVAILABILITYFORUSE:
 	// Check whether a layer is available for use, i.e. data is not changed but needs to remain
@@ -364,11 +372,11 @@ public:
 	// If a layer is not available a notifier is returned that tells can be used to assess when to
 	// check for availability again. Even though the notifier may return another process may have
 	// grabbed it in the mean time. In that case a new notifier will need to be issued by rechecking
-	// availability. Only when the this function OKs the  
+	// availability. 
 	// NOTE: Availability needs to be tested to ensure that another process is not working on this
 	// this layer. 
 	static bool CheckLayerAvailabilityForUse( const std::string& layer_id, 
-		Core::NotifierHandle& notifier );
+		Core::ActionContextHandle context  );
 		
 	// CHECKLAYERAVAILABILITY:
 	// Check whether a layer is available for use. This case processes both of the above cases:
@@ -377,11 +385,11 @@ public:
 	// If a layer is not available a notifier is returned that tells can be used to assess when to
 	// check for availability again. Even though the notifier may return another process may have
 	// grabbed it in the mean time. In that case a new notifier will need to be issued by rechecking
-	// availability. Only when the this function OKs the  
+	// availability.
 	// NOTE: Availability needs to be tested to ensure that another process is not working on this
 	// this layer. 
 	static bool CheckLayerAvailability( const std::string& layer_id, bool replace,
-		Core::NotifierHandle& notifier );	
+		Core::ActionContextHandle context  );	
 		
 	// == functions for creating and locking layers ==
 public:	

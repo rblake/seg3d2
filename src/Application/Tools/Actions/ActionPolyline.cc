@@ -88,11 +88,7 @@ bool ActionPolyline::validate( Core::ActionContextHandle& context )
 	// Check whether the target layer can be used for processing
 	Core::NotifierHandle notifier;
 	if ( !LayerManager::Instance()->CheckLayerAvailabilityForProcessing(
-		this->private_->target_layer_id_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->private_->target_layer_id_, context ) ) return false;
 	
 	this->private_->target_layer_ = LayerManager::FindMaskLayer( 
 		this->private_->target_layer_id_ );

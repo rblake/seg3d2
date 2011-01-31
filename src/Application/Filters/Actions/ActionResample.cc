@@ -959,21 +959,11 @@ bool ActionResample::validate( Core::ActionContextHandle& context )
 	for ( size_t i = 0; i < layer_ids.size(); ++i )
 	{
 		// Check for layer existence and type information
-		std::string error;
-		if ( !LayerManager::CheckLayerExistance( layer_ids[ i ], error ) )
-		{
-			context->report_error( error );
-			return false;
-		}
+		if ( !LayerManager::CheckLayerExistance( layer_ids[ i ], context ) ) return false;
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			this->private_->replace_, context ) ) return false;
 	}
 
 	if ( this->private_->resample_to_layer_ )

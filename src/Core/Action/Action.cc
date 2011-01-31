@@ -49,6 +49,11 @@ Action::Action()
 
 Action::~Action()
 {
+	// Clean out the parameter accessors
+	for ( size_t j = 0; j < this->parameters_.size(); j++ )
+	{
+		delete this->parameters_[ j ];
+	}
 }
 
 std::string Action::get_definition() const
@@ -96,9 +101,9 @@ std::string Action::get_default_key_value( size_t index ) const
 	return this->get_action_info()->get_default_key_value( index );
 }
 
-void Action::add_parameter_internal( const ActionParameterBaseHandle& parameter )
+bool Action::translate( ActionContextHandle& context )
 {
-	this->parameters_.push_back( parameter );
+	return true;
 }
 
 void Action::clear_cache()

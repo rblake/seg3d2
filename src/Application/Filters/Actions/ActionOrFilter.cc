@@ -48,46 +48,24 @@ namespace Seg3D
 bool ActionOrFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
 	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
-		this->replace_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->replace_, context ) ) return false;
 	
 	// Check for layer existance and type information mask layer
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_layer_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) return false;
 
 	// Check whether mask and data have the same size
 	if ( ! LayerManager::CheckLayerSize( this->mask_layer_, this->target_layer_,
-		error ) )
-	{
-		context->report_error( error );
-		return false;	
-	}
+		context ) ) return false;
 		
 	// Check for layer availability mask layer
 	if ( ! LayerManager::CheckLayerAvailability( this->mask_layer_, 
-		this->replace_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->replace_, context ) ) return false;
 	
 	// Validation successful
 	return true;

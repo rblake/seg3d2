@@ -75,8 +75,8 @@ public:
 	}
 
 public:
-	std::string path_;
 	std::string name_;
+	std::string path_;
 	std::string date_;
 	std::string id_;
 };	

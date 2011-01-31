@@ -51,54 +51,33 @@ namespace Seg3D
 bool ActionConnectedComponentFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existence and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
 	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
-		notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		context ) ) return false;
 
 	// Check for layer existence and type information
 	bool use_mask = false;
 	if ( this->mask_.size() > 0 && this->mask_ != "<none>" )
 	{
-		std::string error;
+		// Check whether the layer actually exists
 		if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_, 
-			Core::VolumeType::MASK_E, error ) )
-		{
-			context->report_error( error );
-			return false;
-		}	
+			Core::VolumeType::MASK_E, context ) ) return false;
 		
+		// Check whether the size matches the main target layer
 		if ( ! LayerManager::CheckLayerSize( this->mask_, this->target_layer_,
-			error ) )
-		{
-			context->report_error( error );
-			return false;		
-		}
+			context ) ) return false;
 
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->mask_, 
-			notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			context ) ) return false;
 		
 		use_mask = true;
 	}
 
+	// Check whether there are enogh seed points
 	if ( this->seeds_.size() == 0 && use_mask == false )
 	{
 		context->report_error( "There needs to be at least one seed point." );

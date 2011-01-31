@@ -44,100 +44,90 @@
 // Core
 #include <Core/Utils/Log.h>
 #include <Core/Utils/StringUtil.h>
+#include <Core/Action/ActionParameterType.h>
 
 namespace Core
 {
-
-// PARAMETER CLASSES
-// ACTIONPARAMETER<TYPE> and ACTIONPARAMETERVARIANT
-// These two classes are both used to store parameters the first one explicitly 
-// states the type and the second one does type conversion. The difference is
-// that for the first class type the compiler checks the type integrity and 
-// hence is the preferred model. However types are not always know up front
-// or the action is so general that the parameter is not of a specied class
-// for the latter case do we use the variant version.
-
 
 // ACTIONPARAMETERBASE:
 // Base class needed for uniform access to import and export the value
 // in a uniform way.
 
-class ActionParameterBase;
-typedef boost::shared_ptr< ActionParameterBase > ActionParameterBaseHandle;
-
 class ActionParameterBase
 {
-	// -- define handle --
-public:
-	typedef boost::shared_ptr< ActionParameterBase > Handle;
-
 	// -- destructor --
 public:
 	virtual ~ActionParameterBase();
 
 	// -- functions for accessing data --
-	// EXPORT_TO_STRING
-	// export the contents of the parameter to string
-	virtual std::string export_to_string() const = 0;
+public:
 
 	// IMPORT_FROM_STRING
-	// import a parameter from a string. The function returns true
+	// Import a parameter from a string. The function returns true
 	// if the import succeeded
 	virtual bool import_from_string( const std::string& str ) = 0;
 
+	// EXPORT_TO_STRING
+	// Export the contents of the parameter to string
+	virtual std::string export_to_string() const = 0;
+	
+	// PARAMETER_TYPE
+	// Type of the parameter if known
+	virtual int parameter_type() const = 0;
+	
 };
 
 // ACTIONPARAMETER:
 // Parameter for an action.
 
-// Forward declaration:
-template< class T > class ActionParameter;
-
 // Class definition:
 template< class T >
 class ActionParameter : public ActionParameterBase
 {
-
-	// -- define handle --
-public:
-	typedef boost::shared_ptr< ActionParameter< T > > Handle;
-
 	// -- constructor/destructor --
 public:
-	ActionParameter( T* value_ptr ) :
-	  value_ptr_( value_ptr )
-	{
-	}
-
-	virtual ~ActionParameter()
+	ActionParameter( T& parameter ) :
+	  parameter_( parameter )
 	{
 	}
 
 	// -- access to value --
 public:
 
-	// EXPORT_TO_STRING
-	// export the contents of the parameter to string
-	virtual std::string export_to_string() const
-	{
-		return ExportToString( *( this->value_ptr_ ) );
-	}
-
 	// IMPORT_FROM_STRING
 	// import a parameter from a string. The function returns true
 	// if the import succeeded
 	virtual bool import_from_string( const std::string& str )
 	{
-		return ( ImportFromString( str, *( this->value_ptr_ ) ) );
+		return ( ImportFromString( str, this->parameter_ ) );
+	}
+	
+	// EXPORT_TO_STRING
+	// export the contents of the parameter to string
+	virtual std::string export_to_string() const
+	{
+		return ExportToString( this->parameter_ );
+	}
+
+	// PARAMETER_TYPE
+	// Type of the parameter if known
+	virtual int parameter_type() const
+	{
+		return ParameterType( this->parameter_ );
+	}
+
+	// GET_PARAMETER
+	// Accessor to the reference
+	T& get_parameter()
+	{
+		return this->parameter_;
 	}
 
 private:
-	// The actual value
-	T* value_ptr_;
+	// The actual parameter (as a reference)
+	T& parameter_;
 };
 
-
 } // namespace Core
-
 
 #endif

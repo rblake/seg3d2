@@ -47,22 +47,13 @@ namespace Seg3D
 bool ActionDistanceFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, false, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
-		
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, false, 
+		context ) ) return false;
+
 	// Validation successful
 	return true;
 }

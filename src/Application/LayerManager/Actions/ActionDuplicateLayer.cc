@@ -46,20 +46,12 @@ namespace Seg3D
 bool ActionDuplicateLayer::validate( Core::ActionContextHandle& context )
 {
 	// Step (1): Check whether the layer actually exists 
-	std::string error;
-	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, error ) ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, 
+		context ) ) ) return false;
 	
 	// Step (2): Check whether the layer is available for making a copy from it
-	Core::NotifierHandle notifier;
-	if ( !LayerManager::CheckLayerAvailabilityForUse( this->layer_id_, notifier ) )
-	{
-		context->report_need_resource( notifier );
+	if ( !LayerManager::CheckLayerAvailabilityForUse( this->layer_id_, context ) )
 		return false;
-	}
 	
 	return true; // validated
 }

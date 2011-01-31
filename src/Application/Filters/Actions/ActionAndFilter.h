@@ -56,11 +56,7 @@ public:
 	{
 		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_ );		
 	}
-	
-	virtual ~ActionAndFilter()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

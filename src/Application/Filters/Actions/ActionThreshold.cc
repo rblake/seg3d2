@@ -54,22 +54,12 @@ ActionThreshold::ActionThreshold()
 bool ActionThreshold::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existence and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::DATA_E, context ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
 	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
-		notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		context ) ) return false;
 	
 	if ( this->lower_threshold_ > this->upper_threshold_ )
 	{

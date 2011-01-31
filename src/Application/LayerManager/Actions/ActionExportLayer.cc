@@ -46,12 +46,7 @@ bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 {
 	// Check whether the layer exists and is of the right type and return an
 	// error if not
-	std::string error;
-	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, error ) ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( !( LayerManager::CheckLayerExistance( this->layer_id_, context ) ) ) return false;
 
 	std::vector< LayerHandle > layer_handles;
 	

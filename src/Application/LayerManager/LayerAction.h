@@ -43,38 +43,40 @@ typedef boost::shared_ptr<LayerActionPrivate> LayerActionPrivateHandle;
 
 class LayerAction : public Core::Action
 {
-	// -- constructor / destructor
+	// -- constructor --
 public:
 	// Constructor that generates the private class
 	LayerAction();
 
-	// Virtual destructor for memory management of derived classes
-	virtual ~LayerAction();
-
+	// -- functionality for setting parameter list --
 public:
-	// VALIDATE_LAYER_ACTION:
-	// Each action needs to be validated just before it is posted. This way we
-	// enforce that every action that hits the main post_action signal will be
-	// a valid action to execute.
-	virtual bool validate_layer_action( ActionContextHandle& context ) = 0;
-
-	// RUN_LAYER_ACTION:
-	// Each action needs to have this piece implemented. It spells out how the
-	// action is run. It returns whether the action was successful or not.
-	// NOTE: In case of an asynchronous action, the return value is ignored and the
-	// program relies on report_done() from the context to be triggered when
-	// the asynchronous part has finished. In any other case the ActionDispatcher
-	// will issue the report_done() when run returns.
-	virtual bool run_layer_action( ActionContextHandle& context, ActionResultHandle& result ) = 0;
-
-public:
-	// NOTE: These functions are implemented in the LayerAction and should *NOT* be overloaded in
-	// the derived class. The functions validate_layer_action and run_layer_action should be called
-	// instead.
+	// ADD_PARAMETER:
+	// Add a parameter to the internal database
+	template< class T >
+	void add_parameter( const T& parameter )
+	{
+		this->add_parameter_internal(
+			Core::ActionParameterBaseHandle( new Core::ActionParameter<T>( &parameter ) ) );
+	}
 	
-	virtual bool validate( ActionContextHandle& context );
-	virtual bool run( ActionContextHandle& context, ActionResultHandle& result );
+	// ADD_PARAMETER:
+	// Specialized function for adding and registering layer id input parameters
+	void add_parameter( const InputLayerID& layer_id );
+	
+	// ADD_PARAMETER:
+	// Specialized function for adding and registering layer ids input parameters
+	void add_parameter( const std::vector<InputLayerID>& layer_ids );
 
+	// -- translate provenance information --
+public:
+	// TRANSLATE:
+	// Some actions need to be translated before they can be validated. Translate takes
+	// care of most provenance related issue, by for example translating the provenance
+	// information into real action information. This function is called before validate
+	// NOTE: This function is *not* const and may alter the values of the parameters
+	//       and correct faulty input.
+	virtual bool translate( ActionContextHandle& context );
+	
 	// -- deal with dependencies for provenance --
 protected:
 	// NOTE: Dependency lists need to inserted into a ProvenanceRecord and hence this function can
@@ -105,20 +107,5 @@ private:
 };
 
 } // end namespace Seg3D
-
-#define LAYER_ACTION(definition_string) \
-CORE_ACTION_INTERNAL( definition_string CORE_ACTION_CHANGES_PROJECT_DATA() \
-CORE_ACTION_CHANGES_PROVENANCE_DATA() CORE_ACTION_IS_UNDOABLE(), Core::LayerActionInfo )
-
-#define LAYER_ACTION_TYPE( name, description ) \
-CORE_ACTION_TYPE( name, description )
-
-#define LAYER_ACTION_ARGUMENT( name, description ) \
-CORE_ACTION_ARGUMENT( name, description ) 
-
-#define LAYER_ACTION_LAYERID_ARGUMENT( name, description ) \
-CORE_ACTION_ARGUMENT( name, description ) \
-CORE_ACTION_PROVENANCE_ID_PARAMETER( name )
-
 
 #endif

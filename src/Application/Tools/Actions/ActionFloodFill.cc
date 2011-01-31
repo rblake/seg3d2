@@ -112,13 +112,8 @@ bool ActionFloodFill::validate( Core::ActionContextHandle& context )
 	}
 	
 	// Check whether the target layer can be used for processing
-	Core::NotifierHandle notifier;
 	if ( !LayerManager::Instance()->CheckLayerAvailabilityForProcessing(
-		this->private_->target_layer_id_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->private_->target_layer_id_, context ) ) return false;
 	
 	// Check whether slice type has a valid 
 	Core::VolumeSliceType slice_type = static_cast< Core::VolumeSliceType::enum_type >(
@@ -158,10 +153,9 @@ bool ActionFloodFill::validate( Core::ActionContextHandle& context )
 				"' is not a valid data constraint layer, will proceed as if no data constraint." );
 		}
 		else if ( !LayerManager::Instance()->CheckLayerAvailabilityForUse( 
-			this->private_->data_cstr_layer_id_, notifier ) )
+			this->private_->data_cstr_layer_id_, context ) )
 		{
-			context->report_error( "Data layer '" + this->private_->data_cstr_layer_id_ +
-				"' not available for reading, will proceed as if no data constraint." );
+			return false;
 		}
 		else
 		{
@@ -184,10 +178,9 @@ bool ActionFloodFill::validate( Core::ActionContextHandle& context )
 				"' is not a valid mask constraint layer, will proceed as if no mask constraint 1." );
 		}
 		else if ( !LayerManager::Instance()->CheckLayerAvailabilityForUse( 
-			this->private_->mask_cstr1_layer_id_, notifier ) )
+			this->private_->mask_cstr1_layer_id_, context ) )
 		{
-			context->report_error( "Mask layer '" + this->private_->mask_cstr1_layer_id_ +
-				"' not available for reading, will proceed as if no mask constraint 1." );
+			return false;
 		}
 		else
 		{
@@ -210,10 +203,9 @@ bool ActionFloodFill::validate( Core::ActionContextHandle& context )
 				"' is not a valid mask constraint layer, will proceed as if no mask constraint 2." );
 		}
 		else if ( !LayerManager::Instance()->CheckLayerAvailabilityForUse( 
-			this->private_->mask_cstr2_layer_id_, notifier ) )
+			this->private_->mask_cstr2_layer_id_, context ) )
 		{
-			context->report_error( "Mask layer '" + this->private_->mask_cstr2_layer_id_ +
-				"' not available for reading, will proceed as if no mask constraint 2." );
+			return false;
 		}
 		else
 		{

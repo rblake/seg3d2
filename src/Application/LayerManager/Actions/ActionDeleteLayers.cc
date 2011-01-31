@@ -51,12 +51,8 @@ bool ActionDeleteLayers::validate( Core::ActionContextHandle& context )
 	
 		for ( size_t j = 0; j < layer_vector.size(); j++ )
 		{	
-			std::string error;
-			if ( !( LayerManager::CheckLayerExistance( layer_vector[ j ],  error ) ) )
-			{
-				context->report_error( error );
-				return false;
-			}
+			if ( !( LayerManager::CheckLayerExistance( layer_vector[ j ], 
+				context ) ) ) return false;
 		}
 		
 		if( layer_vector.size() ) return true;

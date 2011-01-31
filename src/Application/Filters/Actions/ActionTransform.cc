@@ -273,13 +273,8 @@ bool ActionTransform::validate( Core::ActionContextHandle& context )
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			this->private_->replace_, context ) ) return false;
 	}
 	
 	const Core::Vector& spacing = this->private_->spacing_;

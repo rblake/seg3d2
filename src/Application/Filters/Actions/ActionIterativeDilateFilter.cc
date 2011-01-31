@@ -44,47 +44,25 @@ namespace Seg3D
 bool ActionIterativeDilateFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) return false; 
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
 	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
-		this->replace_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->replace_, context ) ) return false;
 		
 	// Check for layer existance and type information
 	if ( ( this->mask_layer_ != "" ) && ( this->mask_layer_ != "<none>" ) )
 	{
-		std::string error;
 		if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_layer_, 
-			Core::VolumeType::MASK_E, error ) )
-		{
-			context->report_error( error );
-			return false;
-		}
+			Core::VolumeType::MASK_E, context ) ) return false;
 		
 		if ( ! LayerManager::CheckLayerSize( this->mask_layer_, this->target_layer_,
-			error ) )
-		{
-			context->report_error( error );
-			return false;		
-		}
+			context ) ) return false;
 		
 		// Check for layer availability 
-		if ( ! LayerManager::CheckLayerAvailability( this->mask_layer_, false, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+		if ( ! LayerManager::CheckLayerAvailability( this->mask_layer_, false,
+			context ) ) return false;
 	}
 	
 	// If the number of iterations is lower than one, we cannot run the filter

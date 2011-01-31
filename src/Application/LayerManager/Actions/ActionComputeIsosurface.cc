@@ -44,24 +44,14 @@ bool ActionComputeIsosurface::validate( Core::ActionContextHandle& context )
 {
 	// Check whether the layer exists and is of the right type and return an
 	// error if not
-	std::string error;
 	if ( !( LayerManager::CheckLayerExistanceAndType( this->layer_id_, 
-		Core::VolumeType::MASK_E, error ) ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) ) return false;
 	
 	// Check whether the layer is not locked for processing or creating, in which case the
 	// data is not data yet, hence we cannot compute an isosurface on it. The function returns
 	// a notifier when the action can be completed.
-	Core::NotifierHandle notifier;
 	if ( !( LayerManager::CheckLayerAvailabilityForUse( this->layer_id_, 
-		 notifier ) ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		 context ) ) ) return false;
 	
 	// Check for valid quality factor
 	double quality_factor = this->quality_factor_;

@@ -40,13 +40,8 @@ namespace Seg3D
 
 bool ActionActivateLayer::validate( Core::ActionContextHandle& context )
 {
-	std::string error;
-	
-	if ( !(LayerManager::Instance()->CheckLayerExistance( this->layer_id_, error ) ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( !(LayerManager::Instance()->CheckLayerExistance( this->layer_id_, 
+		context ) ) ) return false;
 
 	return true; // validated
 }

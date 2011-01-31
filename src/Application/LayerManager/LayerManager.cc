@@ -951,7 +951,8 @@ bool LayerManager::post_load_states( const Core::StateIO& state_io )
 
 // == static functions ==
 
-bool LayerManager::CheckLayerExistance( const std::string& layer_id, std::string& error )
+bool LayerManager::CheckLayerExistance( const std::string& layer_id, 
+	Core::ActionContextHandle context )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -960,14 +961,12 @@ bool LayerManager::CheckLayerExistance( const std::string& layer_id, std::string
 		CORE_THROW_LOGICERROR( "CheckLayerExistance can only be called from the"
 			" application thread." );
 	}
-	
-	// Clear error string
-	error = "";
 
 	// Check whether layer exists
 	if ( !( LayerManager::Instance()->get_layer_by_id( layer_id ) ) )
 	{
-		error = std::string( "Incorrect layerid: layer '") + layer_id + "' does not exist.";
+		context->report_error( std::string( "Incorrect layerid: layer '") + layer_id + 
+			"' does not exist." );
 		return false;
 	}
 
@@ -975,7 +974,8 @@ bool LayerManager::CheckLayerExistance( const std::string& layer_id, std::string
 }
 
 
-bool LayerManager::CheckGroupExistance( const std::string& group_id, std::string& error )
+bool LayerManager::CheckGroupExistance( const std::string& group_id, 
+	std::string& error )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1000,7 +1000,7 @@ bool LayerManager::CheckGroupExistance( const std::string& group_id, std::string
 
 
 bool LayerManager::CheckLayerExistanceAndType( const std::string& layer_id, Core::VolumeType type, 
-		std::string& error )
+		Core::ActionContextHandle context )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1010,14 +1010,12 @@ bool LayerManager::CheckLayerExistanceAndType( const std::string& layer_id, Core
 			" application thread." );
 	}
 
-	// Clear error string
-	error = "";
-	
 	// Check whether layer exists
 	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_id );
 	if ( !layer )
 	{
-		error = std::string( "Incorrect layerid: layer '") + layer_id + "' does not exist.";
+		context->report_error( std::string( "Incorrect layerid: layer '") + layer_id + 
+			"' does not exist." );
 		return false;
 	}
 
@@ -1026,19 +1024,23 @@ bool LayerManager::CheckLayerExistanceAndType( const std::string& layer_id, Core
 	{
 		if ( type == Core::VolumeType::DATA_E )
 		{
-			error = std::string( "Layer '") + layer_id + "' is not a data layer.";
+			context->report_error( std::string( "Layer '") + layer_id + 
+				"' is not a data layer." );
 		}
 		else if ( type == Core::VolumeType::MASK_E )
 		{
-			error = std::string( "Layer '") + layer_id + "' is not a mask layer.";
+			context->report_error( std::string( "Layer '") + layer_id + 
+				"' is not a mask layer." );
 		}
 		else if ( type == Core::VolumeType::LABEL_E )
 		{
-			error = std::string( "Layer '") + layer_id + "' is not a label layer.";
+			context->report_error( std::string( "Layer '") + layer_id + 
+				"' is not a label layer." );
 		}
 		else
 		{
-			error = std::string( "Layer '") + layer_id + "' is of an incorrect type.";
+			context->report_error( std::string( "Layer '") + layer_id + 
+				"' is of an incorrect type." );
 		}
 		return false;
 	}
@@ -1047,7 +1049,7 @@ bool LayerManager::CheckLayerExistanceAndType( const std::string& layer_id, Core
 }
 
 bool LayerManager::CheckLayerSize( const std::string& layer_id1, const std::string& layer_id2,
-		std::string& error )
+		Core::ActionContextHandle context )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1057,28 +1059,27 @@ bool LayerManager::CheckLayerSize( const std::string& layer_id1, const std::stri
 			" application thread." );
 	}
 
-	// Clear error string
-	error = "";
-	
 	// Check whether layer exists
 	LayerHandle layer1 = LayerManager::Instance()->get_layer_by_id( layer_id1 );
 	if ( !layer1 )
 	{
-		error = std::string( "Incorrect layerid: layer '") + layer_id1 + "' does not exist.";
+		context->report_error( std::string( "Incorrect layerid: layer '") + layer_id1 + 
+			"' does not exist." );
 		return false;
 	}
 
 	LayerHandle layer2 = LayerManager::Instance()->get_layer_by_id( layer_id2 );
 	if ( !layer2 )
 	{
-		error = std::string( "Incorrect layerid: layer '") + layer_id2 + "' does not exist.";
+		context->report_error( std::string( "Incorrect layerid: layer '") + layer_id2 + 
+			"' does not exist." );
 		return false;
 	}
 	
 	if ( layer1->get_grid_transform() != layer2->get_grid_transform() )
 	{
-		error = std::string( "Layer '" ) + layer_id1 + "' and layer '" + layer_id2 + 
-			"' are not of the same size and origin.";
+		context->report_error( std::string( "Layer '" ) + layer_id1 + "' and layer '" + layer_id2 + 
+			"' are not of the same size and origin." );
 		return false;
 	}
 	
@@ -1086,7 +1087,7 @@ bool LayerManager::CheckLayerSize( const std::string& layer_id1, const std::stri
 }
 
 bool LayerManager::CheckLayerAvailabilityForProcessing( const std::string& layer_id, 
-		Core::NotifierHandle& notifier )
+		Core::ActionContextHandle context )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1108,19 +1109,21 @@ bool LayerManager::CheckLayerAvailabilityForProcessing( const std::string& layer
 	bool lock_state = layer->locked_state_->get();
 	if ( layer_state == Layer::AVAILABLE_C && lock_state == false)
 	{
-		notifier.reset();
 		return true;
 	}
 	else
 	{
 		// This notifier will inform the calling process when the layer will be available again.
-		notifier = Core::NotifierHandle( new LayerAvailabilityNotifier( layer ) );
+		Core::NotifierHandle notifier = Core::NotifierHandle( 
+			new LayerAvailabilityNotifier( layer ) );
+		context->report_need_resource( notifier );
+
 		return false; 
 	}
 }
 
 bool LayerManager::CheckLayerAvailabilityForUse( const std::string& layer_id, 
-		Core::NotifierHandle& notifier )
+		Core::ActionContextHandle context )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1144,19 +1147,21 @@ bool LayerManager::CheckLayerAvailabilityForUse( const std::string& layer_id,
 	if ( ( layer_state == Layer::AVAILABLE_C || layer_state == Layer::IN_USE_C ) 
 		&& ( lock_state == false ) )
 	{
-		notifier.reset();
 		return true;
 	}
 	else
 	{
 		// This notifier will inform the calling process when the layer will be available again.
-		notifier = Core::NotifierHandle( new LayerAvailabilityNotifier( layer ) );
+		Core::NotifierHandle notifier = Core::NotifierHandle( 
+			new LayerAvailabilityNotifier( layer ) );
+		context->report_need_resource( notifier );
+
 		return false; 
 	}
 }
 
 bool LayerManager::CheckLayerAvailability( const std::string& layer_id, bool replace,
-		Core::NotifierHandle& notifier )
+		Core::ActionContextHandle context  )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1168,13 +1173,17 @@ bool LayerManager::CheckLayerAvailability( const std::string& layer_id, bool rep
 
 	if ( replace )
 	{
-		return LayerManager::CheckLayerAvailabilityForProcessing( layer_id, notifier );
+		return LayerManager::CheckLayerAvailabilityForProcessing( layer_id, context );
 	}
 	else
 	{
-		return LayerManager::CheckLayerAvailabilityForUse( layer_id, notifier );	
+		return LayerManager::CheckLayerAvailabilityForUse( layer_id, context );	
 	}
 }
+
+
+
+
 
 LayerHandle LayerManager::FindLayer( const std::string& layer_id )
 {

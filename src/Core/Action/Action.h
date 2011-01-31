@@ -139,8 +139,15 @@ public:
 	// Query whether the action changes the provenance data base
 	bool changes_provenance_data() const;
 	
-	// -- Run/Validate interface --
+	// -- Run/Validate/Translat interface --
 public:
+	// TRANSLATE:
+	// Some actions need to be translated before they can be validated. Translate takes
+	// care of most provenance related issue, by for example translating the provenance
+	// information into real action information. This function is called before validate
+	// NOTE: This function is *not* const and may alter the values of the parameters
+	//       and correct faulty input.
+	virtual bool translate( ActionContextHandle& context );
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we
@@ -186,71 +193,90 @@ public:
 
 	// -- functionality for setting parameter list --
 protected:
-	// ADD_PARAMETER and ADD_PARAMETERS
-	template< class A >
-	void add_parameter( A& parA )
+	// ADD_PARAMETER
+	// Adding a parameter to the action's internal structure
+	// Each parameter should be added using this function in the action's constructor
+	template< class T >
+	inline void add_parameter( T& parameter )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_param( static_cast<ActionParameterBase* >( new ActionParameter<T>( parameter ) ) );
 	}
 
+	// ADD_PARAMETERS
+	// Convenience function for adding parameters
 	template< class A >
 	void add_parameters( A& parA )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
+		this->add_parameter( parA );
 	}
 
+	// ADD_PARAMETERS
+	// Convenience function for adding parameters
 	template< class A, class B >
 	void add_parameters( A& parA, B& parB )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
+		this->add_parameter( parA );
+		this->add_parameter( parB );
 	}
 
+	// ADD_PARAMETERS
+	// Convenience function for adding parameters
 	template< class A, class B, class C >
 	void add_parameters( A& parA, B& parB, C& parC )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
+		this->add_parameter( parA );
+		this->add_parameter( parB );
+		this->add_parameter( parC );
 	}
 
+	// ADD_PARAMETERS
+	// Convenience function for adding parameters
 	template< class A, class B, class C, class D >
 	void add_parameters( A& parA, B& parB, C& parC, D& parD )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
+		this->add_parameter( parA );
+		this->add_parameter( parB );
+		this->add_parameter( parC );
+		this->add_parameter( parD );
 	}
 
+	// ADD_PARAMETERS
+	// Convenience function for adding parameters
 	template< class A, class B, class C, class D, class E >
 	void add_parameters( A& parA, B& parB, C& parC, D& parD, E& parE )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<E>( &parE ) ) );
+		this->add_parameter( parA );
+		this->add_parameter( parB );
+		this->add_parameter( parC );
+		this->add_parameter( parD );
+		this->add_parameter( parE );
 	}
 
-	template< class A, class B, class C, class D, class E, class F >
-	void add_parameters( A& parA, B& parB, C& parC, D& parD, E& parE, F& parF )
+protected:
+	// ADD_PARAM
+	// Add a parameter to the internal structure of the action
+	inline void add_param( ActionParameterBase* parameter )
 	{
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<A>( &parA ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<B>( &parB ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<C>( &parC ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<D>( &parD ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<E>( &parE ) ) );
-		this->add_parameter_internal( ActionParameterBaseHandle( new ActionParameter<F>( &parF ) ) );
+		this->parameters_.push_back( parameter );
+	}
+
+	// GET_PARAM
+	// Retrieve the parameter from the internal structure of the action
+	inline ActionParameterBase* get_param( size_t index )
+	{
+		return this->parameters_[ index ]; 
+	}
+	
+	// NUM_PARAMS
+	// Number of parameter in this action
+	inline size_t num_params()
+	{
+		return parameters_.size();
 	}
 
 private:
 	// Typedef for list of pointers to the actual parameters
-	typedef std::vector< ActionParameterBaseHandle > parameter_list_type;
-
-	// ADD_PARAMETER_INTERNAL
-	// Add a parameter to the internal structure of the action
-	void add_parameter_internal( const ActionParameterBaseHandle& parameter );
+	typedef std::vector< ActionParameterBase* > parameter_list_type;
 
 	// Vector that stores the required arguments of the action.
 	parameter_list_type parameters_;

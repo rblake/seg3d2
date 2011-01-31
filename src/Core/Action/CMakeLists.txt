@@ -40,6 +40,7 @@ SET(CORE_ACTION_SRCS
   ActionContextContainer.cc
   ActionParameter.h
   ActionParameter.cc
+  ActionParameterType.h
   ActionResult.h
   ActionProgress.h
   ActionProgress.cc

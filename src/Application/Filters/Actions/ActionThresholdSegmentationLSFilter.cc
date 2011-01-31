@@ -50,43 +50,21 @@ namespace Seg3D
 bool ActionThresholdSegmentationLSFilter::validate( Core::ActionContextHandle& context )
 {
 	// Check for layer existance and type information
-	std::string error;
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->layer_id_, 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::DATA_E, context ) ) return false;
 	
 	if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_, 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}		
+		Core::VolumeType::MASK_E, context ) ) return false;
 
 	if ( ! LayerManager::CheckLayerSize( this->layer_id_, this->mask_, 
-		error ) )
-	{
-		context->report_error( error );
-		return false;
-	}		
+		context ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
 	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_, 
-		false, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		false, context ) ) return false;
 	
 	if ( ! LayerManager::CheckLayerAvailability( this->mask_, 
-		false, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}			
+		false, context ) ) return false;
 				
 	// If the number of iterations is lower than one, we cannot run the filter
 	if( this->iterations_ < 1 )

@@ -120,21 +120,11 @@ bool ActionPaste::validate( Core::ActionContextHandle& context )
 		}
 	}
 	
-	std::string error;
 	if ( !( LayerManager::CheckLayerExistanceAndType( this->private_->target_layer_id_,
-		Core::VolumeType::MASK_E, error ) ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+		Core::VolumeType::MASK_E, context ) ) ) return false;
 	
-	Core::NotifierHandle notifier;
 	if ( !LayerManager::CheckLayerAvailabilityForProcessing(
-		this->private_->target_layer_id_, notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+		this->private_->target_layer_id_, context ) ) return false;
 	
 	this->private_->target_layer_ = LayerManager::FindMaskLayer(
 		this->private_->target_layer_id_ );
