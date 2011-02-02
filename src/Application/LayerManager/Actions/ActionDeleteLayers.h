@@ -55,10 +55,6 @@ public:
 		this->add_parameter( this->layers_ );
 	}
 	
-	virtual ~ActionDeleteLayers()
-	{
-	}
-	
 // -- Functions that describe action --
 public:
 	// VALIDATE:

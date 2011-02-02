@@ -50,11 +50,9 @@ CORE_ACTION(
 public:
 	ActionExportProject()
 	{
-		this->add_parameters( this->export_path_, this->project_name_, this->session_name_ );
-	}
-
-	virtual ~ActionExportProject()
-	{
+		this->add_parameter( this->export_path_ );
+		this->add_parameter( this->project_name_ );
+		this->add_parameter( this->session_name_ );
 	}
 
 	// -- Functions that describe action --

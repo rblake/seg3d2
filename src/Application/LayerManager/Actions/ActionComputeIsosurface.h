@@ -53,11 +53,8 @@ CORE_ACTION(
 public:
 	ActionComputeIsosurface()
 	{
-		this->add_parameters( this->layer_id_, this->quality_factor_ );
-	}
-	
-	virtual ~ActionComputeIsosurface()
-	{
+		this->add_parameter( this->layer_id_ );
+		this->add_parameter( this->quality_factor_ );
 	}
 	
 // -- Functions that describe action --

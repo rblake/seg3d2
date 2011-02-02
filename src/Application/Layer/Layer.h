@@ -311,7 +311,7 @@ public:
 
 	// RESET_ALLOW_STOP:
 	// Reset the flag that allows stopping the filter
-	void reset_allow_stop();
+	void reset_allow_stop();	
 
 	// -- internals of class --
 private:	

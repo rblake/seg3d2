@@ -47,11 +47,7 @@ CORE_ACTION(
 public:
 	ActionActivateTool()
 	{
-		this->add_parameters( this->toolid_ );
-	}
-
-	virtual ~ActionActivateTool()
-	{
+		this->add_parameter( this->toolid_ );
 	}
 
 	// -- Functions that describe action --

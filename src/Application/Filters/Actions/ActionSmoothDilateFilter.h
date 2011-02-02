@@ -71,11 +71,7 @@ public:
 		this->add_parameter( this->only2d_ );
 		this->add_parameter( this->slice_type_ );
 	}
-	
-	virtual ~ActionSmoothDilateFilter()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

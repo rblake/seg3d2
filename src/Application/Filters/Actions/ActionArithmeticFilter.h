@@ -56,8 +56,6 @@ CORE_ACTION(
 public:
 	ActionArithmeticFilter();
 	
-	virtual ~ActionArithmeticFilter() {}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

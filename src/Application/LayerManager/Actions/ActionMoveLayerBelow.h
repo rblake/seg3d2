@@ -51,11 +51,8 @@ public:
 		layer_(""),
 		group_id_("")	
 	{
-		this->add_parameters( this->layer_, this->group_id_ );
-	}
-	
-	virtual ~ActionMoveLayerBelow()
-	{
+		this->add_parameter( this->layer_ );
+		this->add_parameter( this->group_id_ );
 	}
 	
 	// -- Functions that describe action --

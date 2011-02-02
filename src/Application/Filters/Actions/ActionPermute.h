@@ -53,8 +53,6 @@ CORE_ACTION(
 public:
 	ActionPermute();
 	
-	virtual ~ActionPermute() {}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

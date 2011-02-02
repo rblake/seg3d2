@@ -48,11 +48,7 @@ CORE_ACTION(
 public:
 	ActionOpenTool()
 	{
-		this->add_parameters( this->toolid_ );
-	}
-
-	virtual ~ActionOpenTool()
-	{
+		this->add_parameter( this->toolid_ );
 	}
 
 	// -- Functions that describe action --

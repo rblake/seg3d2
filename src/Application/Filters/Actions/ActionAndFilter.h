@@ -33,12 +33,12 @@
 #include <Core/Interface/Interface.h>
 
 #include <Application/Layer/Layer.h>
-// #include <Application/LayerManager/LayerAction.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionAndFilter : public Core::Action
+class ActionAndFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -54,7 +54,9 @@ CORE_ACTION(
 public:
 	ActionAndFilter()
 	{
-		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_ );		
+		this->add_layer_id( this->target_layer_ );
+		this->add_layer_id( this->mask_layer_ );
+		this->add_parameter( this->replace_ );		
 	}
 
 	// -- Functions that describe action --

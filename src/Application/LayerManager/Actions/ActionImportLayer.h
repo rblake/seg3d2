@@ -58,11 +58,9 @@ CORE_ACTION(
 public:
 	ActionImportLayer()
 	{
-		this->add_parameters( this->filename_, this->mode_, this->importer_ );
-	}
-	
-	virtual ~ActionImportLayer()
-	{
+		this->add_parameter( this->filename_ );
+		this->add_parameter( this->mode_ );
+		this->add_parameter( this->importer_ );
 	}
 	
 	// -- Functions that describe action --

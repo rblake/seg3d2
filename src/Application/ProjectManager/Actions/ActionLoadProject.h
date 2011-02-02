@@ -51,10 +51,6 @@ public:
 		this->add_parameter( this->project_path_ );
 	}
 
-	virtual ~ActionLoadProject()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

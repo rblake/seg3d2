@@ -192,6 +192,9 @@ bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context,
 	// Build the undo-redo record
 	algo->create_undo_redo_record( context, this->shared_from_this() );
 
+	// Build the provenance record for this action
+	algo->create_provenance_record( this->shared_from_this() );
+
 	// Start the filter on a separate thread.
 	Core::Runnable::Start( algo );
 

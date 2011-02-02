@@ -61,14 +61,13 @@ public:
 	ActionCurvatureAnisotropicDiffusionFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->layer_id_, this->preserve_data_format_, this->replace_, 
-			this->iterations_, this->sensitivity_ );
+		this->add_parameter( this->layer_id_ );
+		this->add_parameter( this->preserve_data_format_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->iterations_ );
+		this->add_parameter( this->sensitivity_ );
 	}
-	
-	virtual ~ActionCurvatureAnisotropicDiffusionFilter()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

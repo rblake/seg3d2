@@ -28,6 +28,7 @@
  
 // STL includes
 #include <vector> 
+#include <map>
  
 // Boost includes
 #include <boost/lambda/bind.hpp>
@@ -39,12 +40,13 @@
 #include <Core/Utils/Log.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/StatusBar/StatusBar.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
+#include <Application/LayerManager/LayerAction.h>
+#include <Application/LayerManager/LayerManager.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
 #include <Application/Filters/LayerFilter.h>
 #include <Application/Filters/LayerFilterLock.h>
-#include <Application/StatusBar/StatusBar.h>
  
 namespace Seg3D
 {
@@ -61,7 +63,6 @@ public:
 	{
 	}
 
-
 public:
 	// Keep track of errors
 	std::string error_;
@@ -77,9 +78,6 @@ public:
 	
 	// Keep track of which layers were created.
 	std::vector< LayerHandle > created_layers_;
-	
-	// Layers that need a new provenance id
-	std::vector< LayerHandle > new_provenance_id_layers_;
 	
 	// Keep track of which layers to create volume checkpoints for
 	std::vector< LayerHandle > volume_check_point_layers_;
@@ -108,10 +106,9 @@ public:
 	// ID counts for layer and group, used for undo mechanism
 	LayerManager::id_count_type id_count_;
 	
-	// The input provenance ids that the current filter depens on
-	ProvenanceIDList input_provenance_ids_;
-	
-//	LayerAction provenance_action_;
+	// Provenance IDs
+	typedef std::map< Layer*, ProvenanceID > provenance_map_type;
+	provenance_map_type provenance_ids_;
 	
 	// -- internal functions --
 public:
@@ -119,15 +116,53 @@ public:
 	// Clean up all the filter components and release the locks on the layers and
 	// delete layers if the filter did not finish.
 	void finalize();
+
+	// DELETE_LAYER:
+	// Delete layer
+	bool delete_layer( LayerHandle layer );
 };
 
+bool LayerFilterPrivate::delete_layer( LayerHandle layer )
+{
+	// Check whether the locked layer is still in the list of layers that this filter locked
+	std::vector<LayerHandle>::iterator it;
+	
+	it = std::find( this->locked_for_use_layers_.begin(), 
+		this->locked_for_use_layers_.end(), layer );
 
+	if ( it != this->locked_for_use_layers_.end() )
+	{
+		// Take the layer out of the list
+		( *it ).reset();
+		return true;
+	}
 
+	it = std::find( this->locked_for_processing_layers_.begin(), 
+		this->locked_for_processing_layers_.end(), layer );
+
+	if ( it != this->locked_for_processing_layers_.end() )
+	{
+		// Take the layer out of the list
+		( *it ).reset();
+		return true;
+	}
+	
+	// Check whether the locked layer is still in the list of layers that this filter created
+	it = std::find( this->created_layers_.begin(), this->created_layers_.end(), layer );
+
+	if ( it != this->created_layers_.end() )
+	{
+		// Take the layer out of the list
+		( *it ).reset();
+		return true;
+	}
+
+	return false;
+}
 
 void LayerFilterPrivate::finalize()
 {
 	bool abort = false;
-	
 	{
 		boost::mutex::scoped_lock lock( this->mutex_ );
 		abort = this->abort_;
@@ -137,34 +172,46 @@ void LayerFilterPrivate::finalize()
 	// layers.
 	this->disconnect_all();
 
-
-	if ( !this->abort_ )
-	{
-
-	}
-
 	for ( size_t j = 0; j < this->locked_for_use_layers_.size(); j++ )
 	{
-		LayerManager::DispatchUnlockLayer( this->locked_for_use_layers_[ j ], this->key_ );
+		// Only unlock it if the handle still exists
+		if ( this->locked_for_use_layers_[ j ] )
+		{
+			LayerManager::DispatchUnlockLayer( this->locked_for_use_layers_[ j ], this->key_ );
+			this->locked_for_use_layers_[ j ].reset();
+		}
 	}
 
 	for ( size_t j = 0; j < this->locked_for_processing_layers_.size(); j++ )
 	{
-		LayerManager::DispatchUnlockLayer( this->locked_for_processing_layers_[ j ], this->key_ );
+		// Only unlock it if the handle still exists
+		if ( this->locked_for_processing_layers_[ j ] )
+		{
+			LayerManager::DispatchUnlockLayer( this->locked_for_processing_layers_[ j ], this->key_ );
+			this->locked_for_processing_layers_[ j ].reset();
+		}
 	}
 
-	if ( this->abort_ )
+	if ( abort )
 	{
 		for ( size_t j = 0; j < this->created_layers_.size(); j++ )
 		{
-			LayerManager::DispatchDeleteLayer( this->created_layers_[ j ], this->key_ );
+			if ( this->created_layers_[ j ] )
+			{
+				LayerManager::DispatchDeleteLayer( this->created_layers_[ j ], this->key_ );
+				this->created_layers_[ j ].reset();
+			}
 		}
 	}
 	else
 	{
 		for ( size_t j = 0; j < this->created_layers_.size(); j++ )
 		{
-			LayerManager::DispatchUnlockOrDeleteLayer( this->created_layers_[ j ], this->key_ );
+			if ( this->created_layers_[ j ] )
+			{
+				LayerManager::DispatchUnlockOrDeleteLayer( this->created_layers_[ j ], this->key_ );
+				this->created_layers_[ j ].reset();
+			}
 		}
 	}
 	
@@ -176,16 +223,7 @@ void LayerFilterPrivate::finalize()
 	{
 		CORE_LOG_SUCCESS( this->success_ );	
 	}
-
-	this->locked_for_use_layers_.clear();
-	this->locked_for_processing_layers_.clear();
-	
-	this->created_layers_.clear();
-	this->deleted_layers_.clear();
-	this->volume_check_point_layers_.clear();
 }
-
-
 
 LayerFilter::LayerFilter() :
 	private_( new LayerFilterPrivate )
@@ -196,7 +234,6 @@ LayerFilter::~LayerFilter()
 {
 	this->private_->finalize();
 }
-
 
 void LayerFilter::raise_abort()
 {
@@ -322,9 +359,6 @@ bool LayerFilter::lock_for_processing( LayerHandle layer )
 	// Add the layer to the list so it can be unlocked when the filter is done
 	this->private_->locked_for_processing_layers_.push_back( layer );
 	
-	// Add the layer to be needing a new provenance id on successful completion of the filter
-	this->private_->new_provenance_id_layers_.push_back( layer );
-
 	// Add the volume to be check pointed. 
 	this->private_->volume_check_point_layers_.push_back( layer );
 	
@@ -333,7 +367,6 @@ bool LayerFilter::lock_for_processing( LayerHandle layer )
 	
 	return true;
 }
-
 
 bool LayerFilter::lock_for_deletion( LayerHandle layer )
 {
@@ -471,53 +504,7 @@ bool LayerFilter::create_and_lock_mask_layer( const Core::GridTransform& grid_tr
 
 bool LayerFilter::dispatch_unlock_layer( LayerHandle layer )
 {
-	bool found_layer = false;
-	// Check whether the locked layer is still in the list of layers that this filter locked
-	std::vector<LayerHandle>::iterator it;
-	
-	it = std::find( this->private_->locked_for_use_layers_.begin(), 
-		this->private_->locked_for_use_layers_.end(), layer );
-
-	if ( it != this->private_->locked_for_use_layers_.end() )
-	{
-		// Take the layer out of the list
-		this->private_->locked_for_use_layers_.erase( it );
-		found_layer = true;
-	}
-
-	it = std::find( this->private_->locked_for_processing_layers_.begin(), 
-		this->private_->locked_for_processing_layers_.end(), layer );
-
-	if ( it != this->private_->locked_for_processing_layers_.end() )
-	{
-		// Take the layer out of the list
-		this->private_->locked_for_processing_layers_.erase( it );
-		found_layer = true;
-	}
-	
-	// Check whether the locked layer is still in the list of layers that this filter created
-	it = std::find( this->private_->created_layers_.begin(), 
-		this->private_->created_layers_.end(), layer );
-
-	if ( it != this->private_->created_layers_.end() )
-	{
-		// Take the layer out of the list
-		this->private_->created_layers_.erase( it );
-		found_layer = true;
-	}
-
-	// Check whether the locked layer is still in the list of layers that this filter created
-	it = std::find( this->private_->volume_check_point_layers_.begin(), 
-		this->private_->volume_check_point_layers_.end(), layer );
-
-	if ( it != this->private_->volume_check_point_layers_.end() )
-	{
-		// Take the layer out of the list
-		this->private_->volume_check_point_layers_.erase( it );
-	}
-
-	// If we did not find the layer return false, as we did not lock it in the first place.
-	if ( ! found_layer ) 
+	if ( !( this->private_->delete_layer( layer ) ) )
 	{
 		this->report_error( "Internal error in filter logic." );
 		return false;
@@ -530,47 +517,9 @@ bool LayerFilter::dispatch_unlock_layer( LayerHandle layer )
 	return true;
 }
 
-
 bool LayerFilter::dispatch_delete_layer( LayerHandle layer )
 {
-	bool found_layer = false;
-	
-	// Check whether the locked layer is still in the list of layers that this filter created
-	std::vector<LayerHandle>::iterator it = std::find( 
-		this->private_->created_layers_.begin(), this->private_->created_layers_.end(), layer );
-
-	if ( it != this->private_->created_layers_.end() )
-	{
-		// Take the layer out of the list
-		this->private_->created_layers_.erase( it );
-		found_layer = true;
-	}
-
-	it = std::find( this->private_->locked_for_processing_layers_.begin(), 
-		this->private_->locked_for_processing_layers_.end(), layer );
-	if ( it != this->private_->locked_for_processing_layers_.end() )
-	{
-		this->private_->locked_for_processing_layers_.erase( it );
-		found_layer = true;
-	}
-
-	it = std::find( this->private_->deleted_layers_.begin(),
-		this->private_->deleted_layers_.end(), layer );
-	if ( it != this->private_->deleted_layers_.end() )
-	{
-		this->private_->deleted_layers_.erase( it );
-		found_layer = true;
-	}
-	
-	it = std::find( this->private_->volume_check_point_layers_.begin(), 
-		this->private_->volume_check_point_layers_.end(), layer );
-	if ( it != this->private_->volume_check_point_layers_.end() )
-	{
-		this->private_->volume_check_point_layers_.erase( it );
-	}
-	
-	// If we did not find the layer return false, as we did not lock it in the first place.
-	if ( ! found_layer ) 
+	if ( !( this->private_->delete_layer( layer ) ) )
 	{
 		this->report_error( "Internal error in filter logic." );
 		return false;
@@ -582,7 +531,6 @@ bool LayerFilter::dispatch_delete_layer( LayerHandle layer )
 	// Done
 	return true;
 }
-
 
 bool LayerFilter::dispatch_insert_data_volume_into_layer( LayerHandle layer, 
 	Core::DataVolumeHandle data, bool update_histogram )
@@ -596,12 +544,22 @@ bool LayerFilter::dispatch_insert_data_volume_into_layer( LayerHandle layer,
 	// Hence we can update the histogram on the calling thread.
 	if ( update_histogram ) data->get_data_block()->update_histogram();
 	
+	// Find the provenance id that this layer will use
+	ProvenanceID prov_id = -1;
+	
+	LayerFilterPrivate::provenance_map_type::iterator it = 
+		this->private_->provenance_ids_.find( layer.get() );
+		
+	if ( it != this->private_->provenance_ids_.end() )
+	{
+		prov_id = ( *it ).second;
+	}
+	
 	// Ensure that the application thread will process this update.
-	LayerManager::DispatchInsertDataVolumeIntoLayer( data_layer, data,
+	LayerManager::DispatchInsertDataVolumeIntoLayer( data_layer, data, prov_id,
 		 this->private_->key_ );
 	return true;
 }
-
 
 bool LayerFilter::dispatch_insert_mask_volume_into_layer( LayerHandle layer, 
 	Core::MaskVolumeHandle mask )
@@ -611,11 +569,22 @@ bool LayerFilter::dispatch_insert_mask_volume_into_layer( LayerHandle layer,
 	if ( ! mask_layer ) return false;
 
 	// Ensure that the application thread will process this update.
-	LayerManager::DispatchInsertMaskVolumeIntoLayer( mask_layer, mask,
+
+	ProvenanceID prov_id = -1;
+	
+	LayerFilterPrivate::provenance_map_type::iterator it = 
+		this->private_->provenance_ids_.find( layer.get() );
+		
+	if ( it != this->private_->provenance_ids_.end() )
+	{
+		prov_id = ( *it ).second;
+	}
+
+	LayerManager::DispatchInsertMaskVolumeIntoLayer( mask_layer, mask, prov_id,
 		this->private_->key_ );
+
 	return true;
 }
-
 
 void LayerFilter::run()
 {
@@ -701,18 +670,42 @@ bool LayerFilter::create_undo_redo_record( Core::ActionContextHandle context, Co
 	// Insert the record into the undo buffer
 	UndoBuffer::Instance()->insert_undo_item( context, item );
 
+	this->private_->volume_check_point_layers_.clear();
+	this->private_->deleted_layers_.clear();
+
 	return true;
 }
 
-bool LayerFilter::create_provenance_record( Core::ActionHandle provenance_action )
+bool LayerFilter::create_provenance_record( Core::ActionHandle action )
 {
-//	LayerAction layer_action = boost::dynamic_pointer_cast<LayerAction>( provenance_action );
-//	
-//	this->private_->provenance_item_ = LayerProvenanceItemHandle( 
-//		new LayerProvenanceItem( ) );
+	LayerAction* layer_action = dynamic_cast<LayerAction*>( action.get() );
+	
+	if ( ! layer_action ) return false;
+	
+	size_t output_layer_count = 0;
+
+	for ( size_t j = 0; j < this->private_->created_layers_.size(); j++ )
+	{
+		if ( this->private_->created_layers_[ j ] ) 
+		{
+			this->private_->provenance_ids_[ this->private_->created_layers_[ j ].get() ] = 
+				layer_action->get_output_provenance_id( output_layer_count );
+			output_layer_count++;
+		}
+	}
+
+	for ( size_t j = 0; j < this->private_->locked_for_processing_layers_.size(); j++ )
+	{
+		if ( this->private_->locked_for_processing_layers_[ j ] ) 
+		{
+			this->private_->provenance_ids_[ 
+				this->private_->locked_for_processing_layers_[ j ].get() ] = 
+					layer_action->get_output_provenance_id( output_layer_count );
+			output_layer_count++;
+		}
+	}
 
 	return true;
-return true;
 }
 
 } // end namespace Seg3D

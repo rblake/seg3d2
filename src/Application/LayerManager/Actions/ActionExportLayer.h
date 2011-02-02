@@ -54,11 +54,10 @@ CORE_ACTION(
 public:
 	ActionExportLayer()
 	{
-		this->add_parameters( this->layer_id_ , this->file_path_, this->exporter_, this->extension_ );
-	}
-	
-	virtual ~ActionExportLayer()
-	{
+		this->add_parameter( this->layer_id_ );
+		this->add_parameter( this->file_path_ );
+		this->add_parameter( this->exporter_ );
+		this->add_parameter( this->extension_ );
 	}
 	
 	// -- Functions that describe action --

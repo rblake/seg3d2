@@ -1181,13 +1181,14 @@ bool LayerManager::CheckLayerAvailability( const std::string& layer_id, bool rep
 	}
 }
 
-
-
-
-
 LayerHandle LayerManager::FindLayer( const std::string& layer_id )
 {
 	return LayerManager::Instance()->get_layer_by_id( layer_id );
+}
+
+LayerHandle LayerManager::FindLayer( ProvenanceID prov_id )
+{
+	return LayerManager::Instance()->get_layer_by_provenance_id( prov_id );
 }
 
 MaskLayerHandle LayerManager::FindMaskLayer( const std::string& layer_id )
@@ -1420,13 +1421,13 @@ void LayerManager::DispatchUnlockOrDeleteLayer( LayerHandle layer, filter_key_ty
 }
 
 void LayerManager::DispatchInsertDataVolumeIntoLayer( DataLayerHandle layer, 
-	Core::DataVolumeHandle data, filter_key_type key )
+	Core::DataVolumeHandle data, ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertDataVolumeIntoLayer, layer, data, key ) );
+			&LayerManager::DispatchInsertDataVolumeIntoLayer, layer, data, prov_id, key ) );
 		return;
 	}
 	
@@ -1435,6 +1436,7 @@ void LayerManager::DispatchInsertDataVolumeIntoLayer( DataLayerHandle layer,
 	{
 		if ( layer->set_data_volume( data ) )
 		{
+			layer->provenance_id_state_->set( prov_id );
 			LayerManager::Instance()->layer_volume_changed_signal_( layer );
 			LayerManager::Instance()->layers_changed_signal_();
 		}
@@ -1442,13 +1444,13 @@ void LayerManager::DispatchInsertDataVolumeIntoLayer( DataLayerHandle layer,
 }
 
 void LayerManager::DispatchInsertMaskVolumeIntoLayer( MaskLayerHandle layer, 
-	Core::MaskVolumeHandle mask, filter_key_type key )
+	Core::MaskVolumeHandle mask, ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertMaskVolumeIntoLayer, layer, mask, key ) );
+			&LayerManager::DispatchInsertMaskVolumeIntoLayer, layer, mask, prov_id, key ) );
 		return;
 	}
 	
@@ -1457,6 +1459,7 @@ void LayerManager::DispatchInsertMaskVolumeIntoLayer( MaskLayerHandle layer,
 	{
 		if ( layer->set_mask_volume( mask ) )
 		{
+			layer->provenance_id_state_->set( prov_id );
 			LayerManager::Instance()->layer_volume_changed_signal_( layer );
 			LayerManager::Instance()->layers_changed_signal_();
 		}
@@ -1464,7 +1467,7 @@ void LayerManager::DispatchInsertMaskVolumeIntoLayer( MaskLayerHandle layer,
 }
 
 void LayerManager::DispatchInsertVolumeIntoLayer( LayerHandle layer, 
-	Core::VolumeHandle volume, filter_key_type key )
+	Core::VolumeHandle volume, ProvenanceID prov_id, filter_key_type key )
 {
 	if ( layer->get_type() == Core::VolumeType::MASK_E )
 	{
@@ -1472,7 +1475,7 @@ void LayerManager::DispatchInsertVolumeIntoLayer( LayerHandle layer,
 		Core::MaskVolumeHandle mask_volume = boost::shared_dynamic_cast<Core::MaskVolume>( volume );
 		if ( mask && mask_volume )
 		{
-			DispatchInsertMaskVolumeIntoLayer( mask, mask_volume, key );
+			DispatchInsertMaskVolumeIntoLayer( mask, mask_volume, prov_id, key );
 		}
 	}
 	else if ( layer->get_type() == Core::VolumeType::DATA_E )
@@ -1481,19 +1484,19 @@ void LayerManager::DispatchInsertVolumeIntoLayer( LayerHandle layer,
 		Core::DataVolumeHandle data_volume = boost::shared_dynamic_cast<Core::DataVolume>( volume );
 		if ( data && data_volume )
 		{
-			DispatchInsertDataVolumeIntoLayer( data, data_volume, key );
+			DispatchInsertDataVolumeIntoLayer( data, data_volume, prov_id, key );
 		}
 	}
 }
 
 void LayerManager::DispatchInsertDataSliceIntoLayer( DataLayerHandle layer,
-		Core::DataSliceHandle data,  filter_key_type key )
+		Core::DataSliceHandle data,  ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertDataSliceIntoLayer, layer, data, key ) );
+			&LayerManager::DispatchInsertDataSliceIntoLayer, layer, data, prov_id, key ) );
 		return;
 	}
 	
@@ -1505,6 +1508,7 @@ void LayerManager::DispatchInsertDataSliceIntoLayer( DataLayerHandle layer,
 
 		if ( data_volume->insert_slice( data ) )
 		{
+			layer->provenance_id_state_->set( prov_id );
 			LayerManager::Instance()->layer_volume_changed_signal_( layer );
 			LayerManager::Instance()->layers_changed_signal_();
 		}
@@ -1512,13 +1516,13 @@ void LayerManager::DispatchInsertDataSliceIntoLayer( DataLayerHandle layer,
 }
 
 void LayerManager::DispatchInsertDataSlicesIntoLayer( DataLayerHandle layer,
-		std::vector<Core::DataSliceHandle> data,  filter_key_type key )
+		std::vector<Core::DataSliceHandle> data, ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertDataSlicesIntoLayer, layer, data, key ) );
+			&LayerManager::DispatchInsertDataSlicesIntoLayer, layer, data, prov_id, key ) );
 		return;
 	}
 	
@@ -1537,6 +1541,7 @@ void LayerManager::DispatchInsertDataSlicesIntoLayer( DataLayerHandle layer,
 			++it; 
 		}
 	
+		layer->provenance_id_state_->set( prov_id );
 		LayerManager::Instance()->layer_volume_changed_signal_( layer );
 		LayerManager::Instance()->layers_changed_signal_();
 	}
@@ -1544,13 +1549,13 @@ void LayerManager::DispatchInsertDataSlicesIntoLayer( DataLayerHandle layer,
 
 
 void LayerManager::DispatchInsertMaskSliceIntoLayer(MaskLayerHandle layer,
-		Core::MaskDataSliceHandle mask,  filter_key_type key )
+		Core::MaskDataSliceHandle mask, ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertMaskSliceIntoLayer, layer, mask, key ) );
+			&LayerManager::DispatchInsertMaskSliceIntoLayer, layer, mask, prov_id, key ) );
 		return;
 	}
 	
@@ -1562,6 +1567,7 @@ void LayerManager::DispatchInsertMaskSliceIntoLayer(MaskLayerHandle layer,
 	
 		if ( mask_volume->insert_slice( mask ) )
 		{
+			layer->provenance_id_state_->set( prov_id );
 			LayerManager::Instance()->layer_volume_changed_signal_( layer );
 			LayerManager::Instance()->layers_changed_signal_();
 		}
@@ -1569,13 +1575,13 @@ void LayerManager::DispatchInsertMaskSliceIntoLayer(MaskLayerHandle layer,
 }
 
 void LayerManager::DispatchInsertMaskSlicesIntoLayer( MaskLayerHandle layer,
-		std::vector<Core::MaskDataSliceHandle> mask,  filter_key_type key )
+		std::vector<Core::MaskDataSliceHandle> mask, ProvenanceID prov_id, filter_key_type key )
 {
 	// Move this request to the Application thread
 	if ( !( Core::Application::IsApplicationThread() ) )
 	{
 		Core::Application::PostEvent( boost::bind( 
-			&LayerManager::DispatchInsertMaskSlicesIntoLayer, layer, mask, key ) );
+			&LayerManager::DispatchInsertMaskSlicesIntoLayer, layer, mask, prov_id, key ) );
 		return;
 	}
 	
@@ -1594,6 +1600,7 @@ void LayerManager::DispatchInsertMaskSlicesIntoLayer( MaskLayerHandle layer,
 			++it; 
 		}
 	
+		layer->provenance_id_state_->set( prov_id );
 		LayerManager::Instance()->layer_volume_changed_signal_( layer );
 		LayerManager::Instance()->layers_changed_signal_();
 	}

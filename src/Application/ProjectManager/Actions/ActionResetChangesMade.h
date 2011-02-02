@@ -53,10 +53,6 @@ public:
 	{
 	}
 
-	virtual ~ActionResetChangesMade()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

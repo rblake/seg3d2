@@ -49,11 +49,8 @@ CORE_ACTION(
 public:
 	ActionNewProject()
 	{
-		this->add_parameters( this->project_path_, this->project_name_ );
-	}
-
-	virtual ~ActionNewProject()
-	{
+		this->add_parameter( this->project_path_ );
+		this->add_parameter( this->project_name_ );
 	}
 
 	// -- Functions that describe action --

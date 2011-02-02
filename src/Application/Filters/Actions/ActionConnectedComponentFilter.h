@@ -54,11 +54,11 @@ public:
 	ActionConnectedComponentFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->seeds_, this->replace_, this->mask_, this->invert_mask_ );
-	}
-	
-	virtual ~ActionConnectedComponentFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->mask_ );
+		this->add_parameter( this->invert_mask_ );
 	}
 	
 	// -- Functions that describe action --

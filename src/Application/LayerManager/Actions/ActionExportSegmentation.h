@@ -55,13 +55,13 @@ CORE_ACTION(
 public:
 	ActionExportSegmentation()
 	{
-		this->add_parameters( this->layers_, this->file_path_, this->mode_, this->extension_, this->exporter_ );
+		this->add_parameter( this->layers_ );
+		this->add_parameter( this->file_path_ );
+		this->add_parameter( this->mode_ );
+		this->add_parameter( this->extension_ );
+		this->add_parameter( this->exporter_ );
 	}
-	
-	virtual ~ActionExportSegmentation()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	// VALIDATE:

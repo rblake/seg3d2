@@ -202,8 +202,9 @@ ActionPermute::ActionPermute() :
 	private_( new ActionPermutePrivate )
 {
 	// Action arguments
-	this->add_parameters( this->private_->layer_ids_, this->private_->permutation_,
-		this->private_->replace_ );
+	this->add_parameter( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->permutation_ );
+	this->add_parameter( this->private_->replace_ );
 }
 
 bool ActionPermute::validate( Core::ActionContextHandle& context )

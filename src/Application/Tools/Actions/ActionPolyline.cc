@@ -65,12 +65,11 @@ public:
 ActionPolyline::ActionPolyline() :
 	private_( new ActionPolylinePrivate )
 {
-	this->add_parameters( this->private_->target_layer_id_, this->private_->slice_type_,
-		this->private_->slice_number_, this->private_->erase_, this->private_->vertices_ );
-}
-
-ActionPolyline::~ActionPolyline()
-{
+	this->add_parameter( this->private_->target_layer_id_ );
+	this->add_parameter( this->private_->slice_type_ );
+	this->add_parameter( this->private_->slice_number_ );
+	this->add_parameter( this->private_->erase_ );
+	this->add_parameter( this->private_->vertices_ );
 }
 
 bool ActionPolyline::validate( Core::ActionContextHandle& context )

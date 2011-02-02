@@ -89,10 +89,6 @@ ActionPaint::ActionPaint() :
 	this->add_parameter( this->private_->erase_ );
 }
 
-ActionPaint::~ActionPaint()
-{
-}
-
 bool ActionPaint::validate( Core::ActionContextHandle& context )
 {
 	// The paint interface will update the painting

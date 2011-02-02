@@ -53,13 +53,9 @@ CORE_ACTION(
 public:
 	ActionDuplicateLayer()
 	{
-		this->add_parameters( this->layer_id_ );
+		this->add_parameter( this->layer_id_ );
 	}
-	
-	virtual ~ActionDuplicateLayer()
-	{
-	}
-	
+
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

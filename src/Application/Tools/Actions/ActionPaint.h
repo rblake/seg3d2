@@ -64,7 +64,6 @@ class ActionPaint : public Core::Action
 
 public:
 	ActionPaint();
-	virtual ~ActionPaint();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

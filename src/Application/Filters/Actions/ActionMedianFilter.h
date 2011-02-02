@@ -56,12 +56,10 @@ public:
 	ActionMedianFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->replace_,
-			this->preserve_data_format_, this->radius_ );
-	}
-	
-	virtual ~ActionMedianFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->preserve_data_format_ );
+		this->add_parameter( this->radius_ );
 	}
 	
 	// -- Functions that describe action --

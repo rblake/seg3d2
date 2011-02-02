@@ -51,7 +51,6 @@ CORE_ACTION(
 
 public:
 	ActionOffsetSlice();
-	virtual ~ActionOffsetSlice();
 
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );

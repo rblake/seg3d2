@@ -47,11 +47,7 @@ public:
 	ActionRedo()
 	{
 	}
-
-	virtual ~ActionRedo()
-	{
-	}
-
+	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

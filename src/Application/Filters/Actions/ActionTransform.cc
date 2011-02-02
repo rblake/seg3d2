@@ -237,8 +237,10 @@ ActionTransform::ActionTransform() :
 	private_( new ActionTransformPrivate )
 {
 	// Action arguments
-	this->add_parameters( this->private_->layer_ids_, this->private_->origin_, 
-		this->private_->spacing_, this->private_->replace_ );
+	this->add_parameter( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->origin_ );
+	this->add_parameter( this->private_->spacing_ );
+	this->add_parameter( this->private_->replace_ );
 }
 
 bool ActionTransform::validate( Core::ActionContextHandle& context )

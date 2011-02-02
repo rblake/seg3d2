@@ -50,10 +50,6 @@ public:
 		this->add_parameter( this->toolid_ );
 	}
 
-	virtual ~ActionCloseTool()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

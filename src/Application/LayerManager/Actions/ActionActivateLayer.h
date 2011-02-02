@@ -53,10 +53,6 @@ public:
 		this->add_parameter( this->layer_id_ );
 	}
 
-	virtual ~ActionActivateLayer()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

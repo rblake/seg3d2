@@ -55,10 +55,6 @@ public:
 		this->add_parameter( this->mask_name_ );
 	}
 	
-	virtual ~ActionCalculateMaskVolume()
-	{
-	}
-	
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

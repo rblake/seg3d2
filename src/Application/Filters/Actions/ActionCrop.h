@@ -54,8 +54,6 @@ CORE_ACTION(
 public:
 	ActionCrop();
 	
-	virtual ~ActionCrop() {}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

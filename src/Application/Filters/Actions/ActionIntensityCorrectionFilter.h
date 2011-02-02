@@ -57,12 +57,11 @@ public:
 	ActionIntensityCorrectionFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->preserve_data_format_,
-			this->replace_, this->order_, this->edge_ );
-	}
-	
-	virtual ~ActionIntensityCorrectionFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->preserve_data_format_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->order_ );
+		this->add_parameter( this->edge_ );
 	}
 	
 	// -- Functions that describe action --

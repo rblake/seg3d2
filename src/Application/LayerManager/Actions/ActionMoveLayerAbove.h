@@ -50,13 +50,11 @@ CORE_ACTION(
 public:
 	ActionMoveLayerAbove() 		
 	{
-		this->add_parameters( this->layer_to_move_id_, this->target_layer_id_, this->move_above_ );
+		this->add_parameter( this->layer_to_move_id_ );
+		this->add_parameter( this->target_layer_id_ );
+		this->add_parameter( this->move_above_ );
 	}
-	
-	virtual ~ActionMoveLayerAbove()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

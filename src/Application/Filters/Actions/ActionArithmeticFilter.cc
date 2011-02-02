@@ -331,8 +331,11 @@ ActionArithmeticFilter::ActionArithmeticFilter() :
 	private_( new ActionArithmeticFilterPrivate )
 {
 	// Action arguments
-	this->add_parameters( this->private_->layer_ids_, this->private_->expressions_,
-		this->private_->output_type_, this->private_->replace_, this->private_->preserve_data_format_ );
+	this->add_parameter( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->expressions_ );
+	this->add_parameter( this->private_->output_type_ );
+	this->add_parameter( this->private_->replace_ );
+	this->add_parameter( this->private_->preserve_data_format_ );
 }
 
 bool ActionArithmeticFilter::validate( Core::ActionContextHandle& context )

@@ -52,11 +52,8 @@ public:
 	ActionOtsuThresholdFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->amount_ );
-	}
-	
-	virtual ~ActionOtsuThresholdFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->amount_ );
 	}
 	
 	// -- Functions that describe action --

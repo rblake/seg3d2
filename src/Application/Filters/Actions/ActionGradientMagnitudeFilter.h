@@ -55,14 +55,11 @@ public:
 	ActionGradientMagnitudeFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->replace_,
-			this->preserve_data_format_ );
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->preserve_data_format_ );
 	}
-	
-	virtual ~ActionGradientMagnitudeFilter()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

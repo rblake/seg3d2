@@ -54,12 +54,11 @@ CORE_ACTION(
 public:
 	ActionMaskDataFilter()
 	{
-		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_,
-			this->invert_mask_, this->replace_with_ );
-	}
-	
-	virtual ~ActionMaskDataFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->mask_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->invert_mask_ );
+		this->add_parameter( this->replace_with_ );
 	}
 	
 	// -- Functions that describe action --

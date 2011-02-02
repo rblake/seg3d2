@@ -51,10 +51,6 @@ public:
 		this->add_parameter( this->session_name_ );
 	}
 
-	virtual ~ActionDeleteSession()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

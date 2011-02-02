@@ -50,10 +50,9 @@ public:
 	ActionInvert()
 	{
 		// Action arguments
-		this->add_parameters( this->layer_id_, this->replace_ );
+		this->add_parameter( this->layer_id_ );
+		this->add_parameter( this->replace_ );
 	}
-	
-	virtual ~ActionInvert() {}
 	
 	// -- Functions that describe action --
 public:

@@ -309,6 +309,10 @@ public:
 	// Find a layer inside the layer manager
 	static LayerHandle FindLayer( const std::string& layer_id );
 
+	// FINDLAYER:
+	// Find a layer inside the layer manager
+	static LayerHandle FindLayer( ProvenanceID prov_id );
+	
 	// FINDMASKLAYER:
 	// Find a mask layer inside the layer manager
 	static MaskLayerHandle FindMaskLayer( const std::string& layer_id );
@@ -441,46 +445,52 @@ public:
 	// DISPATCHUNLOCKORDELETELAYER:
 	// Unlock layer if valid, delete otherwise. This function will relay a call to the 
 	// Application thread if needed.
-	static void DispatchUnlockOrDeleteLayer( LayerHandle layer, filter_key_type key = filter_key_type( 0 ) );
+	static void DispatchUnlockOrDeleteLayer( LayerHandle layer, 
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTDATAVOLUMEINTOLAYER:
 	// Insert a data volume into a data layer. This function will relay a call to the 
 	// Application thread if needed.
 	static void DispatchInsertDataVolumeIntoLayer( DataLayerHandle layer, 
-		Core::DataVolumeHandle data, filter_key_type key = filter_key_type( 0 ) );
+		Core::DataVolumeHandle data, ProvenanceID provid, 
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTMASKVOLUMEINTOLAYER:
 	// Insert a mask volume into a mask layer. This function will relay a call to the 
 	// Application thread if needed.
 	static void DispatchInsertMaskVolumeIntoLayer( MaskLayerHandle layer, 
-		Core::MaskVolumeHandle mask, filter_key_type key = filter_key_type( 0 ) );
+		Core::MaskVolumeHandle mask, ProvenanceID provid, 
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTVOLUMEINTOLAYER:
 	// Insert a mask or data volume into a layer. This function will relay a call to the 
 	// Application thread if needed.
 	static void DispatchInsertVolumeIntoLayer( LayerHandle layer, 
-		Core::VolumeHandle mask, filter_key_type key = filter_key_type( 0 ) );
+		Core::VolumeHandle mask, ProvenanceID provid, 
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTDATASLICEINTOLAYER:
 	// Insert a data slice into a data layer. 
 	static void DispatchInsertDataSliceIntoLayer( DataLayerHandle layer,
-		Core::DataSliceHandle data, filter_key_type key = filter_key_type( 0 ) );
+		Core::DataSliceHandle data, ProvenanceID provid, 
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTDATASLICEINTOLAYER:
 	// Insert a data slice into a data layer. 
 	static void DispatchInsertDataSlicesIntoLayer( DataLayerHandle layer,
-		std::vector<Core::DataSliceHandle> data, 
+		std::vector<Core::DataSliceHandle> data, ProvenanceID provid, 
 		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTMASKSLICEINTOLAYER:
 	// Insert a data slice into a data layer. 
 	static void DispatchInsertMaskSliceIntoLayer( MaskLayerHandle layer,
-		Core::MaskDataSliceHandle mask, filter_key_type key = filter_key_type( 0 ) );
+		Core::MaskDataSliceHandle mask, ProvenanceID provid,
+		filter_key_type key = filter_key_type( 0 ) );
 
 	// DISPATCHINSERTMASKSLICESINTOLAYER:
 	// Insert a data slice into a data layer. 
 	static void DispatchInsertMaskSlicesIntoLayer( MaskLayerHandle layer,
-		std::vector<Core::MaskDataSliceHandle> mask, 
+		std::vector<Core::MaskDataSliceHandle> mask, ProvenanceID provid, 
 		filter_key_type key = filter_key_type( 0 ) );
 
 	// -- functions for obtaining the current layer and group id counters --

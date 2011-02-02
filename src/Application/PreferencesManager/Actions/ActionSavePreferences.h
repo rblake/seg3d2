@@ -51,10 +51,6 @@ public:
 	{
 	}
 
-	virtual ~ActionSavePreferences()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

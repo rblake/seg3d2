@@ -46,10 +46,10 @@ namespace Seg3D
 
 ActionThreshold::ActionThreshold()
 {
-	this->add_parameters( this->target_layer_, this->upper_threshold_,
-		this->lower_threshold_ );
+	this->add_parameter( this->target_layer_ );
+	this->add_parameter( this->upper_threshold_ );
+	this->add_parameter( this->lower_threshold_ );
 }
-
 
 bool ActionThreshold::validate( Core::ActionContextHandle& context )
 {

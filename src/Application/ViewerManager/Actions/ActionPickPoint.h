@@ -30,7 +30,6 @@
 #define APPLICATION_VIEWERMANAGER_ACTIONS_ACTIONPICKPOINT_H
 
 #include <Core/Action/Action.h>
-
 #include <Core/Geometry/Point.h>
 
 namespace Seg3D
@@ -49,7 +48,6 @@ CORE_ACTION(
 
 public:
 	ActionPickPoint();
-	virtual ~ActionPickPoint();
 
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );

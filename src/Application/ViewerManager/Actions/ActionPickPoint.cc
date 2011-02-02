@@ -37,11 +37,8 @@ namespace Seg3D
 
 ActionPickPoint::ActionPickPoint()
 {
-	this->add_parameters( this->viewer_, this->point_ );
-}
-
-ActionPickPoint::~ActionPickPoint()
-{
+	this->add_parameter( this->viewer_ );
+	this->add_parameter( this->point_ );
 }
 
 bool ActionPickPoint::validate( Core::ActionContextHandle& context )

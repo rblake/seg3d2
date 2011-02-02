@@ -69,10 +69,6 @@ public:
 		this->add_parameter( this->edge_ );
 	}
 	
-	virtual ~ActionThresholdSegmentationLSFilter()
-	{
-	}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

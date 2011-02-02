@@ -58,9 +58,7 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionResample();
-	
-	virtual ~ActionResample() {}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

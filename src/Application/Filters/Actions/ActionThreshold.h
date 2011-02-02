@@ -50,8 +50,6 @@ CORE_ACTION(
 public:
 	ActionThreshold();
 	
-	virtual ~ActionThreshold() {}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

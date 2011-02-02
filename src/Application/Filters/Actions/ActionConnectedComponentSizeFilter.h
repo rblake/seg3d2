@@ -52,11 +52,8 @@ public:
 	ActionConnectedComponentSizeFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->log_scale_ );
-	}
-	
-	virtual ~ActionConnectedComponentSizeFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->log_scale_ );
 	}
 	
 	// -- Functions that describe action --

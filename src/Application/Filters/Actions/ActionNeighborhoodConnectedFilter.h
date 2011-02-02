@@ -52,11 +52,8 @@ public:
 	ActionNeighborhoodConnectedFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->seeds_ );
-	}
-	
-	virtual ~ActionNeighborhoodConnectedFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
 	}
 	
 	// -- Functions that describe action --

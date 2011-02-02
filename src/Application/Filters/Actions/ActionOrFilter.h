@@ -53,11 +53,9 @@ public:
 	ActionOrFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->mask_layer_, this->replace_ );		
-	}
-	
-	virtual ~ActionOrFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->mask_layer_ );
+		this->add_parameter( this->replace_ );		
 	}
 	
 	// -- Functions that describe action --

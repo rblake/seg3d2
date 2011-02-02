@@ -54,12 +54,10 @@ CORE_ACTION(
 public:
 	ActionConfidenceConnectedFilter()
 	{
-		this->add_parameters( this->target_layer_, this->seeds_, 
-			this->iterations_, this->multiplier_ );
-	}
-	
-	virtual ~ActionConfidenceConnectedFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
+		this->add_parameter( this->iterations_ );
+		this->add_parameter( this->multiplier_ );
 	}
 	
 	// -- Functions that describe action --

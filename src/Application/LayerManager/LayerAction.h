@@ -29,7 +29,11 @@
 #ifndef APPLICATION_LAYERMANAGER_LAYERACTION_H
 #define APPLICATION_LAYERMANAGER_LAYERACTION_H 
  
+// Core includes 
 #include <Core/Action/Action.h> 
+
+// Application includes
+#include <Application/Provenance/Provenance.h>
 #include <Application/Layer/LayerFWD.h> 
 
 namespace Seg3D
@@ -48,24 +52,12 @@ public:
 	// Constructor that generates the private class
 	LayerAction();
 
-	// -- functionality for setting parameter list --
+	// -- adding parameters --
 public:
-	// ADD_PARAMETER:
-	// Add a parameter to the internal database
-	template< class T >
-	void add_parameter( const T& parameter )
-	{
-		this->add_parameter_internal(
-			Core::ActionParameterBaseHandle( new Core::ActionParameter<T>( &parameter ) ) );
-	}
-	
-	// ADD_PARAMETER:
-	// Specialized function for adding and registering layer id input parameters
-	void add_parameter( const InputLayerID& layer_id );
-	
-	// ADD_PARAMETER:
-	// Specialized function for adding and registering layer ids input parameters
-	void add_parameter( const std::vector<InputLayerID>& layer_ids );
+
+	void add_layer_id( std::string& layer_id );
+	void add_layer_id_list( std::vector<std::string>& layer_id_list );
+
 
 	// -- translate provenance information --
 public:
@@ -75,7 +67,7 @@ public:
 	// information into real action information. This function is called before validate
 	// NOTE: This function is *not* const and may alter the values of the parameters
 	//       and correct faulty input.
-	virtual bool translate( ActionContextHandle& context );
+	virtual bool translate( Core::ActionContextHandle& context );
 	
 	// -- deal with dependencies for provenance --
 protected:
@@ -92,14 +84,24 @@ public:
 	// Set the output provenance ids
 	void set_output_provenance_ids( const ProvenanceIDList& provenance_ids );
 	
-	// GENERATE_OUTPUT_PROVENANCE_ID:
+	// GET_OUTPUT_PROVENANCE_ID:
 	// Get the provenance id of output layer indexed by index. If no provenance id was assigned
 	// a new one is created
-	ProvenanceID generate_output_provenance_id( size_t index = 0 );
+	ProvenanceID get_output_provenance_id( size_t index = 0 );
 
 	// GET_OUTPUT_PROVENANCE_IDS:
-	// Get all the assigned provenance ids
-	ProvenanceIDList get_output_provenance_ids();
+	// Get or create all the assigned provenance ids
+	ProvenanceIDList get_output_provenance_ids( size_t num_provenance_ids );
+
+	// GENERATE_OUTPUT_PROVENANCE_IDS:
+	// Generate all needed provenance ids
+	void generate_output_provenance_ids( size_t num_provenance_ids );
+
+	// -- Export provenance string --
+public:
+	// EXPORTTOPROVENANCESTRING
+	// Format the operation in a string that has the provenance ids inside
+	std::string export_to_provenance_string() const;
 	
 	// -- internals --
 private:	

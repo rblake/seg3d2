@@ -168,7 +168,7 @@ private:
 	
 	// ADD_TO_PROVENANCE_DATABASE:
 	// adds the provenance step to the database
-	bool add_to_provenance_database( ProvenanceStep& step );
+	bool add_to_provenance_database( const ProvenanceStep& step );
 	
 public:
 	// SET_PROJECT_CHANGED:

@@ -55,10 +55,6 @@ public:
 		this->add_parameter( this->layer_id_ );
 	}
 	
-	virtual ~ActionDeleteIsosurface()
-	{
-	}
-	
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

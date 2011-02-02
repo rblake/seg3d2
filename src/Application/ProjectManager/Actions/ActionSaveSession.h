@@ -54,11 +54,8 @@ CORE_ACTION(
 public:
 	ActionSaveSession()
 	{
-		this->add_parameters( this->session_name_, this->is_autosave_ );
-	}
-
-	virtual ~ActionSaveSession()
-	{
+		this->add_parameter( this->session_name_ );
+		this->add_parameter( this->is_autosave_ );
 	}
 
 	// -- Functions that describe action --

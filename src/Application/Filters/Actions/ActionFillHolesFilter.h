@@ -53,11 +53,9 @@ public:
 	ActionFillHolesFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->seeds_, this->replace_ );
-	}
-	
-	virtual ~ActionFillHolesFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
+		this->add_parameter( this->replace_ );
 	}
 	
 	// -- Functions that describe action --

@@ -47,9 +47,8 @@ CORE_ACTION(
 public:
 	ActionAutoView()
 	{
-		this->add_parameters( this->viewer_id_ );
+		this->add_parameter( this->viewer_id_ );
 	}	
-	virtual ~ActionAutoView() {}
 
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );

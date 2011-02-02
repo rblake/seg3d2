@@ -55,11 +55,8 @@ ActionOffsetSlice::ActionOffsetSlice() :
 {
 	this->private_->actual_offset_ = 0;
 
-	this->add_parameters( this->private_->viewer_id_, this->private_->offset_ );
-}
-
-ActionOffsetSlice::~ActionOffsetSlice()
-{
+	this->add_parameter( this->private_->viewer_id_ );
+	this->add_parameter( this->private_->offset_ );
 }
 
 bool ActionOffsetSlice::validate( Core::ActionContextHandle& context )

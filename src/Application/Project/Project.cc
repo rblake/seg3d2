@@ -77,16 +77,12 @@ Project::Project( const std::string& project_name ) :
 		
 	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
 		boost::bind( &Project::register_action_in_database, this, _1, _2 ) ) );
-	
-		
 }
 	
 Project::~Project()
 {
 	this->disconnect_all();
 }
-
-
 
 void Project::set_project_changed( Core::ActionHandle action, Core::ActionResultHandle result )
 {
@@ -466,7 +462,7 @@ bool Project::create_database_scheme()
 
 // This function is mostly just a placeholder.  Currently it just registers the actions.  We will probably want to 
 // create a Providence Object and then add it to the db.
-bool Project::add_to_provenance_database( ProvenanceStep& step )
+bool Project::add_to_provenance_database( const ProvenanceStep& step )
 {
 	boost::filesystem::path  database_path = this->project_path_ / "provenance" / "provenancedatabase.sqlite";
 	
@@ -499,7 +495,7 @@ bool Project::add_to_provenance_database( ProvenanceStep& step )
 				inputs.push_back( GenerateProvenanceID() );
 				inputs.push_back( GenerateProvenanceID() );
 
-				step.set_inputs( inputs );
+//				step.set_inputs( inputs );
 			}
 			
 		}
@@ -552,8 +548,6 @@ bool Project::add_to_provenance_database( ProvenanceStep& step )
 // entry per actiontype.  This is mostly test code that inputs generated provenanceid's
 bool Project::register_action_in_database( Core::ActionHandle action, Core::ActionResultHandle result )
 {
-	
-	
 	if( !this->database_initialized_ ) return false;
 	
 	ProvenanceIDList inputs;
@@ -562,7 +556,6 @@ bool Project::register_action_in_database( Core::ActionHandle action, Core::Acti
 	inputs.push_back( GenerateProvenanceID() );
 	
 	return this->add_to_provenance_database( ProvenanceStep( inputs, action->export_to_string() ) );
-	
 }
 
 void Project::close_provenance_database()

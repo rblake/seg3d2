@@ -55,12 +55,11 @@ public:
 	ActionHistogramEqualizationFilter()
 	{
 		// Action arguments
-		this->add_parameters( this->target_layer_, this->replace_, this->amount_,
-			this->bins_, this->ignore_bins_ );
-	}
-	
-	virtual ~ActionHistogramEqualizationFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->amount_ );
+		this->add_parameter( this->bins_ );
+		this->add_parameter( this->ignore_bins_ );
 	}
 	
 	// -- Functions that describe action --

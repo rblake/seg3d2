@@ -48,8 +48,7 @@ public:
 	ActionSnap()
 	{
 		this->add_parameter( this->viewer_id_ );
-	}	
-	virtual ~ActionSnap() {}
+	}
 
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );

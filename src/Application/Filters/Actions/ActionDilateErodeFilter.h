@@ -74,10 +74,6 @@ public:
 		this->add_parameter( this->slice_type_ );
 	}
 	
-	virtual ~ActionDilateErodeFilter()
-	{
-	}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

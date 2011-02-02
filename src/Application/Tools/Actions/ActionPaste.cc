@@ -61,15 +61,14 @@ public:
 ActionPaste::ActionPaste() :
 	private_( new ActionPastePrivate )
 {
-	this->add_parameters( this->private_->target_layer_id_, this->private_->slice_type_,
-		this->private_->min_slice_ , this->private_->max_slice_, this->private_->slot_number_ );
+	this->add_parameter( this->private_->target_layer_id_ );
+	this->add_parameter( this->private_->slice_type_ );
+	this->add_parameter( this->private_->min_slice_ );
+	this->add_parameter( this->private_->max_slice_ );
+	this->add_parameter( this->private_->slot_number_ );
 
 	this->private_->deduce_params_ = false;
 	this->private_->punch_through_ = false;
-}
-
-ActionPaste::~ActionPaste()
-{
 }
 
 bool ActionPaste::validate( Core::ActionContextHandle& context )

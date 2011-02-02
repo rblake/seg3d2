@@ -51,10 +51,6 @@ public:
 	{
 	}
 
-	virtual ~ActionActivateNextLayer()
-	{
-	}
-
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

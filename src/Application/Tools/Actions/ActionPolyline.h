@@ -59,7 +59,6 @@ typedef Core::PointF VertexCoord;
 
 public:
 	ActionPolyline();
-	virtual ~ActionPolyline();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

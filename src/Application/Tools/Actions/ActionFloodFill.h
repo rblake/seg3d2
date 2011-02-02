@@ -82,7 +82,6 @@ CORE_ACTION
 
 public:
 	ActionFloodFill();
-	virtual ~ActionFloodFill();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

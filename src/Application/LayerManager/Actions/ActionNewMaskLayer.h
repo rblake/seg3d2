@@ -57,10 +57,6 @@ public:
 		this->add_parameter( this->group_id_);
 	}
 	
-	virtual ~ActionNewMaskLayer()
-	{
-	}
-	
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

@@ -310,8 +310,10 @@ ActionCrop::ActionCrop() :
 	private_( new ActionCropPrivate )
 {
 	// Action arguments
-	this->add_parameters( this->private_->layer_ids_, this->private_->origin_, 
-		this->private_->size_, this->private_->replace_ );
+	this->add_parameter( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->origin_ );
+	this->add_parameter( this->private_->size_ );
+	this->add_parameter( this->private_->replace_ );
 }
 
 bool ActionCrop::validate( Core::ActionContextHandle& context )

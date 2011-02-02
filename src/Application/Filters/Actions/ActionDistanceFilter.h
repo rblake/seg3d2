@@ -54,12 +54,9 @@ CORE_ACTION(
 public:
 	ActionDistanceFilter()
 	{
-		this->add_parameters( this->target_layer_, this->use_index_space_,
-			this->inside_positive_ );
-	}
-	
-	virtual ~ActionDistanceFilter()
-	{
+		this->add_parameter( this->target_layer_ );
+		this->add_parameter( this->use_index_space_ );
+		this->add_parameter( this->inside_positive_ );
 	}
 	
 	// -- Functions that describe action --

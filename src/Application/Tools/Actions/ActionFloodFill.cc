@@ -88,10 +88,6 @@ ActionFloodFill::ActionFloodFill() :
 	this->add_parameter( this->private_->erase_ );
 }
 
-ActionFloodFill::~ActionFloodFill()
-{
-}
-
 bool ActionFloodFill::validate( Core::ActionContextHandle& context )
 {	
 	// Check whether the target layer exists
