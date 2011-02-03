@@ -26,32 +26,43 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Application includes
-#include <Application/Tool/ToolFactory.h>
-#include <Application/Tools/MeasureTool.h>
-//#include <Application/Filters/Actions/ActionInvert.h>
-#include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
-
-// Register the tool into the tool factory
-SCI_REGISTER_TOOL( Seg3D, MeasureTool )
+#ifndef APPLICATION_TOOLS_MEASUREMENTTOOL_H
+#define APPLICATION_TOOLS_MEASUREMENTTOOL_H
 
 namespace Seg3D
 {
 
-MeasureTool::MeasureTool( const std::string& toolid ) :
-	Tool( toolid )
-{
-}
+class MeasurementToolPrivate;
+typedef boost::shared_ptr< MeasurementToolPrivate > MeasurementToolPrivateHandle;
 
-MeasureTool::~MeasureTool()
+class MeasurementTool : public Tool
 {
-	this->disconnect_all();
-}
 
-void MeasureTool::execute( Core::ActionContextHandle context )
-{
-	//ActionInvert::Dispatch( context );
-}
+SEG3D_TOOL
+(
+	SEG3D_TOOL_NAME( "MeasurementTool", "Tool for creating measurements in slices" )
+	SEG3D_TOOL_MENULABEL( "Measure --TEST--" )
+	SEG3D_TOOL_MENU( "Tools" )
+	SEG3D_TOOL_SHORTCUT_KEY( "Ctrl+ALT+0" )
+	SEG3D_TOOL_URL( "http://www.sci.utah.edu/SCIRunDocs/index.php/CIBC:Seg3D2:MeasurementTool:1" )
+)
 
-} // end namespace Seg3D
+	// -- constructor/destructor --
+public:
+	MeasurementTool( const std::string& toolid );
+	virtual ~MeasurementTool();
+
+	// EXECUTE:
+	// Fire off the action that executes the filter
+	virtual void execute( Core::ActionContextHandle context );
+
+	// -- state --
+public:
+
+private:
+	MeasurementToolPrivateHandle private_;
+};
+
+} // end namespace
+
+#endif

@@ -26,46 +26,36 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APLICATION_RENDERINGDOCKWIDGET_H
-#define INTERFACE_APLICATION_RENDERINGDOCKWIDGET_H
+#ifndef INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
 
-// Boost includes
-#include <boost/shared_ptr.hpp>
-
-// QT includes
-#include <QtCore/QPointer>
-
-// Core includes
-#include <Core/Utils/ConnectionHandler.h>
-
-// QtUtils includes
-#include <QtUtils/Widgets/QtCustomDockWidget.h>
+// Base class of the tool widget include
+#include <Interface/Application/ToolWidget.h>
 
 namespace Seg3D
 {
 
-class RenderingDockWidgetPrivate;
+class MeasurementToolInterfacePrivate;
+typedef boost::shared_ptr< MeasurementToolInterfacePrivate > MeasurementToolInterfacePrivateHandle;
 
-class RenderingDockWidget : public QtUtils::QtCustomDockWidget, public Core::ConnectionHandler
+class MeasurementToolInterface : public ToolWidget
 {
-
 Q_OBJECT
 
+// Constructor/destructor
 public:
-	RenderingDockWidget( QWidget *parent = 0 );
-	~RenderingDockWidget();
-	
+	MeasurementToolInterface();
+	virtual ~MeasurementToolInterface();
+	virtual bool build_widget( QFrame* frame );
+
 private Q_SLOTS:
-	void set_enabled_tab_appearance( bool enabled, int index  );
+	// Update measurement note text box in response to measurement model change
+	void set_measurement_note_box( const QString & note );
+	// Update note in measurement model in response to measurement text box change
+	void update_measurement_note_model();
 
 private:
-	boost::shared_ptr< RenderingDockWidgetPrivate > private_;
-	
-private:
-	typedef QPointer< RenderingDockWidget > qpointer_type;
-
-	static void HandleClippingPlanesStateChanged( qpointer_type qpointer, bool state, int index );
-
+    MeasurementToolInterfacePrivateHandle private_;
 };
 
 } // end namespace Seg3D

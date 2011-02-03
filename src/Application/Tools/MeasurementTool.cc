@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -26,54 +26,32 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-//Interface Includes
-#include <QtUtils/Bridge/QtBridge.h>
+// Application includes
+//#include <Application/Filters/Actions/ActionMeasure.h>
+#include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerManager.h>
+#include <Application/Tool/ToolFactory.h>
+#include <Application/Tools/MeasurementTool.h>
 
-//Qt Gui Includes
-#include <Interface/ToolInterface/MeasureToolInterface.h>
-#include "ui_MeasureToolInterface.h"
-
-//Application Includes
-#include <Application/Tools/MeasureTool.h>
-
-SCI_REGISTER_TOOLINTERFACE( Seg3D, MeasureToolInterface )
+// Register the tool into the tool factory
+SCI_REGISTER_TOOL( Seg3D, MeasurementTool )
 
 namespace Seg3D
 {
 
-class MeasureToolInterfacePrivate
-{
-public:
-	Ui::MeasureToolInterface ui_;
-};
-
-// constructor
-MeasureToolInterface::MeasureToolInterface() :
-	private_( new MeasureToolInterfacePrivate )
+MeasurementTool::MeasurementTool( const std::string& toolid ) :
+	Tool( toolid )
 {
 }
 
-// destructor
-MeasureToolInterface::~MeasureToolInterface()
+MeasurementTool::~MeasurementTool()
 {
+	this->disconnect_all();
 }
 
-// build the interface and connect it to the state manager
-bool MeasureToolInterface::build_widget( QFrame* frame )
+void MeasurementTool::execute( Core::ActionContextHandle context )
 {
-	//Step 1 - build the Qt GUI Widget
-	this->private_->ui_.setupUi( frame );
-
-	//Step 2 - get a pointer to the tool
-	ToolHandle base_tool_ = tool();
-	MeasureTool* tool = dynamic_cast< MeasureTool* > ( base_tool_.get() );
-	
-	//Step 3 - connect the gui to the tool through the QtBridge
-
-	//Send a message to the log that we have finished with building the Measure Tool Interface
-	CORE_LOG_MESSAGE( "Finished building an Measure Tool Interface" );
-
-	return ( true );
-} // end build_widget	
+	//ActionInvert::Dispatch( context );
+}
 
 } // end namespace Seg3D

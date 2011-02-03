@@ -26,38 +26,57 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_MEASURETOOL_H
-#define APPLICATION_TOOLS_MEASURETOOL_H
+#ifndef INTERFACE_TOOLINTERFACE_MEASUREMENTTABLEVIEW_H
+#define INTERFACE_TOOLINTERFACE_MEASUREMENTTABLEVIEW_H
+
+// Qt includes
+#include <QtGui/QHeaderView>
+#include <QtGui/QScrollBar>
+#include <QtGUI/QTableView>
+
+// Interface includes
 
 namespace Seg3D
 {
 
-class MeasureTool : public Tool
+class DeleteMeasurementDialog;
+
+// QTableView with support for copyable measurements
+class MeasurementTableView : public QTableView 
+{ 
+	Q_OBJECT
+public: 
+	MeasurementTableView( QWidget* parent );
+
+	//
+	// Extended functions
+	//
+
+	void get_deletion_candidates( std::vector< int >& deletion_candidates ) const;	
+	void copy() const;
+
+Q_SIGNALS:
+	void delete_table_measurements();
+
+private Q_SLOTS:
+	void handle_model_reset();
+	void scroll_to_active_index();
+
+private:
+	QAction* delete_action_;
+}; 
+
+// Derived scroll bar that accepts all wheelEvent events rather than passing them on to the 
+// parent when scrollbar is at min/max.
+class MeasurementScrollBar : public QScrollBar
 {
-
-SEG3D_TOOL
-(
-	SEG3D_TOOL_NAME( "MeasureTool", "Tool for creating measurements in slices" )
-	SEG3D_TOOL_MENULABEL( "Measure" )
-	SEG3D_TOOL_MENU( "Tools" )
-	SEG3D_TOOL_SHORTCUT_KEY( "Ctrl+ALT+0" )
-	SEG3D_TOOL_URL( "http://www.sci.utah.edu/SCIRunDocs/index.php/CIBC:Seg3D2:MeasureTool:1" )
-)
-
-	// -- constructor/destructor --
 public:
-	MeasureTool( const std::string& toolid );
-	virtual ~MeasureTool();
+	MeasurementScrollBar( QWidget * parent = 0 ) :
+	  QScrollBar( parent ) {}
 
-	// EXECUTE:
-	// Fire off the action that executes the filter
-	virtual void execute( Core::ActionContextHandle context );
-
-	// -- state --
-public:
-
+	void wheelEvent( QWheelEvent * e );
 };
 
-} // end namespace
+} // end namespace Seg3D
 
-#endif
+#endif 
