@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONGRADIENTMAGNITUDEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONGRADIENTMAGNITUDEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 	
-class ActionGradientMagnitudeFilter : public Core::Action
+class ActionGradientMagnitudeFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -55,7 +59,7 @@ public:
 	ActionGradientMagnitudeFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->replace_ );
 		this->add_parameter( this->preserve_data_format_ );
 	}

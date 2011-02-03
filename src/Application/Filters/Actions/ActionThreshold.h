@@ -29,12 +29,16 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLD_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLD_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionThreshold : public Core::Action
+class ActionThreshold : public LayerAction
 {
 
 CORE_ACTION( 

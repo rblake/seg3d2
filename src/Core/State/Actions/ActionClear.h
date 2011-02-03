@@ -49,8 +49,6 @@ public:
 		this->add_parameter( this->stateid_ );
 	}
 
-	virtual ~ActionClear() {}
-
 	// -- Functions that describe action --
 	virtual bool validate( ActionContextHandle& context );
 	virtual bool run( ActionContextHandle& context, ActionResultHandle& result );

@@ -199,57 +199,7 @@ protected:
 	template< class T >
 	inline void add_parameter( T& parameter )
 	{
-		this->add_param( static_cast<ActionParameterBase* >( new ActionParameter<T>( parameter ) ) );
-	}
-
-	// ADD_PARAMETERS
-	// Convenience function for adding parameters
-	template< class A >
-	void add_parameters( A& parA )
-	{
-		this->add_parameter( parA );
-	}
-
-	// ADD_PARAMETERS
-	// Convenience function for adding parameters
-	template< class A, class B >
-	void add_parameters( A& parA, B& parB )
-	{
-		this->add_parameter( parA );
-		this->add_parameter( parB );
-	}
-
-	// ADD_PARAMETERS
-	// Convenience function for adding parameters
-	template< class A, class B, class C >
-	void add_parameters( A& parA, B& parB, C& parC )
-	{
-		this->add_parameter( parA );
-		this->add_parameter( parB );
-		this->add_parameter( parC );
-	}
-
-	// ADD_PARAMETERS
-	// Convenience function for adding parameters
-	template< class A, class B, class C, class D >
-	void add_parameters( A& parA, B& parB, C& parC, D& parD )
-	{
-		this->add_parameter( parA );
-		this->add_parameter( parB );
-		this->add_parameter( parC );
-		this->add_parameter( parD );
-	}
-
-	// ADD_PARAMETERS
-	// Convenience function for adding parameters
-	template< class A, class B, class C, class D, class E >
-	void add_parameters( A& parA, B& parB, C& parC, D& parD, E& parE )
-	{
-		this->add_parameter( parA );
-		this->add_parameter( parB );
-		this->add_parameter( parC );
-		this->add_parameter( parD );
-		this->add_parameter( parE );
+		this->add_param( new ActionParameter<T>( parameter ) );
 	}
 
 protected:
@@ -262,14 +212,14 @@ protected:
 
 	// GET_PARAM
 	// Retrieve the parameter from the internal structure of the action
-	inline ActionParameterBase* get_param( size_t index )
+	inline ActionParameterBase* get_param( size_t index ) const 
 	{
 		return this->parameters_[ index ]; 
 	}
 	
 	// NUM_PARAMS
 	// Number of parameter in this action
-	inline size_t num_params()
+	inline size_t num_params() const
 	{
 		return parameters_.size();
 	}

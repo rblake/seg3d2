@@ -48,9 +48,10 @@ CORE_ACTION_ARGUMENT( "offset", "The offset that needs to be added." )
 )
 
 public:
-	ActionTranslateView();
-	virtual ~ActionTranslateView()
+	ActionTranslateView()
 	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->offset_ );
 	}
 
 	// -- Functions that describe action --

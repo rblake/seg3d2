@@ -293,6 +293,9 @@ bool ActionMaskDataFilter::run( Core::ActionContextHandle& context,
 	// Build the undo-redo record
 	algo->create_undo_redo_record( context, this->shared_from_this() );
 
+	// Build the provenance record
+	algo->create_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter.
 	Core::Runnable::Start( algo );
 

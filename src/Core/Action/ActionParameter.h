@@ -44,7 +44,6 @@
 // Core
 #include <Core/Utils/Log.h>
 #include <Core/Utils/StringUtil.h>
-#include <Core/Action/ActionParameterType.h>
 
 namespace Core
 {
@@ -61,7 +60,6 @@ public:
 
 	// -- functions for accessing data --
 public:
-
 	// IMPORT_FROM_STRING
 	// Import a parameter from a string. The function returns true
 	// if the import succeeded
@@ -70,11 +68,10 @@ public:
 	// EXPORT_TO_STRING
 	// Export the contents of the parameter to string
 	virtual std::string export_to_string() const = 0;
-	
-	// PARAMETER_TYPE
-	// Type of the parameter if known
-	virtual int parameter_type() const = 0;
-	
+
+	// HAS_EXTENSION
+	// Has exented information in the derived class
+	virtual bool has_extension() const = 0;
 };
 
 // ACTIONPARAMETER:
@@ -99,7 +96,7 @@ public:
 	// if the import succeeded
 	virtual bool import_from_string( const std::string& str )
 	{
-		return ( ImportFromString( str, this->parameter_ ) );
+		return ImportFromString( str, this->parameter_ );
 	}
 	
 	// EXPORT_TO_STRING
@@ -109,21 +106,14 @@ public:
 		return ExportToString( this->parameter_ );
 	}
 
-	// PARAMETER_TYPE
-	// Type of the parameter if known
-	virtual int parameter_type() const
+	// HAS_EXTENSION
+	// Has exented information in the derived class
+	virtual bool has_extension() const
 	{
-		return ParameterType( this->parameter_ );
+		return false;
 	}
 
-	// GET_PARAMETER
-	// Accessor to the reference
-	T& get_parameter()
-	{
-		return this->parameter_;
-	}
-
-private:
+protected:
 	// The actual parameter (as a reference)
 	T& parameter_;
 };

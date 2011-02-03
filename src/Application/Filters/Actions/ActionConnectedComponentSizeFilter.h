@@ -32,10 +32,13 @@
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
 
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
+
 namespace Seg3D
 {
 
-class ActionConnectedComponentSizeFilter : public Core::Action
+class ActionConnectedComponentSizeFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -52,7 +55,7 @@ public:
 	ActionConnectedComponentSizeFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->log_scale_ );
 	}
 	

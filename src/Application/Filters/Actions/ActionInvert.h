@@ -29,12 +29,16 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONINVERT_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONINVERT_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 	
-class ActionInvert : public Core::Action
+class ActionInvert : public LayerAction
 {
 
 CORE_ACTION( 
@@ -50,7 +54,7 @@ public:
 	ActionInvert()
 	{
 		// Action arguments
-		this->add_parameter( this->layer_id_ );
+		this->add_layer_id( this->layer_id_ );
 		this->add_parameter( this->replace_ );
 	}
 	

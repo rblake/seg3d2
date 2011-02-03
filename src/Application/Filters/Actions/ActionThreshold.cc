@@ -46,7 +46,7 @@ namespace Seg3D
 
 ActionThreshold::ActionThreshold()
 {
-	this->add_parameter( this->target_layer_ );
+	this->add_layer_id( this->target_layer_ );
 	this->add_parameter( this->upper_threshold_ );
 	this->add_parameter( this->lower_threshold_ );
 }
@@ -243,6 +243,9 @@ bool ActionThreshold::run( Core::ActionContextHandle& context,
 	// Build the undo-redo record
 	algo->create_undo_redo_record( context, this->shared_from_this() );
 
+	// Build the provenance record
+	algo->create_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter on a separate thread.
 	Core::Runnable::Start( algo );
 

@@ -51,11 +51,7 @@ CORE_ACTION_ARGUMENT( "stateid", "The name of the state variable." )
 public:
 	ActionToggle()
 	{
-		this->add_parameters( this->stateid_ );
-	}
-
-	virtual ~ActionToggle()
-	{
+		this->add_parameter( this->stateid_ );
 	}
 
 	// -- Functions that describe action --

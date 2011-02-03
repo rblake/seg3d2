@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONHISTOGRAMEQUALIZATIONFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONHISTOGRAMEQUALIZATIONFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionHistogramEqualizationFilter : public Core::Action
+class ActionHistogramEqualizationFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -55,7 +59,7 @@ public:
 	ActionHistogramEqualizationFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->replace_ );
 		this->add_parameter( this->amount_ );
 		this->add_parameter( this->bins_ );

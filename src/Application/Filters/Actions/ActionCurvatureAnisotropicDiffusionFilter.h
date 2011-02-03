@@ -35,13 +35,13 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
-//#include <Application/LayerManager/LayerAction.h>
+#include <Application/LayerManager/LayerAction.h>
 
 
 namespace Seg3D
 {
 
-class ActionCurvatureAnisotropicDiffusionFilter : public Core::Action
+class ActionCurvatureAnisotropicDiffusionFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -61,7 +61,7 @@ public:
 	ActionCurvatureAnisotropicDiffusionFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->layer_id_ );
+		this->add_layer_id( this->layer_id_ );
 		this->add_parameter( this->preserve_data_format_ );
 		this->add_parameter( this->replace_ );
 		this->add_parameter( this->iterations_ );

@@ -49,9 +49,9 @@ CORE_ACTION(
 public:
 	ActionAdd()
 	{
-		this->add_parameters( this->stateid_, this->value_ );
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->value_ );
 	}	
-	virtual ~ActionAdd() {}
 
 	// -- Functions that describe action --
 	virtual bool validate( ActionContextHandle& context );

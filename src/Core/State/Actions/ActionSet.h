@@ -52,11 +52,8 @@ CORE_ACTION_ARGUMENT( "value", "The new value of the state variable." )
 public:
 	ActionSet()
 	{
-		this->add_parameters( this->stateid_, this->state_value_ );
-	}
-
-	virtual ~ActionSet()
-	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->state_value_ );
 	}
 
 	// -- Functions that describe action --

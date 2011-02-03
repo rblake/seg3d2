@@ -49,11 +49,10 @@ CORE_ACTION(
 public:
 	ActionSetAt()
 	{
-		this->add_parameters( this->stateid_, this->index_, this->value_ );
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->index_ );
+		this->add_parameter( this->value_ );
 	}	
-	virtual ~ActionSetAt() 
-	{
-	}
 
 	// -- Functions that describe action --
 	virtual bool validate( ActionContextHandle& context );

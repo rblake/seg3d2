@@ -41,6 +41,7 @@
 
 // Application includes
 #include <Application/StatusBar/StatusBar.h>
+#include <Application/ProjectManager/ProjectManager.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/LayerAction.h>
 #include <Application/LayerManager/LayerManager.h>
@@ -110,6 +111,9 @@ public:
 	typedef std::map< Layer*, ProvenanceID > provenance_map_type;
 	provenance_map_type provenance_ids_;
 	
+	// ProvenanceStep, the provenance step record that is associated with this filter
+	ProvenanceStepHandle provenance_step_;
+	
 	// -- internal functions --
 public:
 	// FINALIZE:
@@ -166,6 +170,12 @@ void LayerFilterPrivate::finalize()
 	{
 		boost::mutex::scoped_lock lock( this->mutex_ );
 		abort = this->abort_;
+	}
+	
+	if ( !abort && this->provenance_step_ )
+	{
+		ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
+			this->provenance_step_ );
 	}
 	
 	// Disconnect all the connections with the layer signals, i.e. the abort signal from target
@@ -676,21 +686,26 @@ bool LayerFilter::create_undo_redo_record( Core::ActionContextHandle context, Co
 	return true;
 }
 
-bool LayerFilter::create_provenance_record( Core::ActionHandle action )
+bool LayerFilter::create_provenance_record( Core::ActionContextHandle context, 
+	Core::ActionHandle action )
 {
-	LayerAction* layer_action = dynamic_cast<LayerAction*>( action.get() );
-	
+	// Provenance is only recorded for LayerActions
+	LayerAction* layer_action = dynamic_cast<LayerAction*>( action.get() );	
 	if ( ! layer_action ) return false;
-	
+		
+	// Figure out what provenance numbers need to be send down to the layers
+	// when finalizing this filter 
 	size_t output_layer_count = 0;
+	ProvenanceIDList output_provenance_ids;
+	ProvenanceIDList replaced_provenance_ids;
 
 	for ( size_t j = 0; j < this->private_->created_layers_.size(); j++ )
 	{
 		if ( this->private_->created_layers_[ j ] ) 
 		{
-			this->private_->provenance_ids_[ this->private_->created_layers_[ j ].get() ] = 
-				layer_action->get_output_provenance_id( output_layer_count );
-			output_layer_count++;
+			ProvenanceID prov_id = layer_action->get_output_provenance_id( output_layer_count++ );
+			this->private_->provenance_ids_[ this->private_->created_layers_[ j ].get() ] = prov_id;
+			output_provenance_ids.push_back( prov_id );
 		}
 	}
 
@@ -698,13 +713,38 @@ bool LayerFilter::create_provenance_record( Core::ActionHandle action )
 	{
 		if ( this->private_->locked_for_processing_layers_[ j ] ) 
 		{
-			this->private_->provenance_ids_[ 
-				this->private_->locked_for_processing_layers_[ j ].get() ] = 
-					layer_action->get_output_provenance_id( output_layer_count );
-			output_layer_count++;
+			ProvenanceID prov_id = layer_action->get_output_provenance_id( output_layer_count++ ); 
+			this->private_->provenance_ids_[ this->private_->locked_for_processing_layers_[ j ].get() ] = prov_id;
+					
+			output_provenance_ids.push_back( prov_id );
+			replaced_provenance_ids.push_back( prov_id );
 		}
 	}
 
+	// Create a provenance record
+	this->private_->provenance_step_ = ProvenanceStepHandle( new ProvenanceStep );
+	// Get the input provenance ids from the translate step
+	this->private_->provenance_step_->set_input_provenance_ids( 
+		layer_action->get_input_provenance_ids() );
+	// Get the output and replace provenance ids from the analysis above
+	this->private_->provenance_step_->set_output_provenance_ids( output_provenance_ids );
+	this->private_->provenance_step_->set_replaced_provenance_ids( replaced_provenance_ids );
+	
+	// Get the input command of what needs t be rerun
+	this->private_->provenance_step_->set_action( 
+		layer_action->export_to_provenance_string() );
+
+	return true;
+}
+
+bool LayerFilter::update_provenance_action_string( Core::ActionHandle action )
+{
+	// Provenance is only recorded for LayerActions
+	LayerAction* layer_action = dynamic_cast<LayerAction*>( action.get() );	
+	if ( ! layer_action ) return false;
+
+	this->private_->provenance_step_->set_action( layer_action->export_to_provenance_string() );
+		
 	return true;
 }
 

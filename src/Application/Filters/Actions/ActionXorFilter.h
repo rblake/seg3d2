@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONXORFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONXORFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionXorFilter : public Core::Action
+class ActionXorFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -52,8 +56,8 @@ CORE_ACTION(
 public:
 	ActionXorFilter()
 	{
-		this->add_parameter( this->target_layer_ );
-		this->add_parameter( this->mask_layer_ );
+		this->add_layer_id( this->target_layer_ );
+		this->add_layer_id( this->mask_layer_ );
 		this->add_parameter( this->replace_ );		
 	}
 

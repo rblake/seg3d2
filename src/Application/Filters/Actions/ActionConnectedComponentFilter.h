@@ -29,13 +29,17 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONCONNECTEDCOMPONENTFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONCONNECTEDCOMPONENTFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
+
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionConnectedComponentFilter : public Core::Action
+class ActionConnectedComponentFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -54,10 +58,10 @@ public:
 	ActionConnectedComponentFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->seeds_ );
 		this->add_parameter( this->replace_ );
-		this->add_parameter( this->mask_ );
+		this->add_layer_id( this->mask_ );
 		this->add_parameter( this->invert_mask_ );
 	}
 	

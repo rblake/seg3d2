@@ -47,11 +47,7 @@ CORE_ACTION_ARGUMENT( "stateid", "The name of the state variable." )
 public:
 	ActionGet()
 	{
-		add_parameters( this->stateid_ );
-	}
-
-	virtual ~ActionGet()
-	{
+		this->add_parameter( this->stateid_ );
 	}
 
 	// -- Functions that describe action --

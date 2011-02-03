@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONDILATEERODEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONDILATEERODEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionSmoothDilateFilter : public Core::Action
+class ActionSmoothDilateFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -57,14 +61,14 @@ public:
 	ActionSmoothDilateFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		
 		// Action options
 		this->add_parameter( this->replace_ );		
 		this->add_parameter( this->radius_ );
 
 		// Constraint
-		this->add_parameter( this->mask_layer_ );
+		this->add_layer_id( this->mask_layer_ );
 		this->add_parameter( this->mask_invert_ );	
 		
 		// 2D constraint

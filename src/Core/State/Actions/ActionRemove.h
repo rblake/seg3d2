@@ -49,10 +49,9 @@ CORE_ACTION(
 public:
 	ActionRemove()
 	{
-		this->add_parameters( this->stateid_, this->value_ );
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->value_ );
 	}
-	
-	virtual ~ActionRemove() {}
 
 	// -- Functions that describe action --
 	virtual bool validate( ActionContextHandle& context );

@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONDISTANCEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONDISTANCEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 	
-class ActionDistanceFilter : public Core::Action
+class ActionDistanceFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -54,7 +58,7 @@ CORE_ACTION(
 public:
 	ActionDistanceFilter()
 	{
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->use_index_space_ );
 		this->add_parameter( this->inside_positive_ );
 	}

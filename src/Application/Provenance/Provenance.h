@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROVENANCE_PROVENANCESTEP_H
-#define APPLICATION_PROVENANCE_PROVENANCESTEP_H
+#ifndef APPLICATION_PROVENANCE_PROVENANCE_H
+#define APPLICATION_PROVENANCE_PROVENANCE_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 #pragma once
@@ -54,27 +54,6 @@ ProvenanceID GetProvenanceCount();
 // Set the current value of the provenance counter
 void SetProvenanceCount( ProvenanceID count );
 
-class ProvenanceStepPrivate;
-
-class ProvenanceStep
-{
-
-public:
-	ProvenanceStep( const ProvenanceIDList& inputs, const std::string& action );
-	virtual ~ProvenanceStep();
-	
-public:
-	ProvenanceID get_provenance_id() const;
-	std::string get_action() const;
-	std::string get_user() const;
-	bool get_inputs( ProvenanceIDList& provenance_vector ) const;
-	void set_inputs(  ProvenanceIDList inputs  );
-
-private:
-	boost::shared_ptr< ProvenanceStepPrivate > private_;
-
-};
-
 } // end namespace Seg3D
 
-#endif //APPLICATION_PROVENANCE_PROVENANCESTEP_H
+#endif

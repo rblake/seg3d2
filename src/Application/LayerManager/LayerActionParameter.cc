@@ -64,6 +64,12 @@ std::string LayerActionLayerID::export_to_string() const
 
 bool LayerActionLayerID::translate_provenance( ProvenanceIDList& input_provenance )
 {
+	if ( this->layer_id_ == "" || this->layer_id_ == "<none>" )
+	{
+		// Nothing to translate
+		return true;
+	}
+	
 	LayerHandle layer = LayerManager::FindLayer( this->layer_id_ );
 	if ( !layer )
 	{

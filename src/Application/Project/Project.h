@@ -47,10 +47,10 @@
 
 // Application includes
 #include <Application/Provenance/Provenance.h>
+#include <Application/Provenance/ProvenanceStep.h>
 #include <Application/Session/Session.h>
 #include <Application/Project/DataManager.h>
 #include <Application/DatabaseManager/DatabaseManager.h>
-
 
 // Core includes
 #include <Core/Action/Action.h>
@@ -165,10 +165,12 @@ private:
 	// CLEANUP_SESSION_LIST:
 	// this function cleans up sessions in the session list that have been deleted by the user
 	void cleanup_session_list();
-	
+
+	// -- provenance support --
+public:	
 	// ADD_TO_PROVENANCE_DATABASE:
 	// adds the provenance step to the database
-	bool add_to_provenance_database( const ProvenanceStep& step );
+	bool add_to_provenance_database( ProvenanceStepHandle& step );
 	
 public:
 	// SET_PROJECT_CHANGED:
@@ -182,8 +184,6 @@ public:
 	// CREATE_DATABASE_SCHEME:
 	// this creates the provenance database
 	bool create_database_scheme();
-	
-	bool register_action_in_database( Core::ActionHandle action, Core::ActionResultHandle result );
 	
 	void close_provenance_database();
 	

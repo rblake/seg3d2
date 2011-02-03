@@ -70,7 +70,7 @@ public:
 	virtual bool translate( Core::ActionContextHandle& context );
 	
 	// -- deal with dependencies for provenance --
-protected:
+public:
 	// NOTE: Dependency lists need to inserted into a ProvenanceRecord and hence this function can
 	// only be called from within run_layer_action or validate_layer_action
 	

@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLDSEGMENTLSFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLDSEGMENTLSFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 	
-class ActionThresholdSegmentationLSFilter : public Core::Action
+class ActionThresholdSegmentationLSFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -58,8 +62,8 @@ public:
 	ActionThresholdSegmentationLSFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->layer_id_ );
-		this->add_parameter( this->mask_ );
+		this->add_layer_id( this->layer_id_ );
+		this->add_layer_id( this->mask_ );
 		
 		// Action options
 		this->add_parameter( this->iterations_ );

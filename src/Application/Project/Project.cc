@@ -74,9 +74,6 @@ Project::Project( const std::string& project_name ) :
 
 	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
 		boost::bind( &Project::set_project_changed, this, _1, _2 ) ) );
-		
-	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
-		boost::bind( &Project::register_action_in_database, this, _1, _2 ) ) );
 }
 	
 Project::~Project()
@@ -462,8 +459,11 @@ bool Project::create_database_scheme()
 
 // This function is mostly just a placeholder.  Currently it just registers the actions.  We will probably want to 
 // create a Providence Object and then add it to the db.
-bool Project::add_to_provenance_database( const ProvenanceStep& step )
+bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 {
+	// Print diagnostics
+	step->print();
+/*
 	boost::filesystem::path  database_path = this->project_path_ / "provenance" / "provenancedatabase.sqlite";
 	
 	if( step.get_action() != this->last_action_inserted_ )
@@ -539,23 +539,9 @@ bool Project::add_to_provenance_database( const ProvenanceStep& step )
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
 	}
+*/
 	
-	return true;
-	
-}
-
-// This function simple registers actions in the database as they come in.  It will only put one 
-// entry per actiontype.  This is mostly test code that inputs generated provenanceid's
-bool Project::register_action_in_database( Core::ActionHandle action, Core::ActionResultHandle result )
-{
-	if( !this->database_initialized_ ) return false;
-	
-	ProvenanceIDList inputs;
-	inputs.push_back( GenerateProvenanceID() );
-	inputs.push_back( GenerateProvenanceID() );
-	inputs.push_back( GenerateProvenanceID() );
-	
-	return this->add_to_provenance_database( ProvenanceStep( inputs, action->export_to_string() ) );
+	return true;	
 }
 
 void Project::close_provenance_database()
@@ -568,8 +554,5 @@ void Project::checkpoint_provenance_database()
 	if( !this->database_initialized_ ) return;
 	this->database_checkpoint();
 }
-
-
-
 
 } // end namespace Seg3D

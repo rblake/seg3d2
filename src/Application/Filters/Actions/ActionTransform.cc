@@ -237,7 +237,7 @@ ActionTransform::ActionTransform() :
 	private_( new ActionTransformPrivate )
 {
 	// Action arguments
-	this->add_parameter( this->private_->layer_ids_ );
+	this->add_layer_id_list( this->private_->layer_ids_ );
 	this->add_parameter( this->private_->origin_ );
 	this->add_parameter( this->private_->spacing_ );
 	this->add_parameter( this->private_->replace_ );
@@ -350,6 +350,9 @@ bool ActionTransform::run( Core::ActionContextHandle& context,
 
 	// Build the undo-redo record
 	algo->create_undo_redo_record( context, this->shared_from_this() );
+
+	// Build the provenance record
+	algo->create_provenance_record( context, this->shared_from_this() );
 
 	// Start the filter.
 	Core::Runnable::Start( algo );

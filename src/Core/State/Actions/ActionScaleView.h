@@ -47,11 +47,8 @@ CORE_ACTION_ARGUMENT( "scale", "The scale to multiply the view by." )
 public:
 	ActionScaleView()
 	{
-		this->add_parameters( this->stateid_, this->scale_ratio_ );
-	}
-
-	virtual ~ActionScaleView()
-	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->scale_ratio_ );
 	}
 
 	// -- Functions that describe action --

@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONSMOOTHERODEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONSMOOTHERODEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionSmoothErodeFilter : public Core::Action
+class ActionSmoothErodeFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -57,7 +61,7 @@ public:
 	ActionSmoothErodeFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		
 		// Action options
 		this->add_parameter( this->replace_ );		

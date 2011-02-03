@@ -32,12 +32,12 @@
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
-
 	
-class ActionDiscreteGaussianFilter : public Core::Action
+class ActionDiscreteGaussianFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -55,7 +55,7 @@ CORE_ACTION(
 public:
 	ActionDiscreteGaussianFilter()
 	{
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->replace_ );
 		this->add_parameter( this->preserve_data_format_ );
 		this->add_parameter( this->blurring_distance_ );

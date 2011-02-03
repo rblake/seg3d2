@@ -29,13 +29,17 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONFILLHOLEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONFILLHOLEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
+
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionFillHolesFilter : public Core::Action
+class ActionFillHolesFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -53,7 +57,7 @@ public:
 	ActionFillHolesFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->seeds_ );
 		this->add_parameter( this->replace_ );
 	}

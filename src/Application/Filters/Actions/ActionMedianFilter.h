@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONMEDIANFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONMEDIANFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionMedianFilter : public Core::Action
+class ActionMedianFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -56,7 +60,7 @@ public:
 	ActionMedianFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->replace_ );
 		this->add_parameter( this->preserve_data_format_ );
 		this->add_parameter( this->radius_ );

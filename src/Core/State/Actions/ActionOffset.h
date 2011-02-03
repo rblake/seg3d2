@@ -48,10 +48,9 @@ CORE_ACTION_ARGUMENT("value","The offset that needs to be added.")
 public:
 	ActionOffset()
 	{
-		this->add_parameters( this->stateid_, this->offset_value_ );
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->offset_value_ );
 	}
-
-	virtual ~ActionOffset() {}
 
 	// -- Functions that describe action --
 	virtual bool validate( ActionContextHandle& context );

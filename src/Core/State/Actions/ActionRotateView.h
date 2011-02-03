@@ -51,11 +51,9 @@ CORE_ACTION_ARGUMENT( "angle", "The angle to rotate the view about." )
 public:
 	ActionRotateView()
 	{
-		add_parameters( this->stateid_, this->axis_, this->angle_ );
-	}
-
-	virtual ~ActionRotateView()
-	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->axis_ );
+		this->add_parameter( this->angle_ );
 	}
 
 	// -- Functions that describe action --

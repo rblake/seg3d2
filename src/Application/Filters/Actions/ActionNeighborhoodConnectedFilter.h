@@ -29,13 +29,17 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONNEIGHBORHOODCONNECTEDFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONNEIGHBORHOODCONNECTEDFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
+
+// Application includes
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionNeighborhoodConnectedFilter : public Core::Action
+class ActionNeighborhoodConnectedFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -52,7 +56,7 @@ public:
 	ActionNeighborhoodConnectedFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
+		this->add_layer_id( this->target_layer_ );
 		this->add_parameter( this->seeds_ );
 	}
 	

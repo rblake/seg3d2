@@ -223,6 +223,9 @@ public:
 		// thread.
 
 		this->insert_itk_positive_labels_into_mask_layer( this->dst_layer_, filter->GetOutput() );	
+
+		// Update provenance information
+		this->update_provenance_action_string( this->action_ );
 	}
 	SCI_END_ITK_RUN()
 	
@@ -308,6 +311,9 @@ bool ActionThresholdSegmentationLSFilter::run( Core::ActionContextHandle& contex
 	// Build the undo-redo record
 	algo->create_undo_redo_record( context, this->shared_from_this() );
 
+	// Build the provenance record
+	algo->create_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter.
 	Core::Runnable::Start( algo );
 

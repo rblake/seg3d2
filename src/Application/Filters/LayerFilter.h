@@ -189,7 +189,13 @@ public:
 
 	// CREATE_PROVENANCE_RECORD:
 	// Create a provenance record and add it to the provenance database
-	bool create_provenance_record( Core::ActionHandle action );
+	bool create_provenance_record( Core::ActionContextHandle context, Core::ActionHandle action );
+
+	// UPDATE_PROVENANCE_ACTION_STRING:
+	// For filters that can be stopped at certain iterations the provenance string needs
+	// to be updated with the number of iterations.
+	// This function allows to update it
+	bool update_provenance_action_string( Core::ActionHandle action );
 
 	// -- filter specific information --
 public:

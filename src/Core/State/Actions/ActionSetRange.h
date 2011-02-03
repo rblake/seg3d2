@@ -49,10 +49,9 @@ CORE_ACTION(
 public:
 	ActionSetRange()
 	{
-		this->add_parameters( this->stateid_, this->min_value_, this->max_value_ );
-	}
-	virtual ~ActionSetRange() 
-	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->min_value_ );
+		this->add_parameter( this->max_value_ );
 	}
 
 	virtual bool validate( ActionContextHandle& context );

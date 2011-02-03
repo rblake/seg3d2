@@ -125,10 +125,6 @@ std::string Action::export_to_string() const
 	
 	for ( size_t j = num_arguments; j < this->parameters_.size(); j++ )
 	{
-		if ( parameters_[ j ] == 0 )
-		{
-			CORE_THROW_LOGICERROR( "Encountered incorrectly constructed action" );
-		}
 		command += this->get_key( j - num_arguments ) + "=" + this->parameters_[ j ]->export_to_string() + " ";
 	}
 

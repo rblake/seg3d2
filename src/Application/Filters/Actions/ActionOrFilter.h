@@ -29,14 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONORFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONORFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionOrFilter : public Core::Action
+class ActionOrFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -53,8 +57,8 @@ public:
 	ActionOrFilter()
 	{
 		// Action arguments
-		this->add_parameter( this->target_layer_ );
-		this->add_parameter( this->mask_layer_ );
+		this->add_layer_id( this->target_layer_ );
+		this->add_layer_id( this->mask_layer_ );
 		this->add_parameter( this->replace_ );		
 	}
 	

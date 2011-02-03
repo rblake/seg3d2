@@ -35,11 +35,6 @@ CORE_REGISTER_ACTION( Core, TranslateView )
 namespace Core
 {
 
-ActionTranslateView::ActionTranslateView()
-{
-	this->add_parameters( this->stateid_, this->offset_ );
-}
-
 bool ActionTranslateView::validate( ActionContextHandle &context )
 {
 	StateBaseHandle state = this->state_weak_handle_.lock();
