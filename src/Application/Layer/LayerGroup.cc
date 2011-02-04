@@ -268,7 +268,7 @@ void LayerGroupPrivate::update_grid_information()
 // Class LayerGroup
 //////////////////////////////////////////////////////////////////////////
 
-LayerGroup::LayerGroup( Core::GridTransform grid_transform ) :
+LayerGroup::LayerGroup( Core::GridTransform grid_transform, ProvenanceID provenance_id ) :
 	StateHandler( "group", true ),
 	private_( new LayerGroupPrivate )
 {
@@ -277,6 +277,9 @@ LayerGroup::LayerGroup( Core::GridTransform grid_transform ) :
 	this->grid_transform_ = grid_transform;
 	this->initialize_states();
 	
+	// This is the layer that generated this group. Hence that is the dependent layer
+	// for new mask or other layers that are created in the group.
+	this->provenance_id_state_->set( provenance_id );
 }
 
 LayerGroup::LayerGroup( const std::string& state_id ) :
@@ -303,6 +306,8 @@ void LayerGroup::initialize_states()
 
 	this->add_state( "layers_visible", this->layers_visible_state_, "all", "none|some|all" );
 	this->add_state( "layers_iso_visible", this->layers_iso_visible_state_, "all", "none|some|all" );
+	
+	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
 	
 	Core::Point dimensions( static_cast< double>( this->grid_transform_.get_nx() ), 
 		static_cast< double>( this->grid_transform_.get_ny() ), 

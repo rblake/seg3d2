@@ -52,6 +52,7 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/Provenance/Provenance.h>
 
 namespace Seg3D
 {
@@ -73,7 +74,7 @@ class LayerGroup : public Core::StateHandler, public boost::enable_shared_from_t
 	// -- constructor/destructor --
 public:
 
-	LayerGroup( Core::GridTransform grid_transform );
+	LayerGroup( Core::GridTransform grid_transform, ProvenanceID provenance_id );
 	LayerGroup( const std::string& state_id );
 	virtual ~LayerGroup();
 	
@@ -98,6 +99,9 @@ public:
 	Core::StateOptionHandle layers_visible_state_;
 	
 	Core::StateOptionHandle layers_iso_visible_state_;
+
+	// The provenance id of the layer that created this group
+	Core::StateLongLongHandle provenance_id_state_;
 
 	// -- GUI related states --
 public:

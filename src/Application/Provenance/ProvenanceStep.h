@@ -74,13 +74,13 @@ public:
 	// Set the input provenance ids
 	void set_output_provenance_ids( const ProvenanceIDList& output_provenance_ids );
 
-	// GET_REPLACED_PROVENANCE_IDS:
-	// Get the replaced provenance ids
-	const ProvenanceIDList& get_replaced_provenance_ids() const;
+	// GET_DELETED_PROVENANCE_IDS:
+	// Get the deleted provenance ids
+	const ProvenanceIDList& get_deleted_provenance_ids() const;
 	
-	// SET_REPLACED_PROVENANCE_IDS:
+	// SET_DELETED_PROVENANCE_IDS:
 	// Set the input provenance ids
-	void set_replaced_provenance_ids( const ProvenanceIDList& replaced_provenance_ids );
+	void set_deleted_provenance_ids( const ProvenanceIDList& deleted_provenance_ids );
 
 	// SET_ACTION:
 	// Set the provenance action
@@ -108,8 +108,8 @@ protected:
 	// List of provenance ids that this action will generate
 	ProvenanceIDList output_provenance_ids_;
 	
-	// List of provenance ids that this action will replace
-	ProvenanceIDList replaced_provenance_ids_;
+	// List of provenance ids that this action will delete
+	ProvenanceIDList deleted_provenance_ids_;
 
 	// Description of the action
 	std::string action_;

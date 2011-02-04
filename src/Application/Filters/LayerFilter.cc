@@ -697,7 +697,7 @@ bool LayerFilter::create_provenance_record( Core::ActionContextHandle context,
 	// when finalizing this filter 
 	size_t output_layer_count = 0;
 	ProvenanceIDList output_provenance_ids;
-	ProvenanceIDList replaced_provenance_ids;
+	ProvenanceIDList deleted_provenance_ids;
 
 	for ( size_t j = 0; j < this->private_->created_layers_.size(); j++ )
 	{
@@ -717,7 +717,7 @@ bool LayerFilter::create_provenance_record( Core::ActionContextHandle context,
 			this->private_->provenance_ids_[ this->private_->locked_for_processing_layers_[ j ].get() ] = prov_id;
 					
 			output_provenance_ids.push_back( prov_id );
-			replaced_provenance_ids.push_back( prov_id );
+			deleted_provenance_ids.push_back( prov_id );
 		}
 	}
 
@@ -728,7 +728,7 @@ bool LayerFilter::create_provenance_record( Core::ActionContextHandle context,
 		layer_action->get_input_provenance_ids() );
 	// Get the output and replace provenance ids from the analysis above
 	this->private_->provenance_step_->set_output_provenance_ids( output_provenance_ids );
-	this->private_->provenance_step_->set_replaced_provenance_ids( replaced_provenance_ids );
+	this->private_->provenance_step_->set_deleted_provenance_ids( deleted_provenance_ids );
 	
 	// Get the input command of what needs t be rerun
 	this->private_->provenance_step_->set_action( 

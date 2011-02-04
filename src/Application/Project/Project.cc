@@ -182,7 +182,7 @@ void Project::add_session_to_list( const std::string& session_name )
 	
 	for( int i = 0; i < static_cast< int >( temp_sessions_vector.size() ); ++i )
 	{
-		if( ( temp_sessions_vector[ i ] == "" ) || ( temp_sessions_vector[ i ] == "]" ) )
+		if( ( temp_sessions_vector[ i ] == "" ) || ( temp_sessions_vector[ i ] == "[]" ) )
 		{
 			continue;
 		}

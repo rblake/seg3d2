@@ -29,6 +29,9 @@
 #include <Core/Action/ActionFactory.h>
 #include <Core/Volume/MaskVolumeSlice.h>
 
+#include <Application/Provenance/Provenance.h>
+#include <Application/Provenance/ProvenanceStep.h>
+#include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ToolManager/ToolManager.h>
 #include <Application/Tools/Actions/ActionPolyline.h>
 #include <Application/Layer/MaskLayer.h>
@@ -65,7 +68,7 @@ public:
 ActionPolyline::ActionPolyline() :
 	private_( new ActionPolylinePrivate )
 {
-	this->add_parameter( this->private_->target_layer_id_ );
+	this->add_layer_id( this->private_->target_layer_id_ );
 	this->add_parameter( this->private_->slice_type_ );
 	this->add_parameter( this->private_->slice_number_ );
 	this->add_parameter( this->private_->erase_ );
@@ -239,6 +242,26 @@ bool ActionPolyline::run( Core::ActionContextHandle& context, Core::ActionResult
 
 		// Now add the undo/redo action to undo buffer
 		UndoBuffer::Instance()->insert_undo_item( context, item );
+
+		// Create a provenance record
+		ProvenanceStepHandle provenance_step( new ProvenanceStep );
+		
+		// Get the input provenance ids from the translate step
+		provenance_step->set_input_provenance_ids( this->get_input_provenance_ids() );
+		
+		// Get the output and replace provenance ids from the analysis above
+		provenance_step->set_output_provenance_ids(  this->get_output_provenance_ids()  );
+		
+		ProvenanceIDList deleted_provenance_ids( 1, layer->provenance_id_state_->get() );
+		provenance_step->set_deleted_provenance_ids( deleted_provenance_ids );
+	
+		provenance_step->set_action( this->export_to_provenance_string() );		
+		
+		ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
+			provenance_step );		
+		
+		layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
+
 	}
 
 	// Otherwise, do a scanline fill in the overlapped region

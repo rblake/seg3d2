@@ -1931,7 +1931,7 @@ QPushButton#activate_button_{
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>STOP</string>
+                  <string>Finish</string>
                  </property>
                 </widget>
                </item>

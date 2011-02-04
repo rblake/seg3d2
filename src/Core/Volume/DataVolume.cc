@@ -407,19 +407,16 @@ bool DataVolume::SaveDataVolume( const boost::filesystem::path& filepath,
 								DataVolumeHandle& volume, std::string& error, 
 								bool compress, int level )
 {
-	if( !boost::filesystem::exists( filepath ) )
-	{
-		NrrdDataHandle nrrd = NrrdDataHandle( new NrrdData( 
-			volume->private_->data_block_, volume->get_grid_transform() ) );
+	NrrdDataHandle nrrd = NrrdDataHandle( new NrrdData( 
+		volume->private_->data_block_, volume->get_grid_transform() ) );
 
-		nrrd->set_histogram( volume->private_->data_block_->get_histogram() );
-		
-		DataBlock::shared_lock_type slock( volume->private_->data_block_->get_mutex() );
-		if ( ! ( NrrdData::SaveNrrd( filepath.string(), nrrd, error, compress, level ) ) ) 
-		{
-			CORE_LOG_ERROR( error );
-			return false;
-		}
+	nrrd->set_histogram( volume->private_->data_block_->get_histogram() );
+	
+	DataBlock::shared_lock_type slock( volume->private_->data_block_->get_mutex() );
+	if ( ! ( NrrdData::SaveNrrd( filepath.string(), nrrd, error, compress, level ) ) ) 
+	{
+		CORE_LOG_ERROR( error );
+		return false;
 	}
 	
 	return true;

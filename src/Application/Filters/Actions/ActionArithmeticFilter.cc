@@ -331,7 +331,7 @@ ActionArithmeticFilter::ActionArithmeticFilter() :
 	private_( new ActionArithmeticFilterPrivate )
 {
 	// Action arguments
-	this->add_parameter( this->private_->layer_ids_ );
+	this->add_layer_id_list( this->private_->layer_ids_ );
 	this->add_parameter( this->private_->expressions_ );
 	this->add_parameter( this->private_->output_type_ );
 	this->add_parameter( this->private_->replace_ );
@@ -404,6 +404,9 @@ bool ActionArithmeticFilter::run( Core::ActionContextHandle& context,
 
 	// Create undo/redo record for this layer action
 	this->private_->algo_->create_undo_redo_record( context, this->shared_from_this() );
+
+	// Create provenance record for this layer action
+	this->private_->algo_->create_provenance_record( context, this->shared_from_this() );
 
 	// Start the filter.
 	Core::Runnable::Start( this->private_->algo_ );

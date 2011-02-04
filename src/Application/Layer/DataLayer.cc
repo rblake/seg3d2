@@ -347,18 +347,24 @@ bool DataLayer::set_data_volume( Core::DataVolumeHandle data_volume )
 
 bool DataLayer::pre_save_states( Core::StateIO& state_io )
 {
-	if ( data_volume_ )
+	if ( this->data_volume_ )
 	{
 		this->generation_state_->set( this->data_volume_->get_generation() );
 		
 		std::string generation = this->generation_state_->export_to_string() + ".nrrd";
 		boost::filesystem::path volume_path = ProjectManager::Instance()->get_project_data_path() /
-		generation;
-		std::string error;
-
+			generation;
+		
+		if ( boost::filesystem::exists( volume_path ) )
+		{
+			// File has already been saved
+			return true;
+		}
+			
 		bool compress = PreferencesManager::Instance()->compression_state_->get();
 		int level = PreferencesManager::Instance()->compression_level_state_->get();
 		
+		std::string error;
 		if ( Core::DataVolume::SaveDataVolume( volume_path.string(), 
 			this->data_volume_ , error, compress, level ) )
 		{
@@ -378,7 +384,7 @@ bool DataLayer::post_load_states( const Core::StateIO& state_io )
 	{
 		std::string generation = this->generation_state_->export_to_string() + ".nrrd";
 		boost::filesystem::path volume_path = ProjectManager::Instance()->get_project_data_path() /
-		generation;
+			generation;
 		std::string error;
 		
 		if( Core::DataVolume::LoadDataVolume( volume_path, this->data_volume_, error ) )

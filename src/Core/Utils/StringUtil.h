@@ -100,7 +100,6 @@ std::string ExportToString( const std::vector< double >& value, int precision );
 	
 std::string ExportToString( const std::set< int >& value );
 
-
 // Import functions from strings
 bool ImportFromString( const std::string& str, bool& value );
 

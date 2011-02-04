@@ -91,7 +91,7 @@ public:
 
 	// GET_OUTPUT_PROVENANCE_IDS:
 	// Get or create all the assigned provenance ids
-	ProvenanceIDList get_output_provenance_ids( size_t num_provenance_ids );
+	ProvenanceIDList get_output_provenance_ids( size_t num_provenance_ids = 0 );
 
 	// GENERATE_OUTPUT_PROVENANCE_IDS:
 	// Generate all needed provenance ids

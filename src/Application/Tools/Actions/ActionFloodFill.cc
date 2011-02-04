@@ -37,8 +37,10 @@
 #include <Application/Tools/Actions/ActionFloodFill.h>
 #include <Application/Layer/MaskLayer.h>
 #include <Application/LayerManager/LayerManager.h>
-#include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
+#include <Application/UndoBuffer/UndoBuffer.h>
+#include <Application/ProjectManager/ProjectManager.h>
+
 
 CORE_REGISTER_ACTION( Seg3D, FloodFill )
 
@@ -73,17 +75,17 @@ public:
 ActionFloodFill::ActionFloodFill() :
 	private_( new ActionFloodFillPrivate )
 {
-	this->add_parameter( this->private_->target_layer_id_ );
+	this->add_layer_id( this->private_->target_layer_id_ );
 	this->add_parameter( this->private_->slice_type_ );
 	this->add_parameter( this->private_->slice_number_ );
 	this->add_parameter( this->private_->seeds_ );
-	this->add_parameter( this->private_->data_cstr_layer_id_ );
+	this->add_layer_id( this->private_->data_cstr_layer_id_ );
 	this->add_parameter( this->private_->min_val_ );
 	this->add_parameter( this->private_->max_val_ );
 	this->add_parameter( this->private_->negative_data_cstr_ );
-	this->add_parameter( this->private_->mask_cstr1_layer_id_ );
+	this->add_layer_id( this->private_->mask_cstr1_layer_id_ );
 	this->add_parameter( this->private_->negative_mask_cstr1_ );
-	this->add_parameter( this->private_->mask_cstr2_layer_id_ );
+	this->add_layer_id( this->private_->mask_cstr2_layer_id_ );
 	this->add_parameter( this->private_->negative_mask_cstr2_ );
 	this->add_parameter( this->private_->erase_ );
 }
@@ -292,6 +294,25 @@ bool ActionFloodFill::run( Core::ActionContextHandle& context, Core::ActionResul
 
 		// Now add the undo/redo action to undo buffer
 		UndoBuffer::Instance()->insert_undo_item( context, item );
+
+		// Create a provenance record
+		ProvenanceStepHandle provenance_step( new ProvenanceStep );
+		
+		// Get the input provenance ids from the translate step
+		provenance_step->set_input_provenance_ids( this->get_input_provenance_ids() );
+		
+		// Get the output and replace provenance ids from the analysis above
+		provenance_step->set_output_provenance_ids(  this->get_output_provenance_ids()  );
+		
+		ProvenanceIDList deleted_provenance_ids( 1, layer->provenance_id_state_->get() );
+		provenance_step->set_deleted_provenance_ids( deleted_provenance_ids );
+	
+		provenance_step->set_action( this->export_to_provenance_string() );		
+		
+		ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
+			provenance_step );		
+		
+		layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
 	}
 
 	{

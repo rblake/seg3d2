@@ -87,4 +87,3 @@ bool Session::save( boost::filesystem::path path, const std::string& session_nam
 }
 		
 } // end namespace Seg3d
-

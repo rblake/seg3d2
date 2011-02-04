@@ -69,21 +69,26 @@ public:
 	
 protected:
 	Core::StateStringVectorHandle sessions_and_datafiles_state_;
+	
+	Core::StateStringVectorHandle source_datafiles_state_;
 
 public:
 	// INITIALIZE:
-	// this function loads the values for DataManager from file
+	// This function loads the values for DataManager from file
 	void initialize( const boost::filesystem::path& project_path );
 	
 	// SAVE_DATAMANAGER_STATE:
-	// this function saves the DataManager's state to file
+	// This function saves the DataManager's state to file
 	void save_datamanager_state( const boost::filesystem::path& project_path, 
 		const std::string& session_name );
 
 	// REMOVE_SESSION:
-	// this function runs when the project emits a signal saying that a session has been deleted,
+	// This function runs when the project emits a signal saying that a session has been deleted,
 	// and removes it from the session datafile list
 	void remove_session( const std::string& session_name );
+
+	// INSERT_DATA_SOURCE
+//	void insert_data_source();
 
 	// GET_SESSION_FILES_VECTOR:
 	// this function, when passed the name of a session, returns by reference, a vector of strings
@@ -121,4 +126,3 @@ private:
 } // end namespace seg3d
 
 #endif // DataManager
-

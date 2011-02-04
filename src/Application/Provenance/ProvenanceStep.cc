@@ -80,14 +80,14 @@ void ProvenanceStep::set_output_provenance_ids( const ProvenanceIDList& output_p
 	this->output_provenance_ids_ = output_provenance_ids;
 }
 
-const ProvenanceIDList& ProvenanceStep::get_replaced_provenance_ids() const
+const ProvenanceIDList& ProvenanceStep::get_deleted_provenance_ids() const
 {
-	return this->replaced_provenance_ids_;
+	return this->deleted_provenance_ids_;
 }
 
-void ProvenanceStep::set_replaced_provenance_ids( const ProvenanceIDList& replaced_provenance_ids )
+void ProvenanceStep::set_deleted_provenance_ids( const ProvenanceIDList& deleted_provenance_ids )
 {
-	this->replaced_provenance_ids_ = replaced_provenance_ids;
+	this->deleted_provenance_ids_ = deleted_provenance_ids;
 }
 
 void ProvenanceStep::set_action( const std::string& action )
@@ -104,7 +104,7 @@ void ProvenanceStep::print()
 {
 	std::cout << "input ids = " << Core::ExportToString( this->input_provenance_ids_ ) << std::endl;
 	std::cout << "output ids = " << Core::ExportToString( this->output_provenance_ids_ ) << std::endl;
-	std::cout << "replaced ids = " << Core::ExportToString( this->replaced_provenance_ids_ ) << std::endl;
+	std::cout << "deleted ids = " << Core::ExportToString( this->deleted_provenance_ids_ ) << std::endl;
 	std::cout << "action = " << this->action_ << std::endl;
 	std::cout << "user = " << this->user_ << std::endl;
 	std::cout << "timestamp = " << this->time_stamp_ << std::endl;

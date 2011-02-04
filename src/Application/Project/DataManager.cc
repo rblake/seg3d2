@@ -41,9 +41,8 @@ namespace Seg3D
 DataManager::DataManager() :
 	StateHandler( "datamanager", false )
 {	
-	std::vector< std::string> sessions_and_datafiles;
-	add_state( "sessions_and_datafiles", this->sessions_and_datafiles_state_, 
-		sessions_and_datafiles );
+	this->add_state( "sessions_and_datafiles", this->sessions_and_datafiles_state_ );
+	this->add_state( "source_datafiles", this->source_datafiles_state_ );
 }
 
 DataManager::~DataManager()
@@ -141,7 +140,8 @@ void DataManager::prep_for_save( const boost::filesystem::path& project_path,
 			}
 			else
 			{
-				this->disk_space_used += static_cast< long long >( boost::filesystem::file_size( dir_itr->path() ) );
+				this->disk_space_used += static_cast< long long >( boost::filesystem::file_size( 
+					dir_itr->path() ) );
 			}
 		}
 	}
