@@ -26,66 +26,34 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef QTUTILS_WIDGETS_QTHISTOGRAMGRAPH_H
-#define QTUTILS_WIDGETS_QTHISTOGRAMGRAPH_H
+#ifndef INTERFACE_APLICATION_TRANSFERFUNCTIONFEATUREWIDGET_H
+#define INTERFACE_APLICATION_TRANSFERFUNCTIONFEATUREWIDGET_H
 
-// STL includes
-#include <vector>
+// Boost includes
+#include <boost/shared_ptr.hpp>
 
-// Qt includes
 #include <QWidget>
-#include <QMouseEvent>
-#include <QPoint>
 
-// Core includes
-#include <Core/DataBlock/Histogram.h>
+#include <Core/VolumeRenderer/TransferFunctionFeature.h>
 
-namespace QtUtils
+namespace Seg3D
 {
 
-class QtHistogramGraph : public QWidget
+class TransferFunctionFeatureWidgetPrivate;
+
+class TransferFunctionFeatureWidget : public QWidget, private Core::ConnectionHandler
 {
-    Q_OBJECT
-    
-Q_SIGNALS:
-	void lower_position( int );
-	void upper_position( int );
+	Q_OBJECT
 
 public:
-    QtHistogramGraph( QWidget *parent = 0 );
-    virtual ~QtHistogramGraph();
-    
-public:
-	// SET_HISTOGRAM:
-	// Set the histogram of the graph
-	void set_histogram( const Core::Histogram& histogram );
-		
-	// RESET_HISTOGRAM:
-	// Invalidate the current histogram
-	void reset_histogram();
+	TransferFunctionFeatureWidget( Core::TransferFunctionFeatureHandle feature, 
+		QWidget *parent = 0 );
+	~TransferFunctionFeatureWidget();
 	
-	bool get_logarithmic() const{ return this->logarithmic_; }
-	
-public Q_SLOTS:
-	void set_logarithmic( bool logarithmic );
-
-protected:
-	// PAINTEVENT:
-	// Overloaded call that redraws the histogram plot
-    virtual void paintEvent( QPaintEvent *event );
-    
-public:
-    virtual void mousePressEvent( QMouseEvent* e );
-    
-    virtual void mouseMoveEvent( QMouseEvent* e );
-
 private:
-	Core::Histogram histogram_;
-	bool logarithmic_;
-	bool left_click_;
-	
+	boost::shared_ptr< TransferFunctionFeatureWidgetPrivate > private_;
 };
 
-} // end namespace QtUtils
+} // end namespace Seg3D
 
 #endif
