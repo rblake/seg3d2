@@ -30,6 +30,9 @@
 #include <Application/Layer/MaskLayer.h>
 #include <Application/Layer/LayerGroup.h>
 
+#include <Application/Provenance/Provenance.h>
+#include <Application/Provenance/ProvenanceStep.h>
+#include <Application/ProjectManager/ProjectManager.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
@@ -83,6 +86,9 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 		return false;
 	}
 
+	new_layer->meta_data_id_state_->set( layer->meta_data_id_state_->get() );
+	new_layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
+
 	// Step (4):
 	// Register the new layer with the LayerManager. This will insert it into the right group.
 	LayerManager::Instance()->insert_layer( new_layer );
@@ -100,6 +106,22 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 	// Add the complete record to the undo buffer
 	UndoBuffer::Instance()->insert_undo_item( context, item );
 	
+	
+	// Step (6): Create a provenance record
+	ProvenanceStepHandle provenance_step( new ProvenanceStep );
+	
+	// Get the input provenance ids from the translate step
+	provenance_step->set_input_provenance_ids( this->get_input_provenance_ids() );
+	
+	// Get the output and replace provenance ids from the analysis above
+	provenance_step->set_output_provenance_ids( this->get_output_provenance_ids() );
+		
+	// Get the action and turn it into provenance	
+	provenance_step->set_action( this->export_to_provenance_string() );		
+	
+	// Add step to provenance record
+	ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
+		provenance_step );		
 	return true;
 }
 

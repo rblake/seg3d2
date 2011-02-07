@@ -40,8 +40,8 @@ namespace Seg3D
 	
 bool ActionMoveGroupAbove::validate( Core::ActionContextHandle& context )
 {
-	if( !LayerManager::Instance()->get_layer_group( this->group_to_move_id_ ) ||
-		!LayerManager::Instance()->get_layer_group( this->group_below_id_ ) )
+	if( !LayerManager::Instance()->get_group_by_id( this->group_to_move_id_ ) ||
+		!LayerManager::Instance()->get_group_by_id( this->group_below_id_ ) )
 	{
 		context->report_error( "Group ids are invalid." );
 		return false;

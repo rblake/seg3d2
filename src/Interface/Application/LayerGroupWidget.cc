@@ -236,7 +236,8 @@ void LayerGroupWidget::dropEvent( QDropEvent* event )
 	
 	std::string drop_item_id = event->mimeData()->text().toStdString();
 	
-	if( ( this->get_group_id() != drop_item_id ) && ( LayerManager::Instance()->get_layer_group( drop_item_id ) ) ) 
+	if( ( this->get_group_id() != drop_item_id ) && (
+		LayerManager::Instance()->get_group_by_id( drop_item_id ) ) ) 
 	{
 		dynamic_cast< LayerGroupWidget* >( event->source() )->set_drop_target( this ); 
 		event->setDropAction( Qt::MoveAction );
@@ -251,7 +252,8 @@ void LayerGroupWidget::dragEnterEvent( QDragEnterEvent* event)
 {
 	std::string drop_item_id = event->mimeData()->text().toStdString();
 
-	if( ( this->get_group_id() != drop_item_id ) && ( LayerManager::Instance()->get_layer_group( drop_item_id ) ) ) 
+	if( ( this->get_group_id() != drop_item_id ) && ( 
+		LayerManager::Instance()->get_group_by_id( drop_item_id ) ) ) 
 	{
 		this->enable_drop_space( true );
 	}

@@ -47,7 +47,7 @@ bool ActionMoveLayerBelow::validate( Core::ActionContextHandle& context )
 		return false;
 	}
 
-	if( !LayerManager::Instance()->get_layer_group( this->group_id_) )
+	if( !LayerManager::Instance()->get_group_by_id( this->group_id_ ) )
 	{
 		context->report_error( std::string( "Group ID '") + this->group_id_ + "' is invalid" );
 		return false;

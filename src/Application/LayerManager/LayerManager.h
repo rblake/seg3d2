@@ -101,9 +101,13 @@ public:
 	bool check_for_same_group( const std::string layer_to_insert_id, 
 		const std::string layer_below_id );
 	
-	// GET_LAYER_GROUP:
+	// GET_GROUP_BY_ID:
 	// this function returns the group with the id that is passed
-	LayerGroupHandle get_layer_group( std::string group_id );
+	LayerGroupHandle get_group_by_id( std::string group_id );
+
+	// GET_GROUP_BY_PROVENANCE_ID:
+	// this function returns the group with the id that is passed
+	LayerGroupHandle get_group_by_provenance_id( ProvenanceID provenance_id );
 	
 	// GET_LAYER_BY_ID:
 	// this function returns a handle to the layer with the id that is passed
@@ -312,6 +316,14 @@ public:
 	// FINDLAYER:
 	// Find a layer inside the layer manager
 	static LayerHandle FindLayer( ProvenanceID prov_id );
+
+	// FINDGROUP:
+	// Find a layer inside the layer manager
+	static LayerGroupHandle FindGroup( const std::string& group_id );
+
+	// FINDGROUP:
+	// Find a layer inside the layer manager
+	static LayerGroupHandle FindGroup( ProvenanceID prov_id );
 	
 	// FINDMASKLAYER:
 	// Find a mask layer inside the layer manager
@@ -420,13 +432,13 @@ public:
 	// Create a new mask layer and lock it into the CREATING_C mode.
 	// NOTE: This function can *only* be called from the Application thread.
 	static bool CreateAndLockMaskLayer( Core::GridTransform transform, const std::string& name, 
-		LayerHandle& layer, filter_key_type key = 0 );
+		LayerHandle& layer, MetaDataID metaid, filter_key_type key = 0 );
 	
 	// CREATEANDLOCKDATALAYER:
 	// Create a new data layer and lock it into the CREATING_C mode.
 	// NOTE: This function can *only* be called from the Application thread.
 	static bool CreateAndLockDataLayer( Core::GridTransform, const std::string& name,
-		LayerHandle& layer, filter_key_type key = filter_key_type( 0 ) );
+		LayerHandle& layer, MetaDataID metaid, filter_key_type key = filter_key_type( 0 ) );
 	
 	// == functions for setting data and unlocking layers ==
 

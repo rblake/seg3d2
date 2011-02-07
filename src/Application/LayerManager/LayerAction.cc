@@ -55,6 +55,11 @@ LayerAction::LayerAction() :
 	this->private_->use_provenance_ids_list_ = false; 
 }
 
+void LayerAction::add_group_id( std::string& group_id )
+{
+	this->add_param( new LayerActionGroupID( group_id ) );
+}
+
 void LayerAction::add_layer_id( std::string& layer_id )
 {
 	this->add_param( new LayerActionLayerID( layer_id ) );

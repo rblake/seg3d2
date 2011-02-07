@@ -133,6 +133,41 @@ private:
 	std::vector<ProvenanceID> provenance_id_list_;
 };
 
+class LayerActionGroupID : public LayerActionParameter
+{
+
+	// -- constructor/destructor --
+public:
+	LayerActionGroupID( std::string& group_id );
+	virtual ~LayerActionGroupID();
+	
+	// -- functions for accessing data --
+public:
+
+	// IMPORT_FROM_STRING
+	// Import a parameter from a string. The function returns true
+	// if the import succeeded
+	virtual bool import_from_string( const std::string& str );
+
+	// EXPORT_TO_STRING
+	// Export the contents of the parameter to string
+	virtual std::string export_to_string() const;
+
+	// TRANSLATE_PROVENANCE
+	// Translate provenance inputs into current object. The function will also
+	// add input provenance ids to a list recording dependencies.
+	virtual bool translate_provenance( ProvenanceIDList& input_provenance );
+
+	// EXPORT_TO_PROVENANCE_STRING
+	// Export the contents of the parameter to a provenance string.
+	// This means layer ids will be translated to provenance id.
+	virtual std::string export_to_provenance_string() const;
+
+private:
+	std::string& group_id_;
+	ProvenanceID provenance_id_;
+};
+
 } // end namespace Seg3D
 
 #endif

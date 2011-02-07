@@ -55,9 +55,20 @@ public:
 	// -- adding parameters --
 public:
 
-	void add_layer_id( std::string& layer_id );
-	void add_layer_id_list( std::vector<std::string>& layer_id_list );
+	// ADD_GROUP_ID
+	// Add group id as an input parameter
+	// NOTE: This will switch on provenance tracking
+	void add_group_id( std::string& group_id );
 
+	// ADD_LAYER_ID
+	// Add layer id as an input parameter
+	// NOTE: This will switch on provenance tracking
+	void add_layer_id( std::string& layer_id );
+
+	// ADD_LAYER_ID_LIST
+	// Add layer id lsit as an input parameter
+	// NOTE: This will switch on provenance tracking
+	void add_layer_id_list( std::vector<std::string>& layer_id_list );
 
 	// -- translate provenance information --
 public:

@@ -243,6 +243,9 @@ bool ActionPolyline::run( Core::ActionContextHandle& context, Core::ActionResult
 		// Now add the undo/redo action to undo buffer
 		UndoBuffer::Instance()->insert_undo_item( context, item );
 
+		// Add provenance id to output layer
+		layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
+
 		// Create a provenance record
 		ProvenanceStepHandle provenance_step( new ProvenanceStep );
 		
@@ -259,9 +262,6 @@ bool ActionPolyline::run( Core::ActionContextHandle& context, Core::ActionResult
 		
 		ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
 			provenance_step );		
-		
-		layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
-
 	}
 
 	// Otherwise, do a scanline fill in the overlapped region

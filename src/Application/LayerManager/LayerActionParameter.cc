@@ -27,6 +27,7 @@
  */
 
 // Application includes
+#include <Application/Layer/LayerGroup.h>
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/LayerManager/LayerActionParameter.h>
 
@@ -96,6 +97,65 @@ std::string LayerActionLayerID::export_to_provenance_string() const
 {
 	return Core::ExportToString( this->provenance_id_ );
 }
+
+
+LayerActionGroupID::LayerActionGroupID( std::string& group_id ) :
+	group_id_( group_id ),
+	provenance_id_( -1 )
+{
+}
+
+LayerActionGroupID::~LayerActionGroupID()
+{
+}
+
+bool LayerActionGroupID::import_from_string( const std::string& str )
+{
+	return Core::ImportFromString( str, this->group_id_ );
+}
+
+std::string LayerActionGroupID::export_to_string() const
+{
+	return Core::ExportToString( this->group_id_ );
+}
+
+bool LayerActionGroupID::translate_provenance( ProvenanceIDList& input_provenance )
+{
+	if ( this->group_id_ == "" || this->group_id_ == "<none>" )
+	{
+		// Nothing to translate
+		return true;
+	}
+	
+	LayerGroupHandle group = LayerManager::FindGroup( this->group_id_ );
+	if ( !group )
+	{
+		ProvenanceID prov_id;
+		if ( Core::ImportFromString( this->group_id_, prov_id ) )
+		{
+			group = LayerManager::FindGroup( prov_id );
+		}
+	}
+	
+	if ( group ) 
+	{
+		this->provenance_id_ = group->provenance_id_state_->get();
+		input_provenance.push_back( this->provenance_id_ );
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
+}
+
+std::string LayerActionGroupID::export_to_provenance_string() const
+{
+	return Core::ExportToString( this->provenance_id_ );
+}
+
+
+
 
 LayerActionLayerIDList::LayerActionLayerIDList( std::vector<std::string>& layer_id_list ) :
 	layer_id_list_( layer_id_list )

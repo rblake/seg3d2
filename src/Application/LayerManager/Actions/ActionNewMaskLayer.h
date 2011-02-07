@@ -35,12 +35,12 @@
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
-//#include <Application/LayerManager/LayerAction.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionNewMaskLayer : public Core::Action
+class ActionNewMaskLayer : public LayerAction
 {
 
 CORE_ACTION( 
@@ -54,7 +54,7 @@ CORE_ACTION(
 public:
 	ActionNewMaskLayer()
 	{
-		this->add_parameter( this->group_id_);
+		this->add_group_id( this->group_id_ );
 	}
 	
 // -- Functions that describe action --

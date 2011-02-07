@@ -35,11 +35,12 @@
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-class ActionDuplicateLayer : public Core::Action
+class ActionDuplicateLayer : public LayerAction
 {
 
 CORE_ACTION( 
@@ -53,7 +54,7 @@ CORE_ACTION(
 public:
 	ActionDuplicateLayer()
 	{
-		this->add_parameter( this->layer_id_ );
+		this->add_layer_id( this->layer_id_ );
 	}
 
 // -- Functions that describe action --

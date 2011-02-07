@@ -211,7 +211,7 @@ bool LayerManager::insert_layer( LayerHandle layer )
 		{
 			new_group = true;
 			group_handle = LayerGroupHandle( new LayerGroup(  layer->get_grid_transform(),
-				layer->provenance_id_state_->get() ) );
+				layer->provenance_id_state_->get(), layer->meta_data_id_state_->get() ) );
 			this->private_->group_list_.push_front( group_handle );
 			
 			CORE_LOG_DEBUG( std::string( "Set Active Layer: " ) + layer->get_layer_id());
@@ -271,8 +271,8 @@ bool LayerManager::move_group_above( std::string group_to_move_id, std::string g
 		// Get the Lock
 		lock_type lock( this->get_mutex() );
 
-		LayerGroupHandle group_above = get_layer_group( group_to_move_id );
-		LayerGroupHandle group_below = get_layer_group( group_below_id );
+		LayerGroupHandle group_above = this->get_group_by_id( group_to_move_id );
+		LayerGroupHandle group_below = this->get_group_by_id( group_below_id );
 
 		if( ( !group_above || !group_below ) || ( group_above == group_below ) )
 			return false;
@@ -345,7 +345,7 @@ bool LayerManager::move_layer_below( const std::string& layer_id, const std::str
 		lock_type lock( this->get_mutex() );
 
 		from_group = this->get_layer_by_id( layer_id )->get_layer_group();
-		to_group = this->get_layer_group( group_id );
+		to_group = this->get_group_by_id( group_id );
 
 		// First we Delete the Layer from its list of layers
 		from_group->delete_layer( layer );
@@ -497,7 +497,7 @@ void LayerManager::set_previous_layer_active()
 	
 }
 
-LayerGroupHandle LayerManager::get_layer_group( std::string group_id )
+LayerGroupHandle LayerManager::get_group_by_id( std::string group_id )
 {
     lock_type lock( this->get_mutex() );
     
@@ -511,6 +511,22 @@ LayerGroupHandle LayerManager::get_layer_group( std::string group_id )
 	}
 	return LayerGroupHandle();
 }
+
+LayerGroupHandle LayerManager::get_group_by_provenance_id( ProvenanceID prov_id )
+{
+    lock_type lock( this->get_mutex() );
+    
+	for( LayerManagerPrivate::group_list_type::iterator i = this->private_->group_list_.begin(); 
+		i != this->private_->group_list_.end(); ++i )
+	{
+		if (( *i )->provenance_id_state_->get() == prov_id ) 
+		{
+			return ( *i );
+		}
+	}
+	return LayerGroupHandle();
+}
+
 
 LayerHandle LayerManager::get_layer_by_id( const std::string& layer_id )
 {
@@ -990,7 +1006,7 @@ bool LayerManager::CheckGroupExistance( const std::string& group_id,
 	error = "";
 
 	// Check whether layer exists
-	if ( !( LayerManager::Instance()->get_layer_group( group_id ) ) )
+	if ( !( LayerManager::Instance()->get_group_by_id( group_id ) ) )
 	{
 		error = std::string( "Incorrect groupid: group '") + group_id + "' does not exist.";
 		return false;
@@ -1192,6 +1208,17 @@ LayerHandle LayerManager::FindLayer( ProvenanceID prov_id )
 	return LayerManager::Instance()->get_layer_by_provenance_id( prov_id );
 }
 
+LayerGroupHandle LayerManager::FindGroup( const std::string& group_id )
+{
+	return LayerManager::Instance()->get_group_by_id( group_id );
+}
+
+LayerGroupHandle LayerManager::FindGroup( ProvenanceID prov_id )
+{
+	return LayerManager::Instance()->get_group_by_provenance_id( prov_id );
+}
+
+
 MaskLayerHandle LayerManager::FindMaskLayer( const std::string& layer_id )
 {
 	return boost::shared_dynamic_cast<MaskLayer>(  
@@ -1206,7 +1233,7 @@ DataLayerHandle LayerManager::FindDataLayer( const std::string& layer_id )
 
 LayerGroupHandle LayerManager::FindLayerGroup( const std::string& group_id )
 {
-	return LayerManager::Instance()->get_layer_group( group_id );
+	return LayerManager::Instance()->get_group_by_id( group_id );
 }
 
 bool LayerManager::LockForUse( LayerHandle layer, filter_key_type key )
@@ -1256,7 +1283,7 @@ bool LayerManager::LockForProcessing( LayerHandle layer, filter_key_type key )
 }
 
 bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const std::string& name, 
-		LayerHandle& layer, filter_key_type key )
+		LayerHandle& layer, MetaDataID metaid, filter_key_type key )
 {
 	// NOTE: Security check to keep the program logic sane.
 	// Only the Application Thread guarantees that nothing is changed in the program.
@@ -1279,6 +1306,9 @@ bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const 
 
 	// Insert the key used to keep track of which process is using this layer
 	layer->add_filter_key( key );
+
+	// Meta data id
+	layer->meta_data_id_state_->set( metaid );
 	
 	// Insert the layer into the layer manager.
 	LayerManager::Instance()->insert_layer( layer );
@@ -1287,7 +1317,7 @@ bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const 
 }
 
 bool LayerManager::CreateAndLockDataLayer( Core::GridTransform transform, const std::string& name, 
-		LayerHandle& layer, filter_key_type key )
+		LayerHandle& layer, MetaDataID metaid, filter_key_type key )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1310,6 +1340,9 @@ bool LayerManager::CreateAndLockDataLayer( Core::GridTransform transform, const 
 
 	// Insert the key used to keep track of which process is using this layer
 	layer->add_filter_key( key );
+
+	// Meta data id
+	layer->meta_data_id_state_->set( metaid );
 
 	// Insert the layer into the layer manager.
 	LayerManager::Instance()->insert_layer( layer );

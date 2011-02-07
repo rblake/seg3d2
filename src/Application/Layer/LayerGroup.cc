@@ -268,7 +268,8 @@ void LayerGroupPrivate::update_grid_information()
 // Class LayerGroup
 //////////////////////////////////////////////////////////////////////////
 
-LayerGroup::LayerGroup( Core::GridTransform grid_transform, ProvenanceID provenance_id ) :
+LayerGroup::LayerGroup( Core::GridTransform grid_transform, 
+	ProvenanceID provenance_id, MetaDataID meta_data_id ) :
 	StateHandler( "group", true ),
 	private_( new LayerGroupPrivate )
 {
@@ -280,6 +281,7 @@ LayerGroup::LayerGroup( Core::GridTransform grid_transform, ProvenanceID provena
 	// This is the layer that generated this group. Hence that is the dependent layer
 	// for new mask or other layers that are created in the group.
 	this->provenance_id_state_->set( provenance_id );
+	this->meta_data_id_state_->set( meta_data_id );
 }
 
 LayerGroup::LayerGroup( const std::string& state_id ) :
