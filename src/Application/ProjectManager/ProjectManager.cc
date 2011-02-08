@@ -119,7 +119,6 @@ bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::pa
 	// Check whether the XML file can be imported
 	if ( ! stateio.import_from_file( path ) ) return false;
 	
-	/*
 	// Check whether the version is equal or lower to the program version
 	if ( stateio.get_major_version() > Core::Application::GetMajorVersion() )
 	{
@@ -134,7 +133,6 @@ bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::pa
 			return false;
 		}
 	}
-*/
 	// Everything seems OK
 	return true;
 }
