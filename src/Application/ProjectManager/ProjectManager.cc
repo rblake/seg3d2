@@ -1,3 +1,4 @@
+
 /*
  For more information, please see: http://software.sci.utah.edu
 
@@ -131,7 +132,6 @@ bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::pa
 			return false;
 		}
 	}
-
 	// Everything seems OK
 	return true;
 }
@@ -211,7 +211,6 @@ void ProjectManager::open_project( const boost::filesystem::path& project_path )
 	Core::Application::Reset();
 	
 	this->changing_projects_ = true;
-	boost::filesystem::path path = project_path;
 	
 	this->set_project_path( project_path );
 		
@@ -383,7 +382,8 @@ void ProjectManager::add_to_recent_projects( const boost::filesystem::path& proj
 }
 
 
-bool ProjectManager::create_project_folders( const boost::filesystem::path& path, const std::string& project_name )
+bool ProjectManager::create_project_folders( const boost::filesystem::path& path, 
+	const std::string& project_name )
 {
 	try // to create a project folder
 	{
@@ -533,7 +533,8 @@ Seg3D::ProjectHandle ProjectManager::get_current_project() const
 	return this->current_project_;
 }
 
-bool ProjectManager::project_save_as( const boost::filesystem::path& export_path, const std::string& project_name )
+bool ProjectManager::project_save_as( const boost::filesystem::path& export_path, 
+	const std::string& project_name )
 {
 	this->changing_projects_ = true;
 	this->session_saving_ = true;
@@ -571,12 +572,15 @@ bool ProjectManager::project_save_as( const boost::filesystem::path& export_path
 	this->set_last_saved_session_time_stamp();
 	AutoSave::Instance()->recompute_auto_save();
 	
-	this->changing_projects_ = true;
+	this->changing_projects_ = false;
+	this->session_saving_ = false;
 	this->session_saving_ = false;
 	
 	this->current_project_->create_database_scheme();
 	
 	this->add_to_recent_projects( export_path, project_name );
+	
+	
 	
 	return true;
 }

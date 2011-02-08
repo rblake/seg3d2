@@ -26,66 +26,42 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef QTUTILS_WIDGETS_QTHISTOGRAMGRAPH_H
-#define QTUTILS_WIDGETS_QTHISTOGRAMGRAPH_H
+#include <Core/Geometry/Measurement.h>
 
-// STL includes
-#include <vector>
-
-// Qt includes
-#include <QWidget>
-#include <QMouseEvent>
-#include <QPoint>
-
-// Core includes
-#include <Core/DataBlock/Histogram.h>
-
-namespace QtUtils
+namespace Core
 {
 
-class QtHistogramGraph : public QWidget
+std::string Measurement::get_view_name() const
 {
-    Q_OBJECT
-    
-Q_SIGNALS:
-	void lower_position( int );
-	void upper_position( int );
+	std::string view_axis_str = "";
+	if( this->view_axis_ == AXIAL_E ) view_axis_str = "AXIAL";
+	else if( this->view_axis_ == CORONAL_E ) view_axis_str = "CORONAL";
+	else if( this->view_axis_ == SAGITTAL_E ) view_axis_str = "SAGITTAL";
+	else if( this->view_axis_ == VOLUME_E ) view_axis_str = "VOLUME";
+	else if( this->view_axis_ == MIP_E ) view_axis_str = "MIP";
+	else if( this->view_axis_ == OBLIQUE_E ) view_axis_str = this->oblique_name_;
+	return view_axis_str;
+}
 
-public:
-    QtHistogramGraph( QWidget *parent = 0 );
-    virtual ~QtHistogramGraph();
-    
-public:
-	// SET_HISTOGRAM:
-	// Set the histogram of the graph
-	void set_histogram( const Core::Histogram& histogram );
-		
-	// RESET_HISTOGRAM:
-	// Invalidate the current histogram
-	void reset_histogram();
-	
-	bool get_logarithmic() const{ return this->logarithmic_; }
-	
-public Q_SLOTS:
-	void set_logarithmic( bool logarithmic );
+std::string ExportToString( const Measurement& value )
+{
+	return "";
+}
 
-protected:
-	// PAINTEVENT:
-	// Overloaded call that redraws the histogram plot
-    virtual void paintEvent( QPaintEvent *event );
-    
-public:
-    virtual void mousePressEvent( QMouseEvent* e );
-    
-    virtual void mouseMoveEvent( QMouseEvent* e );
 
-private:
-	Core::Histogram histogram_;
-	bool logarithmic_;
-	bool left_click_;
-	
-};
+std::string ExportToString( const std::vector< Measurement >& value )
+{
+	return "";
+}
 
-} // end namespace QtUtils
+bool ImportFromString( const std::string& str, Measurement& value )
+{
+	return true;
+}
 
-#endif
+bool ImportFromString( const std::string& str, std::vector< Measurement >& value )
+{
+	return true;
+}
+
+} // end namespace Core

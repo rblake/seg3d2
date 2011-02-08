@@ -37,6 +37,7 @@
 
 // Core includes
 #include <Core/Utils/ConnectionHandler.h>
+#include <Core/VolumeRenderer/TransferFunctionFeature.h>
 
 // QtUtils includes
 #include <QtUtils/Widgets/QtCustomDockWidget.h>
@@ -46,7 +47,7 @@ namespace Seg3D
 
 class RenderingDockWidgetPrivate;
 
-class RenderingDockWidget : public QtUtils::QtCustomDockWidget, public Core::ConnectionHandler
+class RenderingDockWidget : public QtUtils::QtCustomDockWidget, private Core::ConnectionHandler
 {
 
 Q_OBJECT
@@ -55,8 +56,10 @@ public:
 	RenderingDockWidget( QWidget *parent = 0 );
 	~RenderingDockWidget();
 	
-private Q_SLOTS:
-	void set_enabled_tab_appearance( bool enabled, int index  );
+private:
+	void update_tab_appearance( bool enabled, int index  );
+	void handle_feature_added( Core::TransferFunctionFeatureHandle feature );
+	void handle_feature_deleted( Core::TransferFunctionFeatureHandle feature );
 
 private:
 	boost::shared_ptr< RenderingDockWidgetPrivate > private_;
@@ -65,7 +68,8 @@ private:
 	typedef QPointer< RenderingDockWidget > qpointer_type;
 
 	static void HandleClippingPlanesStateChanged( qpointer_type qpointer, bool state, int index );
-
+	static void HandleFeatureAdded( qpointer_type qpointer, Core::TransferFunctionFeatureHandle feature );
+	static void HandleFeatureDeleted( qpointer_type qpointer, Core::TransferFunctionFeatureHandle feature );
 };
 
 } // end namespace Seg3D
