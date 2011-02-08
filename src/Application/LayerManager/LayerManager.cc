@@ -211,7 +211,7 @@ bool LayerManager::insert_layer( LayerHandle layer )
 		{
 			new_group = true;
 			group_handle = LayerGroupHandle( new LayerGroup(  layer->get_grid_transform(),
-				layer->provenance_id_state_->get(), layer->meta_data_id_state_->get() ) );
+				layer->provenance_id_state_->get(), layer->metadata_state_->get() ) );
 			this->private_->group_list_.push_front( group_handle );
 			
 			CORE_LOG_DEBUG( std::string( "Set Active Layer: " ) + layer->get_layer_id());
@@ -1283,7 +1283,7 @@ bool LayerManager::LockForProcessing( LayerHandle layer, filter_key_type key )
 }
 
 bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const std::string& name, 
-		LayerHandle& layer, MetaDataID metaid, filter_key_type key )
+		LayerHandle& layer, const std::string& metadata, filter_key_type key )
 {
 	// NOTE: Security check to keep the program logic sane.
 	// Only the Application Thread guarantees that nothing is changed in the program.
@@ -1308,7 +1308,7 @@ bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const 
 	layer->add_filter_key( key );
 
 	// Meta data id
-	layer->meta_data_id_state_->set( metaid );
+	layer->metadata_state_->set( metadata );
 	
 	// Insert the layer into the layer manager.
 	LayerManager::Instance()->insert_layer( layer );
@@ -1317,7 +1317,7 @@ bool LayerManager::CreateAndLockMaskLayer( Core::GridTransform transform, const 
 }
 
 bool LayerManager::CreateAndLockDataLayer( Core::GridTransform transform, const std::string& name, 
-		LayerHandle& layer, MetaDataID metaid, filter_key_type key )
+	LayerHandle& layer, const std::string& metadata, filter_key_type key )
 {
 	// NOTE: Security check to keep the program logic sane
 	// Only the Application Thread guarantees that nothing is changed in the program
@@ -1342,7 +1342,7 @@ bool LayerManager::CreateAndLockDataLayer( Core::GridTransform transform, const 
 	layer->add_filter_key( key );
 
 	// Meta data id
-	layer->meta_data_id_state_->set( metaid );
+	layer->metadata_state_->set( metadata );
 
 	// Insert the layer into the layer manager.
 	LayerManager::Instance()->insert_layer( layer );

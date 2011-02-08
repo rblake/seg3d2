@@ -230,7 +230,7 @@ void Layer::initialize_states( const std::string& name, bool creating )
 	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
 	
 	// == The meta data id that records which meta data set applies to the data ==
-	this->add_state( "meta_data_id", this->meta_data_id_state_, -1 );
+	this->add_state( "metadata", this->metadata_state_, "" );
 	
 	// == The layer state indicating whether data is bein processed ==
 	this->add_state( "data", this->data_state_,  creating ? CREATING_C : AVAILABLE_C  , 

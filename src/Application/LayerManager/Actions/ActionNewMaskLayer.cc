@@ -69,7 +69,7 @@ bool ActionNewMaskLayer::run( Core::ActionContextHandle& context, Core::ActionRe
 	LayerHandle new_mask_layer( new MaskLayer( "MaskLayer", new_mask_volume ) );
 
 	// new_mask_layer->provenance_id_state_
-	new_mask_layer->meta_data_id_state_->set( group->meta_data_id_state_->get() );
+	new_mask_layer->metadata_state_->set( group->metadata_state_->get() );
 
 	// Register the new layer with the LayerManager. This will insert it into the right group.
 	LayerManager::Instance()->insert_layer( new_mask_layer );

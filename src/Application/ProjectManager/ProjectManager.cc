@@ -198,9 +198,7 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 		PreferencesManager::Instance()->auto_save_state_->set( false );
 	}
 
-	
 	this->changing_projects_ = false;
-
 }
 	
 void ProjectManager::open_project( const boost::filesystem::path& project_path )
@@ -425,6 +423,17 @@ bool ProjectManager::create_project_folders( const boost::filesystem::path& path
 		return false;
 	}
 	
+
+	try // to create a project data folder
+	{
+		boost::filesystem::create_directory( path / project_name / "metadata");
+	}
+	catch ( std::exception& e ) // any errors that we might get thrown
+	{
+		CORE_LOG_ERROR( e.what() );
+		return false;
+	}
+
 	return true;
 }
 

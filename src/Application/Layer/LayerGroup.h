@@ -75,7 +75,7 @@ class LayerGroup : public Core::StateHandler, public boost::enable_shared_from_t
 public:
 
 	LayerGroup( Core::GridTransform grid_transform, ProvenanceID provenance_id, 
-		MetaDataID meta_data_id );
+		const std::string& metadata );
 	LayerGroup( const std::string& state_id );
 	virtual ~LayerGroup();
 	
@@ -104,7 +104,8 @@ public:
 	// The provenance id of the layer that created this group
 	Core::StateLongLongHandle provenance_id_state_;
 
-	Core::StateLongLongHandle meta_data_id_state_;
+	// The metadata that created this group
+	Core::StateStringHandle metadata_state_;
 
 	// -- GUI related states --
 public:

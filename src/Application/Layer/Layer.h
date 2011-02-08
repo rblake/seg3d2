@@ -203,8 +203,8 @@ public:
 	// State that keeps track of the provenance number
 	Core::StateLongLongHandle provenance_id_state_;
 	
-	// Stae of the MetaData associated with this layer
-	Core::StateLongLongHandle meta_data_id_state_;
+	// State of the MetaData associated with this layer
+	Core::StateStringHandle metadata_state_;
 
 	// Centering (node vs. cell) is stored per layer for all layers (mask and data)
 	Core::StateStringHandle centering_state_;

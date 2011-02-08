@@ -269,7 +269,7 @@ void LayerGroupPrivate::update_grid_information()
 //////////////////////////////////////////////////////////////////////////
 
 LayerGroup::LayerGroup( Core::GridTransform grid_transform, 
-	ProvenanceID provenance_id, MetaDataID meta_data_id ) :
+	ProvenanceID provenance_id, const std::string& metadata ) :
 	StateHandler( "group", true ),
 	private_( new LayerGroupPrivate )
 {
@@ -281,7 +281,7 @@ LayerGroup::LayerGroup( Core::GridTransform grid_transform,
 	// This is the layer that generated this group. Hence that is the dependent layer
 	// for new mask or other layers that are created in the group.
 	this->provenance_id_state_->set( provenance_id );
-	this->meta_data_id_state_->set( meta_data_id );
+	this->metadata_state_->set( metadata );
 }
 
 LayerGroup::LayerGroup( const std::string& state_id ) :
@@ -310,7 +310,8 @@ void LayerGroup::initialize_states()
 	this->add_state( "layers_iso_visible", this->layers_iso_visible_state_, "all", "none|some|all" );
 	
 	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
-	
+	this->add_state( "metadata", this->metadata_state_, "" );	
+
 	Core::Point dimensions( static_cast< double>( this->grid_transform_.get_nx() ), 
 		static_cast< double>( this->grid_transform_.get_ny() ), 
 		static_cast< double>( this->grid_transform_.get_nz() ) );
@@ -327,7 +328,6 @@ void LayerGroup::initialize_states()
 	
 	this->add_state( "group_widget_expanded", this->group_widget_expanded_state_, true );
 	
-
 	this->add_state( "show_iso_menu", this->show_iso_menu_state_, false );
 	this->add_state( "show_delete_menu", this->show_delete_menu_state_, false );
 	this->add_state( "show_duplicate_menu", this->show_duplicate_menu_state_, false );
@@ -350,7 +350,6 @@ void LayerGroup::initialize_states()
 	this->add_connection( this->layers_iso_visible_state_->value_changed_signal_.connect(
 		boost::bind( &LayerGroupPrivate::handle_layers_iso_visible_state_changed, this->private_, _1 ) ) );
 }
-
 
 void LayerGroup::insert_layer( LayerHandle new_layer )
 {	
