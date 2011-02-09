@@ -86,7 +86,7 @@ bool ActionDuplicateLayer::run( Core::ActionContextHandle& context, Core::Action
 		return false;
 	}
 
-	new_layer->metadata_state_->set( layer->metadata_state_->get() );
+	new_layer->set_meta_data( layer->get_meta_data() );
 	new_layer->provenance_id_state_->set( this->get_output_provenance_id( 0 ) );
 
 	// Step (4):

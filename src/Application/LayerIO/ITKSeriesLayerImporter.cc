@@ -506,8 +506,8 @@ int ITKSeriesLayerImporter::get_importer_modes()
 
 	
 bool ITKSeriesLayerImporter::load_data( Core::DataBlockHandle& data_block, 
-	Core::GridTransform& grid_trans )
-{
+	Core::GridTransform& grid_trans, LayerMetaData& meta_data )
+{	
 	if ( this->private_->extension_ == ".dcm" ||
 		this->private_->extension_ == ".ima" || 
 		this->private_->extension_ == ".dicom" ||

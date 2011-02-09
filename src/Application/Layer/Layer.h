@@ -51,7 +51,9 @@
 
 // Application includes
 #include <Application/Provenance/Provenance.h>
+
 #include <Application/Layer/LayerFWD.h>
+#include <Application/Layer/LayerMetaData.h>
 #include <Application/Layer/LayerAbstractFilter.h>
 
 
@@ -200,11 +202,17 @@ public:
 	// An exclusive group of boolean states that control the visibility of different parts
 	Core::BooleanStateGroupHandle gui_state_group_;
 
+	// Information needed to keep track of where the data came from
+	// and how to handle provenance
+
 	// State that keeps track of the provenance number
 	Core::StateLongLongHandle provenance_id_state_;
 	
 	// State of the MetaData associated with this layer
-	Core::StateStringHandle metadata_state_;
+	Core::StateStringHandle meta_data_state_;
+
+	// State variable that keeps track of what type of meta data was provided by the importer
+	Core::StateStringHandle meta_data_info_state_;
 
 	// Centering (node vs. cell) is stored per layer for all layers (mask and data)
 	Core::StateStringHandle centering_state_;
@@ -235,6 +243,14 @@ public:
 	// GET_GENERATION:
 	// Get the generation of the current data block
 	Core::DataBlock::generation_type get_generation() const;
+
+	// GET_METADATA:
+	// Retrieve all the meta data that was part of this layer in one convenient structure
+	LayerMetaData get_meta_data() const;
+
+	// SET_METADATA:
+	// Set all the metadata state variables
+	void set_meta_data( const LayerMetaData& meta_data );
 
 	// -- abort/stop processing handling --
 public:

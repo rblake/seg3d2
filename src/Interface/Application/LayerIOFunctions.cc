@@ -466,8 +466,8 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 		return;
 	}
 		
-	ActionExportLayer::Dispatch( Core::Interface::GetWidgetActionContext(), exporter,
-		filename.toStdString() );
+	ActionExportLayer::Dispatch( Core::Interface::GetWidgetActionContext(), 
+		layer_handles[ 0 ]->get_layer_id(), exporter, filename.toStdString() );
 }
 
 void LayerIOFunctions::ExportSegmentation( QMainWindow* main_window )

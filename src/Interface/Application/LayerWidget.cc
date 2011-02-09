@@ -1213,7 +1213,7 @@ void LayerWidget::export_layer( const std::string& type_extension )
 		Core::VolumeType::MASK_E )
 	{
 		ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), 
-			this->private_->layer_->get_layer_name(), LayerExporterMode::SINGLE_MASK_E, 
+			this->private_->layer_->get_layer_id(), LayerExporterMode::SINGLE_MASK_E, 
 			export_path.toStdString(), type_extension );
 	}
 	else if( LayerManager::Instance()->get_layer_by_id( this->get_layer_id() )->get_type() == 
@@ -1223,7 +1223,7 @@ void LayerWidget::export_layer( const std::string& type_extension )
 			this->private_->layer_->get_layer_name() ).string();
 
 		ActionExportLayer::Dispatch( Core::Interface::GetWidgetActionContext(), 
-			this->private_->layer_->get_layer_name(), file_name, type_extension );
+			this->private_->layer_->get_layer_id(), file_name, type_extension );
 	}
 	
 	Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 

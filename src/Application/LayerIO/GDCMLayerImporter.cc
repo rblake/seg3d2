@@ -81,6 +81,8 @@ public:
 	Core::Vector col_direction_;
 	Core::Vector slice_direction_;
 	double x_spacing_, y_spacing_, z_spacing_;
+	
+	std::string meta_data_;
 };
 
 double GDCMLayerImporterPrivate::get_slice_thickness( const gdcm::DataSet& ds )
@@ -345,6 +347,7 @@ bool GDCMLayerImporter::import_header()
 		this->private_->z_spacing_ = spacing[ 2 ];
 	}
 
+	// Generate meta data
 	return true;
 }
 
@@ -364,7 +367,7 @@ int GDCMLayerImporter::get_importer_modes()
 }
 
 bool GDCMLayerImporter::load_data( Core::DataBlockHandle& data_block, 
-								 Core::GridTransform& grid_trans )
+	Core::GridTransform& grid_trans, LayerMetaData& meta_data )
 {
 	if ( this->get_swap_xy_spacing() )
 	{
@@ -399,6 +402,11 @@ bool GDCMLayerImporter::load_data( Core::DataBlockHandle& data_block,
 		}
 	}
 
+	if ( this->private_->file_list_.size() )
+	{
+		meta_data.meta_data_ = Core::ExportToString( this->private_->file_list_ );
+		meta_data.meta_data_info_ = "dicom_filename"; 
+	}
 	return true;
 }
 

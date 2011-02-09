@@ -269,7 +269,7 @@ bool ITKLayerImporter::set_file_list( const std::vector< std::string >& file_lis
 {
 	if ( file_list.size() )
 	{
-		std::string extension = boost::filesystem::path( file_list[ 0 ] ).extension();;
+		std::string extension = boost::filesystem::path( file_list[ 0 ] ).extension();
 		boost::to_lower( extension );
 
 		this->private_->file_name_ = file_list[ 0 ];
@@ -338,7 +338,7 @@ int ITKLayerImporter::get_importer_modes()
 }
 	
 bool ITKLayerImporter::load_data( Core::DataBlockHandle& data_block, 
-	Core::GridTransform& grid_trans )
+	Core::GridTransform& grid_trans, LayerMetaData& meta_data )
 {
 	if( this->private_->extension_ == ".tif" || this->private_->extension_ == ".tiff" ||
 		this->private_->extension_ == ".stk" )

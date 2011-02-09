@@ -75,7 +75,7 @@ class LayerGroup : public Core::StateHandler, public boost::enable_shared_from_t
 public:
 
 	LayerGroup( Core::GridTransform grid_transform, ProvenanceID provenance_id, 
-		const std::string& metadata );
+		const LayerMetaData& meta_data );
 	LayerGroup( const std::string& state_id );
 	virtual ~LayerGroup();
 	
@@ -104,8 +104,11 @@ public:
 	// The provenance id of the layer that created this group
 	Core::StateLongLongHandle provenance_id_state_;
 
-	// The metadata that created this group
-	Core::StateStringHandle metadata_state_;
+	// State of the MetaData associated with this group
+	Core::StateStringHandle meta_data_state_;
+
+	// State variable that keeps track of what type of meta data was provided by the importer
+	Core::StateStringHandle meta_data_info_state_;
 
 	// -- GUI related states --
 public:
@@ -153,6 +156,16 @@ protected:
 	// CLEAR:
 	// Delete all  the layers.
 	void clear();
+	
+public:	
+	// GET_METADATA:
+	// NOTE: Group meta data is derived from the first layer that generates the group.
+	// Retrieve all the meta data that was part of this layer in one convenient structure
+	LayerMetaData get_meta_data() const;
+
+	// SET_METADATA:
+	// Set all the metadata state variables
+	void set_meta_data( const LayerMetaData& meta_data );	
 	
 protected:
 	// POST_SAVE_STATES:

@@ -88,7 +88,11 @@ CORE_ENUM_CLASS
 CORE_ENUM_CLASS
 (
 	LayerImporterType,
+	
+	// Importer reads a single file
 	SINGLE_FILE_E = 1,
+	
+	// Importer reads a series of files
 	FILE_SERIES_E = 2
 )
 
@@ -201,7 +205,10 @@ public:
 	// SET_FILE_LIST:
 	// In the case where we are importing a series, this sets the list of files for the importer
 	// to import.
-	virtual bool set_file_list( const std::vector< std::string >& file_list ){ return false; }
+	virtual bool set_file_list( const std::vector< std::string >& file_list )
+	{ 
+		return false; 
+	}
 
 	// -- Import the data as a specific type --	
 public:	
@@ -225,7 +232,8 @@ protected:
 	// Load the data from the file(s).
 	// NOTE: This function is called by import_layer internally.
 	virtual bool load_data( Core::DataBlockHandle& data_block, 
-		Core::GridTransform& grid_trans ) = 0;
+		Core::GridTransform& grid_trans,
+		LayerMetaData& metadata ) = 0;
 
 	// GET_LAYER_NAME:
 	// Return the string that will be used to name the layers.

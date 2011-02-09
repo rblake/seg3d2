@@ -50,10 +50,16 @@ bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 
 	std::vector< LayerHandle > layer_handles;
 	
-	LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_name( this->layer_id_ );
-	if( !temp_handle ) return false;
-	else layer_handles.push_back( temp_handle );
-
+	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( this->layer_id_ );
+	if( !layer ) 
+	{
+		return false;
+	}
+	else
+	{
+		layer_handles.push_back( layer );
+	}
+	
 	if( this->extension_ == "" )
 	{
 		this->extension_ = boost::filesystem::path( this->file_path_ ).extension();
@@ -112,7 +118,7 @@ void ActionExportLayer::clear_cache()
 }
 
 
-void ActionExportLayer::Dispatch( Core::ActionContextHandle context, const std::string& layer, 
+void ActionExportLayer::Dispatch( Core::ActionContextHandle context, const std::string& layer,
 	const std::string& file_path, const std::string extension )
 {
 	// Create new action
@@ -125,12 +131,13 @@ void ActionExportLayer::Dispatch( Core::ActionContextHandle context, const std::
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
-void ActionExportLayer::Dispatch( Core::ActionContextHandle context, LayerExporterHandle exporter, 
-		const std::string& file_path )
+void ActionExportLayer::Dispatch( Core::ActionContextHandle context, const std::string& layer, 
+	LayerExporterHandle exporter, const std::string& file_path )
 {
 	// Create new action
 	ActionExportLayer* action = new ActionExportLayer;
 
+	action->layer_id_ = layer;
 	action->layer_exporter_ = exporter;
 	action->file_path_ = file_path;
 	action->extension_ = "";

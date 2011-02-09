@@ -229,8 +229,11 @@ void Layer::initialize_states( const std::string& name, bool creating )
 	// == The generation number of the data, or -1 if there is no data ==
 	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
 	
-	// == The meta data id that records which meta data set applies to the data ==
-	this->add_state( "metadata", this->metadata_state_, "" );
+	// == The meta data for this dataset ==
+	this->add_state( "metadata", this->meta_data_state_, "" );
+
+	// == Information string for the metadata of this dataset ==
+	this->add_state( "metadata_info", this->meta_data_info_state_, "" );
 	
 	// == The layer state indicating whether data is bein processed ==
 	this->add_state( "data", this->data_state_,  creating ? CREATING_C : AVAILABLE_C  , 
@@ -325,6 +328,20 @@ bool Layer::is_visible( size_t viewer_id ) const
 	lock_type lock( Layer::GetMutex() );
 
 	return this->master_visible_state_->get() && this->visible_state_[ viewer_id ]->get();
+}
+
+LayerMetaData Layer::get_meta_data() const
+{
+	LayerMetaData meta_data;
+	meta_data.meta_data_ = this->meta_data_state_->get();
+	meta_data.meta_data_info_ = this->meta_data_info_state_->get();
+	return meta_data;
+}
+
+void Layer::set_meta_data( const LayerMetaData& meta_data )
+{
+	this->meta_data_state_->set( meta_data.meta_data_ );
+	this->meta_data_info_state_->set( meta_data.meta_data_info_ );
 }
 
 bool Layer::check_filter_key( filter_key_type key ) const

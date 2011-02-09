@@ -54,18 +54,30 @@ Project::Project( const std::string& project_name ) :
 	action_count_( -1 ),
 	last_action_inserted_( "" )
 {	
+	// Name of the project.
 	this->add_state( "project_name", this->project_name_state_, project_name );
+
+	// Whether color from the preferences or from the project are used.
 	this->add_state( "save_custom_colors", this->save_custom_colors_state_, false );
 	
+	// List of sessions stored in this project
 	std::vector< std::string> empty_vector;
 	this->add_state( "sessions", this->sessions_state_, empty_vector );
+	
+	// Notes for the project.
 	this->add_state( "project_notes", this->project_notes_state_, empty_vector );
+
+	// Running count of how much the data files consume. It is not exact it is an approximation.
 	this->add_state( "project_file_size", this->project_file_size_state_, 0 );
+	
+	// Name of the session that is currently in use.
 	this->add_state( "current_session_name", this->current_session_name_state_, "UnnamedSession" );
 		
+	// State of all the 12 colors in the system.	
 	this->color_states_.resize( 12 );
 	for ( size_t j = 0; j < 12; j++ )
 	{
+		// Initialize the colors with the default colors from the preference manager
 		std::string stateid = std::string( "color_" ) + Core::ExportToString( j );
 		this->add_state( stateid, this->color_states_[ j ], 
 			PreferencesManager::Instance()->get_default_colors()[ j ] );
@@ -73,9 +85,13 @@ Project::Project( const std::string& project_name ) :
 
 	this->add_state( "generation_count", this->generation_count_state_, -1 );
 
+	// Create a default session
 	this->current_session_ = SessionHandle( new Session( "default_session" ) );
 	this->data_manager_ = DataManagerHandle( new DataManager() );
 
+	// Each time an action is execute, check whether it changes the project data, if so
+	// mark this in the project, so the UI can query the user for a save action if the application
+	// is closed while there is unsaved data.
 	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
 		boost::bind( &Project::set_project_changed, this, _1, _2 ) ) );
 }
@@ -90,7 +106,7 @@ void Project::set_project_changed( Core::ActionHandle action, Core::ActionResult
 	// NOTE: This is executed on the application thread, hence we do not need a lock to read
 	// the variable that is only changed on the same thread
 	
-	if ( action->changes_project_data() && this->changed_ == false )
+	if ( this->changed_ == false  && action->changes_project_data() )
 	{
 		// NOTE: Changing the variable
 		Core::Application::lock_type lock( Core::Application::GetMutex() );
@@ -375,8 +391,6 @@ bool Project::project_export( boost::filesystem::path path, const std::string& p
 		CORE_LOG_ERROR( e.what() );
 		return false;
 	}
-	
-	
 
 	return true;
 

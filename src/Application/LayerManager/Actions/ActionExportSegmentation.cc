@@ -58,7 +58,7 @@ bool ActionExportSegmentation::validate( Core::ActionContextHandle& context )
 
 		for( size_t i = 0; i < layer_names.size(); ++i )
 		{
-			LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_name( layer_names[ i ] );
+			LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_id( layer_names[ i ] );
 			if( !temp_handle )
 			{
 				context->report_error( std::string( "No valid layer ids were given" ) );
@@ -136,7 +136,8 @@ void ActionExportSegmentation::clear_cache()
 }
 
 void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, 
-	const LayerExporterHandle& exporter, LayerExporterMode mode, const std::string& file_path, 
+	const LayerExporterHandle& exporter, 
+	LayerExporterMode mode, const std::string& file_path, 
 	std::string extension )
 {
 	// Create new action
@@ -150,8 +151,9 @@ void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context,
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
-void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, const std::string& layer_id, 
-	LayerExporterMode mode, const std::string& file_path, std::string extension )
+void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, 
+	const std::string& layer_id, LayerExporterMode mode, 
+	const std::string& file_path, std::string extension )
 {
 	// Create new action
 	ActionExportSegmentation* action = new ActionExportSegmentation;

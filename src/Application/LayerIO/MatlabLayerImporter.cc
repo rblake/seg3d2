@@ -487,8 +487,8 @@ int MatlabLayerImporter::get_importer_modes()
 }
 
 bool MatlabLayerImporter::load_data( Core::DataBlockHandle& data_block, 
-									Core::GridTransform& grid_transform )
-{
+	Core::GridTransform& grid_transform, LayerMetaData& meta_data )
+{	
 	this->private_->import_mat_file( this->get_filename() );
 	
 	data_block = this->private_->data_block_;
