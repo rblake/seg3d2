@@ -142,11 +142,6 @@ public:
 	// this function will save the current project as a new project
 	bool save_as( boost::filesystem::path path, const std::string& project_name );
 
-	// GET_SESSION_NAME:
-	// this function gets the name of a session at an index of the projects session list, this is 
-	// used for display what session you are loading when you load a session.
-/*	std::string get_session_name( int index );*/
-
 	// VALIDATE_SESSION_NAME:
 	// function for validating that a session name exists
 	bool validate_session_name( std::string& session_name );
@@ -183,16 +178,18 @@ protected:
 	virtual bool post_load_states( const Core::StateIO& state_io );
 	
 private:
-	// ADD_SESSION_TO_LIST
-	// this function adds sessions to the list of sessions that is stored in the projects state
-/*	void add_session_to_list( const std::string& session_path_and_name );*/
-
 	// CLEANUP_SESSION_DATABASE:
 	// this function cleans up sessions in the session list that have been deleted by the user
 	void cleanup_session_database();
 	
+	// IMPORT_OLD_SESSION_INFO_INTO_DATABASE:
+	// this function is for backwards compatibility with older versions of seg3d that store the
+	// list of sessions in the project xml file rather than the database
 	void import_old_session_info_into_database();
 	
+	// GET_MOST_RECENT_SESSION:
+	// this function true or false based on whether it was able to find the most recent
+	// session name
 	bool get_most_recent_session_name( std::string& session_name );
 
 	// -- provenance support --
@@ -216,18 +213,27 @@ public:
 	
 	// INSERT_SESSION_INTO_DATABASE:
 	// this inserts a session into the database
-	bool insert_session_into_database( const std::string& timestamp, const std::string& session_name );
+	bool insert_session_into_database( const std::string& timestamp, const std::string& session_name, const std::string& user_name = "" );
 	
 	// DELETE_SESSION_FROM_DATABASE:
 	// this deletes a session from the database
 	bool delete_session_from_database( const std::string& session_name );
 	
+	// GET_ALL_SESSIONS:
+	// 
 	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 	
+	// GET_SESSION:
+	// this function returns true or false based on whether it can find the session name
+	// that was passed it
 	bool get_session( SessionInfo& session, const std::string& session_name );
-		
+	
+	// CLOSE_PROVENANCE_DATABASE:
+	// this fucntion closes the provenance database
 	void close_provenance_database();
 	
+	// CHECKPOINT_PROVENANCE_DATABASE:
+	// this function dumps the database to disk
 	void checkpoint_provenance_database();
 	
 private:
@@ -247,11 +253,6 @@ private:
 	sqlite3* provenance_database_;
 	
 	bool database_initialized_;
-	
-	int action_count_;
-	
-	std::string last_action_inserted_;
-	
 	
 };
 

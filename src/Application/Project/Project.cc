@@ -51,9 +51,7 @@ namespace Seg3D
 Project::Project( const std::string& project_name ) :
 	StateHandler( "project", false ),
 	changed_( false ),
-	database_initialized_( false ),
-	action_count_( -1 ),
-	last_action_inserted_( "" )
+	database_initialized_( false )
 {	
 	// Name of the project.
 	this->add_state( "project_name", this->project_name_state_, project_name );
@@ -62,6 +60,8 @@ Project::Project( const std::string& project_name ) :
 	this->add_state( "save_custom_colors", this->save_custom_colors_state_, false );
 	
 	// List of sessions stored in this project
+	// *** THIS IS DEPRECATED *** // this is only here for backwards compatibility and is not
+	// currently used aside from that.
 	std::vector< std::string> empty_vector;
 	this->add_state( "sessions", this->sessions_state_, empty_vector );
 	
@@ -73,6 +73,9 @@ Project::Project( const std::string& project_name ) :
 	
 	// Name of the session that is currently in use.
 	this->add_state( "current_session_name", this->current_session_name_state_, "UnnamedSession" );
+	
+	// This keeps track of the count for the sessions. Currently the maximum number of sessions 
+	// that we handle is 999. 
 	this->add_state( "session_count", this->session_count_state_, 0 );
 		
 	// State of all the 12 colors in the system.	
@@ -105,6 +108,187 @@ Project::~Project()
 	this->disconnect_all();
 }
 
+bool Project::initialize_from_file( const std::string& project_name )
+{
+	Core::StateIO stateio;
+	if( stateio.import_from_file( this->project_path_ / ( project_name + ".s3d" ) ) &&
+		this->load_states( stateio ) )	
+	{
+		// now lets try and setup the provenance database
+		if( !this->create_database_schema() )
+		{
+			CORE_LOG_ERROR( "Unable to create provenance database!" );
+			return false;
+		}
+
+		if( !this->sessions_state_->get().empty() )
+		{
+			this->session_count_state_->set( 0 );
+			this->import_old_session_info_into_database();
+		}
+
+		// Once we have loaded the state of the sessions_list, we need to validate that the files exist
+		this->cleanup_session_database();
+
+		std::string most_recent_session_name;
+		if( this->get_most_recent_session_name( most_recent_session_name ) && 
+			this->load_session( most_recent_session_name ) )
+		{
+			this->sessions_changed_signal_();
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Project::load_session( const std::string& session_name )
+{
+	return  this->current_session_->load( this->project_path_,	session_name );
+}
+
+bool Project::delete_session( const std::string& session_name )
+{
+	boost::filesystem::path session_path = 
+		this->project_path_ / "sessions" / ( session_name + ".xml" );
+
+	try 
+	{
+		boost::filesystem::remove_all( session_path );
+	}
+	catch(  std::exception& e ) 
+	{
+		CORE_LOG_WARNING( e.what() );
+		return false;
+	}
+
+	this->delete_session_from_database( session_name );
+
+	Core::StateIO stateio;
+	stateio.initialize();
+	this->save_states( stateio );
+	stateio.export_to_file( this->project_path_ / ( this->project_name_state_->get() + ".s3d" ) );
+
+	this->sessions_changed_signal_();
+	return true;
+}	
+
+bool Project::save_session( const std::string& timestamp, const std::string& session_name )
+{
+	std::string session_count = Core::ExportToString( this->session_count_state_->get() );
+	while( session_count.size() < 3 )
+	{
+		// we are going to pad session counts so that the os sorts them properly
+		session_count = "0" + session_count;
+	}
+
+	if( !this->insert_session_into_database( timestamp, session_count + "-" + session_name ) )
+	{
+		//CORE_LOG_ERROR( this->get_error() );
+		// In this case we are erroring because we have a duplicate entry, we dont care about this
+		return true;
+	}
+
+	this->current_session_->session_name_state_->set( session_count + "-" + session_name );
+
+	if( !this->current_session_->save( this->project_path_, session_count + "-" + session_name ) )
+	{
+		return false;
+	}
+
+	this->sessions_changed_signal_();
+
+	return true;
+}
+
+bool Project::save_as( boost::filesystem::path path, const std::string& project_name )
+{
+	boost::filesystem::path data_path = this->project_path_ / "data";
+	boost::filesystem::directory_iterator data_dir_end;
+	for( boost::filesystem::directory_iterator data_dir_itr( data_path ); 
+		data_dir_itr != data_dir_end; ++data_dir_itr )
+	{
+		try
+		{
+			boost::filesystem::copy_file( ( data_path / data_dir_itr->filename() ),
+				( path / project_name / "data" / data_dir_itr->filename() ) );
+		}
+		catch ( std::exception& e ) // any errors that we might get thrown
+		{
+			CORE_LOG_ERROR( e.what() );
+			return false;
+		}
+	}
+
+	boost::filesystem::path session_path = this->project_path_ / "sessions";
+	boost::filesystem::directory_iterator session_dir_end;
+	for( boost::filesystem::directory_iterator session_dir_itr( session_path ); 
+		session_dir_itr != session_dir_end; ++session_dir_itr )
+	{
+		try
+		{
+			boost::filesystem::copy_file( ( session_path / session_dir_itr->filename() ),
+				( path / project_name / "sessions"/ session_dir_itr->filename() ) );
+		}
+		catch ( std::exception& e ) // any errors that we might get thrown
+		{
+			CORE_LOG_ERROR( e.what() );
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Project::project_export( boost::filesystem::path path, const std::string& project_name, 
+							 const std::string& session_name )
+{
+	this->data_manager_->save_datamanager_state( path, session_name );
+
+	std::vector< std::string > file_vector;
+	if( this->data_manager_->get_session_files_vector( session_name, file_vector ) )
+	{
+		for( int i = 0; i < static_cast< int >( file_vector.size() ); ++i )
+		{
+			if( !boost::filesystem::exists( path / project_name / "data" / file_vector[ i ] ) )
+			{
+				try
+				{
+					boost::filesystem::copy_file( ( project_path_ / "data" / file_vector[ i ] ),
+						( path / project_name / "data" / file_vector[ i ] ) );
+				}
+				catch ( std::exception& e ) // any errors that we might get thrown
+				{
+					CORE_LOG_ERROR( e.what() );
+					return false;
+				}
+			}
+		}
+	}
+	try
+	{
+		boost::filesystem::copy_file( ( project_path_ / "sessions" / ( session_name + ".xml" ) ),
+			( path / project_name / "sessions" / ( session_name + ".xml" ) ) );
+	}
+	catch ( std::exception& e ) // any errors that we might get thrown
+	{
+		CORE_LOG_ERROR( e.what() );
+		return false;
+	}
+
+	return true;
+
+}
+
+void Project::set_signal_block( bool on_off )
+{
+	this->enable_signals( on_off );
+}
+
+void Project::set_project_path( const boost::filesystem::path& project_path )
+{
+	this->project_path_ = project_path;
+}
+
 void Project::set_project_changed( Core::ActionHandle action, Core::ActionResultHandle result )
 {
 	// NOTE: This is executed on the application thread, hence we do not need a lock to read
@@ -130,95 +314,6 @@ bool Project::check_project_changed()
 	Core::Application::lock_type lock( Core::Application::GetMutex() );
 	return this->changed_;
 }
-
-bool Project::initialize_from_file( const std::string& project_name )
-{
-	Core::StateIO stateio;
-	if( stateio.import_from_file( this->project_path_ / ( project_name + ".s3d" ) ) &&
-		this->load_states( stateio ) )	
-	{
-		// now lets try and setup the provenance database
-		if( !this->create_database_schema() )
-		{
-			CORE_LOG_ERROR( "Unable to create provenance database!" );
-			return false;
-		}
-		
-		// Once we have loaded the state of the sessions_list, we need to validate that the files exist
-		this->cleanup_session_database();
-
-		std::string most_recent_session_name;
-		if( this->get_most_recent_session_name( most_recent_session_name ) && 
-			this->load_session( most_recent_session_name ) )
-		{
-			this->sessions_changed_signal_();
-			return true;
-		}
-	}
-	return false;
-}
-	
-bool Project::load_session( const std::string& session_name )
-{
-	return  this->current_session_->load( this->project_path_,	session_name );
-}
-
-bool Project::save_session( const std::string& timestamp, const std::string& session_name )
-{
-	std::string session_count = Core::ExportToString( this->session_count_state_->get() );
-	while( session_count.size() < 3 )
-	{
-		// we are going to pad session counts so that the os sorts them properly
-		session_count = "0" + session_count;
-	}
-
-	if( !this->insert_session_into_database( timestamp, session_count + "-" + session_name ) )
-	{
-		//CORE_LOG_ERROR( this->get_error() );
-		// In this case we are erroring because we have a duplicate entry, we dont care about this
-		return true;
-	}
-	
-	this->current_session_->session_name_state_->set( session_count + "-" + session_name );
-
-	if( !this->current_session_->save( this->project_path_, session_count + "-" + session_name ) )
-	{
-		return false;
-	}
-	
-	this->sessions_changed_signal_();
-	
-	//this->add_session_to_list( session_count + "-" + session_name );
-	return true;
-}
-
-bool Project::delete_session( const std::string& session_name )
-{
-	boost::filesystem::path session_path = 
-		this->project_path_ / "sessions" / ( session_name + ".xml" );
-	
-	try 
-	{
-		boost::filesystem::remove_all( session_path );
-	}
-	catch(  std::exception& e ) 
-	{
-		CORE_LOG_WARNING( e.what() );
-		return false;
-	}
-	
-	this->delete_session_from_database( session_name );
-	
-/*	this->data_manager_->remove_session( session_name );*/
-	
-	Core::StateIO stateio;
-	stateio.initialize();
-	this->save_states( stateio );
-	stateio.export_to_file( this->project_path_ / ( this->project_name_state_->get() + ".s3d" ) );
-	
-	this->sessions_changed_signal_();
-	return true;
-}	
 
 bool Project::pre_save_states( Core::StateIO& state_io )
 {
@@ -303,112 +398,6 @@ bool Project::validate_session_name( std::string& session_name )
 	}
 
 	return false;
-}
-
-void Project::set_project_path( const boost::filesystem::path& project_path )
-{
-	this->project_path_ = project_path;
-}
-
-void Project::cleanup_session_database()
-{
-	std::vector< SessionInfo > sessions;
-	if( get_all_sessions( sessions ) )
-	{
-		for( size_t i = 0; i < sessions.size(); ++i )
-		{
-			boost::filesystem::path session_path = this->project_path_ / "sessions" 
-				/ ( sessions[ i ].session_name_ + ".xml" );
-			if( !boost::filesystem::exists( session_path ) )
-			{
-				this->delete_session_from_database( sessions[ i ].session_name_ );
-			}
-		}
-	}
-}
-
-bool Project::project_export( boost::filesystem::path path, const std::string& project_name, 
-	const std::string& session_name )
-{
-	this->data_manager_->save_datamanager_state( path, session_name );
-
-	std::vector< std::string > file_vector;
-	if( this->data_manager_->get_session_files_vector( session_name, file_vector ) )
-	{
-		for( int i = 0; i < static_cast< int >( file_vector.size() ); ++i )
-		{
-			if( !boost::filesystem::exists( path / project_name / "data" / file_vector[ i ] ) )
-			{
-				try
-				{
-					boost::filesystem::copy_file( ( project_path_ / "data" / file_vector[ i ] ),
-						( path / project_name / "data" / file_vector[ i ] ) );
-				}
-				catch ( std::exception& e ) // any errors that we might get thrown
-				{
-					CORE_LOG_ERROR( e.what() );
-					return false;
-				}
-			}
-		}
-	}
-	try
-	{
-		boost::filesystem::copy_file( ( project_path_ / "sessions" / ( session_name + ".xml" ) ),
-			( path / project_name / "sessions" / ( session_name + ".xml" ) ) );
-	}
-	catch ( std::exception& e ) // any errors that we might get thrown
-	{
-		CORE_LOG_ERROR( e.what() );
-		return false;
-	}
-
-	return true;
-
-}
-
-void Project::set_signal_block( bool on_off )
-{
-	this->enable_signals( on_off );
-}
-
-bool Project::save_as( boost::filesystem::path path, const std::string& project_name )
-{
-	boost::filesystem::path data_path = this->project_path_ / "data";
-	boost::filesystem::directory_iterator data_dir_end;
-	for( boost::filesystem::directory_iterator data_dir_itr( data_path ); 
-		data_dir_itr != data_dir_end; ++data_dir_itr )
-	{
-		try
-		{
-			boost::filesystem::copy_file( ( data_path / data_dir_itr->filename() ),
-				( path / project_name / "data" / data_dir_itr->filename() ) );
-		}
-		catch ( std::exception& e ) // any errors that we might get thrown
-		{
-			CORE_LOG_ERROR( e.what() );
-			return false;
-		}
-	}
-
-	boost::filesystem::path session_path = this->project_path_ / "sessions";
-	boost::filesystem::directory_iterator session_dir_end;
-	for( boost::filesystem::directory_iterator session_dir_itr( session_path ); 
-		session_dir_itr != session_dir_end; ++session_dir_itr )
-	{
-		try
-		{
-			boost::filesystem::copy_file( ( session_path / session_dir_itr->filename() ),
-				( path / project_name / "sessions"/ session_dir_itr->filename() ) );
-		}
-		catch ( std::exception& e ) // any errors that we might get thrown
-		{
-			CORE_LOG_ERROR( e.what() );
-			return false;
-		}
-	}
-
-	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -571,7 +560,8 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 
 		for( size_t j = 0; j < deleted_list.size(); ++j )
 		{
-			insert_statement = "INSERT INTO provenance_deleted_relations (provenance_id, deleted_provenance_id) VALUES(" + 
+			insert_statement = "INSERT INTO provenance_deleted_relations "
+				"(provenance_id, deleted_provenance_id) VALUES(" + 
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( deleted_list[ j ] ) + ");";
 
@@ -593,15 +583,27 @@ void Project::checkpoint_provenance_database()
 	this->database_checkpoint();
 }
 
-bool Project::insert_session_into_database( const std::string& timestamp, const std::string& session_name )
+bool Project::insert_session_into_database( const std::string& timestamp, 
+	const std::string& session_name, const std::string& user_name /*= "" */ )
 {
 	std::string user;
-	Core::Application::Instance()->get_user_name( user );
+	bool importing_old_sessions = false;
+	
+	// if we have a username it means that we are importing old sessions from file rather than saving
+	// the current session 
+	if( user_name == "" )
+	{
+		Core::Application::Instance()->get_user_name( user );
+	}
+	else
+	{
+		user = user_name;
+		importing_old_sessions = true;
+	}
 		
 	std::string insert_statement = "INSERT OR IGNORE INTO sessions "
 		"(session_name, username, timestamp) VALUES('" + 
-		session_name+ "', '" +
-		user + "', '" + timestamp + "');";
+		session_name+ "', '" + user + "', '" + timestamp + "');";
 
 	if( !this->database_query_no_return( insert_statement ) )
 	{
@@ -609,23 +611,26 @@ bool Project::insert_session_into_database( const std::string& timestamp, const 
 		return false;
 	}
 	
-	std::vector< LayerHandle > current_layers;
-	LayerManager::Instance()->get_layers( current_layers );
-
-	for( size_t i = 0; i < current_layers.size(); ++i )
+	if( !importing_old_sessions )
 	{
-		Core::DataBlock::generation_type generation = current_layers[ i ]->get_generation();
-	
-		if( generation == -1 ) continue;
-		
-		insert_statement = "INSERT OR IGNORE INTO data_relations "
-			"(session_name, data_file) VALUES('" + session_name + 
-			"', '" + Core::ExportToString( generation ) +	".nrrd');";
-			
-		if( !this->database_query_no_return( insert_statement ) )
+		std::vector< LayerHandle > current_layers;
+		LayerManager::Instance()->get_layers( current_layers );
+
+		for( size_t i = 0; i < current_layers.size(); ++i )
 		{
-			CORE_LOG_ERROR( this->get_error() );
-			return false;
+			Core::DataBlock::generation_type generation = current_layers[ i ]->get_generation();
+
+			if( generation == -1 ) continue;
+
+			insert_statement = "INSERT OR IGNORE INTO data_relations "
+				"(session_name, data_file) VALUES('" + session_name + 
+				"', '" + Core::ExportToString( generation ) +	".nrrd');";
+
+			if( !this->database_query_no_return( insert_statement ) )
+			{
+				CORE_LOG_ERROR( this->get_error() );
+				return false;
+			}
 		}
 	}
 	
@@ -636,7 +641,8 @@ bool Project::insert_session_into_database( const std::string& timestamp, const 
 
 bool Project::delete_session_from_database( const std::string& session_name )
 {
-	std::string delete_statement = "DELETE FROM sessions WHERE (session_name = '" + session_name + "');";
+	std::string delete_statement = "DELETE FROM sessions WHERE (session_name = '" + 
+		session_name + "');";
 
 	if( !this->database_query_no_return( delete_statement ) )
 	{
@@ -701,15 +707,92 @@ bool Project::get_most_recent_session_name( std::string& session_name )
 	return true;
 }
 
+void Project::cleanup_session_database()
+{
+	std::vector< SessionInfo > sessions;
+	if( get_all_sessions( sessions ) )
+	{
+		for( size_t i = 0; i < sessions.size(); ++i )
+		{
+			boost::filesystem::path session_path = this->project_path_ / "sessions" 
+				/ ( sessions[ i ].session_name_ + ".xml" );
+			if( !boost::filesystem::exists( session_path ) )
+			{
+				this->delete_session_from_database( sessions[ i ].session_name_ );
+			}
+		}
+	}
+}
+
 void Project::import_old_session_info_into_database()
 {
 	std::vector< std::string > session_vector = this->sessions_state_->get();
+	int number_of_sessions_to_import = static_cast< int >( session_vector.size() );
+	for( int i = ( number_of_sessions_to_import - 1 ); i >= 0; i-- )
+	{
+
+		std::string old_session_name;
+		Core::ImportFromString( session_vector[ i ], old_session_name );
+		
+		boost::filesystem::path  old_path = this->project_path_ / "sessions" / 
+			( old_session_name + ".xml" );
+		
+		std::vector< std::string > old_session_name_vector = 
+			Core::SplitString( old_session_name, " - " );
+		
+		std::string session_count = Core::ExportToString( this->session_count_state_->get() );
+		while( session_count.size() < 3 )
+		{
+			// we are going to pad session counts so that the os sorts them properly
+			session_count = "0" + session_count;
+		}
+		
+		std::string new_session_name = session_count + "-" + old_session_name_vector[ 1 ];
+		
+		boost::filesystem::path  new_path = this->project_path_ / "sessions" / 
+			( new_session_name + ".xml" );
+			
+		if( !boost::filesystem::exists( old_path ) ) continue;	
+		boost::filesystem::rename( old_path, new_path );
+		
+		std::string day = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 0 ];
+		std::string month = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 1 ];
+		std::string year = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 2 ];
+		
+		std::string hour = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 3 ];
+		std::string minute = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 4 ];
+		std::string second = ( Core::SplitString( old_session_name_vector[ 0 ], "-" ) )[ 5 ];
+		
+		std::string timestamp = year + "-" + month + "-" + day + " " + 
+			hour + ":" + minute + ":" + second;
+		
+		// Here we insert the converted session name into the database
+		bool success = this->insert_session_into_database( timestamp, new_session_name, 
+			old_session_name_vector[ 2 ] );
+		
+		// Now if it had data associated with it, put it in the database too.
+		std::vector< std::string > files;
+		if( this->data_manager_->get_session_files_vector( old_session_name, files ) )
+		{
+			for( size_t i = 0; i < files.size(); ++i )
+			{
+				std::string insert_statement = "INSERT OR IGNORE INTO data_relations "
+					"(session_name, data_file) VALUES('" + new_session_name + 
+					"', '" + files[ i ] + "');";
+
+				if( !this->database_query_no_return( insert_statement ) )
+				{
+					CORE_LOG_ERROR( this->get_error() );
+					return;
+				}
+			}
+		}
+		
+	}
 	
+	// Finally we set the session list to an empty vector so we aren't tempted to do this again.
+	std::vector< std::string > empty_vector;
+	this->sessions_state_->set( empty_vector );
 }
-
-
-
-
-
 
 } // end namespace Seg3D
