@@ -1,4 +1,3 @@
-
 /*
  For more information, please see: http://software.sci.utah.edu
 
@@ -92,7 +91,7 @@ ProjectManager::ProjectManager() :
 	}
 	
 	// Here we check to see if the recent projects database exists, otherwise we create it
-	this->create_database_scheme();
+	this->create_database_schema();
 
 	
 	// Here we clean out any projects that dont exist where we think they should
@@ -132,6 +131,7 @@ bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::pa
 			return false;
 		}
 	}
+
 	// Everything seems OK
 	return true;
 }
@@ -160,6 +160,7 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 	this->current_project_->sessions_state_->set( empty_vector );
 	this->current_project_->project_notes_state_->set( empty_vector );
 	this->current_project_->save_custom_colors_state_->set( false );
+	this->current_project_->session_count_state_->set( 0 );
 	this->current_project_->clear_datamanager_list();
 	ToolManager::Instance()->open_default_tools();
 	
@@ -183,7 +184,7 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 			this->set_project_path( path );
 			
 			// now lets try and setup the provenance database
-			if( !this->current_project_->create_database_scheme() )
+			if( !this->current_project_->create_database_schema() )
 			{
 				CORE_LOG_ERROR( "Unable to create provenance database!" );
 			}
@@ -198,7 +199,9 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 		PreferencesManager::Instance()->auto_save_state_->set( false );
 	}
 
+	
 	this->changing_projects_ = false;
+
 }
 	
 void ProjectManager::open_project( const boost::filesystem::path& project_path )
@@ -209,17 +212,13 @@ void ProjectManager::open_project( const boost::filesystem::path& project_path )
 	Core::Application::Reset();
 	
 	this->changing_projects_ = true;
+	boost::filesystem::path path = project_path;
 	
 	this->set_project_path( project_path );
 		
 	this->current_project_->initialize_from_file( project_path.leaf() );
-	this->add_to_recent_projects( project_path.parent_path().string(), project_path.leaf() );
 	
-	// now lets try and setup the provenance database
-	if( !this->current_project_->create_database_scheme() )
-	{
-		CORE_LOG_ERROR( "Unable to create provenance database!" );
-	}
+	this->add_to_recent_projects( project_path.parent_path().string(), project_path.leaf() );
 
 	this->set_last_saved_session_time_stamp();
 	this->changing_projects_ = false;
@@ -313,12 +312,6 @@ bool ProjectManager::save_project_session( bool autosave /*= false */, std::stri
 	{
 		session_name = "AutoSave";
 	}	
-	session_name = this->get_timestamp() + " - " + session_name;
-
-	std::string user_name;
-	Core::Application::Instance()->get_user_name( user_name );
-
-	session_name = session_name + " - " + user_name;
 	
 	boost::filesystem::path path = complete( boost::filesystem::path( this->
 		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
@@ -327,7 +320,8 @@ bool ProjectManager::save_project_session( bool autosave /*= false */, std::stri
 	this->add_to_recent_projects( this->current_project_path_state_->export_to_string(),
 		this->current_project_->project_name_state_->get() );
 	
-	bool result = this->current_project_->save_session( session_name );
+	bool result = this->current_project_->save_session(  boost::posix_time::to_simple_string( 
+		boost::posix_time::second_clock::local_time() ), session_name );
 
 	if( result )
 	{
@@ -380,8 +374,7 @@ void ProjectManager::add_to_recent_projects( const boost::filesystem::path& proj
 }
 
 
-bool ProjectManager::create_project_folders( const boost::filesystem::path& path, 
-	const std::string& project_name )
+bool ProjectManager::create_project_folders( const boost::filesystem::path& path, const std::string& project_name )
 {
 	try // to create a project folder
 	{
@@ -423,17 +416,6 @@ bool ProjectManager::create_project_folders( const boost::filesystem::path& path
 		return false;
 	}
 	
-
-	try // to create a project data folder
-	{
-		boost::filesystem::create_directory( path / project_name / "metadata");
-	}
-	catch ( std::exception& e ) // any errors that we might get thrown
-	{
-		CORE_LOG_ERROR( e.what() );
-		return false;
-	}
-
 	return true;
 }
 
@@ -542,8 +524,7 @@ Seg3D::ProjectHandle ProjectManager::get_current_project() const
 	return this->current_project_;
 }
 
-bool ProjectManager::project_save_as( const boost::filesystem::path& export_path, 
-	const std::string& project_name )
+bool ProjectManager::project_save_as( const boost::filesystem::path& export_path, const std::string& project_name )
 {
 	this->changing_projects_ = true;
 	this->session_saving_ = true;
@@ -581,15 +562,12 @@ bool ProjectManager::project_save_as( const boost::filesystem::path& export_path
 	this->set_last_saved_session_time_stamp();
 	AutoSave::Instance()->recompute_auto_save();
 	
-	this->changing_projects_ = false;
-	this->session_saving_ = false;
+	this->changing_projects_ = true;
 	this->session_saving_ = false;
 	
-	this->current_project_->create_database_scheme();
+	this->current_project_->create_database_schema();
 	
 	this->add_to_recent_projects( export_path, project_name );
-	
-	
 	
 	return true;
 }
@@ -597,8 +575,7 @@ bool ProjectManager::project_save_as( const boost::filesystem::path& export_path
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Recent Files Database Functionality //////////////////////////////////
-
-void ProjectManager::create_database_scheme()
+bool ProjectManager::create_database_schema()
 {
 	std::string create_query = "CREATE TABLE recentprojects "
 		"(id INTEGER NOT NULL, "
@@ -612,8 +589,10 @@ void ProjectManager::create_database_scheme()
 	
 	if( !this->initialize_database( this->recent_projects_database_path_, create_statements ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );	
+		CORE_LOG_ERROR( this->get_error() );
+		return false;	
 	}
+	return true;
 }
 
 bool ProjectManager::insert_recent_projects_entry( const std::string& project_name, 
@@ -678,8 +657,6 @@ bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProje
 	}
 	
 	return true;
-	
-
 }
 
 void ProjectManager::cleanup_recent_projects_database()

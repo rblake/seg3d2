@@ -61,20 +61,39 @@ public:
 	virtual ~DatabaseManager();
 	
 public:
-	bool initialize_database( const boost::filesystem::path& database_path, 
-		const std::vector< std::string > database_create_tables_statements );
-		
+	// DATABASE_QUERY:
+	// this function is for querying the database when you expect results
 	bool database_query( const std::string& sql_query, ResultSet& results );
-		
+	
+	// DATABASE_QUERY_NO_RETURN:
+	// this is for running query's on the database that don't return results, for example INSERT	
 	bool database_query_no_return( const std::string& sql_query );
-		
+	
+	// DATABASE_CHECKPOINT:
+	// this is for writing the database to disk.  We need to do this because the db is stored in
+	// memory	
 	bool database_checkpoint();
 	
+	// GET_ERROR:
+	// this is an acessor function for getting the error if one of the query's returned false
 	std::string get_error();
 	
+	// CLOSE_DATABASE:
+	// this function writes the database to disk and closes the database 
 	void close_database();
 	
+	// CREATE_DATABASE_SCHEMA:
+	// this function call the intitialize database function
+	virtual bool create_database_schema(){ return false; }
+	
+	// INITIALIZE_DATABASE:
+	// this function does the actual creation of the databases 
+	bool initialize_database( const boost::filesystem::path& database_path, 
+		const std::vector< std::string > database_create_tables_statements );
+	
 private:
+	// LOAD_OR_SAVE_DATABASE:
+	// function that handles both loading or saving of the db to file
 	bool load_or_save_database( bool is_save );
 
 private:

@@ -65,6 +65,26 @@ namespace Seg3D
 // CLASS Project
 // This is the main class for collecting state information on a Project
 class Project;
+
+class SessionInfo
+{
+public:
+	SessionInfo( std::string session_name = "", std::string username = "", std::string timestamp = "" ) :
+		session_name_( session_name ),
+		username_( username ),
+		timestamp_( timestamp )
+	{
+	}
+
+	virtual ~SessionInfo()
+	{
+	}
+
+public:
+	std::string session_name_;
+	std::string username_;
+	std::string timestamp_;
+};	
 	
 typedef boost::shared_ptr< Project > ProjectHandle;
 
@@ -83,6 +103,7 @@ public:
 	Core::StateStringVectorHandle sessions_state_;
 	Core::StateStringVectorHandle project_notes_state_;
 	Core::StateLongLongHandle project_file_size_state_;
+	Core::StateIntHandle session_count_state_;
 	Core::StateStringHandle current_session_name_state_;
 	std::vector< Core::StateColorHandle > color_states_;
 	
@@ -92,8 +113,8 @@ public:
 	
 	
 public:
-	typedef boost::signals2::signal< void( std::string ) > session_deleted_signal_type;
-	session_deleted_signal_type session_deleted_signal_;
+	typedef boost::signals2::signal< void() > sessions_changed_signal_type;
+	sessions_changed_signal_type sessions_changed_signal_;
 	
 public:
 	// INITIALIZE_FROM_FILE:
@@ -106,7 +127,7 @@ public:
 	
 	// SAVE_SESSION:
 	// this function will be called from the project manager to save a session
-	bool save_session( const std::string& session_name );
+	bool save_session(  const std::string& timestamp, const std::string& session_name );
 	
 	// DELETE_SESSION:
 	// this function will be called by the project manager to delete a session
@@ -124,7 +145,7 @@ public:
 	// GET_SESSION_NAME:
 	// this function gets the name of a session at an index of the projects session list, this is 
 	// used for display what session you are loading when you load a session.
-	std::string get_session_name( int index );
+/*	std::string get_session_name( int index );*/
 
 	// VALIDATE_SESSION_NAME:
 	// function for validating that a session name exists
@@ -164,11 +185,15 @@ protected:
 private:
 	// ADD_SESSION_TO_LIST
 	// this function adds sessions to the list of sessions that is stored in the projects state
-	void add_session_to_list( const std::string& session_path_and_name );
+/*	void add_session_to_list( const std::string& session_path_and_name );*/
 
-	// CLEANUP_SESSION_LIST:
+	// CLEANUP_SESSION_DATABASE:
 	// this function cleans up sessions in the session list that have been deleted by the user
-	void cleanup_session_list();
+	void cleanup_session_database();
+	
+	void import_old_session_info_into_database();
+	
+	bool get_most_recent_session_name( std::string& session_name );
 
 	// -- provenance support --
 public:	
@@ -185,10 +210,22 @@ public:
 	// Reset the flag that remembers that a session has changed
 	void reset_project_changed();
 	
-	// CREATE_DATABASE_SCHEME:
-	// this creates the provenance database
-	bool create_database_scheme();
+	// CREATE_DATABASE_SCHEMA:
+	// this is an inherited function that
+	virtual bool create_database_schema(); 
 	
+	// INSERT_SESSION_INTO_DATABASE:
+	// this inserts a session into the database
+	bool insert_session_into_database( const std::string& timestamp, const std::string& session_name );
+	
+	// DELETE_SESSION_FROM_DATABASE:
+	// this deletes a session from the database
+	bool delete_session_from_database( const std::string& session_name );
+	
+	bool get_all_sessions( std::vector< SessionInfo >& sessions );
+	
+	bool get_session( SessionInfo& session, const std::string& session_name );
+		
 	void close_provenance_database();
 	
 	void checkpoint_provenance_database();
@@ -214,6 +251,7 @@ private:
 	int action_count_;
 	
 	std::string last_action_inserted_;
+	
 	
 };
 

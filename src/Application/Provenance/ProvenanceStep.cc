@@ -100,6 +100,16 @@ const std::string& ProvenanceStep::get_action() const
 	return this->action_;
 }
 
+const std::string& ProvenanceStep::get_username() const
+{
+	return this->user_;
+}
+
+const std::string& ProvenanceStep::get_timestamp() const
+{
+	return this->time_stamp_;
+}
+
 void ProvenanceStep::print()
 {
 	std::cout << "input ids = " << Core::ExportToString( this->input_provenance_ids_ ) << std::endl;
@@ -109,5 +119,9 @@ void ProvenanceStep::print()
 	std::cout << "user = " << this->user_ << std::endl;
 	std::cout << "timestamp = " << this->time_stamp_ << std::endl;
 }
+
+
+
+
 
 } // end namespace Seg3D

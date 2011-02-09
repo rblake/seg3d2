@@ -65,7 +65,7 @@ class Session : public Core::StateHandler
 {
 	// -- constructor/destructor --
 public:
-	Session( const std::string& session_name );
+	Session( const std::string& session_name, const std::string& user_name  );
 	virtual ~Session();
 	
 public:

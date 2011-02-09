@@ -104,7 +104,7 @@ public:
 		const std::string& file_path, const std::string extension = "" );
 		
 	static void Dispatch( Core::ActionContextHandle context, const std::string& layer,
-		LayerExporterHandle exporter, const std::string& layer );	
+		LayerExporterHandle exporter, const std::string& file_path );	
 };
 	
 } // end namespace Seg3D

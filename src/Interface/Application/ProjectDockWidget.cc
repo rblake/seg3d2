@@ -65,6 +65,7 @@ public:
 	Ui::ProjectDockWidget ui_;
 	bool resetting_;
 	QStandardItemModel* note_model_;
+	std::vector< std::string > sessions_;
 
 };
 
@@ -104,9 +105,15 @@ ProjectDockWidget::ProjectDockWidget( QWidget *parent ) :
 		QtUtils::QtBridge::Connect( this->private_->ui_.session_name_linedit_, 
 			ProjectManager::Instance()->current_project_->current_session_name_state_ );
 
-		add_connection( ProjectManager::Instance()->current_project_->sessions_state_->
-			state_changed_signal_.connect( boost::bind( &ProjectDockWidget::HandleSessionsChanged, 
+// 		add_connection( ProjectManager::Instance()->current_project_->sessions_state_->
+// 			state_changed_signal_.connect( boost::bind( &ProjectDockWidget::HandleSessionsChanged, 
+// 			project_dock_widget ) ) );
+			
+		add_connection( ProjectManager::Instance()->current_project_->sessions_changed_signal_.
+			connect( boost::bind( &ProjectDockWidget::HandleSessionsChanged, 
 			project_dock_widget ) ) );
+
+		//sessions_changed_signal_
 
 		add_connection( ProjectManager::Instance()->current_project_->project_notes_state_->
 			state_changed_signal_.connect( boost::bind( &ProjectDockWidget::HandleNoteSaved, 
@@ -201,66 +208,57 @@ void ProjectDockWidget::load_session()
 	{
 		return;
 	}
-
-	std::string row_time = this->private_->ui_.sessions_list_->item( row, 0 )->text().toStdString();
-
-	if( row_time != "" )
+	
+	if ( ProjectManager::Instance()->current_project_ )
 	{
-		if ( ProjectManager::Instance()->current_project_ )
+		if ( ProjectManager::Instance()->current_project_->check_project_changed() )
 		{
-			if ( ProjectManager::Instance()->current_project_->check_project_changed() )
+			// Check whether the users wants to save and whether the user wants to quit
+			int ret = QMessageBox::warning( this, "Save Current Session ?",
+				"Your current session has not been saved.\n"
+				"Do you want to save your changes?",
+				QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel );
+			
+			if ( ret == QMessageBox::Save )
 			{
-
-				// Check whether the users wants to save and whether the user wants to quit
-				int ret = QMessageBox::warning( this, "Save Current Session ?",
-					"Your current session has not been saved.\n"
-					"Do you want to save your changes?",
-					QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel );
-				
-				if ( ret == QMessageBox::Save )
-				{
-					Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-					ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), false, 
-						ProjectManager::Instance()->current_project_->
-						current_session_name_state_->get() );		
-				}
-
-				if ( ret != QMessageBox::Cancel )
-				{
-					std::vector< std::string > sessions = 
-						ProjectManager::Instance()->current_project_->sessions_state_->get();
-
-					std::string session_name = sessions[ row ];
-					ActionLoadSession::Dispatch( Core::Interface::GetWidgetActionContext(), 
-						session_name );
-				}
+				Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+				ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), false, 
+					ProjectManager::Instance()->current_project_->
+					current_session_name_state_->get() );		
 			}
-			else
-			{
-				std::vector< std::string > sessions = ProjectManager::Instance()->current_project_->
-					sessions_state_->get();
 
-				std::string session_name = sessions[ row ];
-				ActionLoadSession::Dispatch( Core::Interface::GetWidgetActionContext(), 
-					session_name );		
+			if ( ret == QMessageBox::Cancel )
+			{
+				return;
 			}
 		}
+
+		ActionLoadSession::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			this->private_->sessions_[ row ] );
+
 	}
+	
 }
 
 void ProjectDockWidget::delete_session()
 {	
-	std::vector< int > session_indices_to_delete;
+	if( this->private_->ui_.sessions_list_->rowCount() != this->private_->sessions_.size() )
+	{
+		CORE_LOG_ERROR( "DANGER! The project dock's session list is out of sync with the actual sessions" );
+		return;
+	}
+
+	std::vector< std::string > sessions_to_delete;
 		
 	for( int i = 0; i < this->private_->ui_.sessions_list_->rowCount(); ++i ) 
 	{
 		if( this->private_->ui_.sessions_list_->item( i, 0 )->isSelected() )
 		{
-			session_indices_to_delete.push_back( i );
+			sessions_to_delete.push_back( this->private_->sessions_[ i ] );
 		}
 	}
 
-	if( session_indices_to_delete.size() > 0 )
+	if( sessions_to_delete.size() > 0 )
 	{
 		QMessageBox message_box;
 		message_box.setText( QString::fromUtf8( "WARNING: You cannot recover deleted sessions.") );
@@ -269,19 +267,11 @@ void ProjectDockWidget::delete_session()
 		message_box.setDefaultButton( QMessageBox::No );
 		if( QMessageBox::Yes == message_box.exec() )
 		{
-			std::vector< std::string > sessions_to_delete;
-			std::vector< std::string > sessions = ProjectManager::Instance()->current_project_->
-				sessions_state_->get();
-			for( size_t i = 0; i < session_indices_to_delete.size(); ++i )
-			{
-				sessions_to_delete.push_back( sessions[ session_indices_to_delete[ i ] ] );	
-			}
 			for( size_t i = 0; i < sessions_to_delete.size(); ++i )
 			{
 				ActionDeleteSession::Dispatch( Core::Interface::GetWidgetActionContext(), 
 					sessions_to_delete[ i ] );
 			} 
-			
 		}
 	}
 	this->disable_load_delete_and_export_buttons();
@@ -289,11 +279,8 @@ void ProjectDockWidget::delete_session()
 
 void ProjectDockWidget::populate_session_list()
 {
-	std::vector< std::string > sessions;
-	{
-		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-		sessions = ProjectManager::Instance()->current_project_->sessions_state_->get();
-	}
+	// We are going to update our local copy of the session list so we'll clear it first
+	this->private_->sessions_.clear();
 
 	this->private_->ui_.sessions_list_->verticalHeader()->setUpdatesEnabled( false );
 
@@ -302,80 +289,60 @@ void ProjectDockWidget::populate_session_list()
 	{
 		this->private_->ui_.sessions_list_->removeRow( j );
 	}
-
-	// The session list has a list of session files that we need to list.  The session files are 
-	// saved in the format timestamp - sessionname - username.xml
-	for( int i = 0; i < static_cast< int >( sessions.size() ); ++i )
+	
+	std::vector< SessionInfo > sessions_info;
+	if( !ProjectManager::Instance()->current_project_->get_all_sessions( sessions_info ) )
 	{
-		// in the saving and reloading using Splitstring we occasionally get empty spaces in our
-		// vectors as well as extra ] characters, so we need to filter them out
-		if( ( sessions[ i ] == "" ) || ( sessions[ i ] == "]" ) )
-		{
-			continue;
-		}
+		CORE_LOG_DEBUG( "no previous sessions exist" );
+		return;
+	}
 
-		if( static_cast< int >( Core::SplitString( sessions[ i ], " - " ).size() ) < 3 )
-		{
-			continue;
-		}
-
-		std::string session_name = sessions[ i ];
-		QTableWidgetItem *new_item_name;
+	for( size_t i = 0; i < sessions_info.size(); ++i )
+	{
 		QTableWidgetItem *new_item_time;
-
-		new_item_time = new QTableWidgetItem( QString::fromStdString( 
-			( Core::SplitString( session_name, " - " ) )[ 0 ] ) );
-		new_item_name = new QTableWidgetItem( QString::fromStdString( 
-			( Core::SplitString( session_name, " - " ) )[ 1 ] ) );
-
-		QFont font;
-		//font.setPointSize( 11 );
+		QTableWidgetItem *new_item_name;
+	
+		// first we get today's date in the format that we want			
+		std::string todays_date = ( Core::SplitString( boost::posix_time::to_simple_string( 
+			boost::posix_time::second_clock::local_time() ), " " ) )[ 0 ];
+			
+		std::string date = ( Core::SplitString( sessions_info[ i ].timestamp_, " " ) )[ 0 ];
+		std::string time = ( Core::SplitString( sessions_info[ i ].timestamp_, " " ) )[ 1 ];
+		std::string name = ( Core::SplitString( sessions_info[ i ].session_name_, "-" ) )[ 1 ];
 		
-		if( ( Core::SplitString( session_name, " - " ) )[ 1 ]== "AutoSave" )
+		// Here we are going to cache a local copy of the full session names
+		this->private_->sessions_.push_back( sessions_info[ i ].session_name_ );
+		 
+		if(	todays_date == date )
+		{
+			new_item_time = new QTableWidgetItem( QString::fromStdString( time ) );
+		}
+		else
+		{
+			new_item_time = new QTableWidgetItem( QString::fromStdString( date ) );
+		}
+		
+		new_item_name = new QTableWidgetItem( QString::fromStdString( name ) );
+			
+		QFont font;
+		if( name == "AutoSave" )
 		{
 			font.setBold( true );
 		}
-		
 		new_item_name->setFont( font );
 		new_item_time->setFont( font );
-
-		this->private_->ui_.sessions_list_->insertRow( i );
-
-		std::vector< std::string > time_vector = Core::SplitString( 
-			new_item_time->text().toStdString(), "-" );
-
-		if( time_vector.size() == 6 )
-		{
-
-			QString date_stamp = QString::fromStdString( time_vector[ 0 ] + "|" + 
-				time_vector[ 1 ] + "|" + time_vector[ 2 ] );
-
-			QString time_stamp = QString::fromStdString( time_vector[ 3 ] + ":" + 
-				time_vector[ 4 ] + ":" + time_vector[ 5 ] );
-
-			if( date_stamp.toStdString() == this->get_date() )
-			{
-				new_item_time->setText( time_stamp );
-			}
-			else
-			{
-				new_item_time->setText( date_stamp );
-			}
-
-			// Add a tooltip to display the user who saved the session 
-			QString tool_tip = QString::fromUtf8( "This session was saved by: " )
-				+ QString::fromStdString( ( Core::SplitString( session_name, " - " ) )[ 2 ] ) 
-				+ " on " + date_stamp + " at " + time_stamp;
-
-			new_item_time->setToolTip( tool_tip );
-			new_item_name->setToolTip( tool_tip );
-		}
-
-		std::string test = new_item_time->text().toStdString();
-		this->private_->ui_.sessions_list_->setItem( i, 0, new_item_time );
-		this->private_->ui_.sessions_list_->setItem( i, 1, new_item_name );
-		this->private_->ui_.sessions_list_->verticalHeader()->resizeSection( i, 24 );
 		
+		QString tool_tip = QString::fromUtf8( "This session was saved by: " )
+			+ QString::fromStdString( sessions_info[ i ].username_ ) +  QString::fromUtf8( " at " ) +
+			 QString::fromStdString( sessions_info[ i ].timestamp_ );
+			 
+		new_item_time->setToolTip( tool_tip );
+		new_item_name->setToolTip( tool_tip );
+		
+		this->private_->ui_.sessions_list_->insertRow( static_cast< int >( i ) );
+		this->private_->ui_.sessions_list_->setItem( static_cast< int >( i ), 0, new_item_time );
+		this->private_->ui_.sessions_list_->setItem( static_cast< int >( i ), 1, new_item_name );
+		this->private_->ui_.sessions_list_->verticalHeader()->resizeSection( static_cast< int >( i ), 24 );
 	}
 
 	this->private_->ui_.sessions_list_->verticalHeader()->setUpdatesEnabled( true );

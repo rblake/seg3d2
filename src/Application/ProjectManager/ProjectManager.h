@@ -213,7 +213,7 @@ private:
 	 
 	void set_project_path( boost::filesystem::path path );
 	
-	void create_database_scheme();
+	virtual bool create_database_schema();
 	
 	bool insert_recent_projects_entry( const std::string& project_name, 
 		const std::string& project_path, const std::string& project_date );

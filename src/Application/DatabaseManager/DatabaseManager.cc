@@ -79,7 +79,6 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 	if( !boost::filesystem::exists( this->private_->database_path_ ) )
 	{
 		result = sqlite3_open( ":memory:", &this->private_->database_ );
-		//result = sqlite3_open( this->private_->database_path_.string().c_str(), &this->private_->database_ );
 		if ( result == SQLITE_OK )
 		{
 			const char* tail;
@@ -111,8 +110,6 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 	else
 	{
 		result = sqlite3_open( ":memory:", &this->private_->database_ );
-		
-		//result = sqlite3_open( this->private_->database_path_.string().c_str(), &this->private_->database_ );
 		if( ( result != SQLITE_OK ) || ( !this->load_or_save_database( false ) ) )
 		{
 			this->private_->error_=  "Database could not be opened at '"

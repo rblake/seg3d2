@@ -89,6 +89,14 @@ public:
 	// GET_ACTION:
 	// Get the provenance action
 	const std::string& get_action() const;
+	
+	// GET_USER:
+	// get the user's name
+	const std::string& get_username() const;
+	
+	// GET_TIMESTAMP:
+	// get the timestamp of the provenance step
+	const std::string& get_timestamp() const;
 
 	// -- properties --
 public:

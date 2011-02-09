@@ -131,7 +131,7 @@ void DataManager::prep_for_save( const boost::filesystem::path& project_path,
 			{
 				try 
 				{
-					boost::filesystem::remove_all( dir_itr->path() );
+					//boost::filesystem::remove_all( dir_itr->path() );
 				}
 				catch(  std::exception& e ) 
 				{
