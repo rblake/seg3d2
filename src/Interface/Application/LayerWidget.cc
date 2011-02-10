@@ -1176,7 +1176,9 @@ void LayerWidget::delete_layer_from_context_menu()
 	if( ret == QMessageBox::Yes )
 	{
 		std::vector< std::string > layer;
-		layer.push_back( this->get_layer_id() );
+		std::string layer_id;
+		Core::ImportFromString( this->get_layer_id(), layer_id );
+		layer.push_back( layer_id );
 		ActionDeleteLayers::Dispatch( Core::Interface::GetWidgetActionContext(), 
 			layer );
 	}

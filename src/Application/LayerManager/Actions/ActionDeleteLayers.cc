@@ -47,7 +47,7 @@ bool ActionDeleteLayers::validate( Core::ActionContextHandle& context )
 	if( this->layers_ != "" )
 	{
 		std::vector< std::string > layer_vector;
-		layer_vector = Core::SplitString( this->layers_, "|" );
+		Core::ImportFromString( this->layers_, layer_vector );
 	
 		for ( size_t j = 0; j < layer_vector.size(); j++ )
 		{	
@@ -66,7 +66,7 @@ bool ActionDeleteLayers::run( Core::ActionContextHandle& context,
 	Core::ActionResultHandle& result )
 {
 	std::vector< std::string > layer_vector;
-	layer_vector = Core::SplitString( this->layers_, "|" );
+	Core::ImportFromString( this->layers_, layer_vector );
 		
 	// Create an undo item for this action
 	LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Delete layer(s)" ) );

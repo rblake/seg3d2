@@ -279,6 +279,9 @@ void ProjectDockWidget::delete_session()
 
 void ProjectDockWidget::populate_session_list()
 {
+	// We will reset the session name entry box too
+	this->private_->ui_.session_name_linedit_->setText( "UnnamedSession" );
+	
 	// We are going to update our local copy of the session list so we'll clear it first
 	this->private_->sessions_.clear();
 
@@ -346,6 +349,7 @@ void ProjectDockWidget::populate_session_list()
 	}
 
 	this->private_->ui_.sessions_list_->verticalHeader()->setUpdatesEnabled( true );
+	this->private_->ui_.sessions_list_->repaint();
 }
 		
 
@@ -625,12 +629,13 @@ void ProjectDockWidget::export_project()
 	}
 	
 	
-	std::vector< std::string > sessions = ProjectManager::Instance()->current_project_->
-		sessions_state_->get();
-	std::string session_name = sessions[ row ];
+// 	std::vector< std::string > sessions = ProjectManager::Instance()->current_project_->
+// 		sessions_state_->get();
+// 	this->private_->sessions_[ row ];
+// 	std::string session_name = sessions[ row ];
 
 	QPointer< ProjectExportWizard > project_export_wizard_ = 
-		new ProjectExportWizard( session_name, this );
+		new ProjectExportWizard( this->private_->sessions_[ row ], this );
 	project_export_wizard_->show();
 
 	this->disable_load_delete_and_export_buttons();

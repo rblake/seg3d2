@@ -351,7 +351,9 @@ void LayerGroupWidget::get_selected_layer_ids( std::vector< std::string >& layer
 	{
 		if( ( *it ).second->get_selected() )
 		{
-			layers.push_back( ( *it ).first );
+			std::string layer_id;
+			Core::ImportFromString( ( *it ).first, layer_id );
+			layers.push_back( layer_id );
 		}
 	}
 }

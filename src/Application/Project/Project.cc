@@ -134,6 +134,7 @@ bool Project::initialize_from_file( const std::string& project_name )
 		if( this->get_most_recent_session_name( most_recent_session_name ) && 
 			this->load_session( most_recent_session_name ) )
 		{
+			this->project_file_size_state_->set( this->get_data_file_size() );
 			this->sessions_changed_signal_();
 			return true;
 		}
@@ -162,6 +163,8 @@ bool Project::delete_session( const std::string& session_name )
 	}
 
 	this->delete_session_from_database( session_name );
+	this->delete_unused_data_files();
+	this->project_file_size_state_->set( this->get_data_file_size() );
 
 	Core::StateIO stateio;
 	stateio.initialize();
@@ -183,9 +186,8 @@ bool Project::save_session( const std::string& timestamp, const std::string& ses
 
 	if( !this->insert_session_into_database( timestamp, session_count + "-" + session_name ) )
 	{
-		//CORE_LOG_ERROR( this->get_error() );
-		// In this case we are erroring because we have a duplicate entry, we dont care about this
-		return true;
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
 	}
 
 	this->current_session_->session_name_state_->set( session_count + "-" + session_name );
@@ -195,6 +197,7 @@ bool Project::save_session( const std::string& timestamp, const std::string& ses
 		return false;
 	}
 
+	this->project_file_size_state_->set( this->get_data_file_size() );
 	this->sessions_changed_signal_();
 
 	return true;
@@ -242,28 +245,24 @@ bool Project::save_as( boost::filesystem::path path, const std::string& project_
 bool Project::project_export( boost::filesystem::path path, const std::string& project_name, 
 							 const std::string& session_name )
 {
-	this->data_manager_->save_datamanager_state( path, session_name );
-
-	std::vector< std::string > file_vector;
-	if( this->data_manager_->get_session_files_vector( session_name, file_vector ) )
+	boost::filesystem::path data_path = path / project_name / "data";
+	
+	boost::filesystem::directory_iterator data_dir_end;
+	for( boost::filesystem::directory_iterator data_dir_itr( data_path ); 
+		data_dir_itr != data_dir_end; ++data_dir_itr )
 	{
-		for( int i = 0; i < static_cast< int >( file_vector.size() ); ++i )
+		try
 		{
-			if( !boost::filesystem::exists( path / project_name / "data" / file_vector[ i ] ) )
-			{
-				try
-				{
-					boost::filesystem::copy_file( ( project_path_ / "data" / file_vector[ i ] ),
-						( path / project_name / "data" / file_vector[ i ] ) );
-				}
-				catch ( std::exception& e ) // any errors that we might get thrown
-				{
-					CORE_LOG_ERROR( e.what() );
-					return false;
-				}
-			}
+			boost::filesystem::copy_file( ( project_path_ / "data" / data_dir_itr->filename() ),
+				( data_path / data_dir_itr->filename() ) );
+		}
+		catch ( std::exception& e ) // any errors that we might get thrown
+		{
+			CORE_LOG_ERROR( e.what() );
+			return false;
 		}
 	}
+	
 	try
 	{
 		boost::filesystem::copy_file( ( project_path_ / "sessions" / ( session_name + ".xml" ) ),
@@ -649,6 +648,16 @@ bool Project::delete_session_from_database( const std::string& session_name )
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
 	}
+	
+	delete_statement = "DELETE FROM data_relations WHERE (session_name = '" + 
+		session_name + "');";
+
+	if( !this->database_query_no_return( delete_statement ) )
+	{
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
+	}
+	
 	return true;
 }
 
@@ -794,5 +803,73 @@ void Project::import_old_session_info_into_database()
 	std::vector< std::string > empty_vector;
 	this->sessions_state_->set( empty_vector );
 }
+
+long long Project::get_data_file_size()
+{
+	ResultSet result_set;
+	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
+	if( !this->database_query( select_statement, result_set ) )
+	{
+		CORE_LOG_ERROR( this->get_error() );
+		return false;
+	}
+
+	long long size = 0;
+	
+	for( size_t i = 0; i < result_set.size(); ++i )
+	{
+		boost::filesystem::path data_file_path = this->project_path_ / "data" / 
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "data_file" ] );
+		
+		if( boost::filesystem::exists( data_file_path ) )
+		{
+			size += static_cast< long long >( boost::filesystem::file_size( data_file_path ) );
+		}
+	}
+	
+	return size;
+}
+
+void Project::delete_unused_data_files()
+{
+	ResultSet result_set;
+	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
+	if( !this->database_query( select_statement, result_set ) )
+	{
+		CORE_LOG_ERROR( this->get_error() );
+		return;
+	}
+	
+	boost::filesystem::path path =  this->project_path_ / "data";
+	
+	std::vector< std::string > existing_data_files;
+	
+	boost::filesystem::directory_iterator dir_end;
+	for( boost::filesystem::directory_iterator dir_itr( path ); 
+		dir_itr != dir_end; ++dir_itr )
+	{
+		existing_data_files.push_back( dir_itr->filename() );
+	}
+	
+	for( size_t j = 0; j < existing_data_files.size(); ++j )
+	{
+		bool found = false;
+		for( size_t i = 0; i < result_set.size(); ++i )
+		{
+			if( boost::any_cast< std::string >( ( result_set[ i ] )[ "data_file" ] ) == 
+				existing_data_files[ j ] ) 
+			{
+				found = true;
+				break;	
+			}
+		}
+		if( !found )
+		{
+			boost::filesystem::remove( path / existing_data_files[ j ] );
+		}
+	}	
+}
+
+
 
 } // end namespace Seg3D

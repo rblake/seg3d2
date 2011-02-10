@@ -153,7 +153,7 @@ public:
 
 	// CLEAR_DATAMANAGER_LIST:
 	// function for clearing out the datamanager list
-	void clear_datamanager_list(){ this->data_manager_->clear_data_file_list(); }
+	//void clear_datamanager_list(){ this->data_manager_->clear_data_file_list(); }
 
 	// SET_PROJECT_PATH:
 	// function that lets the project manager set the project path for the project
@@ -191,6 +191,12 @@ private:
 	// this function true or false based on whether it was able to find the most recent
 	// session name
 	bool get_most_recent_session_name( std::string& session_name );
+	
+	// GET_DATA_FILE_SIZE:
+	// this function calculates the file size of the data files that are part of the project
+	long long get_data_file_size();
+	
+	void delete_unused_data_files();
 
 	// -- provenance support --
 public:	

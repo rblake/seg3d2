@@ -143,7 +143,6 @@ void ProjectManager::save_projectmanager_state()
 	this->save_states( stateio );
 	stateio.export_to_file( this->local_projectmanager_path_ );
 	this->checkpoint_recent_projects_database();
-	this->current_project_->checkpoint_provenance_database();
 }
 	
 
@@ -161,7 +160,6 @@ void ProjectManager::new_project( const std::string& project_name, const std::st
 	this->current_project_->project_notes_state_->set( empty_vector );
 	this->current_project_->save_custom_colors_state_->set( false );
 	this->current_project_->session_count_state_->set( 0 );
-	this->current_project_->clear_datamanager_list();
 	ToolManager::Instance()->open_default_tools();
 	
 	if( save_on_creation )
@@ -287,6 +285,7 @@ bool ProjectManager::save_project( bool autosave /*= false*/, std::string sessio
 		}
 	}
 	this->checkpoint_recent_projects_database();
+	this->current_project_->checkpoint_provenance_database();
 	return save_success;
 }
 	
