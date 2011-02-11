@@ -67,7 +67,7 @@ SET(INTERFACE_TOOLINTERFACE_SRCS
   FlipToolInterface.cc
   TransformToolInterface.cc
   ClipboardToolInterface.cc
-  MeasurementToolInterface.cc
+#  MeasurementToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
@@ -106,18 +106,18 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   FlipToolInterface.h
   TransformToolInterface.h
   ClipboardToolInterface.h
-  MeasurementToolInterface.h 
-  detail/MeasurementTableModel.h
-  detail/MeasurementTableView.h
-  detail/MeasurementTextDelegate.h
-  detail/MeasurementTextEdit.h
+#  MeasurementToolInterface.h 
+#  detail/MeasurementTableModel.h
+#  detail/MeasurementTableView.h
+#  detail/MeasurementTextDelegate.h
+#  detail/MeasurementTextEdit.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
-  detail/MeasurementTableModel.cc
-  detail/MeasurementTableView.cc
-  detail/MeasurementTextDelegate.cc
-  detail/MeasurementTextEdit.cc
+#  detail/MeasurementTableModel.cc
+#  detail/MeasurementTableView.cc
+#  detail/MeasurementTextDelegate.cc
+#  detail/MeasurementTextEdit.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_UI_SRCS
@@ -156,7 +156,7 @@ SET(INTERFACE_TOOLINTERFACE_UI_SRCS
   FlipToolInterface.ui
   TransformToolInterface.ui
   ClipboardToolInterface.ui
-  MeasurementToolInterface.ui
+#  MeasurementToolInterface.ui
 )
 
 ##################################################

@@ -138,7 +138,7 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->buttons_.push_back( this->private_->ui_.slices_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.show_invisible_slices_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.show_bounding_box_button_ );
-	this->private_->buttons_.push_back( this->private_->ui_.volume_rendering_visible_button_ );
+//	this->private_->buttons_.push_back( this->private_->ui_.volume_rendering_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.overlay_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.picking_lines_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.picking_button_ );
@@ -205,9 +205,10 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			this->private_->viewer_->volume_enable_clipping_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.isosurfaces_visible_button_,
 			this->private_->viewer_->volume_isosurfaces_visible_state_ );
+/*			
 		QtUtils::QtBridge::Connect( this->private_->ui_.volume_rendering_visible_button_,
 			this->private_->viewer_->volume_volume_rendering_visible_state_ );
-
+*/
 		QtUtils::QtBridge::Connect( this->private_->ui_.snap_to_axis_button_, boost::bind(
 			&ActionSnap::Dispatch, Core::Interface::GetWidgetActionContext(), 
 			this->private_->viewer_->get_viewer_id() ) );
@@ -255,8 +256,8 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.show_bounding_box_button_,
 			viewer->view_mode_state_, show_buttons_condition );
-		QtUtils::QtBridge::Show( this->private_->ui_.volume_rendering_visible_button_,
-			viewer->view_mode_state_, show_buttons_condition );
+//		QtUtils::QtBridge::Show( this->private_->ui_.volume_rendering_visible_button_,
+//			viewer->view_mode_state_, show_buttons_condition );
 
 		// When view mode changes, we need to rearrange the toolbar and update the flip buttons
 		// NOTE: This must happen after the toolbar buttons have been shown/hidden properly,

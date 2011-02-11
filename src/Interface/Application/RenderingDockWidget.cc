@@ -184,6 +184,8 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	QtUtils::QtBridge::Enable( this->private_->ui_.cp6_params_widget_,
 		ViewerManager::Instance()->enable_clip_plane_state_[ 5 ] );
 
+	this->private_->ui_.vr_widget_->hide();
+/*
 	// Volume rendering widgets
 	Core::TransferFunctionHandle tf = ViewerManager::Instance()->get_transfer_function();
 	QtUtils::QtBridge::Connect( this->private_->ui_.vr_open_button_,
@@ -199,6 +201,7 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 		&RenderingDockWidget::HandleFeatureAdded, qpointer, _1 ) ) );
 	this->add_connection( tf->feature_deleted_signal_.connect( boost::bind(
 		&RenderingDockWidget::HandleFeatureDeleted, qpointer, _1 ) ) );
+*/		
 	
 	this->add_connection( ViewerManager::Instance()->enable_clip_plane_state_[ 0 ]->
 		value_changed_signal_.connect( boost::bind( 
@@ -218,7 +221,6 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	this->add_connection( ViewerManager::Instance()->enable_clip_plane_state_[ 5 ]->
 		value_changed_signal_.connect( boost::bind( 
 		&RenderingDockWidget::HandleClippingPlanesStateChanged, qpointer, _1, 5 ) ) );	
-		
 }
 
 RenderingDockWidget::~RenderingDockWidget()
