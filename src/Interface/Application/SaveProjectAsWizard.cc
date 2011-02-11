@@ -1,0 +1,297 @@
+/*
+ For more information, please see: http://software.sci.utah.edu
+
+ The MIT License
+
+ Copyright (c) 2009 Scientific Computing and Imaging Institute,
+ University of Utah.
+
+
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the "Software"),
+ to deal in the Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ DEALINGS IN THE SOFTWARE.
+ */
+
+// Boost includes
+#include <boost/filesystem.hpp>
+
+// Qt includes
+#include <QtCore/QVariant>
+#include <QtGui/QGridLayout>
+#include <QtGui/QFileDialog>
+#include <QtGui/QMessageBox>
+
+// Core includes
+#include <Core/Application/Application.h>
+
+// Application includes
+#include <Application/PreferencesManager/PreferencesManager.h>
+#include <Application/ProjectManager/ProjectManager.h>
+#include <Application/ProjectManager/Actions/ActionSaveProjectAs.h>
+#include <Application/ProjectManager/Actions/ActionSaveSession.h>
+
+// Interface includes
+#include <Interface/Application/SaveProjectAsWizard.h>
+
+namespace Seg3D
+{
+
+SaveProjectAsWizard::SaveProjectAsWizard( QWidget *parent ) :
+    QWizard( parent ),
+    path_to_delete_( "" )
+{
+    this->addPage( new SaveAsInfoPage );
+    this->addPage( new SaveAsSummaryPage );
+    
+	connect( this->page( 0 ), SIGNAL( just_a_save() ), this, SLOT( finish_early() ) );
+	connect( this->page( 0 ), SIGNAL( need_to_set_delete_path( QString ) ), this, 
+		SLOT( set_delete_path( QString ) ) );
+	
+	this->setPixmap( QWizard::BackgroundPixmap, QPixmap( QString::fromUtf8( 
+		":/Images/Symbol.png" ) ) );
+	
+	this->setWindowTitle( tr( "Save Project As Wizard" ) );
+}
+
+SaveProjectAsWizard::~SaveProjectAsWizard()
+{
+}
+
+void SaveProjectAsWizard::accept()
+{
+	if( this->path_to_delete_ != "" )
+	{
+		boost::filesystem::remove_all( boost::filesystem::path( this->path_to_delete_ ) );
+	}
+	
+	ActionSaveProjectAs::Dispatch( Core::Interface::GetWidgetActionContext(), 
+		field( "projectPath" ).toString().toStdString(),
+		field( "projectName" ).toString().toStdString() );
+	
+	if( field( "autosave" ).toBool() )
+	{
+		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			PreferencesManager::Instance()->auto_save_state_, true );
+	}
+	
+    QDialog::accept();
+}
+
+void SaveProjectAsWizard::finish_early()
+{
+	this->close();
+}
+
+void SaveProjectAsWizard::set_delete_path( QString path )
+{
+	this->path_to_delete_ = path.toStdString();
+}
+
+
+SaveAsInfoPage::SaveAsInfoPage( QWidget *parent )
+    : QWizardPage( parent )
+{
+    this->setTitle( "Export Project Information" );
+    this->setSubTitle( "You are exporting the current project with the following settings: " );
+
+    this->project_name_label_ = new QLabel( "Project name:" );
+
+	this->project_name_lineedit_ = new QLineEdit();
+	std::string project_name = ProjectManager::Instance()->
+		current_project_->project_name_state_->get();
+	
+	if( project_name == "untitled_project" )
+	{
+		project_name = "";
+	}
+		
+	this->project_name_lineedit_->setText(  QString::fromStdString( project_name ) );
+
+    this->project_path_label_ = new QLabel( "Project Path:" );
+    this->project_path_lineedit_ = new QLineEdit;
+    
+    this->project_path_change_button_ = new QPushButton( "Choose Alternative Location" );
+    connect( this->project_path_change_button_, SIGNAL( clicked() ), this, SLOT( set_path() ) );
+	this->project_path_change_button_->setFocusPolicy( Qt::NoFocus );
+
+    registerField( "projectName", this->project_name_lineedit_ );
+    
+	this->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please chose a valid location." ) );
+	this->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
+	this->warning_message_->setWordWrap( true );
+	this->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
+	this->warning_message_->hide();
+
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget( this->project_name_label_, 0, 0 );
+    layout->addWidget( this->project_name_lineedit_, 0, 1 );
+    layout->addWidget( this->project_path_label_, 1, 0 );
+    layout->addWidget( this->project_path_lineedit_, 1, 1 );
+    layout->addWidget( this->project_path_change_button_, 2, 1, 1, 2 );
+    layout->addWidget( this->warning_message_, 3, 1, 1, 2 );
+    
+    setLayout( layout );
+}
+	
+void SaveAsInfoPage::initializePage()
+{
+	QString finishText = wizard()->buttonText( QWizard::FinishButton );
+	finishText.remove('&');
+
+	this->project_path_lineedit_->setText( QString::fromStdString( 
+		ProjectManager::Instance()->current_project_path_state_->get() ) );
+	registerField( "projectPath", this->project_path_lineedit_ );
+}
+	
+void SaveAsInfoPage::set_path()
+{
+	this->warning_message_->hide();
+
+    QDir project_directory_ = QDir( QFileDialog::getExistingDirectory ( this, 
+		tr( "Choose Save Directory..." ), this->project_path_lineedit_->text(), 
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks  ) );
+	
+	if( project_directory_.exists() )
+    {
+       this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
+    }
+    else
+    {
+		this->project_path_lineedit_->setText( "" );
+    }
+    
+    registerField( "projectPath", this->project_path_lineedit_ );
+}
+
+bool SaveAsInfoPage::validatePage()
+{
+	// before we do anything we clear the delete path variable
+	Q_EMIT need_to_set_delete_path( "" );
+	
+	boost::filesystem::path new_path = 
+		boost::filesystem::path( this->project_path_lineedit_->text().toStdString() ) / 
+		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() );
+		
+	// We check to see if the path they are choosing already exists
+	if( boost::filesystem::exists( new_path ) )
+	{
+		if( ( ProjectManager::Instance()->current_project_->project_name_state_->get() == 
+			this->project_name_lineedit_->text().toStdString() ) && 
+			( ProjectManager::Instance()->current_project_path_state_->get() == 
+			this->project_path_lineedit_->text().toStdString() ) )
+		{
+			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), false, "" );
+			Q_EMIT just_a_save();
+			return true;		
+		}
+	
+		int ret = QMessageBox::warning( this, 
+			"A project with this name already exists!",
+			"A project with this name already exists!\n"
+			"If you proceed the old project will be deleted and replaced.\n"
+			"Are you sure you would like to continue?",
+			QMessageBox::Yes | QMessageBox::No );
+
+		if( ret != QMessageBox::Yes )
+		{
+			return false;
+		}
+		
+		Q_EMIT need_to_set_delete_path( QString::fromStdString( new_path.string() ) );
+		
+		Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 
+			PreferencesManager::Instance()->export_path_state_, new_path.parent_path().string() );
+		
+		return true;
+	}
+	
+	// Check to see if the directory that we are trying to save in exists
+	if( !boost::filesystem::exists( new_path.parent_path() ) )
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location does not exist, please chose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// Finally we check to see if we can write to that directory
+	try // to create a project sessions folder
+	{
+		boost::filesystem::create_directory( new_path );
+	}
+	catch ( ... ) // any errors that we might get thrown would indicate that we cant write here
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location is not writable, please chose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// if we have made it to here we have created a new directory lets remove it.
+	boost::filesystem::remove( new_path );
+	
+	this->warning_message_->hide();
+
+	Core::ActionSet::Dispatch(  Core::Interface::GetWidgetActionContext(), 
+		PreferencesManager::Instance()->export_path_state_, new_path.parent_path().string() );
+	
+
+	return true;
+}
+
+SaveAsSummaryPage::SaveAsSummaryPage( QWidget *parent )
+    : QWizardPage( parent )
+{
+    this->setTitle( "Summary" );
+
+	this->description_ = new QLabel( "Please verify these settings before you continue.  A new "
+		"project will be created with the following settings.\n" );
+	this->description_->setWordWrap( true );
+	
+    this->project_name_ = new QLabel;
+    this->project_name_->setWordWrap( true );
+
+    this->project_path_ = new QLabel;
+    this->project_path_->setWordWrap( true );
+	
+	this->autosave_checkbox_ = new QCheckBox();
+	this->autosave_checkbox_->setObjectName(QString::fromUtf8("autosave_checkbox_"));
+	this->autosave_checkbox_->setChecked(true);
+	this->autosave_checkbox_->setText( QString::fromUtf8( "Enable Autosave" ) );
+	
+    QVBoxLayout *layout = new QVBoxLayout;
+	layout->addWidget( this->description_ );
+    layout->addWidget( this->project_name_ );
+    layout->addWidget( this->project_path_ );
+	layout->addWidget( this->autosave_checkbox_ );
+    this->setLayout( layout );
+	
+	registerField( "autosave", this->autosave_checkbox_ );
+}
+
+void SaveAsSummaryPage::initializePage()
+{
+    QString finishText = wizard()->buttonText( QWizard::FinishButton );
+    finishText.remove('&');
+
+    this->project_name_->setText( 
+		QString::fromUtf8( "Project Name: " ) + field("projectName").toString() );
+    this->project_path_->setText( 
+		QString::fromUtf8( "Project Path: " ) + field("projectPath").toString() );	
+}
+
+} // end namespace Seg3D
