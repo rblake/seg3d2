@@ -265,6 +265,9 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 		ViewerWidgetQWeakHandle viewer_widget( this );
 		this->add_connection( this->private_->viewer_->view_mode_state_->state_changed_signal_.
 			connect( boost::bind( &ViewerWidgetPrivate::HandleViewModeChanged, viewer_widget ) ) );
+			
+		// Hide volume rendering button		
+		this->private_->ui_.volume_rendering_visible_button_->hide();			
 	}
 	
 	this->private_->facade_widget_ = new QLabel( this->private_->ui_.border_ );
