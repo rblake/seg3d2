@@ -26,33 +26,28 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RENDERER_ISOSURFACESHADER_H
-#define APPLICATION_RENDERER_ISOSURFACESHADER_H
+#ifndef CORE_GRAPHICS_SHADERBASE_H
+#define CORE_GRAPHICS_SHADERBASE_H
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include <Core/Graphics/ShaderBase.h>
-
-namespace Seg3D
+namespace Core
 {
 
-class IsosurfaceShader;
-typedef boost::shared_ptr< IsosurfaceShader > IsosurfaceShaderHandle;
+class ShaderBasePrivate;
+typedef boost::shared_ptr< ShaderBasePrivate > ShaderBasePrivateHandle;
 
-class IsosurfaceShader : public Core::ShaderBase
+class ShaderBase : public boost::noncopyable
 {
 public:
-	IsosurfaceShader();
-	virtual ~IsosurfaceShader();
+	ShaderBase();
+	virtual ~ShaderBase();
 
-	void set_lighting( bool enabled );
-	void set_use_colormap( bool enable );
-	void set_colormap_texture( int tex_unit );
-	void set_min_val( float min_val );
-	void set_val_range( float val_range );
-	void set_fog( bool enabled );
-	void set_fog_range( float znear, float zfar );
+	bool initialize();
+	void enable();
+	void disable();
+	bool is_valid();
 
 protected:
 	virtual bool get_vertex_shader_source( std::string& source );
@@ -60,15 +55,12 @@ protected:
 	virtual bool pre_link();
 	virtual bool post_initialize();
 
+	int get_uniform_location( const char* name );
+	void bind_attrib_location( unsigned int index, const char* name );
+
 private:
-	int enable_lighting_loc_;
-	int use_colormap_loc_;
-	int colormap_loc_;
-	int min_val_loc_;
-	int val_range_loc_;
-	int enable_fog_loc_;
-	int fog_range_loc_;
+	ShaderBasePrivateHandle private_;
 };
 
-} // end namespace Seg3D
+} // end namespace Core
 #endif
