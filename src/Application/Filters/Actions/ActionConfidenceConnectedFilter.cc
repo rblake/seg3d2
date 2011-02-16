@@ -193,7 +193,8 @@ bool ActionConfidenceConnectedFilter::run( Core::ActionContextHandle& context,
 	algo->multiplier_ = this->multiplier_;
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_, algo->src_layer_ );
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_ );
+	if ( !algo->src_layer_ ) return false;
 
 	// Check the seed points against the source layer dimensions
 	Core::GridTransform grid_trans = algo->src_layer_->get_grid_transform();

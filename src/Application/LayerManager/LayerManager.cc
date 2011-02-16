@@ -634,14 +634,14 @@ void LayerManager::get_layers_in_group( LayerGroupHandle group ,
 	}
 }
 
-void LayerManager::delete_layers(  std::vector< std::string > layers  )
+void LayerManager::delete_layers(  std::vector< LayerHandle > layers  )
 {
 	if ( layers.empty() )	return;
 	
 	bool active_layer_changed = false;
 	bool group_deleted = false;
 	
-	std::vector<LayerHandle> layer_vector;
+	std::vector<LayerHandle> deleted_layers;
 	
 	LayerGroupHandle group;
 	
@@ -650,11 +650,9 @@ void LayerManager::delete_layers(  std::vector< std::string > layers  )
 		
 		for( size_t i = 0; i < layers.size(); ++i )
 		{
-			LayerHandle layer = this->get_layer_by_id( layers[ i ] );
-			if( !layer ) continue;
-			layer_vector.push_back( layer );
+			if( !layers[ i ] ) continue;
 			
-			CORE_LOG_MESSAGE( std::string( "Deleting Layer: " ) + layer->get_layer_id() );
+			CORE_LOG_MESSAGE( std::string( "Deleting Layer: " ) + layers[ i ]->get_layer_id() );
 
 			// NOTE: Layer invalidation has been moved to the LayerUndoBufferItem.
 			// A layer will only be invalidated when the corresponding undo buffer item has been deleted.
@@ -664,8 +662,8 @@ void LayerManager::delete_layers(  std::vector< std::string > layers  )
 			// Abort any filter that might be running on the layer
 			//layer->abort_signal_();
 
-			group = layer->get_layer_group();
-			group->delete_layer( layer );
+			group = layers[ i ]->get_layer_group();
+			group->delete_layer( layers[ i ] );
 			
 			if( group->is_empty() )
 			{   
@@ -673,13 +671,14 @@ void LayerManager::delete_layers(  std::vector< std::string > layers  )
 				this->private_->group_list_.remove( group );
 			}
 
-			if ( this->private_->active_layer_ == layer )
+			if ( this->private_->active_layer_ == layers[ i ] )
 			{
 				this->private_->active_layer_.reset();
 				active_layer_changed = true;
 			}
 			
 			if ( group->is_empty() ) group_deleted = true;
+			deleted_layers.push_back( layers[ i ] );
 		}
 
 		if ( active_layer_changed && this->private_->group_list_.size() > 0 )
@@ -700,13 +699,13 @@ void LayerManager::delete_layers(  std::vector< std::string > layers  )
 	}
 	
 	this->layers_changed_signal_();
-	this->layers_deleted_signal_( layer_vector );
+	this->layers_deleted_signal_( deleted_layers );
 	
 	if ( active_layer_changed && this->private_->active_layer_ )
 	{
 		this->active_layer_changed_signal_( this->private_->active_layer_ );
 	}
-} // end delete_layer
+}
 
 LayerHandle LayerManager::get_active_layer()
 {
@@ -967,6 +966,26 @@ bool LayerManager::post_load_states( const Core::StateIO& state_io )
 
 
 // == static functions ==
+
+bool LayerManager::CheckLayerExistance( const std::string& layer_id )
+{
+	// NOTE: Security check to keep the program logic sane
+	// Only the Application Thread guarantees that nothing is changed in the program
+	if ( !( Core::Application::IsApplicationThread() ) )
+	{
+		CORE_THROW_LOGICERROR( "CheckLayerExistance can only be called from the"
+			" application thread." );
+	}
+
+	// Check whether layer exists
+	if ( !( LayerManager::Instance()->get_layer_by_id( layer_id ) ) )
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 bool LayerManager::CheckLayerExistance( const std::string& layer_id, 
 	Core::ActionContextHandle context )
@@ -1373,9 +1392,8 @@ void LayerManager::DispatchDeleteLayer( LayerHandle layer, filter_key_type key )
 			// Unlock the layer before deleting it, so when it's undeleted the data state is correct
 			layer->data_state_->set( Layer::AVAILABLE_C );
 			// Delete the layer from the layer manager.
-			std::vector< std::string > layer_vector;
-			layer_vector.push_back( layer->get_layer_id() );
-			LayerManager::Instance()->delete_layers( layer_vector );
+			std::vector< LayerHandle > layers( 1, layer );
+			LayerManager::Instance()->delete_layers( layers );
 		}
 		else
 		{
@@ -1446,11 +1464,9 @@ void LayerManager::DispatchUnlockOrDeleteLayer( LayerHandle layer, filter_key_ty
 			layer->reset_filter_handle();
 			layer->reset_allow_stop();
 
-			std::vector< std::string > layer_vector;
-			layer_vector.push_back( layer->get_layer_id() );
-			LayerManager::Instance()->delete_layers( layer_vector );
+			std::vector< LayerHandle > layers( 1, layer );
+			LayerManager::Instance()->delete_layers( layers );
 		}
-
 	}
 }
 

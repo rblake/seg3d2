@@ -101,7 +101,7 @@ void LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 
 		LayerImporterHandle importer;
 		if( ! ( LayerIO::Instance()->create_importer( file_list.at( i ).toStdString(), 
-			importer, filtername ) ) )
+			importer, LayerImporterType::SINGLE_FILE_E, filtername ) ) )
 		{
 			std::string error_message = std::string("ERROR: No importer is available for file '") + 
 				file_list.at( i ).toStdString() + std::string("'.");
@@ -159,7 +159,7 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 
 	LayerImporterHandle importer;
 	if( ! ( LayerIO::Instance()->create_importer( file_list.at( 0 ).toStdString(), 
-		importer, filtername ) ) )
+		importer, LayerImporterType::FILE_SERIES_E, filtername ) ) )
 	{
 		// IF we are unable to create an importer we pop up an error message box
 		std::string error_message = std::string("ERROR: No importer is available for file '") + 

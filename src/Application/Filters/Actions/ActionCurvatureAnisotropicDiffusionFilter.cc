@@ -195,10 +195,8 @@ bool ActionCurvatureAnisotropicDiffusionFilter::run( Core::ActionContextHandle& 
 	algo->preserve_data_format_ = this->preserve_data_format_;
 
 	// Find the handle to the layer
-	if ( !(	algo->find_layer( this->layer_id_, algo->src_layer_ ) ) )
-	{
-		return false;
-	}
+	algo->src_layer_ = LayerManager::FindLayer( this->layer_id_ );
+	if ( !algo->src_layer_ ) return false;
 
 	if ( this->replace_ )
 	{
@@ -230,7 +228,6 @@ bool ActionCurvatureAnisotropicDiffusionFilter::run( Core::ActionContextHandle& 
 
 	return true;
 }
-
 
 void ActionCurvatureAnisotropicDiffusionFilter::Dispatch( Core::ActionContextHandle context, 
 	std::string layer_id, int iterations, double sensitivity, 

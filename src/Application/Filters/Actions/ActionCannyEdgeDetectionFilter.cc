@@ -55,7 +55,7 @@ bool ActionCannyEdgeDetectionFilter::validate( Core::ActionContextHandle& contex
 		context ) ) return false;
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->blurring_distance_ < 0.0 )
+	if ( this->blurring_distance_ < 0.0 )
 	{
 		context->report_error( "The blurring distance needs to be larger than zero." );
 		return false;
@@ -154,9 +154,7 @@ public:
 	{
 		return "CannyEdge";
 	}
-	
 };
-
 
 bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
@@ -169,10 +167,10 @@ bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context,
 	algo->threshold_ = this->threshold_;
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
-	{
-		return false;
-	}
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_ );
+
+	// Check if layer really exists
+	if ( !algo->src_layer_ ) return false;
 
 	// Lock the src layer, so it cannot be used else where
 	if ( !( algo->lock_for_use( algo->src_layer_ ) ) )

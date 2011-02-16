@@ -99,7 +99,7 @@ LayerIO::importer_types_type LayerIO::get_exporter_types()
 
 
 bool LayerIO::create_importer( const std::string& filename, 
-	LayerImporterHandle& importer,
+	LayerImporterHandle& importer, LayerImporterType type,
 	const std::string full_importername )
 {
 	// Step (1): clear out old results
@@ -131,7 +131,8 @@ bool LayerIO::create_importer( const std::string& filename,
 		for (size_t j = 0; j < this->importer_list_.size(); j ++ )
 		{
 			if ( this->importer_list_[j]->converts_file_type( extension ) &&  
-				 this->importer_list_[j]->priority() >= priority )
+				 this->importer_list_[j]->priority() >= priority &&
+				 this->importer_list_[j]->type() == type )
 			{
 				LayerImporterHandle new_importer = this->importer_list_[j]->build( filename );
 				if ( new_importer->check_header() )
@@ -150,7 +151,8 @@ bool LayerIO::create_importer( const std::string& filename,
 		{
 			if ( ( this->importer_list_[j]->name() == importername ||
 				this->importer_list_[j]->file_type_string() == importername )	&&
-				this->importer_list_[j]->converts_file_type( extension ) )
+				this->importer_list_[j]->converts_file_type( extension ) &&
+				this->importer_list_[j]->type() == type )
 			{
 				importer = this->importer_list_[j]->build( filename );
 				break;

@@ -415,17 +415,19 @@ bool ActionConnectedComponentFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<ConnectedComponentFilterAlgo> algo( new ConnectedComponentFilterAlgo );
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_, algo->src_layer_ );
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_ );
+	algo->mask_layer_ = LayerManager::FindLayer( this->mask_ );
 	
-	if ( this->mask_.size() > 0 && this->mask_ != "<none>" )
+	// We definitely need a source layer, so make sure it exists
+	if ( !algo->src_layer_ ) return false;
+	
+	// If there is a mask layer it needs to be locked for use
+	if ( algo->mask_layer_ )
 	{
-		if ( !( algo->find_layer( this->mask_, algo->mask_layer_ ) ) )
-		{
-			return false;
-		}
 		algo->lock_for_use( algo->mask_layer_ );
 	}
 	
+	// Copy parameters to the algorithm
 	algo->invert_mask_ = this->invert_mask_;
 	algo->seeds_ = this->seeds_;
 	

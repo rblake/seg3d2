@@ -58,7 +58,7 @@ bool ActionImportSeries::validate( Core::ActionContextHandle& context )
 	if ( !this->layer_importer_ )
 	{
 		if ( !( LayerIO::Instance()->create_importer( this->filename_,  
-			this->layer_importer_, this->importer_ ) ) )
+			this->layer_importer_, LayerImporterType::FILE_SERIES_E, this->importer_ ) ) )
 		{
 			context->report_error( std::string( "Could not create importer with name '" ) +
 				this->importer_ + "' for file '" + this->filename_ + "'." );

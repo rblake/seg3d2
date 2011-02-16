@@ -205,7 +205,10 @@ bool ActionConnectedComponentSizeFilter::run( Core::ActionContextHandle& context
 	boost::shared_ptr<ConnectedComponentSizeFilterAlgo> algo( new ConnectedComponentSizeFilterAlgo );
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_, algo->src_layer_ );
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_ );
+
+	// In case the layer did not exist, fail gracefully
+	if ( !algo->src_layer_ ) return false;
 	
 	// Lock the src layer, so it cannot be used else where
 	algo->lock_for_use( algo->src_layer_ );

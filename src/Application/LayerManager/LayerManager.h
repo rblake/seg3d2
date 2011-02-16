@@ -164,7 +164,7 @@ public:
 
 	// DELETE_LAYERS:
 	// this function deletes the selected layers in the group that is passed
-	void delete_layers( std::vector< std::string > layers );
+	void delete_layers( std::vector< LayerHandle > layers );
 
 	// SET_ACTIVE_LAYER:
 	// this function sets the active layer
@@ -352,21 +352,25 @@ public:
 
 	// CHECKLAYEREXISTANCE:
 	// Check whether a layer exists.
-	// If it does not exist, the function returns false and an error is string is returned.
+	// If it does not exist, the function returns and reports the error in the context 
 	static bool CheckLayerExistance( const std::string& layer_id, 
 		Core::ActionContextHandle context );
 	
+	// Check whether a layer exists.
+	// If it does not exist, the function returns false.
+	static bool CheckLayerExistance( const std::string& layer_id );	
+	
 	// CHECKLAYEREXISTANCEANDTYPE:
 	// Check whether a layer exists and whether it is of the right type.
-	// If it does not exist or is not of the right type, the function returns false and
-	// an error is string is returned.
+	// If it does not exist or is not of the right type, the function returns the error in the
+	// context.
 	static bool CheckLayerExistanceAndType( const std::string& layer_id, Core::VolumeType type, 
 		Core::ActionContextHandle context  );
 
 	// CHECKLAYERSIZE:
 	// Check whether a layer has the right size.
-	// If it does not have the right size, the function returns false and an error is string is 
-	// returned.	
+	// If it does not have the right size, the function returns false and returns the error in 
+	// the context.	
 	static bool CheckLayerSize( const std::string& layer_id1, const std::string& layer_id2,
 		Core::ActionContextHandle context  );
 			

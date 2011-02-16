@@ -219,12 +219,13 @@ bool ActionAndFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<AndFilterAlgo> algo( new AndFilterAlgo );
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
-	{
-		return false;
-	}
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_ );
+	algo->mask_layer_ = LayerManager::FindLayer( this->mask_layer_ );
 	
-	algo->find_layer( this->mask_layer_, algo->mask_layer_ );
+	// Check whether the source layer was found
+	if ( !algo->src_layer_ || !algo->mask_layer_ ) return false;
+	
+	// Lock the mask layer, so no other layer can access it
 	algo->lock_for_use( algo->mask_layer_ );
 
 	if ( this->replace_ )

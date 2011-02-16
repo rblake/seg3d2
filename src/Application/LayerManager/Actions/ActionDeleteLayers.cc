@@ -44,45 +44,53 @@ namespace Seg3D
 
 bool ActionDeleteLayers::validate( Core::ActionContextHandle& context )
 {
-	if( this->layers_ != "" )
+	if ( this->layers_.size() == 0 )
 	{
-		std::vector< std::string > layer_vector;
-		Core::ImportFromString( this->layers_, layer_vector );
-	
-		for ( size_t j = 0; j < layer_vector.size(); j++ )
-		{	
-			if ( !( LayerManager::CheckLayerExistance( layer_vector[ j ], 
-				context ) ) ) return false;
-		}
-		
-		if( layer_vector.size() ) return true;
+		context->report_error( "No layers to delete." );
+		return false;
+	}
+
+	for ( size_t j = 0; j < this->layers_.size(); j++ )
+	{
+		if ( !( LayerManager::CheckLayerExistance( this->layers_[ j ], context ) ) ) return false;	
 	}
 	
-	context->report_error( "No valid layer ids can be found in the layerid input." );
-	return false; 
+	return true;
 }
 
 bool ActionDeleteLayers::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
-{
-	std::vector< std::string > layer_vector;
-	Core::ImportFromString( this->layers_, layer_vector );
-		
+{		
 	// Create an undo item for this action
 	LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Delete layer(s)" ) );
+	
 	// Tell which action has to be re-executed to obtain the result
 	item->set_redo_action( this->shared_from_this() );
-	// Tell which layers are to be deleted so they can be added back 
-	for ( size_t i = 0; i < layer_vector.size(); ++i )
+	
+	
+	std::vector< LayerHandle > layers;
+	
+	for ( size_t j = 0; j < this->layers_.size(); j++ )
 	{
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_vector[ i ] );
+		// Find the layer handle
+		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( this->layers_[ j ] );
+
+		// If a filter is still running on the layer, try to abort it. 
+		// NOTE: The program will continue while the layer and its filter are being deleted
 		layer->abort_signal_();
+		
+		// Tell which layers are to be deleted so they can be added back 
 		item->add_layer_to_add( layer );
+
+		// Add layer to list of the layers that need to be deleted from the layer manager
+		layers.push_back( layer );
 	}
+
 	// Add the complete record to the undo buffer
 	UndoBuffer::Instance()->insert_undo_item( context, item );
 
-	LayerManager::Instance()->delete_layers( layer_vector );
+	// Remove the layers from the layer manager
+	LayerManager::Instance()->delete_layers( layers);
 	
 	return true;
 }
@@ -90,7 +98,7 @@ bool ActionDeleteLayers::run( Core::ActionContextHandle& context,
 void ActionDeleteLayers::Dispatch( Core::ActionContextHandle context, std::vector< std::string > layers )
 {
 	ActionDeleteLayers* action = new ActionDeleteLayers;
-	action->layers_ = Core::ExportToString( layers );
+	action->layers_ = layers;
 	
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
