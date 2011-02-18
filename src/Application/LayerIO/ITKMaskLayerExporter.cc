@@ -42,6 +42,7 @@
 // Application includes
 #include <Application/LayerIO/ITKMaskLayerExporter.h>
 #include <Application/Layer/DataLayer.h>
+#include <Application/PreferencesManager/PreferencesManager.h>
 
 SCI_REGISTER_EXPORTER( Seg3D, ITKMaskLayerExporter );
 
@@ -90,6 +91,8 @@ bool export_mask_series( const std::string& file_path, const std::string& file_n
 
 	LayerMetaData meta_data = temp_handle->get_meta_data();
 	std::vector< std::string > header_files;
+	if ( PreferencesManager::Instance()->export_dicom_headers_state_->get() )
+	{
 	if ( meta_data.meta_data_info_ == "dicom_filename" )
 	{
 		Core::ImportFromString( meta_data.meta_data_, header_files );
@@ -108,6 +111,7 @@ bool export_mask_series( const std::string& file_path, const std::string& file_n
 				break;
 			}
 		}
+	}
 	}
 
 	std::string extension = boost::filesystem::path( file_name ).extension();
@@ -157,9 +161,9 @@ bool export_mask_series( const std::string& file_path, const std::string& file_n
 			// [Series Instance UID]
 			itk::EncapsulateMetaData<std::string>( **dict_iter, "0020|000e", series_uid );
 			// [SOP Instance UID]
-			itk::EncapsulateMetaData<std::string>( **dict_iter, "0008|0018", sop_uid );
+			// itk::EncapsulateMetaData<std::string>( **dict_iter, "0008|0018", sop_uid );
 			// [Media Stored SOP Instance UID] 
-			itk::EncapsulateMetaData<std::string>( **dict_iter, "0002|0003", sop_uid );
+			// itk::EncapsulateMetaData<std::string>( **dict_iter, "0002|0003", sop_uid );
 			// [Series Description]
 			itk::EncapsulateMetaData<std::string>( **dict_iter, "0008|103e", description );
 			// [Bits Allocated] 

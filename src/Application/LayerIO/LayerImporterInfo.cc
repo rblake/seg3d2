@@ -55,7 +55,13 @@ LayerImporterInfo::LayerImporterInfo( LayerImporterBuilderBaseHandle builder,
 
 	if ( any_type_ ) 
 	{
-		file_type_string_ = name_ + std::string(" (*)");
+		file_type_string_ = name_ + std::string( " (* " );
+		for ( size_t j = 1; j < file_types_.size(); j++ )
+		{
+			file_type_string_ += std::string("*")+file_types_[j];
+			if ( j != ( file_types_.size() - 1 ) ) file_type_string_ += std::string( " " );
+	}
+		file_type_string_ += std::string( ")" );
 	}
 	else
 	{
@@ -84,9 +90,9 @@ LayerImporterHandle LayerImporterInfo::build( const std::string& filename ) cons
 }
 
 
-bool LayerImporterInfo::converts_file_type( const std::string& file_type ) const
+bool LayerImporterInfo::converts_file_type( const std::string& file_type, bool strict ) const
 {
-	if ( any_type_ ) return ( true );
+	if ( any_type_ && !strict) return true;
 	return ( std::find( file_types_.begin(), file_types_.end(), file_type ) != file_types_.end() );
 }
 

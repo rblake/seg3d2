@@ -39,7 +39,9 @@
 namespace Seg3D
 {
 
+// Forward declarations
 class DeleteMeasurementDialog;
+class MeasurementTableModel;
 
 // QTableView with support for copyable measurements
 class MeasurementTableView : public QTableView 
@@ -52,7 +54,9 @@ public:
 	// Extended functions
 	//
 
+	void set_measurement_model( MeasurementTableModel* measurement_model );
 	void get_deletion_candidates( std::vector< int >& deletion_candidates ) const;	
+	void delete_selected_measurements();
 	void copy() const;
 
 Q_SIGNALS:
@@ -63,6 +67,7 @@ private Q_SLOTS:
 	void scroll_to_active_index();
 
 private:
+	QString remove_line_breaks( QString str ) const;
 	QAction* delete_action_;
 }; 
 

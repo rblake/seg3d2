@@ -1,22 +1,22 @@
 /*
  For more information, please see: http://software.sci.utah.edu
- 
+
  The MIT License
- 
+
  Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
- 
- 
+
+
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
  to deal in the Software without restriction, including without limitation
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included
  in all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
@@ -25,46 +25,43 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
- 
-// STL includes
-#include <sstream>
-#include <iostream>
 
-// Core includes
-#include <Core/Utils/Log.h>
+#ifndef INTERFACE_TOOLINTERFACE_MEASUREMENTTEXTEDIT_H
+#define INTERFACE_TOOLINTERFACE_MEASUREMENTTEXTEDIT_H
 
-// Interface includes
-#include <Interface/Application/MeasurementDockWidget.h>
-
-// Automatically generated UI file
-#include "ui_MeasurementDockWidget.h"
+// Qt includes
+#include <QtGui/QTextEdit>
 
 namespace Seg3D
 {
 
-class MeasurementDockWidgetPrivate
+class MeasurementTextEdit : public QTextEdit
 {
+	Q_OBJECT
+
 public:
+	MeasurementTextEdit( QWidget * parent = 0 );
 
-	Ui::MeasurementDockWidget ui_;
+protected:
 
+	//
+	// Inherited functions
+	//
+	void focusOutEvent( QFocusEvent * e );
+
+public:
+	
+	//
+	// Extended functions
+	//
+
+Q_SIGNALS:
+	void editing_finished() const;
+
+private:
+	
 };
 
-MeasurementDockWidget::MeasurementDockWidget( QWidget *parent ) :
-	QtUtils::QtCustomDockWidget( parent ),
-	private_( new MeasurementDockWidgetPrivate )
-{
-	// Set up the private internals of the LayerManagerInterface class
-	if( this->private_ )
-	{
-		this->private_->ui_.setupUi( this );
-
-	}
-}
-
-MeasurementDockWidget::~MeasurementDockWidget()
-{
-
-}
-
 } // end namespace Seg3D
+
+#endif 

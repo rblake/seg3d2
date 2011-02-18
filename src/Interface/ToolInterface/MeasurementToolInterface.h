@@ -29,6 +29,12 @@
 #ifndef INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
 #define INTERFACE_TOOLINTERFACE_MEASUREMENTTOOLINTERFACE_H
 
+// Qt includes
+#include <QtCore/QPointer>
+
+// Boost includes
+#include <boost/shared_ptr.hpp>
+
 // Base class of the tool widget include
 #include <Interface/Application/ToolWidget.h>
 
@@ -37,6 +43,9 @@ namespace Seg3D
 
 class MeasurementToolInterfacePrivate;
 typedef boost::shared_ptr< MeasurementToolInterfacePrivate > MeasurementToolInterfacePrivateHandle;
+
+// Forward declaration
+class MeasurementToolInterface;
 
 class MeasurementToolInterface : public ToolWidget
 {
@@ -49,13 +58,27 @@ public:
 	virtual bool build_widget( QFrame* frame );
 
 private Q_SLOTS:
+	// SET_MEASUREMENT_NOTE_BOX:
 	// Update measurement note text box in response to measurement model change
 	void set_measurement_note_box( const QString & note );
+
+	// SET_MEASUREMENT_NOTE_TABLE:
 	// Update note in measurement model in response to measurement text box change
-	void update_measurement_note_model();
+	void set_measurement_note_table();
 
 private:
     MeasurementToolInterfacePrivateHandle private_;
+
+public:
+	typedef QPointer< MeasurementToolInterface > qpointer_type;
+
+	// UPDATEMEASUREMENTMODEL:
+	// Force the interface to update the measurement model
+	static void UpdateMeasurementModel( qpointer_type measurement_interface );
+
+	// UPDATEMEASUREMENTNOTE:
+	// Update the note in the text box
+	static void UpdateMeasurementNote( qpointer_type measurement_interface );
 };
 
 } // end namespace Seg3D

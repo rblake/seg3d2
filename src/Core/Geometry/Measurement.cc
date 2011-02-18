@@ -26,41 +26,78 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Boost includes
+#include <boost/foreach.hpp>
+#include <boost/regex.hpp>
+
+// Core includes
 #include <Core/Geometry/Measurement.h>
+#include <Core/Utils/StringUtil.h>
 
 namespace Core
 {
 
-std::string Measurement::get_view_name() const
-{
-	std::string view_axis_str = "";
-	if( this->view_axis_ == AXIAL_E ) view_axis_str = "AXIAL";
-	else if( this->view_axis_ == CORONAL_E ) view_axis_str = "CORONAL";
-	else if( this->view_axis_ == SAGITTAL_E ) view_axis_str = "SAGITTAL";
-	else if( this->view_axis_ == VOLUME_E ) view_axis_str = "VOLUME";
-	else if( this->view_axis_ == MIP_E ) view_axis_str = "MIP";
-	else if( this->view_axis_ == OBLIQUE_E ) view_axis_str = this->oblique_name_;
-	return view_axis_str;
-}
+const std::string Measurement::NOTE_DELIMITER_C = " NOTE_END]]";
 
 std::string ExportToString( const Measurement& value )
 {
-	return "";
+	// Need to use special delimiter for note since any characters are allowed in a note,
+	// including ']'.  Put note at end so that it functions as both a note delimiter and 
+	// measurement delimiter.
+	return ( std::string( 1, '[' ) + ExportToString( value.get_visible() ) + ' ' + value.get_label() 
+		+ ' ' + ExportToString( value.get_point1() ) + ' ' + ExportToString( value.get_point2() ) + 
+		' ' + '[' + value.get_note() + Measurement::NOTE_DELIMITER_C );
 }
-
 
 std::string ExportToString( const std::vector< Measurement >& value )
 {
-	return "";
+	std::string export_string = "";
+	BOOST_FOREACH( Measurement measurement, value )
+	{
+		export_string += ExportToString( measurement );
+}
+	return export_string;
 }
 
 bool ImportFromString( const std::string& str, Measurement& value )
 {
+	// Example string: [true M1 [0 0 0] [1 1 1] [Knee NOTE_END]]
+	boost::regex reg( "(\\[)(\\w*)(\\s)(\\w*)(\\s)(\\[[^\\]]*])(\\s)(\\[[^\\]]*])(\\s)(\\[)(.*?)(\\sNOTE_END\\]\\])" );
+	boost::smatch m;
+	std::string matched_string = "";
+	if( boost::regex_match( str, m, reg ) ) 
+	{
+		bool visible = false;
+		ImportFromString( m[ 2 ].str(), visible );
+		value.set_visible( visible );
+		value.set_label( m[ 4 ].str() );
+		Point p1;
+		ImportFromString( m[ 6 ].str(), p1 );
+		value.set_point1( p1 );
+		Point p2;
+		ImportFromString( m[ 8 ].str(), p2 );
+		value.set_point2( p2 );
+		value.set_note( m[ 11 ].str() );
 	return true;
+}
+	return false;
 }
 
 bool ImportFromString( const std::string& str, std::vector< Measurement >& value )
 {
+	value.clear();
+	std::vector< std::string > parts = Core::SplitString( str, Measurement::NOTE_DELIMITER_C );
+	// The last part is ""
+	for( size_t i = 0; i < parts.size() - 1; i++ )
+	{
+		std::string measurement_string = parts[ i ];
+		measurement_string += Measurement::NOTE_DELIMITER_C;
+		Measurement measurement;
+		if( ImportFromString( measurement_string, measurement ) )
+		{
+			value.push_back( measurement );
+		}
+	}
 	return true;
 }
 

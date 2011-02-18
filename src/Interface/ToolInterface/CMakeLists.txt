@@ -107,15 +107,17 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   TransformToolInterface.h
   ClipboardToolInterface.h
   MeasurementToolInterface.h 
-  detail/MeasurementTableView.h
   detail/MeasurementTableModel.h
-  detail/TextDelegate.h
+  detail/MeasurementTableView.h
+  detail/MeasurementTextDelegate.h
+  detail/MeasurementTextEdit.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
-  detail/MeasurementTableView.cc
   detail/MeasurementTableModel.cc
-  detail/TextDelegate.cc
+  detail/MeasurementTableView.cc
+  detail/MeasurementTextDelegate.cc
+  detail/MeasurementTextEdit.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_UI_SRCS

@@ -26,36 +26,21 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_TEXTDELEGATE_H
-#define INTERFACE_TOOLINTERFACE_TEXTDELEGATE_H
-
-// Qt includes
-#include <QtGui/QItemDelegate>
+// Interface includes
+#include <Interface/ToolInterface/detail/MeasurementTextEdit.h>
 
 namespace Seg3D
 {
 
-class TextDelegate : public QItemDelegate
+MeasurementTextEdit::MeasurementTextEdit( QWidget * parent ) :
+	QTextEdit( parent )
+{	
+}
+
+void MeasurementTextEdit::focusOutEvent( QFocusEvent * e )
 {
-	Q_OBJECT
-
-public:
-	TextDelegate( int text_column, QObject * parent = 0 );
-
-	void paint( QPainter *painter, const QStyleOptionViewItem &option, 
-		const QModelIndex &index ) const;
-	QWidget* createEditor( QWidget *parent, const QStyleOptionViewItem &option, 
-		const QModelIndex &index ) const;
-	void setEditorData( QWidget *editor, const QModelIndex &index ) const ;
-	void setModelData( QWidget *editor, QAbstractItemModel *model, const QModelIndex &index ) const;
-
-private Q_SLOTS:
-	void commit_editor();
-
-private:
-	int text_column_;
-};
+	QTextEdit::focusOutEvent( e );
+	Q_EMIT this->editing_finished();
+}
 
 } // end namespace Seg3D
-
-#endif 

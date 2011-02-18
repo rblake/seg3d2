@@ -86,7 +86,7 @@ public:
 	Core::StateStringHandle z_axis_label_state_;
 	Core::StateBoolHandle enable_undo_state_;
 	Core::StateRangedDoubleHandle percent_of_memory_state_;
-	
+	Core::StateBoolHandle export_dicom_headers_state_;
 	
 	//Viewers Preferences
 	Core::StateOptionHandle default_viewer_mode_state_;
@@ -108,7 +108,6 @@ public:
 	Core::StateBoolHandle show_tools_bar_state_;
 	Core::StateBoolHandle show_layermanager_bar_state_;
 	Core::StateBoolHandle show_projectmanager_bar_state_;
-	Core::StateBoolHandle show_measurement_bar_state_;
 	Core::StateBoolHandle show_history_bar_state_;
 	
 public:

@@ -37,7 +37,6 @@
 
 // Application Includes
 #include <Application/Tools/MeasurementTool.h>
-#include <Application/Tools/detail/Measurement.h>
 
 SCI_REGISTER_TOOLINTERFACE( Seg3D, MeasurementToolInterface )
 
@@ -62,41 +61,50 @@ MeasurementToolInterface::MeasurementToolInterface() :
 // destructor
 MeasurementToolInterface::~MeasurementToolInterface()
 {
+	this->disconnect_all();
 }
 
 // build the interface and connect it to the state manager
 bool MeasurementToolInterface::build_widget( QFrame* frame )
 {
-	//Step 1 - build the Qt GUI Widget
+	// Build the Qt GUI Widget
 	this->private_->ui_.setupUi( frame );
 
-	//Step 2 - get a pointer to the tool
-	ToolHandle base_tool_ = tool();
-	MeasurementTool* tool = dynamic_cast< MeasurementTool* > ( base_tool_.get() );
-	
-	// Get convenience pointers to measurement table view and model
+	// Create table model with tool, set table model in table view
+	MeasurementToolHandle tool_handle = boost::dynamic_pointer_cast< MeasurementTool >( tool() );
+	this->private_->table_model_ = new MeasurementTableModel( tool_handle, this );
 	this->private_->table_view_ = this->private_->ui_.table_view_;
-	this->private_->table_model_ = 
-		qobject_cast< MeasurementTableModel* >( this->private_->table_view_->model() );
+	this->private_->table_view_->set_measurement_model( this->private_->table_model_ );
 
-	//Step 3 - connect the gui to the tool through the QtBridge
+	/* Normally Qt syncs the model and the view without us having to worry about it.  But that 
+	relies on everything being on Qt thread, which is not true in our case.  So instead the 
+	MeasurementToolInterface calls update on the model when the measurements state is modified.  
+	The model in turn gets its data from the measurements state. */ 
+	qpointer_type measurement_interface( this );	
+	this->add_connection( tool_handle->measurements_state_->state_changed_signal_.connect( 
+		boost::bind( &MeasurementToolInterface::UpdateMeasurementModel, measurement_interface ) ) );
+	this->add_connection( tool_handle->active_index_state_->state_changed_signal_.connect( 
+		boost::bind( &MeasurementToolInterface::UpdateMeasurementNote, measurement_interface ) ) );
+
+	// Connect the gui to the tool through the QtBridge
 	QtUtils::QtBridge::Connect( this->private_->ui_.copy_button_, boost::bind(
 		&MeasurementTableView::copy, this->private_->table_view_ ) );
+	QtUtils::QtBridge::Connect( this->private_->ui_.delete_button_, boost::bind(
+		&MeasurementTableView::delete_selected_measurements, this->private_->table_view_ ) );
 
 	// Connect note column and text box using Qt signals/slots since currently can't hook up two
 	// widgets to same state object.
 	QObject::connect( this->private_->table_model_, SIGNAL( active_note_changed( QString ) ), 
 		this, SLOT( set_measurement_note_box( QString ) ) );
 	QObject::connect( this->private_->ui_.note_textbox_, SIGNAL( textChanged() ), 
-		this, SLOT( update_measurement_note_model() ) );
+		this, SLOT( set_measurement_note_table() ) );
+	QObject::connect( this->private_->ui_.note_textbox_, SIGNAL( editing_finished() ), 
+		this->private_->table_model_, SLOT( save_active_note() ) );
+
+	UpdateMeasurementModel( measurement_interface );
 
 	//Send a message to the log that we have finished with building the Measure Tool Interface
 	CORE_LOG_MESSAGE( "Finished building an Measure Tool Interface" );
-
-	// Test code
-	MeasurementList::Instance()->clear();
-
-	this->private_->table_model_->update();
 
 	return ( true );
 } // end build_widget	
@@ -112,10 +120,69 @@ void MeasurementToolInterface::set_measurement_note_box( const QString & note )
 	}	
 }
 
-void MeasurementToolInterface::update_measurement_note_model()
+void MeasurementToolInterface::set_measurement_note_table()
 {
 	this->private_->table_model_->set_active_note( 
 		this->private_->ui_.note_textbox_->document()->toPlainText() );
+}
+
+void MeasurementToolInterface::UpdateMeasurementModel( qpointer_type measurement_interface )
+{		
+	// Ensure that this call gets relayed to the right thread
+	if ( !( Core::Interface::IsInterfaceThread() ) )
+	{
+		Core::Interface::PostEvent( boost::bind( 
+			&MeasurementToolInterface::UpdateMeasurementModel, measurement_interface ) );
+		return;
+	}
+
+	// Protect interface pointer, so we do not execute if interface does not exist anymore
+	if ( measurement_interface.data() )
+	{
+		// Updates table view
+		measurement_interface->private_->table_model_->update_table();
+
+		// Enable widgets only if measurements exist and active index is valid
+		if( measurement_interface->private_->table_model_->rowCount( QModelIndex() ) > 0 &&
+			measurement_interface->private_->table_model_->get_active_index() != 
+			MeasurementTool::INVALID_ACTIVE_INDEX_C )
+		{
+			measurement_interface->private_->ui_.note_textbox_->setEnabled( true );
+			measurement_interface->private_->ui_.goto_button_->setEnabled( true );
+			measurement_interface->private_->ui_.copy_button_->setEnabled( true );
+			measurement_interface->private_->ui_.delete_button_->setEnabled( true );
+		}
+		else
+		{
+			measurement_interface->private_->ui_.note_textbox_->setEnabled( false );
+			measurement_interface->private_->ui_.goto_button_->setEnabled( false );
+			measurement_interface->private_->ui_.copy_button_->setEnabled( false );
+			measurement_interface->private_->ui_.delete_button_->setEnabled( false );
+		}
+	}
+}
+
+void MeasurementToolInterface::UpdateMeasurementNote( qpointer_type measurement_interface )
+{
+	// Ensure that this call gets relayed to the right thread
+	if ( !( Core::Interface::IsInterfaceThread() ) )
+	{
+		Core::Interface::PostEvent( boost::bind( 
+			&MeasurementToolInterface::UpdateMeasurementNote, measurement_interface ) );
+		return;
+	}
+
+	// Protect interface pointer, so we do not execute if interface does not exist anymore
+	if ( measurement_interface.data() )
+	{
+		// Update only table cells, not table dimensions
+		// Needed in order to update background color for active/non-active cells
+		measurement_interface->private_->table_model_->update_cells();
+
+		// Updates table view
+		measurement_interface->private_->ui_.note_textbox_->setText( 
+			measurement_interface->private_->table_model_->get_active_note() );
+	}
 }
 
 } // end namespace Seg3D

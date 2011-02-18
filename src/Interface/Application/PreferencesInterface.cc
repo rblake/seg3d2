@@ -148,8 +148,9 @@ void PreferencesInterface::setup_general_prefs()
 		PreferencesManager::Instance()->paint_cursor_invisibility_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.zero_based_slice_numbers_,
 		PreferencesManager::Instance()->zero_based_slice_numbers_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.export_dicom_headers_,
+		PreferencesManager::Instance()->export_dicom_headers_state_ );	
 	
-
 	QtUtils::QtBridge::Connect( this->private_->ui_.enable_compression_checkbox_,
 		PreferencesManager::Instance()->compression_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.compression_adjuster_,
@@ -262,10 +263,8 @@ void PreferencesInterface::setup_sidebar_prefs()
 		PreferencesManager::Instance()->show_layermanager_bar_state_->get() );
 	this->private_->ui_.project_manager_checkbox_->setChecked( 
 		PreferencesManager::Instance()->show_projectmanager_bar_state_->get() );
-	this->private_->ui_.measurement_checkbox_->setChecked( 
-		PreferencesManager::Instance()->show_measurement_bar_state_->get() );
-	this->private_->ui_.history_checkbox_->setChecked( 
-		PreferencesManager::Instance()->show_history_bar_state_->get() );
+// 	this->private_->ui_.history_checkbox_->setChecked( 
+// 		PreferencesManager::Instance()->show_history_bar_state_->get() );
 	
 	// Connect Sidebars Preferences
 	QtUtils::QtBridge::Connect( this->private_->ui_.tools_filters_checkbox_, 
@@ -274,10 +273,8 @@ void PreferencesInterface::setup_sidebar_prefs()
 		PreferencesManager::Instance()->show_layermanager_bar_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.project_manager_checkbox_, 
 		PreferencesManager::Instance()->show_projectmanager_bar_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.measurement_checkbox_, 
-		PreferencesManager::Instance()->show_measurement_bar_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.history_checkbox_, 
-		PreferencesManager::Instance()->show_history_bar_state_ );
+// 	QtUtils::QtBridge::Connect( this->private_->ui_.history_checkbox_, 
+// 		PreferencesManager::Instance()->show_history_bar_state_ );
 	
 	
 	ToolMenuList tool_menus;

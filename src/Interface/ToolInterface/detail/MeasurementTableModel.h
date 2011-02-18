@@ -35,7 +35,7 @@
 #include <QtGui/QItemSelection>
 
 // Application includes
-#include <Application/Tools/detail/Measurement.h>
+#include <Application/Tools/MeasurementTool.h>
 
 namespace Seg3D
 {
@@ -52,7 +52,7 @@ class MeasurementTableModel : public QAbstractTableModel
 	Q_OBJECT
 
 public:
-	MeasurementTableModel( QObject* parent = 0 );
+	MeasurementTableModel( MeasurementToolHandle measurement_tool, QObject* parent = 0 );
 
 	virtual ~MeasurementTableModel();
 
@@ -68,12 +68,19 @@ public:
 	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
 	Qt::ItemFlags flags( const QModelIndex &index ) const;
 	bool removeRows( int row, int count, const QModelIndex & parent = QModelIndex() ); 
-
+	
 	//
 	// Extended functions
 	//
 
-	void update();
+	// UPDATE_TABLE:
+	// Update entire table including dimensions.  
+	// Stops any editing that the user may be doing on the table.  Clears currently selected cells.
+	void update_table();
+
+	// UPDATE_CELLS:
+	// Update only table cells, not table dimensions.
+	void update_cells();
 
 	void remove_rows( const std::vector< int >& rows );
 	
@@ -88,9 +95,14 @@ Q_SIGNALS:
 private Q_SLOTS:
 	void handle_click( const QModelIndex & index );
 	void handle_selected( const QItemSelection & selected );
-	
+	void save_active_note();
+
 private:
 	void set_active_index( int active_index );
+
+	std::string cached_active_note_;
+	bool use_cached_active_note_;
+	MeasurementToolHandle measurement_tool_;
 };
 
 } // end namespace Seg3D
