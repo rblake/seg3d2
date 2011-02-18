@@ -26,12 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#include <boost/foreach.hpp>
+
 #include <QGraphicsSceneMouseEvent>
+#include <QPointer>
+
+#include <Core/Interface/Interface.h>
 
 #include <QtUtils/Widgets/QtTransferFunctionScene.h>
 #include <QtUtils/Widgets/QtTransferFunctionCurve.h>
 #include <QtUtils/Widgets/QtTransferFunctionControlPoint.h>
 #include <QtUtils/Widgets/QtTransferFunctionEdge.h>
+#include <QtUtils/Utils/QtPointer.h>
 
 namespace QtUtils
 {
@@ -50,6 +56,11 @@ public:
 	curve_map_type curve_map_;
 	QtTransferFunctionCurve* active_curve_;
 	QTransform view_transform_;
+	bool dragging_;
+	QPointF prev_pos_;
+
+public:
+	static void HandleReset( QPointer< QtTransferFunctionScene > qpointer );
 };
 
 void QtTransferFunctionScenePrivate::set_active_curve( QtTransferFunctionCurve* curve )
@@ -71,6 +82,12 @@ void QtTransferFunctionScenePrivate::set_active_curve( QtTransferFunctionCurve* 
 	}
 }
 
+void QtTransferFunctionScenePrivate::HandleReset( QPointer< QtTransferFunctionScene > qpointer )
+{
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, 
+		boost::bind( &QtTransferFunctionScene::reset, qpointer.data() ) ) );
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Class QtTransferFunctionScene
 //////////////////////////////////////////////////////////////////////////
@@ -80,10 +97,16 @@ QtTransferFunctionScene::QtTransferFunctionScene(QObject *parent) :
 	private_( new QtTransferFunctionScenePrivate )
 {
 	this->private_->active_curve_ = 0;
+	this->private_->dragging_ = false;
+
+	this->add_connection( Core::Application::Instance()->reset_signal_.connect( boost::bind( 
+		&QtTransferFunctionScenePrivate::HandleReset, 
+		QPointer< QtTransferFunctionScene >( this ) ) ) );
 }
 
 QtTransferFunctionScene::~QtTransferFunctionScene()
 {
+	this->disconnect_all();
 	delete this->private_;
 }
 
@@ -92,7 +115,7 @@ void QtTransferFunctionScene::mousePressEvent( QGraphicsSceneMouseEvent* mouseEv
 	QGraphicsItem* item = this->itemAt( mouseEvent->scenePos(), this->private_->view_transform_ );
 	if ( item == 0 )
 	{
-		if ( this->private_->active_curve_ != 0 )
+		if ( this->private_->active_curve_ != 0 && mouseEvent->button() == Qt::LeftButton )
 		{
 			this->private_->active_curve_->add_control_point( mouseEvent->scenePos() );
 			mouseEvent->accept();
@@ -106,15 +129,13 @@ void QtTransferFunctionScene::mousePressEvent( QGraphicsSceneMouseEvent* mouseEv
 		
 		if ( control_point != 0 )
 		{
+			this->private_->set_active_curve( control_point->get_curve() );
+
 			if ( mouseEvent->button() == Qt::RightButton )
 			{
 				control_point->get_curve()->remove_control_point( control_point );
 			}
-			else if ( mouseEvent->button() == Qt::LeftButton )
-			{
-				this->private_->set_active_curve( control_point->get_curve() );
 			}
-		}
 		else
 		{
 			QtTransferFunctionEdge* edge = dynamic_cast< QtTransferFunctionEdge* >( item );
@@ -123,9 +144,42 @@ void QtTransferFunctionScene::mousePressEvent( QGraphicsSceneMouseEvent* mouseEv
 				this->private_->set_active_curve( edge->get_curve() );
 			}
 		}
+
+		if ( this->private_->active_curve_ != 0 && mouseEvent->modifiers() == Qt::ShiftModifier )
+		{
+			this->private_->dragging_ = true;
+			this->private_->prev_pos_ = mouseEvent->scenePos();
+			mouseEvent->accept();
+			return;
+	}
 	}
 
 	QGraphicsScene::mousePressEvent( mouseEvent );
+}
+
+void QtTransferFunctionScene::mouseMoveEvent( QGraphicsSceneMouseEvent* mouseEvent )
+{
+	if ( this->private_->dragging_ && this->private_->active_curve_ != 0 )
+	{
+		this->private_->active_curve_->move_curve( mouseEvent->scenePos() - this->private_->prev_pos_ );
+		this->private_->prev_pos_ = mouseEvent->scenePos();
+		mouseEvent->accept();
+		return;
+	}
+
+	QGraphicsScene::mouseMoveEvent( mouseEvent );
+}
+
+void QtTransferFunctionScene::mouseReleaseEvent( QGraphicsSceneMouseEvent* mouseEvent )
+{
+	if ( this->private_->dragging_ && mouseEvent->button() == Qt::LeftButton )
+	{
+		this->private_->dragging_ = false;
+		mouseEvent->accept();
+		return;
+	}
+
+	QGraphicsScene::mouseReleaseEvent( mouseEvent );
 }
 
 void QtTransferFunctionScene::set_view_transform( const QTransform& matrix )
@@ -179,6 +233,16 @@ QtTransferFunctionCurve* QtTransferFunctionScene::get_curve( const std::string& 
 QtTransferFunctionCurve* QtTransferFunctionScene::get_active_curve()
 {
 	return this->private_->active_curve_;
+}
+
+void QtTransferFunctionScene::reset()
+{
+	BOOST_FOREACH( curve_map_type::value_type curve_entry, this->private_->curve_map_ )
+	{
+		delete curve_entry.second;
+	}
+	this->private_->active_curve_ = 0;
+	this->private_->curve_map_.clear();
 }
 
 } // end namespace QtUtils

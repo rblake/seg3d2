@@ -49,17 +49,28 @@ public:
 };
 
 TransferFunctionFeatureWidget::TransferFunctionFeatureWidget(
-	Core::TransferFunctionFeatureHandle feature, QWidget *parent ) :
+	QWidget *parent, Core::TransferFunctionFeatureHandle feature ) :
 	QWidget( parent ),
 	private_( new TransferFunctionFeatureWidgetPrivate )
 {
 	// Set up the private internals of the LayerManagerInterface class
 	this->private_->ui_.setupUi( this );
 	
-	QtUtils::QtBridge::Connect( this->private_->ui_.red_color_slider_, feature->red_color_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.green_color_slider_, feature->green_color_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.blue_color_slider_, feature->blue_color_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.shininess_slider_, feature->shininess_state_ );
+	if ( feature )
+	{
+		QtUtils::QtBridge::Connect( this->private_->ui_.diffuse_red_slider_, 
+			feature->diffuse_color_red_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.diffuse_green_slider_, 
+			feature->diffuse_color_green_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.diffuse_blue_slider_, 
+			feature->diffuse_color_blue_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.specular_intensity_slider_,
+			feature->specular_intensity_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.shininess_slider_, 
+			feature->shininess_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.enable_checkbox_,
+			feature->enabled_state_ );
+}
 }
 
 TransferFunctionFeatureWidget::~TransferFunctionFeatureWidget()

@@ -31,13 +31,15 @@
 
 #include <QGraphicsScene>
 
+#include <Core/Utils/ConnectionHandler.h>
+
 namespace QtUtils
 {
 
 class QtTransferFunctionScenePrivate;
 class QtTransferFunctionCurve;
 
-class QtTransferFunctionScene : public QGraphicsScene
+class QtTransferFunctionScene : public QGraphicsScene, private Core::ConnectionHandler
 {
 	Q_OBJECT
 public:
@@ -50,12 +52,16 @@ public:
 	QtTransferFunctionCurve* get_curve( const std::string& feature_id );
 
 protected:
+	virtual void mouseMoveEvent( QGraphicsSceneMouseEvent* mouseEvent );
 	virtual void mousePressEvent( QGraphicsSceneMouseEvent* mouseEvent );
-
-Q_SIGNALS:
+	virtual void mouseReleaseEvent( QGraphicsSceneMouseEvent* mouseEvent );
 
 public Q_SLOTS:
 	void set_view_transform( const QTransform& matrix );
+
+private:
+	friend class QtTransferFunctionScenePrivate;
+	void reset();
 
 private:
 	QtTransferFunctionScenePrivate* private_;

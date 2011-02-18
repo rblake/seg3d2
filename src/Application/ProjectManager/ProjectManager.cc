@@ -639,7 +639,7 @@ bool ProjectManager::delete_recent_projects_entry( const std::string& project_na
 bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProject >& recent_projects )
 {
 	ResultSet result_set;
-	std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC";
+		std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
 	if( !this->database_query( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );

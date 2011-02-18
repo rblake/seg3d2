@@ -93,16 +93,14 @@ typedef std::vector< IsosurfaceRecordHandle > IsosurfaceArray;
 // Implementation of class RendererPrivate
 //////////////////////////////////////////////////////////////////////////
 
-static const unsigned int PATTERN_SIZE_C = 6;
-static const unsigned char MAX_PATTERN_VAL_C = 150;
+static const unsigned int PATTERN_SIZE_C = 4;
+static const unsigned char MAX_PATTERN_VAL_C = 200;
 static const unsigned char MASK_PATTERNS_C[ PATTERN_SIZE_C ][ PATTERN_SIZE_C ] =
 {
-	{ MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0, 0 }, 
-	{ 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0 }, 
-	{ 0, 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C }, 
-	{ MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0, 0 },
-	{ 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0 }, 
-	{ 0, 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C }
+	{ MAX_PATTERN_VAL_C, 0, 0, 0 }, 
+	{ 0, MAX_PATTERN_VAL_C, 0, 0 }, 
+	{ 0, 0, MAX_PATTERN_VAL_C, 0 }, 
+	{ 0, 0, 0, MAX_PATTERN_VAL_C }
 };
 
 class RendererPrivate
@@ -714,6 +712,7 @@ bool Renderer::render()
 		bool draw_bbox = viewer->volume_show_bounding_box_state_->get();
 		bool show_invisible_slices = viewer->volume_show_invisible_slices_state_->get();
 		size_t num_of_viewers = ViewerManager::Instance()->number_of_viewers();
+		std::string vr_layer = ViewerManager::Instance()->volume_rendering_target_state_->get();
 		
 		// Clipping does not seem to work properly on OSX 10.5
 		if ( Core::Application::Instance()->is_osx_10_5_or_less() ) enable_clipping = false;
@@ -750,7 +749,7 @@ bool Renderer::render()
 			this->private_->process_isosurfaces( isosurfaces );
 		}
 
-		double fog_density = ViewerManager::Instance()->fog_density_state_->get();
+		double fog_density = ViewerManager::Instance()->fog_density_state_->get() * 1.8;
 		bool clip_plane_enable[ 6 ];
 		Core::Vector clip_plane_normal[ 6 ];
 		double clip_plane_distance[ 6 ];
@@ -792,7 +791,7 @@ bool Renderer::render()
 
 		GLfloat fog_color[] = { bkg_color.r(), bkg_color.g(), bkg_color.b(), 1.0f };
 		glFogfv( GL_FOG_COLOR, fog_color );
-		glFogf( GL_FOG_DENSITY, static_cast< float >( fog_density / bbox.diagonal().length() ) );
+		glFogf( GL_FOG_DENSITY, static_cast< float >( fog_density ) );
 
 		if ( enable_clipping )
 		{
@@ -823,6 +822,8 @@ bool Renderer::render()
 			this->private_->slice_shader_->enable();
 			this->private_->slice_shader_->set_lighting( with_lighting );
 			this->private_->slice_shader_->set_fog( with_fog );
+			this->private_->slice_shader_->set_fog_range( static_cast< float >( znear ), 
+				static_cast< float >( zfar ) );
 			this->private_->draw_slices_3d( bbox, layer_scenes, depths, view_modes );
 			this->private_->slice_shader_->disable();
 			CORE_CHECK_OPENGL_ERROR();
@@ -833,6 +834,8 @@ bool Renderer::render()
 			this->private_->isosurface_shader_->enable();
 			this->private_->isosurface_shader_->set_lighting( with_lighting );
 			this->private_->isosurface_shader_->set_fog( with_fog );
+			this->private_->isosurface_shader_->set_fog_range( static_cast< float >( znear ), 
+				static_cast< float >( zfar ) );
 			this->private_->draw_isosurfaces( isosurfaces );
 			this->private_->isosurface_shader_->disable();
 			CORE_CHECK_OPENGL_ERROR();
@@ -870,22 +873,22 @@ bool Renderer::render()
 		}
 
 		// NOTE: Volume rendering should happen the last
-		if ( render_volume )
+		if ( render_volume && vr_layer != Core::StateLabeledOption::EMPTY_OPTION_C )
 		{
-			LayerHandle layer = LayerManager::Instance()->get_active_layer();
-			if ( layer && layer->get_type() == Core::VolumeType::DATA_E )
+			DataLayerHandle data_layer = LayerManager::Instance()->get_data_layer_by_id( vr_layer );
+			if ( data_layer && data_layer->has_valid_data() )
 			{
-				DataLayer* data_layer = static_cast< DataLayer* >( layer.get() );
-				double data_min = data_layer->min_value_state_->get();
-				double data_range = data_layer->max_value_state_->get() - data_min;
-				double display_max = data_layer->display_max_value_state_->get();
-				double window_size = display_max - data_layer->display_min_value_state_->get();
-				window_size = Core::Max( 0.01 * data_range, window_size );
-				double scale = data_range > 0 ? data_range / window_size : 1.0;
-				double bias = data_range > 0 ? 1.0 - ( scale * display_max
-					- data_min ) / data_range : 0.0;
+				//double data_min = data_layer->min_value_state_->get();
+				//double data_range = data_layer->max_value_state_->get() - data_min;
+				//double display_max = data_layer->display_max_value_state_->get();
+				//double window_size = display_max - data_layer->display_min_value_state_->get();
+				//window_size = Core::Max( 0.01 * data_range, window_size );
+				//double scale = data_range > 0 ? data_range / window_size : 1.0;
+				//double bias = data_range > 0 ? 1.0 - ( scale * display_max
+				//	- data_min ) / data_range : 0.0;
 				this->private_->volume_renderer_->render( data_layer->get_data_volume(), 
-					view3d, sample_rate, with_lighting, with_fog, scale, bias );
+					view3d, znear, zfar, sample_rate, with_lighting, with_fog, 
+					ViewerManager::Instance()->get_transfer_function() );
 				CORE_CHECK_OPENGL_ERROR();
 			}
 		}

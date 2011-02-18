@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>278</width>
-    <height>789</height>
+    <width>247</width>
+    <height>667</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Preferred" vsizetype="Ignored">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -148,19 +148,34 @@ QWidget#vr_content_{
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QVBoxLayout" name="dock_widget_layout_">
     <property name="spacing">
-     <number>2</number>
-    </property>
-    <property name="leftMargin">
-     <number>2</number>
-    </property>
-    <property name="topMargin">
      <number>0</number>
     </property>
-    <property name="rightMargin">
+    <property name="margin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QScrollArea" name="scrollArea">
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>-100</y>
+         <width>228</width>
+         <height>754</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="scroll_area_layout_">
+        <property name="spacing">
      <number>2</number>
     </property>
-    <property name="bottomMargin">
-     <number>0</number>
+        <property name="margin">
+         <number>2</number>
     </property>
     <item>
      <widget class="QWidget" name="fog_widget_" native="true">
@@ -1245,12 +1260,6 @@ QWidget#vr_content_{
     </item>
     <item>
      <widget class="QWidget" name="vr_widget_" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
       <layout class="QVBoxLayout" name="verticalLayout_18">
        <property name="spacing">
         <number>2</number>
@@ -1333,12 +1342,6 @@ QWidget#vr_content_{
        </item>
        <item>
         <widget class="QWidget" name="vr_content_" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <layout class="QVBoxLayout" name="verticalLayout_21">
           <property name="spacing">
            <number>2</number>
@@ -1368,7 +1371,7 @@ QWidget#vr_content_{
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox"/>
+                 <widget class="QComboBox" name="vr_target_"/>
             </item>
            </layout>
           </item>
@@ -1386,23 +1389,16 @@ QWidget#vr_content_{
            </widget>
           </item>
           <item>
-           <widget class="QtUtils::QtSliderDoubleCombo" name="vr_sample_rate_" native="true">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>30</height>
-             </size>
-            </property>
-           </widget>
+               <widget class="QtUtils::QtSliderDoubleCombo" name="vr_sample_rate_" native="true"/>
           </item>
           <item>
            <widget class="QGroupBox" name="groupBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
             <property name="title">
              <string>Transfer Function</string>
             </property>
@@ -1414,13 +1410,68 @@ QWidget#vr_content_{
               <number>4</number>
              </property>
              <item>
-              <widget class="QtUtils::QtHistogramGraph" name="histogram_" native="true">
+                  <layout class="QHBoxLayout" name="horizontalLayout_6">
+                   <property name="spacing">
+                    <number>2</number>
+                   </property>
+                   <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                   <item>
+                    <widget class="QLabel" name="label_28">
+                     <property name="text">
+                      <string>Histogram Scale:</string>
+                    </property>
+                    </widget>
+                   </item>
+                    <item>
+                    <widget class="QComboBox" name="histogram_scale_combobox_">
+                     <item>
+                      <property name="text">
+                       <string>Linear</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>Logarithmic</string>
+                      </property>
+                     </item>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget_2" native="true">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                     <height>150</height>
+                       </size>
+                      </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>256</height>
+                     <height>150</height>
                 </size>
                </property>
+                   <property name="styleSheet">
+                    <string notr="true">border: 1px solid gray</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_24">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="margin">
+                     <number>1</number>
+                    </property>
+                    <item>
+                     <widget class="QtUtils::QtHistogramGraph" name="histogram_" native="true">
                <layout class="QVBoxLayout" name="verticalLayout_23">
                 <property name="spacing">
                  <number>0</number>
@@ -1430,12 +1481,16 @@ QWidget#vr_content_{
                 </property>
                 <item>
                  <widget class="QtUtils::QtTransferFunctionView" name="tf_view_">
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>256</height>
-                   </size>
-                  </property>
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="styleSheet">
+                          <string notr="true">background: transparent;
+border: 0px</string>
+                         </property>
                   <property name="renderHints">
                    <set>QPainter::Antialiasing|QPainter::TextAntialiasing</set>
                   </property>
@@ -1444,8 +1499,41 @@ QWidget#vr_content_{
          </layout>
         </widget>
        </item>
+                   </layout>
+                  </widget>
+                 </item>
              <item>
+                  <widget class="QWidget" name="widget" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>25</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">border: 1px solid gray</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="tf_preview_layout_">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="margin">
+                     <number>1</number>
+                    </property>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
               <layout class="QHBoxLayout" name="horizontalLayout_5">
+                   <property name="spacing">
+                    <number>2</number>
+                   </property>
                <property name="bottomMargin">
                 <number>0</number>
                </property>
@@ -1469,6 +1557,16 @@ QWidget#vr_content_{
                  </property>
                 </widget>
                </item>
+                   <item>
+                    <widget class="QPushButton" name="delete_feature_button_">
+                     <property name="enabled">
+                      <bool>false</bool>
+                     </property>
+                     <property name="text">
+                      <string>Delete Feature</string>
+                     </property>
+                    </widget>
+                   </item>
       </layout>
              </item>
              <item>
@@ -1476,6 +1574,19 @@ QWidget#vr_content_{
                <property name="spacing">
                 <number>4</number>
                </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="Seg3D::TransferFunctionFeatureWidget" name="dummy_widget_" native="true">
+                     <property name="enabled">
+                      <bool>false</bool>
+                     </property>
+                    </widget>
+                   </item>
               </layout>
              </item>
             </layout>
@@ -1485,6 +1596,10 @@ QWidget#vr_content_{
   </widget>
        </item>
       </layout>
+ </widget>
+    </item>
+   </layout>
+  </widget>
  </widget>
     </item>
    </layout>
@@ -1507,6 +1622,12 @@ QWidget#vr_content_{
    <class>QtUtils::QtTransferFunctionView</class>
    <extends>QGraphicsView</extends>
    <header location="global">QtUtils/Widgets/QtTransferFunctionView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>Seg3D::TransferFunctionFeatureWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">Interface/Application/TransferFunctionFeatureWidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

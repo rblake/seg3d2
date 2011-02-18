@@ -61,13 +61,15 @@ public:
 	void handle_layer_volume_changed( LayerHandle layer );
 	void change_layout( std::string layout );
 	void handle_fog_density_changed();
-	void handle_sample_rate_changed();
+	void update_volume_rendering();
 
 	void update_clipping_range();
 	void update_clipping_range( size_t index );
 	void handle_clipping_plane_changed( size_t index );
 	void handle_clipping_plane_enabled( size_t index, bool enable );
 
+	void update_volume_rendering_targets();
+	void reset();
 public:
 	ViewerManager* vm_;
 
@@ -441,7 +443,7 @@ void ViewerManagerPrivate::handle_fog_density_changed()
 	}
 }
 
-void ViewerManagerPrivate::handle_sample_rate_changed()
+void ViewerManagerPrivate::update_volume_rendering()
 {
 	for ( size_t i = 0; i < 6; ++i )
 	{
@@ -451,6 +453,19 @@ void ViewerManagerPrivate::handle_sample_rate_changed()
 			this->viewers_[ i ]->redraw_scene();
 		}
 	}
+}
+
+void ViewerManagerPrivate::update_volume_rendering_targets()
+{
+	std::vector< LayerIDNamePair > data_layers;
+	LayerManager::Instance()->get_layer_names( data_layers, Core::VolumeType::DATA_E );
+	this->vm_->volume_rendering_target_state_->set_option_list( data_layers );
+}
+
+void ViewerManagerPrivate::reset()
+{
+	std::vector< LayerIDNamePair > empty_list;
+	this->vm_->volume_rendering_target_state_->set_option_list( empty_list );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -474,6 +489,8 @@ ViewerManager::ViewerManager() :
 	this->private_->signal_block_count_ = 0;
 	this->private_->vm_ = this;
 	this->private_->transfer_function_.reset( new Core::TransferFunction );
+	this->add_connection( this->private_->transfer_function_->transfer_function_changed_signal_.
+		connect( boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
 
 	// Step (1)
 	// Allow states to be set from outside of the application thread
@@ -493,7 +510,13 @@ ViewerManager::ViewerManager() :
 
 	this->add_state( "sample_rate", this->volume_sample_rate_state_, 1.0, 0.1, 10.0, 0.1 );
 	this->add_connection( this->volume_sample_rate_state_->state_changed_signal_.connect(
-		boost::bind( &ViewerManagerPrivate::handle_sample_rate_changed, this->private_ ) ) );
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
+
+	this->add_state( "vr_target", this->volume_rendering_target_state_ );
+	this->add_connection( LayerManager::Instance()->layers_changed_signal_.connect(
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering_targets, this->private_ ) ) );
+	this->add_connection( this->volume_rendering_target_state_->state_changed_signal_.connect(
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
 
 	for ( size_t i = 0; i < 6; ++i )
 	{
@@ -503,6 +526,7 @@ ViewerManager::ViewerManager() :
 		this->add_state( cp_name + "_y", this->clip_plane_y_state_[ i ], 0.0, -1.0, 1.0, 0.01 );
 		this->add_state( cp_name + "_z", this->clip_plane_z_state_[ i ], 0.0, -1.0, 1.0, 0.01 );
 		this->add_state( cp_name + "_distance", this->clip_plane_distance_state_[ i ], 0.0, -1.0, 1.0, 0.1 );
+		this->clip_plane_distance_state_[ i ]->set_session_priority( Core::StateBase::DEFAULT_LOAD_E - 1 );
 		this->add_state( cp_name + "_reverse_norm", this->clip_plane_reverse_norm_state_[ i ], true );
 
 		this->add_connection( this->enable_clip_plane_state_[ i ]->value_changed_signal_.connect(
@@ -558,9 +582,9 @@ ViewerManager::ViewerManager() :
 
 	// No viewer will be the active viewer for picking
 	// NOTE: The interface will set this up
-	this->add_state( "active_axial_viewer", active_axial_viewer_, -1 );
-	this->add_state( "active_coronal_viewer", active_coronal_viewer_, -1 );
-	this->add_state( "active_sagittal_viewer", active_sagittal_viewer_, -1 );
+	this->add_state( "active_axial_viewer", active_axial_viewer_, 3 );
+	this->add_state( "active_coronal_viewer", active_coronal_viewer_, 4 );
+	this->add_state( "active_sagittal_viewer", active_sagittal_viewer_, 5 );
 
 	this->add_connection( this->layout_state_->value_changed_signal_.connect( boost::bind( 
 		&ViewerManagerPrivate::change_layout, this->private_, _1 ) ) );
@@ -613,9 +637,11 @@ ViewerManager::ViewerManager() :
 	// NOTE: ViewerManager needs to process these signals last	
 	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect(
 		boost::bind( &ViewerManager::update_volume_viewers, this ) ) );
-
 	this->add_connection( LayerManager::Instance()->layer_volume_changed_signal_.connect(
 		boost::bind( &ViewerManagerPrivate::handle_layer_volume_changed, this->private_, _1 ) ) );
+
+	this->add_connection( Core::Application::Instance()->reset_signal_.connect( boost::bind(
+		&ViewerManagerPrivate::reset, this->private_ ) ) );
 
 	this->set_initializing( false );
 }

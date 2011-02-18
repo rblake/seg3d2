@@ -51,15 +51,48 @@ public:
 
 	const std::string& get_feature_id() const;
 
+	// Functions used by TransferFunction class to build the lookup table
+private:
+	friend class TransferFunction;
+	friend class TransferFunctionPrivate;
+
+	// TAKE_SNAPSHOT:
+	// Get a snapshot of all the states.
+	void take_snapshot();
+
+	// INTERPOLATE:
+	// Get the opacity corresponding to the given value by interpolating between
+	// control points. If value is outside the range defined by controls points, 
+	// 0 is returned.
+	float interpolate( float value );
+
+	// GET_DIFFUSE_COLOR:
+	// Returns the diffuse color of the feature. The values are normalized to [0, 1].
+	const Color& get_diffuse_color();
+
+	// GET_SPECULAR_COLOR:
+	// Returns the specular color of the feature. The values are normalized to [0, 1].
+	const Color& get_specular_color();
+
+	// GET_SHININESS:
+	// Returns the shininess of the feature.
+	int get_shininess();
+
+	// IS_ENABLED:
+	// Returns true if the feature is enabled, otherwise false.
+	bool is_enabled();
+
 private:
 	void initialize_states();
 
 public:
 	StateTransferFunctionControlPointVectorHandle control_points_state_;
-	StateRangedIntHandle red_color_state_;
-	StateRangedIntHandle green_color_state_;
-	StateRangedIntHandle blue_color_state_;
+	StateRangedIntHandle diffuse_color_red_state_;
+	StateRangedIntHandle diffuse_color_green_state_;
+	StateRangedIntHandle diffuse_color_blue_state_;
+	StateRangedDoubleHandle specular_intensity_state_;
 	StateRangedIntHandle shininess_state_;
+	StateBoolHandle enabled_state_;
 
 private:
 	TransferFunctionFeaturePrivateHandle private_;

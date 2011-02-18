@@ -26,44 +26,41 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_DETAIL_MASKSHADER_H
-#define APPLICATION_TOOLS_DETAIL_MASKSHADER_H
+#ifndef CORE_GRAPHICS_SHADERBASE_H
+#define CORE_GRAPHICS_SHADERBASE_H
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include <Core/Graphics/ShaderBase.h>
-#include <Core/Utils/Lockable.h>
-
-namespace Seg3D
+namespace Core
 {
 
-class MaskShader;
-typedef boost::shared_ptr< MaskShader > MaskShaderHandle;
+class ShaderBasePrivate;
+typedef boost::shared_ptr< ShaderBasePrivate > ShaderBasePrivateHandle;
 
-class MaskShader : public Core::Lockable, public Core::ShaderBase
+class ShaderBase : public boost::noncopyable
 {
 public:
-	MaskShader();
-	virtual ~MaskShader();
+	ShaderBase();
+	virtual ~ShaderBase();
 
-	void set_texture( int tex_unit );
-	void set_color( float r, float g, float b );
-	void set_opacity( float opacity );
-	void set_pixel_size( float width, float height );
-	void set_border_width( int width );
+	bool initialize();
+	void enable();
+	void disable();
+	bool is_valid();
 
 protected:
+	virtual bool get_vertex_shader_source( std::string& source );
 	virtual bool get_fragment_shader_source( std::string& source );
+	virtual bool pre_link();
 	virtual bool post_initialize();
 
+	int get_uniform_location( const char* name );
+	void bind_attrib_location( unsigned int index, const char* name );
+
 private:
-	int tex_loc_;
-	int color_loc_;
-	int opacity_loc_;
-	int border_width_loc_;
-	int pixel_size_loc_;
+	ShaderBasePrivateHandle private_;
 };
 
-} // end namespace Seg3D
+} // end namespace Core
 #endif
