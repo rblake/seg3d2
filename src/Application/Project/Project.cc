@@ -711,9 +711,13 @@ bool Project::get_most_recent_session_name( std::string& session_name )
 		return false;
 	}
 
-	session_name = boost::any_cast< std::string >( ( result_set[ 0 ] )[ "session_name" ] );
+	if ( result_set.size() )
+	{
+		session_name = boost::any_cast< std::string >( ( result_set[ 0 ] )[ "session_name" ] );
+		return true;
+	}
 
-	return true;
+	return false;
 }
 
 void Project::cleanup_session_database()

@@ -302,7 +302,7 @@ bool GDCMLayerImporter::import_header()
 	this->private_->x_spacing_ = spacing[ 0 ];
 	this->private_->y_spacing_ = spacing[ 1 ];
 	
-	if ( spacing[ 2 ] == 1.0 )
+//	if ( spacing[ 2 ] == 1.0 )
 	{
 		gdcm::Tag slice_thickness_tag( 0x0018,0x0050 );
 		gdcm::Tag patient_position_tag( 0x0020, 0x0032 );
@@ -337,28 +337,34 @@ bool GDCMLayerImporter::import_header()
 			}
 			
 			const gdcm::Image &image2 = reader2.GetImage();
-			const double* origin2 = image2.GetOrigin();
 			
-			double spacing = origin2[ 2 ] - origin[ 2 ];
+			const double* origin2 = image2.GetOrigin();
+			Core::Vector origin_vec( origin[ 0 ], origin[ 1 ], origin[ 2 ] );
+			Core::Vector origin_vec2( origin2[ 0 ], origin2[ 1 ], origin2[ 2 ] );
+			Core::Vector dir = origin_vec - origin_vec2;
+			
+			double spacing = dir.length();
 			if ( spacing < -epsilon || spacing > epsilon ) 
 			{
 				this->private_->z_spacing_ = spacing; 
+				dir.normalize();
+				this->private_->slice_direction_ = dir; 
 			}
 			else 
 			{
 				spacing = 1.0;
-			}
 			this->private_->slice_direction_ = Core::Vector( 0.0, 0.0, 1.0 );
+		}
 		}
 		else if ( found_thickness == false )
 		{
 			this->private_->z_spacing_ = 1.0;
 		}
 	}
-	else
-	{
-		this->private_->z_spacing_ = spacing[ 2 ];
-	}
+//	else
+//	{
+//		this->private_->z_spacing_ = spacing[ 2 ];
+//	}
 
 	// Generate meta data
 	return true;
@@ -426,6 +432,11 @@ bool GDCMLayerImporter::load_data( Core::DataBlockHandle& data_block,
 std::string GDCMLayerImporter::get_layer_name()
 {
 	return boost::filesystem::path( this->get_filename() ).parent_path().filename();
+}
+
+std::vector< std::string > GDCMLayerImporter::get_file_list()
+{
+	return this->private_->file_list_;
 }
 
 bool GDCMLayerImporter::set_file_list( const std::vector< std::string >& file_list )
