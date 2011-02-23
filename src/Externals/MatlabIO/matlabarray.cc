@@ -1093,19 +1093,19 @@ void matlabarray::setglobal(bool val)
 bool matlabarray::iscomplex()
 {
 	if (m_ == 0) return(false);
-	return(m_->flags_ & 0x01);
+	return(m_->flags_ & 0x01) != 0;
 }
 	
 bool matlabarray::islogical()
 {
 	if (m_ == 0) return(false);
-	return(m_->flags_ & 0x02);
+	return(m_->flags_ & 0x02) != 0;
 }
 
 bool matlabarray::isglobal()
 {
 	if (m_ == 0) return(false);
-	return(m_->flags_ & 0x04);
+	return(m_->flags_ & 0x04) != 0;
 }
 
 
