@@ -35,6 +35,8 @@
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
+#include <Application/Provenance/ProvenanceStep.h>
+#include <Application/ProjectManager/ProjectManager.h>
 
 CORE_REGISTER_ACTION( Seg3D, Paint )
 
@@ -71,20 +73,20 @@ public:
 ActionPaint::ActionPaint() :
 	private_( new ActionPaintPrivate )
 {
-	this->add_parameter( this->private_->target_layer_id_ );
+	this->add_layer_id( this->private_->target_layer_id_ );
 	this->add_parameter( this->private_->slice_type_ );
 	this->add_parameter( this->private_->slice_number_ );
 	this->add_parameter( this->private_->x_ );
 	this->add_parameter( this->private_->y_ );
 	this->add_parameter( this->private_->brush_radius_ );
 
-	this->add_parameter( this->private_->data_constraint_layer_id_ );
+	this->add_layer_id( this->private_->data_constraint_layer_id_ );
 	this->add_parameter( this->private_->min_val_ );
 	this->add_parameter( this->private_->max_val_ );
 	this->add_parameter( this->private_->negative_data_constraint_ );
-	this->add_parameter( this->private_->mask_constraint1_layer_id_ );
+	this->add_layer_id( this->private_->mask_constraint1_layer_id_ );
 	this->add_parameter( this->private_->negative_mask_constraint1_ );
-	this->add_parameter( this->private_->mask_constraint2_layer_id_ );
+	this->add_layer_id( this->private_->mask_constraint2_layer_id_ );
 	this->add_parameter( this->private_->negative_mask_constraint2_ );
 	this->add_parameter( this->private_->erase_ );
 }
@@ -223,6 +225,20 @@ bool ActionPaint::run( Core::ActionContextHandle& context, Core::ActionResultHan
 	item->add_layer_to_restore( layer, check_point );
 
 	UndoBuffer::Instance()->insert_undo_item( context, item );
+
+	// Update the provenance ID of the target mask
+	ProvenanceIDList deleted_prov_ids( 1, layer->provenance_id_state_->get() );
+	ProvenanceID new_prov_id = GenerateProvenanceID();
+	ProvenanceIDList output_prov_ids( 1, new_prov_id );
+	layer->provenance_id_state_->set( new_prov_id );
+
+	// Create a provenance record
+	ProvenanceStepHandle provenance_step( new ProvenanceStep );
+	provenance_step->set_input_provenance_ids( this->get_input_provenance_ids() );
+	provenance_step->set_output_provenance_ids( output_prov_ids );
+	provenance_step->set_deleted_provenance_ids( deleted_prov_ids );
+	provenance_step->set_action( this->export_to_provenance_string() );
+	ProjectManager::Instance()->get_current_project()->add_to_provenance_database( provenance_step );
 
 	// Painting will already have been done by the interface
 	if ( context->source() == Core::ActionSource::INTERFACE_MOUSE_E ) return true;

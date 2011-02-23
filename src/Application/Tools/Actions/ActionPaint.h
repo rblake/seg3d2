@@ -30,6 +30,8 @@
 #define APPLICATION_TOOLS_ACTIONS_ACTIOINPAINT_H
 
 #include <Core/Action/Actions.h>
+
+#include <Application/LayerManager/LayerAction.h>
 #include <Application/Tools/PaintTool.h>
 
 namespace Seg3D
@@ -38,7 +40,7 @@ namespace Seg3D
 class ActionPaintPrivate;
 typedef boost::shared_ptr< ActionPaintPrivate > ActionPaintPrivateHandle;
 
-class ActionPaint : public Core::Action
+class ActionPaint : public LayerAction
 {
 	CORE_ACTION
 	( 

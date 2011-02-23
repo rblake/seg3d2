@@ -98,7 +98,7 @@ bool LayerAction::translate( Core::ActionContextHandle& context )
 		Core::ActionParameterBase* param = this->get_param( j );
 		if ( param->has_extension() )
 		{
-			LayerActionParameter* layer_param = reinterpret_cast< LayerActionParameter* >( param );
+			LayerActionParameter* layer_param = static_cast< LayerActionParameter* >( param );
 			if (! ( layer_param->translate_provenance( this->private_->input_provenance_ids_ ) ) )
 			{
 				return false;

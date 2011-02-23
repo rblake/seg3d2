@@ -76,6 +76,9 @@ public:
 
 	// Keep track of which layers were locked for processing.
 	std::vector< LayerHandle > locked_for_processing_layers_;
+
+	// Keep track of which layers were locked for deletion.
+	std::vector< LayerHandle > locked_for_deletion_layers_;
 	
 	// Keep track of which layers were created.
 	std::vector< LayerHandle > created_layers_;
@@ -150,6 +153,14 @@ bool LayerFilterPrivate::delete_layer( LayerHandle layer )
 		( *it ).reset();
 		return true;
 	}
+
+	it = std::find( this->locked_for_deletion_layers_.begin(),
+		this->locked_for_deletion_layers_.end(), layer );
+	if ( it != this->locked_for_deletion_layers_.end() )
+	{
+		( *it ).reset();
+		return true;
+	}
 	
 	// Check whether the locked layer is still in the list of layers that this filter created
 	it = std::find( this->created_layers_.begin(), this->created_layers_.end(), layer );
@@ -200,6 +211,15 @@ void LayerFilterPrivate::finalize()
 			LayerManager::DispatchUnlockLayer( this->locked_for_processing_layers_[ j ], this->key_ );
 			this->locked_for_processing_layers_[ j ].reset();
 		}
+	}
+
+	for ( size_t j = 0; j < this->locked_for_deletion_layers_.size(); ++j )
+	{
+		if ( this->locked_for_deletion_layers_[ j ] )
+		{
+			LayerManager::DispatchUnlockLayer( this->locked_for_deletion_layers_[ j ], this->key_ );
+			this->locked_for_deletion_layers_[ j ].reset();
+		}	
 	}
 
 	if ( abort )
@@ -393,7 +413,7 @@ bool LayerFilter::lock_for_deletion( LayerHandle layer )
 	layer->set_filter_handle( this->shared_from_this() );
 	
 	// Add the layer to the list so it can be unlocked when the filter is done
-	this->private_->locked_for_processing_layers_.push_back( layer );
+	this->private_->locked_for_deletion_layers_.push_back( layer );
 	
 	// Add the layer to be deleted at the end
 	this->private_->deleted_layers_.push_back( layer );
@@ -717,7 +737,17 @@ bool LayerFilter::create_provenance_record( Core::ActionContextHandle context,
 			this->private_->provenance_ids_[ this->private_->locked_for_processing_layers_[ j ].get() ] = prov_id;
 					
 			output_provenance_ids.push_back( prov_id );
-			deleted_provenance_ids.push_back( prov_id );
+			deleted_provenance_ids.push_back( this->private_->locked_for_processing_layers_[ j ]->
+				provenance_id_state_->get() );
+		}
+	}
+
+	for ( size_t j = 0; j < this->private_->locked_for_deletion_layers_.size(); ++j )
+	{
+		if ( this->private_->locked_for_deletion_layers_[ j ] )
+		{
+			deleted_provenance_ids.push_back( this->private_->locked_for_deletion_layers_[ j ]->
+				provenance_id_state_->get() );
 		}
 	}
 
