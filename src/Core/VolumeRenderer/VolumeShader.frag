@@ -19,13 +19,15 @@ varying float dist; // Distance to light source.
 
 float compute_fog_factor();
 
-vec4 diffuse_color, specular_color;
+vec4 diffuse_color, secondary_color;
 
 vec4 compute_lighting( vec3 normal )
 {
 	vec3 half_v;
 	float n_dot_l, n_dot_hv;
-	vec4 color = gl_LightModel.ambient * diffuse_color;
+	vec4 material_ambient = diffuse_color * secondary_color[0];
+	vec4 material_specular = vec4( secondary_color[1] );
+	vec4 color = gl_LightModel.ambient * material_ambient;
 	
 	n_dot_l = dot ( normal, normalize( light_dir ) );
 	if ( n_dot_l < 0.0 )
@@ -37,12 +39,12 @@ vec4 compute_lighting( vec3 normal )
 	if ( n_dot_l > 0.0 ) 
 	{
 		color += ( gl_LightSource[0].diffuse * diffuse_color * n_dot_l +
-			gl_LightSource[0].ambient * diffuse_color );
+			gl_LightSource[0].ambient * material_ambient );
 		
 		half_v = normalize(half_vector);
 		n_dot_hv = max( dot ( normal, half_v ), 0.0 );
-		color += specular_color * gl_LightSource[0].specular * 
-						pow( n_dot_hv, specular_color.a * 255.0 );
+		color += material_specular * gl_LightSource[0].specular * 
+						pow( n_dot_hv, secondary_color[2] * 255.0 );
 	}
 
 	return color;
@@ -51,7 +53,6 @@ vec4 compute_lighting( vec3 normal )
 float volume_lookup( vec3 tex_coord )
 {
 	float val = texture3D( vol_tex, tex_coord ).a;
-	//val = clamp( val * scale_bias[0] + scale_bias[1], 0.0, 1.0 );
 	return val;
 }
 
@@ -65,7 +66,7 @@ void main()
 
 	if ( enable_lighting )
 	{
-		specular_color = texture1D( specular_lut, voxel_val );
+		secondary_color = texture1D( specular_lut, voxel_val );
 		vec3 gradient;
 		gradient.x = ( volume_lookup( gl_TexCoord[0].stp + vec3( texel_size.x, 0.0, 0.0 ) ) -
 			volume_lookup( gl_TexCoord[0].stp - vec3( texel_size.x, 0.0, 0.0 ) ) ) / ( 2.0 * voxel_size.x );

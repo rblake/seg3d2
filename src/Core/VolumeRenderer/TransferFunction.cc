@@ -65,7 +65,8 @@ void TransferFunctionPrivate::handle_feature_changed()
 void TransferFunctionPrivate::build_lookup_texture()
 {
 	static const int LUT_SIZE_C = 256;
-	static const int SPECULAR_OFFSET_C = LUT_SIZE_C * 4;
+	static const int SECONDARY_OFFSET_C = LUT_SIZE_C * 4;
+	static const Color BLACK_COLOR_C( 0.0f, 0.0f, 0.0f );
 	
 	BOOST_FOREACH( tf_feature_map_type::value_type feature_entry, this->tf_feature_map_ )
 	{
@@ -86,7 +87,8 @@ void TransferFunctionPrivate::build_lookup_texture()
 		float s = ( i + 0.5f ) / LUT_SIZE_C;
 		float total_alpha = 0.0f;
 		Color diffuse_color( 0.0f, 0.0f, 0.0f );
-		Color specular_color( 0.0f, 0.0f, 0.0f );
+		float ambient_coefficient = 0;
+		float specular_intensity = 0;
 		float shininess = 0;
 		int total_blended_features = 0;
 
@@ -94,16 +96,19 @@ void TransferFunctionPrivate::build_lookup_texture()
 		{
 			if ( feature_entry.second->is_enabled() )
 			{
-			float alpha = feature_entry.second->interpolate( s );
-			if ( alpha > 0 )
-			{
-				++total_blended_features;
-				total_alpha += alpha;
-					diffuse_color += feature_entry.second->get_diffuse_color() * alpha;
-					specular_color += feature_entry.second->get_specular_color() * alpha;
+				float alpha = feature_entry.second->interpolate( s );
+				if ( alpha > 0 )
+				{
+					++total_blended_features;
+					total_alpha += alpha;
+					Color faux_color = feature_entry.second->get_diffuse_color() * alpha + 
+						BLACK_COLOR_C * ( 1.0f - alpha );
+					diffuse_color += faux_color * alpha;
+					ambient_coefficient += feature_entry.second->get_ambient_coefficient() * alpha;
+					specular_intensity += feature_entry.second->get_specular_intensity() * alpha;
 					shininess += feature_entry.second->get_shininess() * alpha;
+				}
 			}
-		}
 		}
 
 		if ( total_blended_features > 0 )
@@ -111,7 +116,8 @@ void TransferFunctionPrivate::build_lookup_texture()
 			// The final color is the weighted average of all the features that
 			// are defined at the texel.
 			diffuse_color = diffuse_color * ( 1.0f / total_alpha );
-			specular_color = specular_color * ( 1.0f / total_alpha );
+			ambient_coefficient /= total_alpha;
+			specular_intensity /= total_alpha;
 			shininess /= total_alpha;
 			// The final alpha is the average of all the features that are defined
 			// at the texel.
@@ -122,13 +128,12 @@ void TransferFunctionPrivate::build_lookup_texture()
 		buffer[ ( i << 2 ) + 1 ] = static_cast< unsigned char >( Clamp( diffuse_color.g(), 0.0f, 1.0f ) * 255 );
 		buffer[ ( i << 2 ) + 2 ] = static_cast< unsigned char >( Clamp( diffuse_color.b(), 0.0f, 1.0f ) * 255 );
 		buffer[ ( i << 2 ) + 3 ] = static_cast< unsigned char >( Clamp( total_alpha, 0.0f, 1.0f ) * 255 );
-		buffer[ SPECULAR_OFFSET_C + ( i << 2 ) ] = static_cast< unsigned char >( 
-			Clamp( specular_color.r(), 0.0f, 1.0f ) * 255 );
-		buffer[ SPECULAR_OFFSET_C + ( i << 2 ) + 1 ] = static_cast< unsigned char >( 
-			Clamp( specular_color.g(), 0.0f, 1.0f ) * 255 );
-		buffer[ SPECULAR_OFFSET_C + ( i << 2 ) + 2 ] = static_cast< unsigned char >( 
-			Clamp( specular_color.b(), 0.0f, 1.0f ) * 255 );
-		buffer[ SPECULAR_OFFSET_C + ( i << 2 ) + 3 ] = static_cast< unsigned char >( shininess );
+		buffer[ SECONDARY_OFFSET_C + ( i << 2 ) ] = static_cast< unsigned char >( 
+			Clamp( ambient_coefficient, 0.0f, 1.0f ) * 255 );
+		buffer[ SECONDARY_OFFSET_C + ( i << 2 ) + 1 ] = static_cast< unsigned char >( 
+			Clamp( specular_intensity, 0.0f, 1.0f ) * 255 );
+		buffer[ SECONDARY_OFFSET_C + ( i << 2 ) + 2 ] = static_cast< unsigned char >( shininess );
+		buffer[ SECONDARY_OFFSET_C + ( i << 2 ) + 3 ] = 0;
 	}
 
 	pbo->unmap_buffer();
@@ -163,7 +168,7 @@ void TransferFunctionPrivate::build_lookup_texture()
 		Texture::lock_type tex_lock( this->specular_lut_->get_mutex() );
 		this->specular_lut_->bind();
 		this->specular_lut_->set_image( LUT_SIZE_C, GL_RGBA, 
-			reinterpret_cast< const void* >( SPECULAR_OFFSET_C ), 
+			reinterpret_cast< const void* >( SECONDARY_OFFSET_C ), 
 			GL_RGBA, GL_UNSIGNED_BYTE );
 		this->specular_lut_->unbind();
 	}
@@ -226,11 +231,15 @@ Core::TransferFunctionFeatureHandle TransferFunction::create_feature()
 		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 	feature->diffuse_color_blue_state_->state_changed_signal_.connect( boost::bind(
 		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
+	feature->ambient_coefficient_state_->state_changed_signal_.connect( boost::bind(
+		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 	feature->specular_intensity_state_->state_changed_signal_.connect( boost::bind(
 		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 	feature->shininess_state_->state_changed_signal_.connect( boost::bind(
 		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 	feature->enabled_state_->state_changed_signal_.connect( boost::bind(
+		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
+	feature->solid_state_->state_changed_signal_.connect( boost::bind(
 		&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 
 	this->private_->dirty_ = true;
@@ -308,11 +317,15 @@ bool TransferFunction::post_load_states( const StateIO& state_io )
 				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 			feature->diffuse_color_blue_state_->state_changed_signal_.connect( boost::bind(
 				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
+			feature->ambient_coefficient_state_->state_changed_signal_.connect( boost::bind(
+				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 			feature->specular_intensity_state_->state_changed_signal_.connect( boost::bind(
 				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 			feature->shininess_state_->state_changed_signal_.connect( boost::bind(
 				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 			feature->enabled_state_->state_changed_signal_.connect( boost::bind(
+				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
+			feature->solid_state_->state_changed_signal_.connect( boost::bind(
 				&TransferFunctionPrivate::handle_feature_changed, this->private_ ) );
 			this->feature_added_signal_( feature );
 		}
