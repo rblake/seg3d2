@@ -52,13 +52,14 @@ bool ActionExportSegmentation::validate( Core::ActionContextHandle& context )
 	
 	if( this->layers_ != "" )
 	{
+		std::vector< std::string > layer_vector;
+		Core::ImportFromString( this->layers_, layer_vector );
 		
-		std::vector< std::string > layer_names = Core::SplitString( this->layers_, "|" );
 		std::vector< LayerHandle > layer_handles;
 
-		for( size_t i = 0; i < layer_names.size(); ++i )
+		for( size_t i = 0; i < layer_vector.size(); ++i )
 		{
-			LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_id( layer_names[ i ] );
+			LayerHandle temp_handle = LayerManager::Instance()->get_layer_by_id( layer_vector[ i ] );
 			if( !temp_handle )
 			{
 				context->report_error( std::string( "No valid layer ids were given" ) );

@@ -803,6 +803,9 @@ void Project::import_old_session_info_into_database()
 		
 	}
 	
+	// Now we checkpoint the updated project
+	this->checkpoint_provenance_database();
+	
 	// Finally we set the session list to an empty vector so we aren't tempted to do this again.
 	std::vector< std::string > empty_vector;
 	this->sessions_state_->set( empty_vector );

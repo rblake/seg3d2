@@ -186,7 +186,7 @@ void ProjectDockWidget::save_note()
 
 	this->private_->resetting_ = true;
 	this->private_->ui_.note_edit_->setStyleSheet( 
-		QString::fromUtf8( "QTextEdit#note_edit_{ color: light gray; }" ) );
+		QString::fromUtf8( "QPlainTextEdit#note_edit_{ color: rgb(150, 150, 150); }" ) );
 	this->private_->ui_.note_edit_->setPlainText( 
 		QString::fromUtf8( "Enter your note here." ) );
 	this->private_->ui_.save_note_button_->setEnabled( false );
@@ -439,7 +439,7 @@ void ProjectDockWidget::enable_save_notes_button()
 			this->private_->ui_.note_edit_->setPlainText( 
 				QString::fromUtf8( "" ) );
 			this->private_->ui_.note_edit_->setStyleSheet( 
-				QString::fromUtf8( "QTextEdit#note_edit_{ color: black; }" ) );
+				QString::fromUtf8( "QPlainTextEdit#note_edit_{ color: black; }" ) );
 		}
 		else
 		{

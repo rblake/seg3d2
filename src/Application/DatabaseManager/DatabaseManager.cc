@@ -88,7 +88,7 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 			{
 				statement = NULL;
 				sqlite3_prepare_v2( this->private_->database_, database_create_tables_statements[ i ].c_str(), 
-				static_cast< int >( database_create_tables_statements[ i ].size() ), &statement, &tail );
+					static_cast< int >( database_create_tables_statements[ i ].size() ), &statement, &tail );
 				result = sqlite3_step( statement );
 				sqlite3_finalize( statement );				
 
@@ -197,7 +197,7 @@ bool DatabaseManager::database_query_no_return( const std::string& sql_query )
 
 bool DatabaseManager::database_checkpoint()
 {
-	return this->load_or_save_database( true );
+	return this->load_or_save_database( true /* this implys that we are saving */ );
 }
 
 std::string DatabaseManager::get_error()

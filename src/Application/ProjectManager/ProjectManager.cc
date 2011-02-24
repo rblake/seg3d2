@@ -241,7 +241,6 @@ bool ProjectManager::save_project( bool autosave /*= false*/, std::string sessio
 	{
 		if( this->save_project_session( autosave, session_name ) )
 		{
-			//this->current_project_->checkpoint_provenance_database();
 			if( this->save_project_only( this->current_project_path_state_->get(), 
 				this->current_project_->project_name_state_->get() ) )
 			{
@@ -398,6 +397,16 @@ bool ProjectManager::create_project_folders( const boost::filesystem::path& path
 	try // to create a project data folder
 	{
 		boost::filesystem::create_directory( path / project_name / "data");
+	}
+	catch ( std::exception& e ) // any errors that we might get thrown
+	{
+		CORE_LOG_ERROR( e.what() );
+		return false;
+	}
+	
+	try // to create a project data folder
+	{
+		boost::filesystem::create_directory( path / project_name / "originalfiles");
 	}
 	catch ( std::exception& e ) // any errors that we might get thrown
 	{
