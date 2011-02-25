@@ -671,9 +671,7 @@ void VolumeRenderer::initialize()
 	this->private_->volume_shader_->disable();
 }
 
-void VolumeRenderer::render( DataVolumeHandle volume, const View3D& view, 
-							double znear, double zfar, double sample_rate, bool enable_lighting, 
-							bool enable_fog, TransferFunctionHandle tf, bool orthographic )
+void VolumeRenderer::render( DataVolumeHandle volume, const VolumeRenderingParam& param )
 {
 	boost::posix_time::ptime start_time = boost::posix_time::microsec_clock::local_time();
 
@@ -684,13 +682,13 @@ void VolumeRenderer::render( DataVolumeHandle volume, const View3D& view,
 		return;
 	}
 	
-	this->private_->view_dir_ = view.lookat() - view.eyep();
+	this->private_->view_dir_ = param.view_.lookat() - param.view_.eyep();
 	this->private_->view_dir_.normalize();
 
-	this->private_->analyze_volume( volume, sample_rate );
+	this->private_->analyze_volume( volume, param.sampling_rate_ );
 
 	std::priority_queue< BrickEntry > brick_queue;
-	this->private_->process_bricks( bricks, brick_queue, view.eyep(), orthographic );
+	this->private_->process_bricks( bricks, brick_queue, param.view_.eyep(), param.orthographic_ );
 
 	glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_POLYGON_BIT );
 	glEnable( GL_DEPTH_TEST );
@@ -698,8 +696,8 @@ void VolumeRenderer::render( DataVolumeHandle volume, const View3D& view,
 	glDisable( GL_CULL_FACE );
 
 	unsigned int old_tex_unit = Texture::GetActiveTextureUnit();
-	TextureHandle diffuse_lut = tf->get_diffuse_lut();
-	TextureHandle specular_lut = tf->get_specular_lut();
+	TextureHandle diffuse_lut = param.transfer_function_->get_diffuse_lut();
+	TextureHandle specular_lut = param.transfer_function_->get_specular_lut();
 	Texture::lock_type diffuse_lock( diffuse_lut->get_mutex() );
 	Texture::lock_type specular_lock( specular_lut->get_mutex() );
 	Texture::SetActiveTextureUnit( 1 );
@@ -713,12 +711,15 @@ void VolumeRenderer::render( DataVolumeHandle volume, const View3D& view,
 		static_cast< float >( this->private_->voxel_size_[ 0 ] ),
 		static_cast< float >( this->private_->voxel_size_[ 1 ] ),
 		static_cast< float >( this->private_->voxel_size_[ 2 ] ) );
-	this->private_->volume_shader_->set_lighting( enable_lighting );
-	this->private_->volume_shader_->set_fog( enable_fog );
+	this->private_->volume_shader_->set_lighting( param.enable_lighting_ );
+	this->private_->volume_shader_->set_fog( param.enable_fog_ );
 	this->private_->volume_shader_->set_scale_bias( 1.0f, 0.0f );
-	this->private_->volume_shader_->set_sample_rate( static_cast< float >( sample_rate ) );
-	this->private_->volume_shader_->set_fog_range( static_cast< float >( znear ), 
-		static_cast< float >( zfar ) );
+	this->private_->volume_shader_->set_sample_rate( static_cast< float >( param.sampling_rate_ ) );
+	this->private_->volume_shader_->set_fog_range( static_cast< float >( param.znear_ ), 
+		static_cast< float >( param.zfar_ ) );
+	this->private_->volume_shader_->set_clip_plane( param.clip_plane_ );
+	this->private_->volume_shader_->set_enable_clip_plane( param.enable_clip_plane_ );
+	this->private_->volume_shader_->set_enable_clipping( param.enable_clipping_ );
 
 	while ( !brick_queue.empty() )
 	{

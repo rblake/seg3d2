@@ -16,8 +16,15 @@ varying vec3 light_dir; // Light direction
 varying vec3 half_vector; // Half vector between eye and light source. 
                                        // In the case of head light, it's the same as eye vector.
 varying float dist; // Distance to light source.
+varying float fog_depth;
 
-float compute_fog_factor();
+// Fragment position in world coordinates
+varying vec4 world_coord_pos;
+
+// Clipping planes in world coordinates
+uniform vec4 clip_plane[ 6 ];
+uniform bool enable_clip_plane[ 6 ];
+uniform bool enable_clipping;
 
 vec4 diffuse_color, secondary_color;
 
@@ -50,10 +57,37 @@ vec4 compute_lighting( vec3 normal )
 	return color;
 }
 
+float compute_fog_factor()
+{
+	float z = fog_depth;
+	float fog_factor = exp( -gl_Fog.density * gl_Fog.density * z * z );
+	fog_factor = clamp( fog_factor, 0.0, 1.0 );
+	
+	return fog_factor;
+}
+
 float volume_lookup( vec3 tex_coord )
 {
 	float val = texture3D( vol_tex, tex_coord ).a;
 	return val;
+}
+
+bool clipping_test( in vec4 pos, out int clip_plane_index )
+{
+	bool result = true;
+	for ( int i = 0; i < 6; ++i )
+	{
+		if ( enable_clip_plane[ i ] )
+		{
+			if ( dot( clip_plane[ i ], pos ) < 0.0 )
+			{
+				result = false;
+				clip_plane_index = i;
+				break;
+			}
+		}
+	}
+	return result;
 }
 
 void main()
@@ -68,14 +102,28 @@ void main()
 	{
 		secondary_color = texture1D( specular_lut, voxel_val );
 		vec3 gradient;
-		gradient.x = ( volume_lookup( gl_TexCoord[0].stp + vec3( texel_size.x, 0.0, 0.0 ) ) -
-			volume_lookup( gl_TexCoord[0].stp - vec3( texel_size.x, 0.0, 0.0 ) ) ) / ( 2.0 * voxel_size.x );
-		gradient.y = ( volume_lookup( gl_TexCoord[0].stp + vec3( 0.0, texel_size.y, 0.0 ) ) -
-			volume_lookup( gl_TexCoord[0].stp - vec3( 0.0, texel_size.y, 0.0 ) ) ) / ( 2.0 * voxel_size.y );
-		gradient.z = ( volume_lookup( gl_TexCoord[0].stp + vec3( 0.0, 0.0, texel_size.z ) ) -
-			volume_lookup( gl_TexCoord[0].stp - vec3( 0.0, 0.0, texel_size.z ) ) ) / ( 2.0 * voxel_size.z );
-		gradient = normalize( gradient );
-		voxel_color = compute_lighting( gradient );
+
+		int clip_plane_index;
+		if ( enable_clipping && ( !clipping_test( world_coord_pos + vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_plane_index ) ||
+			!clipping_test( world_coord_pos - vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_plane_index ) ||
+			!clipping_test( world_coord_pos + vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_plane_index ) ||
+			!clipping_test( world_coord_pos - vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_plane_index ) ||
+			!clipping_test( world_coord_pos + vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_plane_index ) ||
+			!clipping_test( world_coord_pos - vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_plane_index ) ) )
+		{
+			gradient = -clip_plane[ clip_plane_index ].xyz;
+		}
+		else
+		{
+			gradient.x = ( volume_lookup( gl_TexCoord[0].stp + vec3( texel_size.x, 0.0, 0.0 ) ) -
+				volume_lookup( gl_TexCoord[0].stp - vec3( texel_size.x, 0.0, 0.0 ) ) ) / ( 2.0 * voxel_size.x );			
+			gradient.y = ( volume_lookup( gl_TexCoord[0].stp + vec3( 0.0, texel_size.y, 0.0 ) ) -
+				volume_lookup( gl_TexCoord[0].stp - vec3( 0.0, texel_size.y, 0.0 ) ) ) / ( 2.0 * voxel_size.y );
+			gradient.z = ( volume_lookup( gl_TexCoord[0].stp + vec3( 0.0, 0.0, texel_size.z ) ) -
+				volume_lookup( gl_TexCoord[0].stp - vec3( 0.0, 0.0, texel_size.z ) ) ) / ( 2.0 * voxel_size.z );
+			gradient = normalize( gradient );
+		}
+		voxel_color = compute_lighting( gl_NormalMatrix * gradient );
 	}
 	else
 	{

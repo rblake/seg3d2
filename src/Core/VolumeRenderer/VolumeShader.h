@@ -58,6 +58,9 @@ public:
 	void set_lighting( bool enabled );
 	void set_fog( bool enabled );
 	void set_fog_range( float znear, float zfar );
+	void set_clip_plane( const float clip_planes[ 6 ][ 4 ] );
+	void set_enable_clip_plane( const int enabled[ 6 ] );
+	void set_enable_clipping( bool enabled );
 
 protected:
 	virtual bool get_vertex_shader_source( std::string& source );
@@ -77,6 +80,9 @@ private:
 	int scale_bias_loc_;
 	int sample_rate_loc_;
 	int fog_range_loc_;
+	int clip_plane_loc_;
+	int enable_clip_plane_loc_;
+	int enable_clipping_loc_;
 };
 
 } // end namespace Seg3D

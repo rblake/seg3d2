@@ -44,6 +44,22 @@ typedef boost::shared_ptr< VolumeRenderer > VolumeRendererHandle;
 class VolumeRendererPrivate;
 typedef boost::shared_ptr< VolumeRendererPrivate > VolumeRendererPrivateHandle;
 
+class VolumeRenderingParam
+{
+public:
+	View3D view_;
+	double znear_;
+	double zfar_;
+	double sampling_rate_;
+	bool enable_lighting_;
+	bool enable_fog_;
+	bool orthographic_;
+	TransferFunctionHandle transfer_function_;
+	float clip_plane_[ 6 ][ 4 ];
+	int enable_clip_plane_[ 6 ];
+	bool enable_clipping_;
+};
+
 class VolumeRenderer : public boost::noncopyable
 {
 public:
@@ -51,9 +67,7 @@ public:
 	~VolumeRenderer();
 
 	void initialize();
-	void render( DataVolumeHandle volume, const View3D& view, double znear, double zfar,
-		double sample_rate, bool enable_lighting, bool enable_fog, TransferFunctionHandle tf, 
-		bool orthographic = false ); 
+	void render( DataVolumeHandle volume, const VolumeRenderingParam& param ); 
 
 private:
 	VolumeRendererPrivateHandle private_;

@@ -795,10 +795,13 @@ bool Renderer::render()
 
 		if ( enable_clipping )
 		{
-			glPushMatrix();
-			glTranslated( bbox.center().x(), bbox.center().y(), bbox.center().z() );
 			glPushAttrib( GL_ENABLE_BIT );
 
+			// NOTE: clipping planes are defined relative to the center of the bounding box,
+			// so we need to add an offset to the distance in order to get their positions
+			// in world space.
+
+			Core::Vector clip_plane_offset( bbox.center() );
 			for ( int i = 0; i < 6; ++i )
 			{
 				if ( !clip_plane_enable[ i ] || clip_plane_normal[ i ].normalize() == 0.0 )
@@ -806,13 +809,14 @@ bool Renderer::render()
 					continue;
 				}
 				int sign = clip_plane_reverse_normal[ i ] ? -1 : 1;
-				GLdouble eqn[ 4 ] = { sign * clip_plane_normal[ i ].x(), sign * clip_plane_normal[ i ].y(),
-					sign * clip_plane_normal[ i ].z(), -sign * clip_plane_distance[ i ] };
+				clip_plane_normal[ i ] = clip_plane_normal[ i ] * sign;
+				clip_plane_distance[ i ] = -sign * clip_plane_distance[ i ] - 
+					Core::Dot( clip_plane_offset, clip_plane_normal[ i ] );
+				GLdouble eqn[ 4 ] = { clip_plane_normal[ i ].x(), clip_plane_normal[ i ].y(),
+					clip_plane_normal[ i ].z(), clip_plane_distance[ i ] };
 				glClipPlane( GL_CLIP_PLANE0 + i, eqn );
 				glEnable( GL_CLIP_PLANE0 + i );
 			}
-
-			glPopMatrix();
 		}
 		
 		CORE_CHECK_OPENGL_ERROR();
@@ -878,17 +882,28 @@ bool Renderer::render()
 			DataLayerHandle data_layer = LayerManager::Instance()->get_data_layer_by_id( vr_layer );
 			if ( data_layer && data_layer->has_valid_data() )
 			{
-				//double data_min = data_layer->min_value_state_->get();
-				//double data_range = data_layer->max_value_state_->get() - data_min;
-				//double display_max = data_layer->display_max_value_state_->get();
-				//double window_size = display_max - data_layer->display_min_value_state_->get();
-				//window_size = Core::Max( 0.01 * data_range, window_size );
-				//double scale = data_range > 0 ? data_range / window_size : 1.0;
-				//double bias = data_range > 0 ? 1.0 - ( scale * display_max
-				//	- data_min ) / data_range : 0.0;
-				this->private_->volume_renderer_->render( data_layer->get_data_volume(), 
-					view3d, znear, zfar, sample_rate, with_lighting, with_fog, 
-					ViewerManager::Instance()->get_transfer_function() );
+				Core::VolumeRenderingParam vr_param;
+				vr_param.view_ = view3d;
+				vr_param.znear_ = znear;
+				vr_param.zfar_ = zfar;
+				vr_param.sampling_rate_ = sample_rate;
+				vr_param.enable_lighting_ = with_lighting;
+				vr_param.enable_fog_ = with_fog;
+				vr_param.orthographic_ = false;
+				vr_param.transfer_function_ = ViewerManager::Instance()->get_transfer_function();
+				vr_param.enable_clipping_ = enable_clipping;
+				if ( enable_clipping )
+				{
+					for ( int i = 0; i < 6; ++i )
+					{
+						vr_param.enable_clip_plane_[ i ] = clip_plane_enable[ i ];
+						vr_param.clip_plane_[ i ][ 0 ] = static_cast< float >( clip_plane_normal[ i ].x() );
+						vr_param.clip_plane_[ i ][ 1 ] = static_cast< float >( clip_plane_normal[ i ].y() );
+						vr_param.clip_plane_[ i ][ 2 ] = static_cast< float >( clip_plane_normal[ i ].z() );
+						vr_param.clip_plane_[ i ][ 3 ] = static_cast< float >( clip_plane_distance[ i ] );
+					}
+				}
+				this->private_->volume_renderer_->render( data_layer->get_data_volume(), vr_param );
 				CORE_CHECK_OPENGL_ERROR();
 			}
 		}

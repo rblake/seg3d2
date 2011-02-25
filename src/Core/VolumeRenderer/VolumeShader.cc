@@ -48,7 +48,6 @@ bool VolumeShader::get_vertex_shader_source( std::string& source )
 	const char VERT_SHADER_SOURCE_C[] =
 	{
 #include "VolumeShader_vert"
-#include "Fog_vert"
 	};
 	source = std::string( VERT_SHADER_SOURCE_C );
 	return true;
@@ -59,7 +58,6 @@ bool VolumeShader::get_fragment_shader_source( std::string& source )
 	const char FRAG_SHADER_SOURCE_C[] =
 	{
 #include "VolumeShader_frag"
-#include "Fog_frag"
 	};
 	source = std::string( FRAG_SHADER_SOURCE_C );
 	return true;
@@ -80,6 +78,9 @@ bool VolumeShader::post_initialize()
 	this->scale_bias_loc_ = this->get_uniform_location( "scale_bias" );
 	this->sample_rate_loc_ = this->get_uniform_location( "sample_rate" );
 	this->fog_range_loc_ = this->get_uniform_location( "fog_range" );
+	this->clip_plane_loc_ = this->get_uniform_location( "clip_plane" );
+	this->enable_clip_plane_loc_ = this->get_uniform_location( "enable_clip_plane" );
+	this->enable_clipping_loc_ = this->get_uniform_location( "enable_clipping" );
 	this->disable();
 	return true;
 }
@@ -142,6 +143,21 @@ void VolumeShader::set_sample_rate( float sample_rate )
 void VolumeShader::set_fog_range( float znear, float zfar )
 {
 	glUniform2f( this->fog_range_loc_, znear, zfar );
+}
+
+void VolumeShader::set_clip_plane( const float clip_planes[ 6 ][ 4 ] )
+{
+	glUniform4fv( this->clip_plane_loc_, 6, &clip_planes[ 0 ][ 0 ] );
+}
+
+void VolumeShader::set_enable_clip_plane( const int enabled[ 6 ] )
+{
+	glUniform1iv( this->enable_clip_plane_loc_, 6, enabled );
+}
+
+void VolumeShader::set_enable_clipping( bool enabled )
+{
+	glUniform1i( this->enable_clipping_loc_, enabled );
 }
 
 } // end namespace Seg3D
