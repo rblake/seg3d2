@@ -72,21 +72,41 @@ float volume_lookup( vec3 tex_coord )
 	return val;
 }
 
-bool clipping_test( in vec4 pos, out int clip_plane_index )
+bool clipping_test( in vec4 pos, out vec3 clip_norm )
 {
 	bool result = true;
-	for ( int i = 0; i < 6; ++i )
+
+	if ( enable_clip_plane[ 0 ] && dot( clip_plane[ 0 ], pos ) < 0.0 )
 	{
-		if ( enable_clip_plane[ i ] )
-		{
-			if ( dot( clip_plane[ i ], pos ) < 0.0 )
-			{
-				result = false;
-				clip_plane_index = i;
-				break;
-			}
-		}
+		result = false;
+		clip_norm = clip_plane[ 0 ].xyz;
 	}
+	else if ( enable_clip_plane[ 1 ] && dot( clip_plane[ 1 ], pos ) < 0.0 )
+	{
+		result = false;
+		clip_norm = clip_plane[ 1 ].xyz;
+	}
+	else if ( enable_clip_plane[ 2 ] && dot( clip_plane[ 2 ], pos ) < 0.0 )
+	{
+		result = false;
+		clip_norm = clip_plane[ 2 ].xyz;
+	}
+	else if ( enable_clip_plane[ 3 ] && dot( clip_plane[ 3 ], pos ) < 0.0 )
+	{
+		result = false;
+		clip_norm = clip_plane[ 3 ].xyz;
+	}
+	else if ( enable_clip_plane[ 4 ] && dot( clip_plane[ 4 ], pos ) < 0.0 )
+	{
+		result = false;
+		clip_norm = clip_plane[ 4 ].xyz;
+	}
+	else if ( enable_clip_plane[ 5 ] && dot( clip_plane[ 5 ], pos ) < 0.0 )
+	{
+		result = false;
+		clip_norm = clip_plane[ 5 ].xyz;
+	}
+
 	return result;
 }
 
@@ -103,15 +123,15 @@ void main()
 		secondary_color = texture1D( specular_lut, voxel_val );
 		vec3 gradient;
 
-		int clip_plane_index;
-		if ( enable_clipping && ( !clipping_test( world_coord_pos + vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_plane_index ) ||
-			!clipping_test( world_coord_pos - vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_plane_index ) ||
-			!clipping_test( world_coord_pos + vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_plane_index ) ||
-			!clipping_test( world_coord_pos - vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_plane_index ) ||
-			!clipping_test( world_coord_pos + vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_plane_index ) ||
-			!clipping_test( world_coord_pos - vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_plane_index ) ) )
+		vec3 clip_norm;
+		if ( enable_clipping && ( !clipping_test( world_coord_pos + vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_norm ) ||
+			!clipping_test( world_coord_pos - vec4( voxel_size.x, 0.0, 0.0, 0.0 ), clip_norm ) ||
+			!clipping_test( world_coord_pos + vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_norm ) ||
+			!clipping_test( world_coord_pos - vec4( 0.0, voxel_size.y, 0.0, 0.0 ), clip_norm ) ||
+			!clipping_test( world_coord_pos + vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_norm ) ||
+			!clipping_test( world_coord_pos - vec4( 0.0, 0.0, voxel_size.z, 0.0 ), clip_norm ) ) )
 		{
-			gradient = -clip_plane[ clip_plane_index ].xyz;
+			gradient = -clip_norm;
 		}
 		else
 		{
