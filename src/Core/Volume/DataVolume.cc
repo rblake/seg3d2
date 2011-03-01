@@ -274,9 +274,9 @@ bool DataVolumePrivate::generate_bricks()
 				tex->bind();
 				tex->set_mag_filter( GL_LINEAR );
 				tex->set_min_filter( GL_LINEAR );
-				tex->set_wrap_s( GL_CLAMP );
-				tex->set_wrap_t( GL_CLAMP );
-				tex->set_wrap_r( GL_CLAMP );
+				tex->set_wrap_s( GL_CLAMP_TO_EDGE );
+				tex->set_wrap_t( GL_CLAMP_TO_EDGE );
+				tex->set_wrap_r( GL_CLAMP_TO_EDGE );
 				tex->set_image( static_cast< int >( texture_width ), static_cast< int >( texture_height ), 
 					static_cast< int >( texture_depth ), DataVolumeBrick::TEXTURE_FORMAT_C,
 					0, GL_ALPHA, DataVolumeBrick::TEXTURE_DATA_TYPE_C );
