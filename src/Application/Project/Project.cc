@@ -525,7 +525,7 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 			Core::ExportToString( output_list[ i ] )+ ", '" + action_desc + "', '" + 
 			timestamp + "', '" + user_name + "', " + Core::ExportToString( i+1 )+ ");";
 		
-		if( !this->database_query_no_return( insert_statement ) )
+		if( !this->run_sql_statement( insert_statement ) )
 		{
 			CORE_LOG_ERROR( this->get_error() );
 			return false;
@@ -537,7 +537,7 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( input_list[ j ] ) + ");";
 
-			if( !this->database_query_no_return( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement ) )
 			{
 				CORE_LOG_ERROR( this->get_error() );
 				return false;
@@ -550,7 +550,7 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( output_list[ j ] ) + ");";
 
-			if( !this->database_query_no_return( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement ) )
 			{
 				CORE_LOG_ERROR( this->get_error() );
 				return false;
@@ -564,7 +564,7 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( deleted_list[ j ] ) + ");";
 
-			this->database_query_no_return( insert_statement );
+			this->run_sql_statement( insert_statement );
 		}	
 		
 	}
@@ -604,7 +604,7 @@ bool Project::insert_session_into_database( const std::string& timestamp,
 		"(session_name, username, timestamp) VALUES('" + 
 		session_name+ "', '" + user + "', '" + timestamp + "');";
 
-	if( !this->database_query_no_return( insert_statement ) )
+	if( !this->run_sql_statement( insert_statement ) )
 	{
 		CORE_LOG_WARNING( "Chill out. Wait at least a second before doing another save..." );
 		return false;
@@ -625,7 +625,7 @@ bool Project::insert_session_into_database( const std::string& timestamp,
 				"(session_name, data_file) VALUES('" + session_name + 
 				"', '" + Core::ExportToString( generation ) +	".nrrd');";
 
-			if( !this->database_query_no_return( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement ) )
 			{
 				CORE_LOG_ERROR( this->get_error() );
 				return false;
@@ -643,7 +643,7 @@ bool Project::delete_session_from_database( const std::string& session_name )
 	std::string delete_statement = "DELETE FROM sessions WHERE (session_name = '" + 
 		session_name + "');";
 
-	if( !this->database_query_no_return( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -652,7 +652,7 @@ bool Project::delete_session_from_database( const std::string& session_name )
 	delete_statement = "DELETE FROM data_relations WHERE (session_name = '" + 
 		session_name + "');";
 
-	if( !this->database_query_no_return( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -665,7 +665,7 @@ bool Project::get_all_sessions( std::vector< SessionInfo >& sessions )
 {
 	ResultSet result_set;
 	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -687,12 +687,18 @@ bool Project::get_session( SessionInfo& session, const std::string& session_name
 	ResultSet result_set;
 	std::string select_statement = "SELECT * FROM sessions WHERE session_name ='" + 
 		session_name + "';";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
 	}
 
+	if ( result_set.size() == 0 )
+	{
+		CORE_LOG_ERROR( "Session '" + session_name + "' not found." );
+		return false;
+	}
+	
 	session = SessionInfo( 
 		boost::any_cast< std::string >( ( result_set[ 0 ] )[ "session_name" ] ),
 		boost::any_cast< std::string >( ( result_set[ 0 ] )[ "username" ] ),
@@ -705,7 +711,7 @@ bool Project::get_most_recent_session_name( std::string& session_name )
 {
 	ResultSet result_set;
 	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -793,7 +799,7 @@ void Project::import_old_session_info_into_database()
 					"(session_name, data_file) VALUES('" + new_session_name + 
 					"', '" + files[ i ] + "');";
 
-				if( !this->database_query_no_return( insert_statement ) )
+				if( !this->run_sql_statement( insert_statement ) )
 				{
 					CORE_LOG_ERROR( this->get_error() );
 					return;
@@ -815,7 +821,7 @@ long long Project::get_data_file_size()
 {
 	ResultSet result_set;
 	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -841,9 +847,14 @@ void Project::delete_unused_data_files()
 {
 	ResultSet result_set;
 	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
+		return;
+	}
+
+	if ( result_set.size() == 0 )
+	{
 		return;
 	}
 	

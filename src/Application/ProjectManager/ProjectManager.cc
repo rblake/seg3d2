@@ -609,12 +609,12 @@ bool ProjectManager::insert_recent_projects_entry( const std::string& project_na
 	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
 		+ "') AND (path = '" + project_path + "')";
 		
-	this->database_query_no_return( delete_statement );
+	this->run_sql_statement( delete_statement );
 		
 	std::string insert_statement = "INSERT INTO recentprojects (name, path, date) "
 		"VALUES('" + project_name + "', '" + project_path + "', '" + project_date + "')";
 		
-	if( this->database_query_no_return( insert_statement ) )
+	if( this->run_sql_statement( insert_statement ) )
 	{
 		// if we've successfully added recent projects to our database
 		// then we let everyone know things have changed.
@@ -635,7 +635,7 @@ bool ProjectManager::delete_recent_projects_entry( const std::string& project_na
 	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
 		+ "') AND (path = '" + project_path + "')";
 
-	if( !this->database_query_no_return( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -649,7 +649,7 @@ bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProje
 {
 	ResultSet result_set;
 		std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
-	if( !this->database_query( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set ) )
 	{
 		CORE_LOG_ERROR( this->get_error() );
 		return false;
@@ -661,7 +661,7 @@ bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProje
 			boost::any_cast< std::string >( ( result_set[ i ] )[ "name" ] ),
 			boost::any_cast< std::string >( ( result_set[ i ] )[ "path" ] ),
 			boost::any_cast< std::string >( ( result_set[ i ] )[ "date" ] ), 
-			boost::any_cast< int >( ( result_set[ i ] )[ "id" ] ) ) );
+			static_cast< int >( boost::any_cast< long long >( ( result_set[ i ] )[ "id" ] ) ) ) );
 	}
 	
 	return true;

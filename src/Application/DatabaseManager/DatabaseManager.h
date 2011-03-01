@@ -61,13 +61,16 @@ public:
 	virtual ~DatabaseManager();
 	
 public:
-	// DATABASE_QUERY:
-	// this function is for querying the database when you expect results
-	bool database_query( const std::string& sql_query, ResultSet& results );
-	
-	// DATABASE_QUERY_NO_RETURN:
-	// this is for running query's on the database that don't return results, for example INSERT	
-	bool database_query_no_return( const std::string& sql_query );
+	// RUN_SQL_STATEMENT:
+	// Execute the given SQL statement on the database. If the statement generates
+	// any results, they will be put in the result set.
+	// Returns true on success, otherwise false.
+	bool run_sql_statement( const std::string& sql_str, ResultSet& results );
+
+	// RUN_SQL_STATEMENT:
+	// Execute the given SQL statement on the database.
+	// Returns true on success, otherwise false.
+	bool run_sql_statement( const std::string& sql_str );
 	
 	// DATABASE_CHECKPOINT:
 	// this is for writing the database to disk.  We need to do this because the db is stored in

@@ -122,77 +122,68 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 	return true;
 }
 
-bool DatabaseManager::database_query( const std::string& sql_query, ResultSet& results )
+bool DatabaseManager::run_sql_statement( const std::string& sql_str )
+{
+	ResultSet dummy_results;
+	return this->run_sql_statement( sql_str, dummy_results );
+}
+
+bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& results )
 {
 	int result;
- 	const char* tail;
+	const char* tail;
 	sqlite3_stmt* statement = NULL;
-	sqlite3_prepare_v2( this->private_->database_, sql_query.c_str(), 
-		static_cast< int >( sql_query.size() ), &statement, &tail );
-	bool at_least_one = false;
-	result = sqlite3_step( statement );	
-		
-	while ( result == SQLITE_ROW )
+	sqlite3_prepare_v2( this->private_->database_, sql_str.c_str(), 
+		static_cast< int >( sql_str.size() ), &statement, &tail );
+
+	while ( ( result = sqlite3_step( statement ) ) == SQLITE_ROW )
 	{
-		at_least_one = true;
-	
 		std::map< std::string, boost::any > temp_map;
 		for( int j = 0; j < sqlite3_column_count( statement ); ++j )
 		{
 			boost::any temp_any;
 			switch( sqlite3_column_type( statement, j ) )
 			{
-				case SQLITE_TEXT:
+			case SQLITE_TEXT:
+			case SQLITE_BLOB:
 				{
-					std::string string_result = std::string( (char*)sqlite3_column_text( statement, j ) );
+					std::string string_result = std::string( reinterpret_cast< const char* >( 
+						sqlite3_column_text( statement, j ) ) );
 					temp_any = boost::any( string_result );
 					break;
 				}
-				case SQLITE_INTEGER:
+			case SQLITE_INTEGER:
 				{
-					int int_result = sqlite3_column_int( statement, j );
+					long long int_result = sqlite3_column_int64( statement, j );
 					temp_any = boost::any( int_result );
 					break;
 				}
+			case SQLITE_FLOAT:
+				{
+					double double_result = sqlite3_column_double( statement, j );
+					temp_any = boost::any( double_result );
+					break;
+				}
+			case SQLITE_NULL:
+			default:
+				break;
 			}
-			std::string name_result = std::string( sqlite3_column_name( statement, j ) );
-			temp_map[ name_result ] = temp_any;
+			std::string column_name = std::string( sqlite3_column_name( statement, j ) );
+			temp_map[ column_name ] = temp_any;
 		}
 		results.push_back( temp_map );
-		result = sqlite3_step( statement );
 	}
-	
+
 	sqlite3_finalize( statement );
-	
-	if( !at_least_one && ( result != SQLITE_DONE ) )
+
+	if( result != SQLITE_DONE )
 	{
-		this->private_->error_=  "The select statement had no results. '" + sql_query + "', returned error: "
+		this->private_->error_=  "The SQL statement '" + sql_str + "' returned error code: "
 			+ Core::ExportToString( result );
 		return false;
 	} 
-	
-	return true;
-}
 
-bool DatabaseManager::database_query_no_return( const std::string& sql_query )
-{
-	int result;
-	const char* tail;
-	sqlite3_stmt* statement = NULL;
-	sqlite3_prepare_v2( this->private_->database_, sql_query.c_str(), 
-		static_cast< int >( sql_query.size() ), &statement, &tail );
-	result = sqlite3_step( statement );
-	sqlite3_finalize( statement );
-	
-	if( result != SQLITE_DONE )
-	{
-		this->private_->error_=  "The insert statement could not be completed.  The insert statement provided '"
-			+ sql_query + "', returned error: " + Core::ExportToString( result );
-		return false;
-	}
-	
 	return true;
-	
 }
 
 bool DatabaseManager::database_checkpoint()
