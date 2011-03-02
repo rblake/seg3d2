@@ -40,7 +40,7 @@
 #include <Core/Graphics/UnitCube.h>
 #include <Core/TextRenderer/TextRenderer.h>
 #include <Core/Graphics/ColorMap.h>
-#include <Core/VolumeRenderer/VolumeRenderer.h>
+#include <Core/VolumeRenderer/VolumeRendererSimple.h>
 
 // Application includes
 #include <Application/Layer/DataLayer.h>
@@ -133,7 +133,7 @@ public:
 	Core::Texture2DHandle pattern_texture_;
 	Core::TextRendererHandle text_renderer_;
 	Core::Texture2DHandle text_texture_;
-	Core::VolumeRendererHandle volume_renderer_;
+	Core::VolumeRendererBaseHandle volume_renderer_;
 
 	size_t viewer_id_;
 	bool rendering_enabled_;
@@ -582,7 +582,7 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->slice_shader_.reset( new SliceShader );
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
-	this->private_->volume_renderer_.reset( new Core::VolumeRenderer );
+	this->private_->volume_renderer_.reset( new Core::VolumeRendererSimple );
 	this->private_->viewer_id_ = viewer_id;
 }
 

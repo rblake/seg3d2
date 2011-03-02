@@ -26,51 +26,36 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_VOLUMERENDERER_VOLUMERENDERER_H
-#define CORE_VOLUMERENDERER_VOLUMERENDERER_H
+#ifndef CORE_VOLUMERENDERER_VOLUMERENDERERSIMPLE_H
+#define CORE_VOLUMERENDERER_VOLUMERENDERERSIMPLE_H
 
 #include <boost/utility.hpp>
 
 #include <Core/Geometry/View3D.h>
 #include <Core/Volume/DataVolume.h>
 #include <Core/VolumeRenderer/TransferFunction.h>
+#include <Core/VolumeRenderer/VolumeRendererBase.h>
 
 namespace Core
 {
 
-class VolumeRenderer;
-typedef boost::shared_ptr< VolumeRenderer > VolumeRendererHandle;
+class VolumeRendererSimple;
+typedef boost::shared_ptr< VolumeRendererSimple > VolumeRendererSimpleHandle;
 
-class VolumeRendererPrivate;
-typedef boost::shared_ptr< VolumeRendererPrivate > VolumeRendererPrivateHandle;
+class VolumeRendererSimplePrivate;
+typedef boost::shared_ptr< VolumeRendererSimplePrivate > VolumeRendererSimplePrivateHandle;
 
-class VolumeRenderingParam
+class VolumeRendererSimple : public VolumeRendererBase
 {
 public:
-	View3D view_;
-	double znear_;
-	double zfar_;
-	double sampling_rate_;
-	bool enable_lighting_;
-	bool enable_fog_;
-	bool orthographic_;
-	TransferFunctionHandle transfer_function_;
-	float clip_plane_[ 6 ][ 4 ];
-	int enable_clip_plane_[ 6 ];
-	bool enable_clipping_;
-};
+	VolumeRendererSimple();
+	virtual ~VolumeRendererSimple();
 
-class VolumeRenderer : public boost::noncopyable
-{
-public:
-	VolumeRenderer();
-	~VolumeRenderer();
-
-	void initialize();
-	void render( DataVolumeHandle volume, const VolumeRenderingParam& param ); 
+	virtual void initialize();
+	virtual void render( DataVolumeHandle volume, const VolumeRenderingParam& param ); 
 
 private:
-	VolumeRendererPrivateHandle private_;
+	VolumeRendererSimplePrivateHandle private_;
 };
 
 } // end namespace Core

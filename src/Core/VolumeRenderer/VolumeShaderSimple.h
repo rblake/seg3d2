@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_VOLUMERENDERER_VOLUMESHADER_H
-#define CORE_VOLUMERENDERER_VOLUMESHADER_H
+#ifndef CORE_VOLUMERENDERER_VOLUMESHADERSIMPLE_H
+#define CORE_VOLUMERENDERER_VOLUMESHADERSIMPLE_H
 
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
@@ -37,14 +37,14 @@
 namespace Core
 {
 
-class VolumeShader;
-typedef boost::shared_ptr< VolumeShader > VolumeShaderHandle;
+class VolumeShaderSimple;
+typedef boost::shared_ptr< VolumeShaderSimple > VolumeShaderSimpleHandle;
 
-class VolumeShader : public ShaderBase
+class VolumeShaderSimple : public ShaderBase
 {
 public:
-	VolumeShader();
-	virtual ~VolumeShader();
+	VolumeShaderSimple();
+	virtual ~VolumeShaderSimple();
 
 	void set_texture_bbox_min( float x, float y, float z );
 	void set_texture_bbox_size( float x, float y, float z );
