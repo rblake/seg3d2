@@ -108,6 +108,7 @@ LayerImporterWidget::LayerImporterWidget( std::vector< LayerImporterHandle > imp
 	
 	this->private_->ui_.swap_x_y_spacing_widget_layout_->setAlignment( Qt::AlignCenter );
 	this->private_->ui_.swap_x_y_spacing_widget_->hide();
+	this->private_->ui_.series_warning_widget_->hide();
 
 	// We warn the user if only one file was selected and it is a series importer. Most likely
 	// the scanning of similar files failed.
@@ -238,7 +239,7 @@ void LayerImporterWidget::list_import_options()
 	// Show the data importer option
 	this->private_->ui_.data_->show();
 	this->private_->data_volume_button_->setMinimumSize( this->private_->ui_.data_->size() );
-	this->private_->data_volume_button_->setChecked( true );
+	this->private_->data_volume_button_->setChecked( this->private_->mode_ == "data" );
 		
 	if ( this->private_->info_->get_mask_compatible() )
 	{
@@ -249,13 +250,13 @@ void LayerImporterWidget::list_import_options()
 
 		// Ensure that the widgets have the right size
 		this->private_->mask_1234_button_->setMinimumSize( this->private_->ui_.bitplane_mask_->size() );
-		this->private_->mask_1234_button_->setChecked( true );
+		this->private_->mask_1234_button_->setChecked( this->private_->mode_ == "label_mask" );
 		
 		this->private_->mask_1248_button_->setMinimumSize( this->private_->ui_.label_mask_->size());
-		this->private_->mask_1248_button_->setChecked( true );
+		this->private_->mask_1248_button_->setChecked( this->private_->mode_ == "bitplane_mask" );
 
 		this->private_->mask_single_button_->setMinimumSize( this->private_->ui_.single_mask_->size() );
-		this->private_->mask_single_button_->setChecked( true );
+		this->private_->mask_single_button_->setChecked( this->private_->mode_ == "single_mask" );
 	}
 	else
 	{

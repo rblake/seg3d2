@@ -35,7 +35,6 @@
 #include <Core/Volume/DataVolumeBrick.h>
 #include <Core/VolumeRenderer/VolumeRendererBase.h>
 #include <Core/Graphics/PixelBufferObject.h>
-#include <Core/VolumeRenderer/VolumeShader.h>
 #include <Core/Geometry/Algorithm.h>
 
 #ifdef max

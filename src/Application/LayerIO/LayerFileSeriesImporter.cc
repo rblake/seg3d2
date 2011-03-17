@@ -62,11 +62,7 @@ std::string LayerFileSeriesImporter::get_file_tag() const
 {
 	if ( this->private_->filenames_.size() == 0 ) return "";
 	boost::filesystem::path full_filename( this->private_->filenames_[ 0 ] );
-	std::string stem = full_filename.parent_path().stem();
-	if ( stem == "" )
-	{
-		return full_filename.stem();
-	}
+	return full_filename.parent_path().stem();
 }
 
 

@@ -121,7 +121,7 @@ void LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 	std::vector< LayerImporterHandle > importers;
 
 	// Loop over all the selected files and generate an importer for them
-	for( size_t i = 0; i < file_list.size(); ++i )
+	for( int i = 0; i < file_list.size(); ++i )
 	{
 		LayerImporterHandle importer;
 		
@@ -194,7 +194,7 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 
 	// Convert the filenames into STL strings
 	std::vector< std::string > filenames( file_list.size() );
-	for ( size_t j = 0; j < file_list.size(); j++ )
+	for ( int j = 0; j < file_list.size(); j++ )
 	{
 		filenames[ j ] = file_list.at( j ).toStdString();
 	}

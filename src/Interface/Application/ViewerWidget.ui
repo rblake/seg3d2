@@ -86,9 +86,11 @@ QToolButton:pressed{
      border-bottom-right-radius: 3px;
  }
 
+/*
  QComboBox::down-arrow {
      image: url(&quot;:/Images/Arrow.png&quot;);
  }
+*/
 
  QComboBox::down-arrow:on { /* shift the arrow when popup is open */
      top: 0px;
