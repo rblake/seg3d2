@@ -30,26 +30,24 @@
 #define APPLICATION_LAYERMANAGER_ACTIONS_ACTIONIMPORTLAYER_H
 
 // Core includes
-#include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
 
 // Application includes
-#include <Application/LayerIO/LayerImporter.h>
+#include <Application/LayerIO/LayerSingleFileImporter.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
 
-// TODO: We should split this in importfromfile and importfromseries
-// --JGS
-	
-class ActionImportLayer : public Core::Action
+class ActionImportLayer : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "ImportLayer", "This action imports a layer into the layer manager.")
 	CORE_ACTION_ARGUMENT( "filename", "The name of the file to load." )
-	CORE_ACTION_KEY( "mode", "data", "The mode to use: data, single_mask, bitplane_mask, or label_mask.")
 	CORE_ACTION_KEY( "importer", "", "Optional name for a specific importer." )
+	CORE_ACTION_KEY( "mode", "data", "The mode to use: data, single_mask, bitplane_mask, or label_mask.")
+	CORE_ACTION_KEY( "cache", "-1" , "Location of the file if it is in the data cache of the project." )
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -59,8 +57,9 @@ public:
 	ActionImportLayer()
 	{
 		this->add_parameter( this->filename_ );
-		this->add_parameter( this->mode_ );
 		this->add_parameter( this->importer_ );
+		this->add_parameter( this->mode_ );
+		this->add_parameter( this->cache_ );
 	}
 	
 	// -- Functions that describe action --
@@ -86,6 +85,9 @@ private:
 	// The filename of the file to load
 	std::string filename_;
 
+	// If the data is located in the data cache it is located in this directory
+	ProvenanceID cache_;
+
 	// How should the file be loaded
 	std::string mode_;
 
@@ -98,15 +100,6 @@ private:
 	
 	// -- Dispatch this action from the interface --
 public:
-	// CREATE:
-	// Create action that imports a layer
-	static Core::ActionHandle Create( const std::string& filename, const std::string& mode = "data",
-		const std::string importer = "" );
-
-	// CREATE:
-	// Create action that imports a layer
-	static Core::ActionHandle Create( const LayerImporterHandle& importer, LayerImporterMode mode );
-	
 	// DISPATCH:
 	// Create and dispatch action that moves the layer above 
 	static void Dispatch( Core::ActionContextHandle context, const std::string& filename, 
@@ -114,10 +107,10 @@ public:
 
 	// DISPATCH:
 	// To avoid reading a file twice, this action has a special option, so it can take an
-	// importer that has already loaded the file. This prevents it from being read twice
-	static void Dispatch( Core::ActionContextHandle context, const LayerImporterHandle& importer, 
-		LayerImporterMode mode );
-	
+	// importer that has already loaded the file. This prevents it from reading the file twice
+	static void Dispatch( Core::ActionContextHandle context, 
+		const LayerImporterHandle& importer, 
+		const std::string& mode = "data" );
 };
 	
 } // end namespace Seg3D

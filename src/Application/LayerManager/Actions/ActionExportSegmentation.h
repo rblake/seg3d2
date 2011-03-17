@@ -104,10 +104,10 @@ public:
 
 	// DISPATCH:
 	static void Dispatch( Core::ActionContextHandle context, const LayerExporterHandle& exporter, 
-		LayerExporterMode mode, const std::string& file_path, std::string extension = ".nrrd" );
+		const std::string& mode, const std::string& file_path, std::string extension = ".nrrd" );
 	
 	static void Dispatch( Core::ActionContextHandle context, const std::string& layer_id, 
-		LayerExporterMode mode, const std::string& file_path, std::string extension = ".nrrd" );
+		const std::string& mode, const std::string& file_path, std::string extension = ".nrrd" );
 			
 };
 	

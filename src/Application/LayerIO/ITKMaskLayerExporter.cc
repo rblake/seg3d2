@@ -44,7 +44,7 @@
 #include <Application/Layer/DataLayer.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 
-SCI_REGISTER_EXPORTER( Seg3D, ITKMaskLayerExporter );
+SEG3D_REGISTER_EXPORTER( Seg3D, ITKMaskLayerExporter );
 
 namespace Seg3D
 {
@@ -242,26 +242,7 @@ ITKMaskLayerExporter::ITKMaskLayerExporter( std::vector< LayerHandle >& layers )
 	this->pixel_type_ = layers[ 0 ]->get_data_type();
 }
 
-
-Core::GridTransform ITKMaskLayerExporter::get_grid_transform()
-{
-	if( !this->layers_[ 0 ] ) return Core::GridTransform( 1, 1, 1 );
-	return this->layers_[ 0 ]->get_grid_transform();
-}
-
-
-Core::DataType ITKMaskLayerExporter::get_data_type()
-{
-	if( !this->layers_[ 0 ] ) return Core::DataType::UNKNOWN_E;
-	return this->layers_[ 0 ]->get_data_type();
-}
-
-int ITKMaskLayerExporter::get_exporter_modes()
-{
-	return LayerImporterMode::SINGLE_MASK_E;
-}
-
-bool ITKMaskLayerExporter::export_layer( LayerExporterMode mode, const std::string& file_path, 
+bool ITKMaskLayerExporter::export_layer( const std::string& mode, const std::string& file_path, 
 	const std::string& name )
 {
 	for( int i = 0; i < static_cast< int >( this->layers_.size() ); ++i )

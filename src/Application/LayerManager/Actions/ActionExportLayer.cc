@@ -104,8 +104,8 @@ bool ActionExportLayer::run( Core::ActionContextHandle& context, Core::ActionRes
 
 	progress->begin_progress_reporting();
 		
-	this->layer_exporter_->export_layer( LayerExporterMode::DATA_E, 
-		filename_and_path.parent_path().string(), filename_without_extension );
+	this->layer_exporter_->export_layer( "data", filename_and_path.parent_path().string(), 
+		filename_without_extension );
 
 	progress->end_progress_reporting();
 

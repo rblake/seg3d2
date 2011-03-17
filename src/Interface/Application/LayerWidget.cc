@@ -1274,7 +1274,7 @@ void LayerWidget::export_layer( const std::string& type_extension )
 		Core::VolumeType::MASK_E )
 	{
 		ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), 
-			this->private_->layer_->get_layer_id(), LayerExporterMode::SINGLE_MASK_E, 
+			this->private_->layer_->get_layer_id(), "single_mask", 
 			export_path.toStdString(), type_extension );
 	}
 	else if( LayerManager::Instance()->get_layer_by_id( this->get_layer_id() )->get_type() == 

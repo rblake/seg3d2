@@ -34,7 +34,7 @@
 #include <Core/Interface/Interface.h>
 
 // Application includes
-#include <Application/LayerIO/LayerImporter.h>
+#include <Application/LayerIO/LayerFileSeriesImporter.h>
 
 namespace Seg3D
 {
@@ -47,10 +47,10 @@ class ActionImportSeries : public Core::Action
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "ImportSeries", "This action imports a series into the layer manager.")
-	CORE_ACTION_ARGUMENT( "filename", "The name of the file to load." )
-	CORE_ACTION_ARGUMENT( "filenames", "The names of the file to load." )
-	CORE_ACTION_KEY( "mode", "data", "The mode to use: data, single_mask, bitplane_mask, or label_mask.")
+	CORE_ACTION_ARGUMENT( "filenames", "The name of the file to load." )
 	CORE_ACTION_KEY( "importer", "", "Optional name for a specific importer." )
+	CORE_ACTION_KEY( "mode", "data", "The mode to use: data, single_mask, bitplane_mask, or label_mask.")
+	CORE_ACTION_KEY( "cache", "-1" , "Location of the file if it is in the data cache of the project." )
 	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 )
@@ -60,8 +60,9 @@ public:
 	ActionImportSeries()
 	{
 		this->add_parameter( this->filenames_ );
-		this->add_parameter( this->mode_ );
 		this->add_parameter( this->importer_ );
+		this->add_parameter( this->mode_ );
+		this->add_parameter( this->cache_ );
 	}
 	
 	// -- Functions that describe action --
@@ -87,6 +88,9 @@ private:
 	// The filename of the file to load
 	std::vector< std::string > filenames_;
 
+	// If the data is located in the data cache it is located in this directory
+	ProvenanceID cache_;
+	
 	// How should the file be loaded
 	std::string mode_;
 
@@ -101,14 +105,16 @@ private:
 public:
 	// DISPATCH:
 	// Create and dispatch action that moves the layer above 
-	static void Dispatch( Core::ActionContextHandle context, const std::vector< std::string >& filenames, 
+	static void Dispatch( Core::ActionContextHandle context, 
+		const std::vector< std::string >& filenames, 
 		const std::string& mode = "data", const std::string importer = "" );
 
 	// DISPATCH:
 	// To avoid reading a file twice, this action has a special option, so it can take an
 	// importer that has already loaded the file. This prevents it from being read twice
-	static void Dispatch( Core::ActionContextHandle context, const LayerImporterHandle& importer, 
-		LayerImporterMode mode );
+	static void Dispatch( Core::ActionContextHandle context, 
+		const LayerImporterHandle& importer, 
+		const std::string& mode = "data" );
 	
 };
 	

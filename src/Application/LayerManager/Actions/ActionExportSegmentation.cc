@@ -44,7 +44,7 @@ namespace Seg3D
 
 bool ActionExportSegmentation::validate( Core::ActionContextHandle& context )
 {
-	if( this->mode_ == ExportToString( LayerExporterMode::DATA_E ) )
+	if( this->mode_ == "data" )
 	{
 		context->report_error( std::string( "You cannot export data as a segmention." ) );
 		return false;
@@ -101,9 +101,6 @@ bool ActionExportSegmentation::validate( Core::ActionContextHandle& context )
 
 bool ActionExportSegmentation::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
 {
-	LayerExporterMode mode = LayerExporterMode::INVALID_E;
-	ImportFromString( this->mode_, mode );
-
 	std::string message = std::string( "Exporting your selected segmentations." );
 		
 	Core::ActionProgressHandle progress = 
@@ -116,14 +113,14 @@ bool ActionExportSegmentation::run( Core::ActionContextHandle& context, Core::Ac
 	filename_without_extension = filename_without_extension.substr( 0, 
 		filename_without_extension.find_last_of( "." ) );
 
-	if( mode == LayerExporterMode::SINGLE_MASK_E )
+	if( this->mode_ == "single_mask" )
 	{
-		this->layer_exporter_->export_layer( mode, filename_and_path.string(), "unused" );
+		this->layer_exporter_->export_layer(  this->mode_, filename_and_path.string(), "unused" );
 	}
 	else
 	{
-		this->layer_exporter_->export_layer( mode, 
-			filename_and_path.parent_path().string(), filename_without_extension );
+		this->layer_exporter_->export_layer( this->mode_, filename_and_path.parent_path().string(), 
+			filename_without_extension );
 	}
 
 	progress->end_progress_reporting();
@@ -137,35 +134,33 @@ void ActionExportSegmentation::clear_cache()
 }
 
 void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, 
-	const LayerExporterHandle& exporter, 
-	LayerExporterMode mode, const std::string& file_path, 
-	std::string extension )
-{
-	// Create new action
-	ActionExportSegmentation* action = new ActionExportSegmentation;
-	
-	action->extension_ = extension;
-	action->layer_exporter_ = exporter;
-	action->mode_ = ExportToString( mode );
-	action->file_path_ = file_path;
-
-	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
-}
-
-void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, 
-	const std::string& layer_id, LayerExporterMode mode, 
+	const LayerExporterHandle& exporter, const std::string& mode, 
 	const std::string& file_path, std::string extension )
 {
 	// Create new action
 	ActionExportSegmentation* action = new ActionExportSegmentation;
 	
 	action->extension_ = extension;
+	action->layer_exporter_ = exporter;
+	action->mode_ = mode;
+	action->file_path_ = file_path;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+}
+
+void ActionExportSegmentation::Dispatch( Core::ActionContextHandle context, 
+	const std::string& layer_id, const std::string& mode, const std::string& file_path, 
+	std::string extension )
+{
+	// Create new action
+	ActionExportSegmentation* action = new ActionExportSegmentation;
+	
+	action->extension_ = extension;
 	action->layers_ = layer_id;
-	action->mode_ = ExportToString( mode );
+	action->mode_ = mode;
 	action->file_path_ = file_path;
 	
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
-
 
 } // end namespace Seg3D
