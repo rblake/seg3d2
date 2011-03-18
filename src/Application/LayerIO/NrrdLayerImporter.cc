@@ -35,6 +35,10 @@
 // Application includes
 #include <Application/LayerIO/NrrdLayerImporter.h>
 
+#ifdef _WIN32
+#define snprintf _snprintf
+#endif
+
 SEG3D_REGISTER_IMPORTER( Seg3D, NrrdLayerImporter );
 
 namespace Seg3D

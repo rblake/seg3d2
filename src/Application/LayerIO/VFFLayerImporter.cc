@@ -253,7 +253,7 @@ bool VFFLayerImporterPrivate::read_data()
 	// with windows separately.
 	
 #ifdef _WIN32
-	HANDLE file_desc = CreateFileA( this->get_filename().c_str(), GENERIC_READ,
+	HANDLE file_desc = CreateFileA( this->importer_->get_filename().c_str(), GENERIC_READ,
 		FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 	if ( file_desc == INVALID_HANDLE_VALUE ) 
 	{
