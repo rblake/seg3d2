@@ -294,7 +294,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::DispatchState< Core::StateOption >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "single" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C ) );
 
 	qaction = qmenu->addAction( tr( "One and One" ) );
 	qaction->setShortcut( tr( "ALT+1" ) );
@@ -302,7 +302,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "1and1" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND1_C ) );
 
 	qaction = qmenu->addAction( tr( "One and Two" ) );
 	qaction->setShortcut( tr( "ALT+2" ) );
@@ -310,7 +310,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "1and2" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND2_C ) );
 
 	qaction = qmenu->addAction( tr( "One and Three" ) );
 	qaction->setShortcut( tr( "ALT+3" ) );
@@ -318,7 +318,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "1and3" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND3_C ) );
 
 	qaction = qmenu->addAction( tr( "Two and Two" ) );
 	qaction->setShortcut( tr( "ALT+4" ) );
@@ -326,7 +326,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "2and2" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_2AND2_C ) );
 
 	qaction = qmenu->addAction( tr( "Two and Three" ) );
 	qaction->setShortcut( tr( "ALT+5" ) );
@@ -334,7 +334,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "2and3" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_2AND3_C ) );
 
 	qaction = qmenu->addAction( tr( "Three and Three" ) );
 	qaction->setShortcut( tr( "ALT+6" ) );
@@ -342,7 +342,7 @@ void Menu::create_view_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction, boost::bind(
 	    &Core::ActionSet::Dispatch< Core::StateOptionHandle, std::string >,
 		Core::Interface::GetWidgetActionContext(),
-	    ViewerManager::Instance()->layout_state_, "3and3" ) );
+	    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_3AND3_C ) );
 }
 
 void Menu::create_tool_menus( QMenuBar* qmenubar )
@@ -412,18 +412,11 @@ void Menu::create_window_menu( QMenu* qmenu )
 		InterfaceManager::Instance()->layermanager_dockwidget_visibility_state_ );
 	
 	// 3D Window
-	qaction = qmenu->addAction( "3D Window");
+	qaction = qmenu->addAction( "Volume View Window");
 	qaction->setCheckable( true );
 	qaction->setShortcut( tr( "Ctrl+Shift+V" ) );
 	QtUtils::QtBridge::Connect( qaction,
 		InterfaceManager::Instance()->rendering_dockwidget_visibility_state_ );
-
-// 	// Measurement Window
-// 	qaction = qmenu->addAction( "Measurement Window" );
-// 	qaction->setShortcut( tr( "Ctrl+Shift+M" ) );
-// 	qaction->setCheckable( true );
-// 	QtUtils::QtBridge::Connect( qaction, 
-// 		InterfaceManager::Instance()->measurement_project_dockwidget_visibility_state_ );
 
 	qmenu->addSeparator();
 

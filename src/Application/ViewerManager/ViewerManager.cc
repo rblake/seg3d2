@@ -279,7 +279,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		return;
 	}
 	
-	if( layout == ViewerManager::SINGLE_C )
+	if( layout == ViewerManager::VIEW_SINGLE_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( false );
@@ -288,7 +288,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( false );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( false );
 	}
-	else if( layout == ViewerManager::_1AND1_C )
+	else if( layout == ViewerManager::VIEW_1AND1_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( false );
@@ -297,7 +297,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( false );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( false );
 	}
-	else if( layout == ViewerManager::_1AND2_C )
+	else if( layout == ViewerManager::VIEW_1AND2_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( false );
@@ -306,7 +306,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( false );
 	}
-	else if( layout == ViewerManager::_1AND3_C )
+	else if( layout == ViewerManager::VIEW_1AND3_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( false );
@@ -315,7 +315,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( true );
 	}
-	else if( layout == ViewerManager::_2AND2_C )
+	else if( layout == ViewerManager::VIEW_2AND2_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( true );
@@ -324,7 +324,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( false );
 	}
-	else if( layout == ViewerManager::_2AND3_C )
+	else if( layout == ViewerManager::VIEW_2AND3_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( true );
@@ -333,7 +333,7 @@ void ViewerManagerPrivate::change_layout( std::string layout )
 		this->viewers_[ 4 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 5 ]->viewer_visible_state_->set( true );
 	}
-	else if( layout == ViewerManager::_3AND3_C )
+	else if( layout == ViewerManager::VIEW_3AND3_C )
 	{
 		this->viewers_[ 0 ]->viewer_visible_state_->set( true );
 		this->viewers_[ 1 ]->viewer_visible_state_->set( true );
@@ -474,13 +474,13 @@ void ViewerManagerPrivate::reset()
 
 CORE_SINGLETON_IMPLEMENTATION( ViewerManager );
 
-const std::string ViewerManager::SINGLE_C( "single" );
-const std::string ViewerManager::_1AND1_C( "1and1" );
-const std::string ViewerManager::_1AND2_C( "1and2" );
-const std::string ViewerManager::_1AND3_C( "1and3" );
-const std::string ViewerManager::_2AND2_C( "2and2" );
-const std::string ViewerManager::_2AND3_C( "2and3" );
-const std::string ViewerManager::_3AND3_C( "3and3" );
+const std::string ViewerManager::VIEW_SINGLE_C( "single" );
+const std::string ViewerManager::VIEW_1AND1_C( "1and1" );
+const std::string ViewerManager::VIEW_1AND2_C( "1and2" );
+const std::string ViewerManager::VIEW_1AND3_C( "1and3" );
+const std::string ViewerManager::VIEW_2AND2_C( "2and2" );
+const std::string ViewerManager::VIEW_2AND3_C( "2and3" );
+const std::string ViewerManager::VIEW_3AND3_C( "3and3" );
 
 ViewerManager::ViewerManager() :
 	StateHandler( "view", false ),

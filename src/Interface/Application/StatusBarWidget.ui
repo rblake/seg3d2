@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>1172</width>
-    <height>20</height>
+    <height>24</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>0</width>
-    <height>20</height>
+    <height>24</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>20</height>
+    <height>24</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -82,6 +82,13 @@ QToolButton:hover{
 QComboBox::icon{
 	border: 1px solid rgba( 0, 0, 0, 0 );
 }
+
+QWidget#label_values_ {
+	background-color: rgb(200, 200, 200 );
+	border-radius: 4px;
+    border: 1px solid  rgb( 100, 100, 100 );
+}
+
 </string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -249,25 +256,6 @@ QComboBox::icon{
           </widget>
          </item>
         </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="Line" name="line_2">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
        </widget>
       </item>
      </layout>
@@ -835,31 +823,6 @@ QComboBox::icon{
       <property name="margin">
        <number>0</number>
       </property>
-      <item>
-       <widget class="Line" name="line_3">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
       <item>
        <widget class="QToolButton" name="swap_visibility_button_">
         <property name="minimumSize">

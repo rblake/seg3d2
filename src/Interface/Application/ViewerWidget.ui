@@ -833,25 +833,6 @@ QComboBox::icon{
              </widget>
             </item>
             <item>
-             <widget class="Line" name="sep_line_">
-              <property name="minimumSize">
-               <size>
-                <width>1</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>1</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QWidget" name="less_common_tools_" native="true">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1146,8 +1127,8 @@ QComboBox::icon{
                  </property>
                  <property name="icon">
                   <iconset resource="../../Resources/QtResources.qrc">
-                   <normaloff>:/Images/DataVolumeOff.png</normaloff>
-                   <normalon>:/Images/DataVolume.png</normalon>:/Images/DataVolumeOff.png</iconset>
+                   <normaloff>:/Images/VolumeRenderingOff.png</normaloff>
+                   <normalon>:/Images/VolumeRendering.png</normalon>:/Images/VolumeRenderingOff.png</iconset>
                  </property>
                 </widget>
                </item>

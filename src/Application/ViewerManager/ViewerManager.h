@@ -238,13 +238,13 @@ private:
 
 	// -- Layout options --
 public:
-	static const std::string SINGLE_C;
-	static const std::string _1AND1_C;
-	static const std::string _1AND2_C;
-	static const std::string _1AND3_C;
-	static const std::string _2AND2_C;
-	static const std::string _2AND3_C;
-	static const std::string _3AND3_C;
+	static const std::string VIEW_SINGLE_C;
+	static const std::string VIEW_1AND1_C;
+	static const std::string VIEW_1AND2_C;
+	static const std::string VIEW_1AND3_C;
+	static const std::string VIEW_2AND2_C;
+	static const std::string VIEW_2AND3_C;
+	static const std::string VIEW_3AND3_C;
 
 }; // class ViewerManager
 

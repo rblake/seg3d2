@@ -117,7 +117,7 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->viewer_ = viewer;
 	this->private_->ui_.setupUi( this );
 	
-	// IF YOU ADD ANOTHER BUTTON TO THE VIEWERWIDGET, PLEASE ADD IT TO THE buttons_ VECTOR.
+	// NOTE: IF YOU ADD ANOTHER BUTTON TO THE VIEWERWIDGET, PLEASE ADD IT TO THE buttons_ VECTOR.
 	// We make a vector of all the buttons this way we can calculate the minimum size that the 
 	// viewer bar can be
 	this->private_->buttons_.push_back( this->private_->ui_.auto_view_button_ );
@@ -303,7 +303,7 @@ int ViewerWidget::get_minimum_size()
 	// We start with padding the minimum width by 1 because of the 1px margin on the left-hand side
 	int minimum_width = 0;
 	if( !this->private_->ui_.line_->isHidden() ) minimum_width += 3;
-	if( !this->private_->ui_.sep_line_->isHidden() ) minimum_width += 3;
+//	if( !this->private_->ui_.sep_line_->isHidden() ) minimum_width += 3;
 	
 	
 	// Next we get the width of the viewer mode holder and we pad it by 2 for the left and right 
@@ -344,7 +344,7 @@ void ViewerWidget::resizeEvent( QResizeEvent * event )
 	
 	if ( new_width <= this->private_->minimum_toolbar_width_ )
 	{
-		this->private_->ui_.sep_line_->hide();		
+//		this->private_->ui_.sep_line_->hide();		
 		this->private_->ui_.button_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
 		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: 1px solid gray; }" ) );
 		this->private_->ui_.toolbar_layout_->addWidget( this->private_->ui_.less_common_tools_, 0 );
@@ -353,7 +353,7 @@ void ViewerWidget::resizeEvent( QResizeEvent * event )
 	}
 	else if ( new_width > this->private_->minimum_toolbar_width_ )
 	{
-		this->private_->ui_.sep_line_->show();	
+//		this->private_->ui_.sep_line_->show();	
 		this->private_->ui_.toolbar_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
 		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: none; }" ) );
 		this->private_->ui_.button_layout_->addWidget( this->private_->ui_.less_common_tools_, 1 );

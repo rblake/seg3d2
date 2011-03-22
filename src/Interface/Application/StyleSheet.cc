@@ -101,12 +101,12 @@ const QString StyleSheet::LAYERIMPORTERWIDGET_INACTIVE_BUTTON_C = QString(
 // - page_background_ - //
 const QString StyleSheet::TOOLBOXPAGEWIDGET_PAGE_BACKGROUND_ACTIVE_C = QString( 
 	"QWidget#page_background_ {"
-	"	background-color: rgb( 237, 148, 31 );"
+	"	background-color: rgb( 237, 165, 76 );"
 	"	border-radius: 3px;"
 	"}" );
 const QString StyleSheet::TOOLBOXPAGEWIDGET_PAGE_BACKGROUND_INACTIVE_C = QString( 
 	"QWidget#page_background_ {"
-	"	background-color: rgb( 150, 150, 150 );"
+	"	background-color: rgb( 170, 170, 170 );"
 	"	border-radius: 3px;"
 	"}" );
 	
@@ -117,25 +117,34 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_ACTIVE_C = QString(
 	"	height: 24px;"
 	"	text-align: left;"
 	"	padding-left: 4px;"
+	"	border: none;"
 	"	color: white;"
-	"	font: bold;"
+	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
 	"}"
 	"QPushButton#activate_button_:hover{"
-	"	color: silver;"
+	"   color: white;"
 	"}"
 	"QPushButton#activate_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
-	"	color:  rgb(68, 68, 68);"
+	"   color: white;"
 	"}\n");
+	
 const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_INACTIVE_C = QString( 
 	"QPushButton#activate_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
 	"	padding-left: 4px;"
+	"	border: none;"
 	"	color: rgb(25, 25, 25);"
 	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
 	"}"
 	"QPushButton#activate_button_:hover{"
 	"	color: silver;"
@@ -143,7 +152,7 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_INACTIVE_C = QString
 	"QPushButton#activate_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
-	"	color:  rgb(68, 68, 68);"
+	"	color: rgb(68, 68, 68);"
 	"}");
 
 
@@ -424,18 +433,18 @@ const QString StyleSheet::DROPSPACEWIDGET_C = QString::fromUtf8(
 // - ViewerWidget - //
 const QString StyleSheet::VIEWERSELECTED_C = QString::fromUtf8(
 	"QWidget#border_{"
-	"	border-top: 3px solid rgb( 225, 125, 0 );"
-	"	border-bottom: 3px solid rgb( 180, 90, 0 );"
-	"	border-left: 3px solid rgb( 225, 125, 0 );"
-	"	border-right: 3px solid rgb( 180, 90, 0 );"
+	"	border-top: 3px solid rgb( 215, 145, 80 );"
+	"	border-bottom: 3px solid rgb( 180, 120, 80 );"
+	"	border-left: 3px solid rgb( 215, 145, 80 );"
+	"	border-right: 3px solid rgb( 180, 120, 80 );"
 	"}");
 
 const QString StyleSheet::VIEWERNOTSELECTED_C = QString::fromUtf8(
    "QWidget#border_{"
-   "	border-top: 3px solid rgb( 55, 55, 55 );"
-   "	border-bottom: 3px solid rgb( 35, 35, 35 );"
-   "	border-left: 3px solid rgb( 55, 55, 55 );"
-   "	border-right: 3px solid rgb( 35, 35, 35 );"
+   "	border-top: 3px solid rgb( 100, 100, 100 );"
+   "	border-bottom: 3px solid rgb( 100, 100, 100 );"
+   "	border-left: 3px solid rgb( 100, 100, 100 );"
+   "	border-right: 3px solid rgb(100, 100, 100 );"
    "}");
 
 }  // end namespace Seg3D
