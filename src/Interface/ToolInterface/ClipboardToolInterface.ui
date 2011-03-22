@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>284</width>
-    <height>600</height>
+    <height>624</height>
    </rect>
   </property>
   <property name="font">
@@ -159,6 +159,9 @@
       <string>Copy</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_5">
+      <property name="spacing">
+       <number>4</number>
+      </property>
       <property name="leftMargin">
        <number>4</number>
       </property>
@@ -172,20 +175,32 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Slice number:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QtUtils::QtSliderIntCombo" name="copy_slice_number_" native="true">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>50</height>
-         </size>
-        </property>
+       <widget class="QWidget" name="choose_slice_widget_" native="true">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="spacing">
+          <number>4</number>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Slice number:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QtUtils::QtSliderIntCombo" name="copy_slice_number_" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>50</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
       <item>
@@ -238,7 +253,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
-       <number>6</number>
+       <number>4</number>
       </property>
       <property name="leftMargin">
        <number>4</number>
@@ -454,5 +469,22 @@ QWidget#message_alert_{
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>use_active_viewer_</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>choose_slice_widget_</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>135</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>217</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

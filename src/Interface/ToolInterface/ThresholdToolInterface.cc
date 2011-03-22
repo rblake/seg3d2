@@ -110,7 +110,7 @@ bool ThresholdToolInterface::build_widget( QFrame* frame )
 		tool->target_layer_state_, condition );
 	QtUtils::QtBridge::Enable( this->private_->ui_.lower_threshold_,
 		tool->target_layer_state_, condition );
-
+	
 	//Send a message to the log that we have finished with building the Threshold Tool Interface
 	CORE_LOG_DEBUG( "Finished building a Threshold Tool Interface" );
 

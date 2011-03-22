@@ -23,6 +23,11 @@
 	padding: 0px;
 }
 
+QFrame#line_,
+QFrame#sep_line_{
+	background-color: gray;
+}
+
 QWidget#viewer_mode_holder_{
 	margin: 0px;
 	padding: 0px;
@@ -635,13 +640,13 @@ QComboBox::icon{
              <widget class="Line" name="line_">
               <property name="minimumSize">
                <size>
-                <width>3</width>
+                <width>1</width>
                 <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>3</width>
+                <width>1</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -831,13 +836,13 @@ QComboBox::icon{
              <widget class="Line" name="sep_line_">
               <property name="minimumSize">
                <size>
-                <width>3</width>
+                <width>1</width>
                 <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>3</width>
+                <width>1</width>
                 <height>16777215</height>
                </size>
               </property>

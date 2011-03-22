@@ -91,7 +91,7 @@ PreferencesInterface::PreferencesInterface( QWidget *parent ) :
 	this->setup_interface_controls_prefs();
 
 	//Hide the interface controls since they arent connected yet
-	this->private_->ui_.prefs_tabs_->removeTab( 2 );
+	this->private_->ui_.prefs_tabs_->removeTab( 3 );
 }
 
 PreferencesInterface::~PreferencesInterface()

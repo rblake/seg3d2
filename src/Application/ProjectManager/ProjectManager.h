@@ -40,6 +40,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
+// SQLite
 #include <Externals/sqlite/sqlite3.h>
 
 // Core includes
@@ -48,9 +49,9 @@
 #include <Core/Utils/Log.h>
 #include <Core/Utils/Exception.h>
 #include <Core/Utils/Lockable.h>
+#include <Core/State/StateHandler.h>
 
 // Application includes
-#include <Core/State/StateHandler.h>
 #include <Application/Project/Project.h>
 
 namespace Seg3D

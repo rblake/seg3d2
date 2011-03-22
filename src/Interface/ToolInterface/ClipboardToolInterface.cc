@@ -127,6 +127,8 @@ bool ClipboardToolInterface::build_widget( QFrame* frame )
 		boost::bind( &ClipboardTool::grab_min_paste_slice, tool ) );
 	QtUtils::QtBridge::Connect( this->private_->ui_.grab_max_slice_button_, 
 		boost::bind( &ClipboardTool::grab_max_paste_slice, tool ) );
+	
+	this->private_->ui_.choose_slice_widget_->hide();
 
 	return true;
 } 

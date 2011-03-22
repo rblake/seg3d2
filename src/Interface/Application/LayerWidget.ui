@@ -25,10 +25,18 @@ QLabel#facade_widget_{
 	background-color: rgba(0, 0, 0, 0);
 }
 
+QFrame#iso_control_separator_line_{
+	background-color: gray;
+}
+
 QWidget#base_{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(211, 211, 211, 255), stop:0.155779 rgba(225, 225, 225, 255), 				stop:1 rgba(194, 194, 194, 255));
 	border: 1px solid gray;
 border-radius: 6px;
+}
+
+QWidget#buttons_widget_{
+	border-top: 1px solid gray;
 }
 
 QToolButton#viewer_0_button_{
@@ -365,13 +373,13 @@ QPushButton#activate_button_{
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>18</height>
+                   <height>19</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>18</height>
+                   <height>19</height>
                   </size>
                  </property>
                  <property name="focusPolicy">
@@ -401,24 +409,17 @@ QPushButton#activate_button_{
                 </widget>
                </item>
                <item>
-                <widget class="Line" name="line">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QWidget" name="widget_2" native="true">
+                <widget class="QWidget" name="buttons_widget_" native="true">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>18</height>
+                   <height>20</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>18</height>
+                   <height>20</height>
                   </size>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -665,6 +666,21 @@ QPushButton#activate_button_{
                   </item>
                   <item>
                    <widget class="Line" name="iso_control_separator_line_">
+                    <property name="minimumSize">
+                     <size>
+                      <width>1</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>1</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true"/>
+                    </property>
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
                     </property>
