@@ -215,7 +215,7 @@ QComboBox::icon{
                 <widget class="QComboBox" name="viewer_mode_">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>82</width>
                    <height>0</height>
                   </size>
                  </property>

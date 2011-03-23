@@ -426,7 +426,7 @@ bool Project::create_database_schema()
 			"timestamp TEXT NOT NULL, "
 			"user TEXT NOT NULL, "
 			"output_number INTEGER NOT NULL, "
-			"UNIQUE (provenance_id));" );
+			"PRIMARY KEY (provenance_id));" );
 			
 		create_table_commands.push_back(
 			// this is a table relating the input provenance_ids to the output

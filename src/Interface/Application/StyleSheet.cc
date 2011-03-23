@@ -338,7 +338,8 @@ const QString StyleSheet::LABEL_VOLUME_COLOR_C = QString::fromUtf8(
 // - ACTIVE - //
 const QString StyleSheet::LAYER_WIDGET_BASE_ACTIVE_C = QString::fromUtf8(
 	"QWidget#base_{"
-	"	border:2px solid rgb(73, 111, 160);"
+	//"	border:2px solid rgb(73, 111, 160);"
+	"	border: 1px solid rgb(240, 245, 255);"
 	"	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1,"
 	"		stop:0 rgba(193, 215, 255, 255),"
 	"		stop:0.353234 rgba(204, 222, 255, 255),"
@@ -347,7 +348,8 @@ const QString StyleSheet::LAYER_WIDGET_BASE_ACTIVE_C = QString::fromUtf8(
 
 const QString StyleSheet::LAYER_WIDGET_BASE_ACTIVE_IN_USE_C = QString::fromUtf8(
 	"QWidget#base_{"
-	"	border:2px solid rgb(73, 111, 160);"
+	//"	border:2px solid rgb(73, 111, 160);"
+	"	border: 1px solid rgb(240, 245, 255);"
 	"	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1,"
 	"		stop:0 rgba(193, 255, 255, 255),"
 	"		stop:0.353234 rgba(204, 255, 255, 255),"
@@ -356,7 +358,8 @@ const QString StyleSheet::LAYER_WIDGET_BASE_ACTIVE_IN_USE_C = QString::fromUtf8(
 
 const QString StyleSheet::LAYER_WIDGET_BASE_IN_USE_C = QString::fromUtf8(
 	"QWidget#base_{"
-	"	border: 2px solid rgb(73, 111, 160);"
+	//"	border: 2px solid rgb(73, 111, 160);"
+	"	border: 1px solid rgb(240, 245, 255);"
 	"	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1,"
 	"		stop:0 rgba(193, 255, 215, 255),"
 	"		stop:0.353234 rgba(204, 255, 222, 255),"
@@ -479,7 +482,7 @@ const QString StyleSheet::LAYER_WIDGET_BACKGROUND_LOCKED_C = QString::fromUtf8(
 	"QWidget#type_{"
 	"	background-color: gray;"
 	"	border: 1px solid rgb(141, 141, 141);"
-	"	border-radius: 3px;"
+	"	border-radius: 2px;"
 	"}");
 const QString StyleSheet::LAYER_WIDGET_LABEL_LOCKED_C = QString::fromUtf8(
 	"QLineEdit#label_{"

@@ -66,7 +66,9 @@ SplashScreen::SplashScreen( QWidget *parent ) :
 {
 	this->setAttribute( Qt::WA_DeleteOnClose, true );
 	
-	this->setWindowFlags( Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint );
+	/*this->setWindowFlags( Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint );*/
+	this->setWindowFlags( Qt::Dialog | Qt::FramelessWindowHint );
+
 	this->setModal( true );
 
 	// Set up the private internals of the AppSplash class

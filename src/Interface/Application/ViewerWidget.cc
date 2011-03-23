@@ -347,6 +347,7 @@ void ViewerWidget::resizeEvent( QResizeEvent * event )
 //		this->private_->ui_.sep_line_->hide();		
 		this->private_->ui_.button_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
 		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: 1px solid gray; }" ) );
+		this->private_->ui_.viewer_mode_holder_->setStyleSheet( QString::fromUtf8( "QWidget#viewer_mode_holder_{ border-bottom: 1px solid gray; }" ) );
 		this->private_->ui_.toolbar_layout_->addWidget( this->private_->ui_.less_common_tools_, 0 );
 		
 		this->update();
@@ -356,6 +357,7 @@ void ViewerWidget::resizeEvent( QResizeEvent * event )
 //		this->private_->ui_.sep_line_->show();	
 		this->private_->ui_.toolbar_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
 		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: none; }" ) );
+		this->private_->ui_.viewer_mode_holder_->setStyleSheet( QString::fromUtf8( "QWidget#viewer_mode_holder_{ border-bottom: none; }" ) );
 		this->private_->ui_.button_layout_->addWidget( this->private_->ui_.less_common_tools_, 1 );
 		
 		this->update();
