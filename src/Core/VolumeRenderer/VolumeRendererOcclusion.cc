@@ -84,15 +84,15 @@ void VolumeRendererOcclusionPrivate::resize_fbo()
 {
 	RenderResources::lock_type lock( RenderResources::GetMutex() );
 
-	int buffer_format;
-	if ( GLEW_ARB_texture_float )
-	{
-		buffer_format = GL_RGBA32F_ARB;
-	}
-	else
-	{
-		buffer_format = GL_RGBA16;
-	}
+	int buffer_format = GL_RGBA;
+	//if ( GLEW_ARB_texture_float )
+	//{
+	//	buffer_format = GL_RGBA16F_ARB;
+	//}
+	//else
+	//{
+	//	buffer_format = GL_RGBA16;
+	//}
 
 	this->eye_buffer_->set_image( this->width_, this->height_, buffer_format );
 	this->occlusion_buffer_[ 0 ]->set_image( this->width_, this->height_, buffer_format );
@@ -155,7 +155,7 @@ void VolumeRendererOcclusionPrivate::update_disk_sample_lut()
 
 	RenderResources::lock_type lock( RenderResources::GetMutex() );
 	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	this->disk_sample_lut_->set_image( this->num_of_samples_, GL_RGB, &samples[ 0 ], GL_RGB, GL_FLOAT );
+	this->disk_sample_lut_->set_image( this->num_of_samples_, GL_RGB16F_ARB, &samples[ 0 ], GL_RGB, GL_FLOAT );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -196,9 +196,13 @@ void VolumeRendererOcclusion::initialize()
 	this->private_->occlusion_buffer_[ 0 ].reset( new Texture2D );
 	this->private_->occlusion_buffer_[ 0 ]->set_min_filter( GL_LINEAR );
 	this->private_->occlusion_buffer_[ 0 ]->set_mag_filter( GL_LINEAR );
+	this->private_->occlusion_buffer_[ 0 ]->set_wrap_s( GL_CLAMP_TO_EDGE );
+	this->private_->occlusion_buffer_[ 0 ]->set_wrap_t( GL_CLAMP_TO_EDGE );
 	this->private_->occlusion_buffer_[ 1 ].reset( new Texture2D );
 	this->private_->occlusion_buffer_[ 1 ]->set_mag_filter( GL_LINEAR );
 	this->private_->occlusion_buffer_[ 1 ]->set_min_filter( GL_LINEAR );
+	this->private_->occlusion_buffer_[ 1 ]->set_wrap_s( GL_CLAMP_TO_EDGE );
+	this->private_->occlusion_buffer_[ 1 ]->set_wrap_t( GL_CLAMP_TO_EDGE );
 
 	this->private_->disk_sample_lut_.reset( new Texture1D );
 	this->private_->disk_sample_lut_->set_mag_filter( GL_NEAREST );
@@ -265,15 +269,16 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 
 	// Initialize eye and occlusion buffers
 
+	// Eye buffer initialized to 0
+	glDrawBuffer( EYE_BUFFER_ATTACHMENT_C );
+	glClearColor( 0, 0, 0, 0 );	
+	glClear( GL_COLOR_BUFFER_BIT );
+
 	// Occlusion buffers initialized to 1
 	glDrawBuffers( 2, OCCLUSION_BUFFER_ATTACHMENT_C );
 	glClearColor( 1, 1, 1, 1 );	
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	// Eye buffer initialized to 0
-	glDrawBuffer( EYE_BUFFER_ATTACHMENT_C );
-	glClearColor( 0, 0, 0, 0 );	
-	glClear( GL_COLOR_BUFFER_BIT );
 
 	glBlendFunc( GL_ONE_MINUS_DST_ALPHA, GL_ONE );
 	glEnableIndexedEXT( GL_BLEND, 0 );

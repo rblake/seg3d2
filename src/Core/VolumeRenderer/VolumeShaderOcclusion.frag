@@ -26,7 +26,7 @@ void main()
 	float voxel_val = volume_lookup( gl_TexCoord[0].stp );
 	vec4 diffuse_color = texture1D( diffuse_lut, voxel_val );
 
-	float transparency = pow( 1.0 - diffuse_color.a, normalized_slice_distance );
+	float transparency = exp( -diffuse_color.a * normalized_slice_distance ); //pow( 1.0 - diffuse_color.a, normalized_slice_distance );
 	float alpha = 1.0 - transparency;
 
 	// Render to the eye buffer

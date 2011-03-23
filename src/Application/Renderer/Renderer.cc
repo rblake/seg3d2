@@ -584,6 +584,7 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
 	this->private_->volume_renderer_.reset( new Core::VolumeRendererOcclusion );
+	//this->private_->volume_renderer_.reset( new Core::VolumeRendererSimple );
 	this->private_->viewer_id_ = viewer_id;
 }
 
@@ -686,7 +687,7 @@ bool Renderer::render()
 
 	Core::Color bkg_color = PreferencesManager::Instance()->get_background_color();
 
-	glClearColor( bkg_color.r(), bkg_color.g(), bkg_color.b(), 1.0f );
+	glClearColor( bkg_color.r(), bkg_color.g(), bkg_color.b(), 0.0f );
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
