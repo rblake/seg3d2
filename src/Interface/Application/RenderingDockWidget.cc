@@ -51,6 +51,7 @@
 // Interface includes
 #include <Interface/Application/TransferFunctionFeatureWidget.h>
 #include <Interface/Application/RenderingDockWidget.h>
+#include <Interface/Application/StyleSheet.h>
 
 // Automatically generated UI file
 #include "ui_RenderingDockWidget.h"
@@ -95,7 +96,7 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	// Clipping widgets
 	if ( Core::Application::Instance()->is_osx_10_5_or_less() )
 	{
-		// NOTE: No clipping on this platform as driver are inconsistent
+		// NOTE: No clipping on this platform as drivers are inconsistent
 		this->private_->ui_.clipping_widget_->hide();
 	}
 	
@@ -228,6 +229,20 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 		&RenderingDockWidget::HandleVolumeRenderingTargetChanged, qpointer, _2 ) ) );
 	this->add_connection( Core::Application::Instance()->reset_signal_.connect( boost::bind(
 		&RenderingDockWidget::HandleReset, qpointer ) ) );
+		
+	this->add_connection( ViewerManager::Instance()->show_clipping_control_state_->
+		state_changed_signal_.connect( boost::bind( 
+			&RenderingDockWidget::HandleUpdateToolAppearance,qpointer ) ) ); 
+
+	this->add_connection( ViewerManager::Instance()->show_volume_rendering_control_state_->
+		state_changed_signal_.connect( boost::bind( 
+			&RenderingDockWidget::HandleUpdateToolAppearance,qpointer ) ) ); 
+
+	this->add_connection( ViewerManager::Instance()->show_fog_control_state_->
+		state_changed_signal_.connect( boost::bind( 
+			&RenderingDockWidget::HandleUpdateToolAppearance,qpointer ) ) ); 
+			
+	update_tool_appearance();
 }
 
 RenderingDockWidget::~RenderingDockWidget()
@@ -247,6 +262,45 @@ void RenderingDockWidget::update_tab_appearance( bool enabled, int index )
 		this->private_->ui_.clipping_tabwidget_->
 			setTabText( index, QString::number( index + 1 ) );
 	}
+}
+
+void RenderingDockWidget::update_tool_appearance()
+{
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
+	if ( ViewerManager::Instance()->show_clipping_control_state_->get() )
+	{
+		this->private_->ui_.clipping_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_CLIPPING_ACTIVE_C );
+	}
+	else 
+	{
+		this->private_->ui_.clipping_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_CLIPPING_INACTIVE_C );		
+	}
+
+	if ( ViewerManager::Instance()->show_volume_rendering_control_state_->get() )
+	{
+		this->private_->ui_.vr_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_VR_ACTIVE_C );
+	}
+	else 
+	{
+		this->private_->ui_.vr_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_VR_INACTIVE_C );		
+	}
+
+	if ( ViewerManager::Instance()->show_fog_control_state_->get() )
+	{
+		this->private_->ui_.fog_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_FOG_ACTIVE_C );
+	}
+	else 
+	{
+		this->private_->ui_.fog_widget_->setStyleSheet( 
+			StyleSheet::RENDERING_FOG_INACTIVE_C );		
+	}
+
 }
 
 void RenderingDockWidget::handle_feature_added( Core::TransferFunctionFeatureHandle feature )
@@ -355,6 +409,12 @@ void RenderingDockWidget::HandleReset( qpointer_type qpointer )
 {
 	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind( 
 		&RenderingDockWidget::handle_reset, qpointer.data() ) ) );
+}
+
+void RenderingDockWidget::HandleUpdateToolAppearance( qpointer_type qpointer )
+{
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind( 
+		&RenderingDockWidget::update_tool_appearance, qpointer.data() ) ) );
 }
 
 } // end namespace Seg3D

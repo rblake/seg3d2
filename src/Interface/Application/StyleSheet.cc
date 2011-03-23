@@ -119,7 +119,7 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_ACTIVE_C = QString(
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: white;"
-	"	font: normal;"
+	"	font: bold;"
 #ifdef __APPLLE__
 	"   font-size: 13;"
 #endif	
@@ -154,6 +154,164 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_INACTIVE_C = QString
 	"	border: none;"
 	"	color: rgb(68, 68, 68);"
 	"}");
+
+const QString StyleSheet::RENDERING_CLIPPING_ACTIVE_C = QString( 
+	"QWidget#clipping_header_bkg_ {"
+	"	background-color: rgb( 237, 165, 76 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#clipping_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: white;"
+	"	font: bold;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#clipping_open_button_:hover{"
+	"   color: white;"
+	"}"
+	"QPushButton#clipping_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n");
+	
+const QString StyleSheet::RENDERING_CLIPPING_INACTIVE_C = QString( 
+	"QWidget#clipping_header_bkg_ {"
+	"	background-color: rgb( 170, 170, 170 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#clipping_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#clipping_open_button_:hover{"
+	"	color: silver;"
+	"}"
+	"QPushButton#clipping_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}");
+
+
+const QString StyleSheet::RENDERING_VR_ACTIVE_C = QString( 
+	"QWidget#vr_header_bkg_ {"
+	"	background-color: rgb( 237, 165, 76 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#vr_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: white;"
+	"	font: bold;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#vr_open_button_:hover{"
+	"   color: white;"
+	"}"
+	"QPushButton#vr_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n");
+	
+const QString StyleSheet::RENDERING_VR_INACTIVE_C = QString( 
+	"QWidget#vr_header_bkg_ {"
+	"	background-color: rgb( 170, 170, 170 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#vr_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#vr_open_button_:hover{"
+	"	color: silver;"
+	"}"
+	"QPushButton#vr_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}");
+
+const QString StyleSheet::RENDERING_FOG_ACTIVE_C = QString( 
+	"QWidget#fog_header_bkg_ {"
+	"	background-color: rgb( 237, 165, 76 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#fog_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: white;"
+	"	font: bold;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#fog_open_button_:hover{"
+	"   color: white;"
+	"}"
+	"QPushButton#fog_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n");
+	
+const QString StyleSheet::RENDERING_FOG_INACTIVE_C = QString( 
+	"QWidget#fog_header_bkg_ {"
+	"	background-color: rgb( 170, 170, 170 );"
+	"	border-radius: 3px;"
+	"}"
+	"QPushButton#fog_open_button_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QPushButton#fog_open_button_:hover{"
+	"	color: silver;"
+	"}"
+	"QPushButton#fog_open_button_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}");
+
 
 
 // === LayerWidget Styles === //
