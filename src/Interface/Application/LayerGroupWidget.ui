@@ -315,18 +315,9 @@ QWidget#tools_and_layers_widget_{
            </property>
            <layout class="QVBoxLayout" name="group_frame_layout_">
             <property name="spacing">
-             <number>3</number>
+             <number>4</number>
             </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>1</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
+            <property name="margin">
              <number>1</number>
             </property>
            </layout>
