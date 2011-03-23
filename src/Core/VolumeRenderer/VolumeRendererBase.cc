@@ -26,15 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <queue>
-
-#include <boost/date_time.hpp>
-
 #include <Core/Math/MathFunctions.h>
 #include <Core/RenderResources/RenderResources.h>
-#include <Core/Volume/DataVolumeBrick.h>
 #include <Core/VolumeRenderer/VolumeRendererBase.h>
-#include <Core/Graphics/PixelBufferObject.h>
 #include <Core/Geometry/Algorithm.h>
 
 #ifdef max
@@ -391,6 +385,8 @@ public:
 	double sample_start_;
 	// The size of the voxel in world space
 	Vector voxel_size_;
+	// The normalized sampling distance
+	double normalized_sample_distance_;
 	// Whether to render the volume in front-to-back order.
 	bool front_to_back_;
 };
@@ -478,7 +474,7 @@ static bool CompareBrickEntryDescend( const BrickEntry& brick1, const BrickEntry
 
 void VolumeRendererBase::process_volume( DataVolumeHandle volume, 
 	double sample_rate, const View3D& view, bool orthographic, 
-	bool front_to_back, std::vector< BrickEntry >& sorted_bricks, Vector& voxel_size )
+	bool front_to_back, std::vector< BrickEntry >& sorted_bricks )
 {
 	std::vector< DataVolumeBrickHandle > bricks;
 	volume->get_bricks( bricks );
@@ -494,7 +490,6 @@ void VolumeRendererBase::process_volume( DataVolumeHandle volume,
 
 	GridTransform grid_trans = volume->get_grid_transform();
 	this->private_->voxel_size_ = grid_trans * Vector( 1.0, 1.0, 1.0 );
-	voxel_size = this->private_->voxel_size_;
 	Point voxel_min( 0.0, 0.0, 0.0 );
 	Point voxel_max( this->private_->voxel_size_ );
 	Point corners[ 2 ] = { voxel_min, voxel_max };
@@ -531,10 +526,13 @@ void VolumeRendererBase::process_volume( DataVolumeHandle volume,
 	// Compute the start sampling position for the volume
 	Point vol_bbox_min( -0.5, -0.5, -0.5 );
 	corners[ 0 ] = grid_trans * vol_bbox_min;
-	Point vol_bbox_max( static_cast< double >( grid_trans.get_nx() ) - 0.5,
-		static_cast< double >( grid_trans.get_ny() ) - 0.5, 
-		static_cast< double >( grid_trans.get_nz() ) - 0.5 );
+	double nx = static_cast< double >( grid_trans.get_nx() );
+	double ny = static_cast< double >( grid_trans.get_ny() );
+	double nz = static_cast< double >( grid_trans.get_nz() );
+	Point vol_bbox_max( nx - 0.5, ny - 0.5, nz - 0.5 );
 	corners[ 1 ] = grid_trans * vol_bbox_max;
+	double unit_length = ( corners[ 1 ] - corners[ 0 ] ).length() / Sqrt( nx * nx + ny * ny + nz * nz );
+	this->private_->normalized_sample_distance_ = this->private_->sample_distance_ / unit_length;
 	int start_vertex_index = front_to_back ? this->private_->front_vertex_ : this->private_->back_vertex_;
 	Vector start_vertex( corners[ ( start_vertex_index & 0x1 ) > 0 ? 1 : 0 ].x(),
 		corners[ ( start_vertex_index & 0x2 ) > 0 ? 1 : 0 ].y(),
@@ -663,6 +661,21 @@ void VolumeRendererBase::slice_brick( DataVolumeBrickHandle brick,
 
 		sample_pos += sample_offset;
 	}
+}
+
+Core::Vector VolumeRendererBase::get_voxel_size()
+{
+	return this->private_->voxel_size_;
+}
+
+double VolumeRendererBase::get_normalized_sample_distance()
+{
+	return this->private_->normalized_sample_distance_;
+}
+
+double VolumeRendererBase::get_sample_distance()
+{
+	return this->private_->sample_distance_;
 }
 
 } // end namespace Core

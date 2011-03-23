@@ -6,8 +6,7 @@ uniform sampler1D specular_lut;
 
 uniform vec3 texel_size; // texel size in texture space
 uniform vec3 voxel_size; // voxel size in world space
-uniform vec2 scale_bias;
-uniform float sample_rate; // Number of samples per voxel
+uniform float slice_distance; // Slice distance normalized by volume unit length
 
 uniform bool enable_lighting;
 uniform bool enable_fog;
@@ -115,7 +114,7 @@ void main()
 	float voxel_val = volume_lookup( gl_TexCoord[0].stp );
 	diffuse_color = texture1D( diffuse_lut, voxel_val );
 	if ( diffuse_color.a == 0.0 ) discard;
-	float alpha = 1.0 - pow( 1.0 - diffuse_color.a, 1.0 / sample_rate );
+	float alpha = 1.0 - pow( 1.0 - diffuse_color.a, slice_distance );
 	vec4 voxel_color;
 
 	if ( enable_lighting )

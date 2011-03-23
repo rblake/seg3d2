@@ -26,47 +26,33 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_GRAPHICS_FRAMEBUFFEROBJECT_H
-#define CORE_GRAPHICS_FRAMEBUFFEROBJECT_H
+#ifndef CORE_VOLUMERENDERER_VOLUMERENDEREROCCLUSION_H
+#define CORE_VOLUMERENDERER_VOLUMERENDEREROCCLUSION_H
 
-#include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include <GL/glew.h>
-
-#include <Core/Graphics/Texture.h>
-#include <Core/Graphics/Renderbuffer.h>
+#include <Core/VolumeRenderer/VolumeRendererBase.h>
 
 namespace Core
 {
 
-class FramebufferObject;
-typedef boost::shared_ptr< FramebufferObject > FramebufferObjectHandle;
+class VolumeRendererOcclusion;
+typedef boost::shared_ptr< VolumeRendererOcclusion > 
+	VolumeRendererOcclusionHandle;
 
-class FramebufferObject : public boost::noncopyable
+class VolumeRendererOcclusionPrivate;
+typedef boost::shared_ptr< VolumeRendererOcclusionPrivate > 
+	VolumeRendererOcclusionPrivateHandle;
+
+class VolumeRendererOcclusion : public VolumeRendererBase
 {
-
 public:
+	VolumeRendererOcclusion();
+	virtual ~VolumeRendererOcclusion();
 
-	FramebufferObject();
-	~FramebufferObject();
-
-	void enable();
-	void disable();
-	void safe_bind();
-	void safe_unbind();
-
-	void attach_texture( TextureHandle texture, unsigned int attachment = 
-		GL_COLOR_ATTACHMENT0_EXT, int level = 0, int layer = 0 );
-	void detach_texture( TextureHandle texture, unsigned int attachment = GL_COLOR_ATTACHMENT0_EXT );
-	void attach_renderbuffer(RenderbufferHandle renderbuffer, unsigned int attachment);
-	bool check_status( GLenum* status = NULL );
+	virtual void initialize();
+	virtual void render( DataVolumeHandle volume, const VolumeRenderingParam& param ); 
 
 private:
-	unsigned int id_;
-	int saved_id_;
-
-	const static unsigned int TARGET_C;
+	VolumeRendererOcclusionPrivateHandle private_;
 };
 
 } // end namespace Core

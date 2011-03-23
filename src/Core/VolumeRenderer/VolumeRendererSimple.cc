@@ -26,15 +26,11 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <queue>
-
 #include <boost/date_time.hpp>
 
 #include <Core/Math/MathFunctions.h>
 #include <Core/RenderResources/RenderResources.h>
-#include <Core/Volume/DataVolumeBrick.h>
 #include <Core/VolumeRenderer/VolumeRendererSimple.h>
-#include <Core/Graphics/PixelBufferObject.h>
 #include <Core/VolumeRenderer/VolumeShaderSimple.h>
 #include <Core/Geometry/Algorithm.h>
 
@@ -74,6 +70,8 @@ VolumeRendererSimple::~VolumeRendererSimple()
 
 void VolumeRendererSimple::initialize()
 {
+	RenderResources::lock_type lock( RenderResources::GetMutex() );
+
 	this->private_->volume_shader_.reset( new VolumeShaderSimple );
 	this->private_->volume_shader_->initialize();
 	this->private_->volume_shader_->enable();
@@ -88,9 +86,9 @@ void VolumeRendererSimple::render( DataVolumeHandle volume, const VolumeRenderin
 	boost::posix_time::ptime start_time = boost::posix_time::microsec_clock::local_time();
 
 	std::vector< BrickEntry > brick_queue;
-	Vector voxel_size;
 	this->process_volume( volume, param.sampling_rate_, param.view_, 
-		param.orthographic_, false, brick_queue, voxel_size );
+		param.orthographic_, false, brick_queue );
+	Vector voxel_size = this->get_voxel_size();
 
 	size_t num_bricks = brick_queue.size();
 	if ( num_bricks == 0 )
@@ -122,7 +120,8 @@ void VolumeRendererSimple::render( DataVolumeHandle volume, const VolumeRenderin
 	this->private_->volume_shader_->set_lighting( param.enable_lighting_ );
 	this->private_->volume_shader_->set_fog( param.enable_fog_ );
 	this->private_->volume_shader_->set_scale_bias( 1.0f, 0.0f );
-	this->private_->volume_shader_->set_sample_rate( static_cast< float >( param.sampling_rate_ ) );
+	this->private_->volume_shader_->set_slice_distance( static_cast< float >(
+		this->get_normalized_sample_distance() ) );
 	this->private_->volume_shader_->set_fog_range( static_cast< float >( param.znear_ ), 
 		static_cast< float >( param.zfar_ ) );
 	this->private_->volume_shader_->set_clip_plane( param.clip_plane_ );
@@ -162,7 +161,7 @@ void VolumeRendererSimple::render( DataVolumeHandle volume, const VolumeRenderin
 	Texture::SetActiveTextureUnit( 1 );
 	diffuse_lut->unbind();
 	Texture::SetActiveTextureUnit( 2 );
-	diffuse_lut->unbind();
+	specular_lut->unbind();
 	Texture::SetActiveTextureUnit( old_tex_unit );
 	glPopAttrib();
 

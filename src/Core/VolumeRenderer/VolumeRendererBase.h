@@ -58,6 +58,9 @@ public:
 	float clip_plane_[ 6 ][ 4 ];
 	int enable_clip_plane_[ 6 ];
 	bool enable_clipping_;
+
+	int grid_resolution_;
+	double occlusion_angle_;
 };
 
 class BrickEntry
@@ -80,10 +83,13 @@ protected:
 
 	void process_volume( DataVolumeHandle volume, double sample_rate,
 		const View3D& view, bool orthographic, bool front_to_back, 
-		std::vector< BrickEntry >& sorted_bricks, Vector& voxel_size );
+		std::vector< BrickEntry >& sorted_bricks );
 	void slice_brick( DataVolumeBrickHandle brick,
 		std::vector< PointF >& polygon_vertices, 
 		std::vector< int >& first_vec, std::vector< int >& count_vec );
+	Vector get_voxel_size();
+	double get_normalized_sample_distance();
+	double get_sample_distance();
 
 private:
 	VolumeRendererBasePrivateHandle private_;

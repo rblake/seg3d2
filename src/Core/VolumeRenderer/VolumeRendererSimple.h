@@ -29,11 +29,6 @@
 #ifndef CORE_VOLUMERENDERER_VOLUMERENDERERSIMPLE_H
 #define CORE_VOLUMERENDERER_VOLUMERENDERERSIMPLE_H
 
-#include <boost/utility.hpp>
-
-#include <Core/Geometry/View3D.h>
-#include <Core/Volume/DataVolume.h>
-#include <Core/VolumeRenderer/TransferFunction.h>
 #include <Core/VolumeRenderer/VolumeRendererBase.h>
 
 namespace Core

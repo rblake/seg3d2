@@ -41,6 +41,7 @@
 #include <Core/TextRenderer/TextRenderer.h>
 #include <Core/Graphics/ColorMap.h>
 #include <Core/VolumeRenderer/VolumeRendererSimple.h>
+#include <Core/VolumeRenderer/VolumeRendererOcclusion.h>
 
 // Application includes
 #include <Application/Layer/DataLayer.h>
@@ -582,7 +583,7 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->slice_shader_.reset( new SliceShader );
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
-	this->private_->volume_renderer_.reset( new Core::VolumeRendererSimple );
+	this->private_->volume_renderer_.reset( new Core::VolumeRendererOcclusion );
 	this->private_->viewer_id_ = viewer_id;
 }
 
@@ -903,6 +904,8 @@ bool Renderer::render()
 						vr_param.clip_plane_[ i ][ 3 ] = static_cast< float >( clip_plane_distance[ i ] );
 					}
 				}
+				vr_param.occlusion_angle_ = 70;
+				vr_param.grid_resolution_ = 5;
 				this->private_->volume_renderer_->render( data_layer->get_data_volume(), vr_param );
 				CORE_CHECK_OPENGL_ERROR();
 			}

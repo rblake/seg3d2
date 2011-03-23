@@ -76,7 +76,7 @@ bool VolumeShaderSimple::post_initialize()
 	this->texel_size_loc_ = this->get_uniform_location( "texel_size" );
 	this->voxel_size_loc_ = this->get_uniform_location( "voxel_size" );
 	this->scale_bias_loc_ = this->get_uniform_location( "scale_bias" );
-	this->sample_rate_loc_ = this->get_uniform_location( "sample_rate" );
+	this->slice_distance_loc_ = this->get_uniform_location( "slice_distance" );
 	this->fog_range_loc_ = this->get_uniform_location( "fog_range" );
 	this->clip_plane_loc_ = this->get_uniform_location( "clip_plane" );
 	this->enable_clip_plane_loc_ = this->get_uniform_location( "enable_clip_plane" );
@@ -135,11 +135,6 @@ void VolumeShaderSimple::set_scale_bias( float scale, float bias )
 	glUniform2f( this->scale_bias_loc_, scale, bias );
 }
 
-void VolumeShaderSimple::set_sample_rate( float sample_rate )
-{
-	glUniform1f( this->sample_rate_loc_, sample_rate );
-}
-
 void VolumeShaderSimple::set_fog_range( float znear, float zfar )
 {
 	glUniform2f( this->fog_range_loc_, znear, zfar );
@@ -158,6 +153,11 @@ void VolumeShaderSimple::set_enable_clip_plane( const int enabled[ 6 ] )
 void VolumeShaderSimple::set_enable_clipping( bool enabled )
 {
 	glUniform1i( this->enable_clipping_loc_, enabled );
+}
+
+void VolumeShaderSimple::set_slice_distance( float slice_distance )
+{
+	glUniform1f( this->slice_distance_loc_, slice_distance );
 }
 
 } // end namespace Seg3D
