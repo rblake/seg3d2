@@ -244,7 +244,7 @@ void ProjectDockWidget::load_session()
 
 void ProjectDockWidget::delete_session()
 {	
-	if( static_cast<int>( this->private_->ui_.sessions_list_->rowCount() ) != this->private_->sessions_.size() )
+	if( this->private_->ui_.sessions_list_->rowCount() != static_cast<int>( this->private_->sessions_.size() ) )
 	{
 		CORE_LOG_ERROR( "DANGER! The project dock's session list is out of sync with the actual sessions" );
 		return;
