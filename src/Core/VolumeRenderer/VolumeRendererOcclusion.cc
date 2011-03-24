@@ -215,6 +215,7 @@ void VolumeRendererOcclusion::initialize()
 	this->private_->volume_shader_->set_diffuse_texture( 1 );
 	this->private_->volume_shader_->set_occlusion_sample_texture( 2 );
 	this->private_->volume_shader_->set_occlusion_buffer_texture( 3 );
+	this->private_->volume_shader_->set_specular_texture( 4 );
 	this->private_->volume_shader_->disable();
 
 	this->private_->valid_ = true;
@@ -260,9 +261,14 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 	
 	glPushAttrib( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_POLYGON_BIT | 
 		GL_VIEWPORT_BIT | GL_TRANSFORM_BIT );
+	glPushAttrib( GL_COLOR_BUFFER_BIT );	// Push the draw buffer state
 	glDisable( GL_DEPTH_TEST );
 	glDepthMask( GL_FALSE );
 	glDisable( GL_CULL_FACE );
+
+	// Get the background color
+	float bkg_color[ 4 ];
+	glGetFloatv( GL_COLOR_CLEAR_VALUE, bkg_color );
 
 	this->private_->fbo_->safe_bind();
 	glViewport( 0, 0, this->private_->width_, this->private_->height_ );
@@ -287,18 +293,29 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 
 	unsigned int old_tex_unit = Texture::GetActiveTextureUnit();
 	TextureHandle diffuse_lut = param.transfer_function_->get_diffuse_lut();
+	TextureHandle specular_lut = param.transfer_function_->get_specular_lut();
 	Texture::lock_type diffuse_lock( diffuse_lut->get_mutex() );
+	Texture::lock_type specular_lock( specular_lut->get_mutex() );
 	Texture::SetActiveTextureUnit( 1 );
 	diffuse_lut->bind();
+	Texture::SetActiveTextureUnit( 4 );
+	specular_lut->bind();
 	Texture::SetActiveTextureUnit( 2 );
 	this->private_->disk_sample_lut_->bind();
 	
 	this->private_->volume_shader_->enable();
+	this->private_->volume_shader_->set_voxel_size( 
+		static_cast< float >( voxel_size[ 0 ] ),
+		static_cast< float >( voxel_size[ 1 ] ),
+		static_cast< float >( voxel_size[ 2 ] ) );
 	this->private_->volume_shader_->set_slice_distance( static_cast< float >(
 		this->get_normalized_sample_distance() ) );
 	this->private_->volume_shader_->set_occlusion_extent( static_cast< float >(
 		this->get_sample_distance() * Tan( DegreeToRadian( param.occlusion_angle_ ) ) ) );
 	this->private_->volume_shader_->set_num_of_occlusion_samples( this->private_->num_of_samples_ );
+	this->private_->volume_shader_->set_clip_plane( param.clip_plane_ );
+	this->private_->volume_shader_->set_enable_clip_plane( param.enable_clip_plane_ );
+	this->private_->volume_shader_->set_enable_clipping( param.enable_clipping_ );
 
 	glEnableClientState( GL_VERTEX_ARRAY );
 	for ( size_t i = 0; i < num_bricks; ++i )
@@ -315,7 +332,7 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 		this->private_->volume_shader_->set_texture_bbox_min( static_cast< float >( texture_bbox.min().x() ),
 			static_cast< float >( texture_bbox.min().y() ), static_cast< float >( texture_bbox.min().z() ) );
 		this->private_->volume_shader_->set_texture_bbox_size( texture_size[ 0 ], texture_size[ 1 ], texture_size[ 2 ] );
-
+		this->private_->volume_shader_->set_texel_size( texel_size[ 0 ], texel_size[ 1 ], texel_size[ 2 ] );
 
 		Texture::lock_type tex_lock( brick_texture->get_mutex() );
 
@@ -342,15 +359,15 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 
 	this->private_->volume_shader_->disable();
 
+
 	Texture::SetActiveTextureUnit( 1 );
 	diffuse_lut->unbind();
+	Texture::SetActiveTextureUnit( 4 );
+	specular_lut->unbind();
 	Texture::SetActiveTextureUnit( 2 );
 	this->private_->disk_sample_lut_->unbind();
 	Texture::SetActiveTextureUnit( old_tex_unit );
 
-	this->private_->fbo_->safe_unbind();
-
-	glViewport( viewport[ 0 ], viewport[ 1 ], viewport[ 2 ], viewport[ 3 ] );
 	glMatrixMode( GL_MODELVIEW );
 	glPushMatrix();
 	glLoadIdentity();
@@ -359,11 +376,27 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 	glLoadIdentity();
 	gluOrtho2D( 0.0, 1.0, 0.0, 1.0 );
 
-	glDisable( GL_BLEND );
 	for ( int i = 0; i < 6; ++i )
 	{
 		glDisable( GL_CLIP_PLANE0 + i );
 	}
+
+	// Render the background
+	glDrawBuffer( EYE_BUFFER_ATTACHMENT_C );
+	glColor4fv( bkg_color );
+	glBegin( GL_QUADS );
+	glVertex2f( 0.0f, 0.0f );
+	glVertex2f( 1.0f, 0.0f );
+	glVertex2f( 1.0f, 1.0f );
+	glVertex2f( 0.0f, 1.0f );
+	glEnd();
+
+	this->private_->fbo_->safe_unbind();
+
+	// Render the final image to the frame buffer
+	glPopAttrib();	// Pop the draw buffer state
+	glDisable( GL_BLEND );
+	glViewport( viewport[ 0 ], viewport[ 1 ], viewport[ 2 ], viewport[ 3 ] );
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
 	this->private_->eye_buffer_->enable();
 	glBegin( GL_QUADS );
@@ -382,7 +415,7 @@ void VolumeRendererOcclusion::render( DataVolumeHandle volume, const VolumeRende
 	glMatrixMode( GL_MODELVIEW );
 	glPopMatrix();
 
-	glPopAttrib();
+	glPopAttrib();	// Pop all the saved states
 
 	boost::posix_time::ptime end_time = boost::posix_time::microsec_clock::local_time();
 	boost::posix_time::time_duration vr_time = end_time - start_time;

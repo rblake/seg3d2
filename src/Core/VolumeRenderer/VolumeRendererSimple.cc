@@ -88,13 +88,13 @@ void VolumeRendererSimple::render( DataVolumeHandle volume, const VolumeRenderin
 	std::vector< BrickEntry > brick_queue;
 	this->process_volume( volume, param.sampling_rate_, param.view_, 
 		param.orthographic_, false, brick_queue );
-	Vector voxel_size = this->get_voxel_size();
 
 	size_t num_bricks = brick_queue.size();
 	if ( num_bricks == 0 )
 	{
 		return;
 	}
+	Vector voxel_size = this->get_voxel_size();
 	
 	glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_POLYGON_BIT );
 	glEnable( GL_DEPTH_TEST );
@@ -119,7 +119,6 @@ void VolumeRendererSimple::render( DataVolumeHandle volume, const VolumeRenderin
 		static_cast< float >( voxel_size[ 2 ] ) );
 	this->private_->volume_shader_->set_lighting( param.enable_lighting_ );
 	this->private_->volume_shader_->set_fog( param.enable_fog_ );
-	this->private_->volume_shader_->set_scale_bias( 1.0f, 0.0f );
 	this->private_->volume_shader_->set_slice_distance( static_cast< float >(
 		this->get_normalized_sample_distance() ) );
 	this->private_->volume_shader_->set_fog_range( static_cast< float >( param.znear_ ), 

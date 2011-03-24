@@ -527,7 +527,7 @@ ViewerManager::ViewerManager() :
 	this->add_connection( this->vr_occlusion_angle_state_->state_changed_signal_.connect(
 		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
 
-	this->add_state( "sample_grid_resolution", this->vr_occlusion_grid_resolution_state_, 3, 1, 10, 1 );
+	this->add_state( "sample_grid_resolution", this->vr_occlusion_grid_resolution_state_, 2, 1, 10, 1 );
 	this->add_connection( this->vr_occlusion_grid_resolution_state_->state_changed_signal_.connect(
 		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
 

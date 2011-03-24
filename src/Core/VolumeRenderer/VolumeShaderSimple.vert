@@ -8,7 +8,6 @@ uniform vec3 tex_bbox_size; // Size of texture in world space
 varying vec3 light_dir; // Light direction
 varying vec3 half_vector; // Half vector between eye and light source. 
                                        // In the case of head light, it's the same as eye vector.
-varying float dist; // Distance to light source.
 
 uniform vec2 fog_range;
 varying float fog_depth;
@@ -26,7 +25,6 @@ void main()
 		// With headlight, light position is alway at the origin in eye space
 		vec3 aux = vec3( -eye_coord_pos );
 		light_dir = normalize( aux );
-		dist = length(aux);
 		half_vector = light_dir;
 	}
 

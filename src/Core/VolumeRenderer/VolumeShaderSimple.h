@@ -50,7 +50,6 @@ public:
 	void set_texture_bbox_size( float x, float y, float z );
 	void set_texel_size( float x, float y, float z );
 	void set_voxel_size( float x, float y, float z );
-	void set_scale_bias( float scale, float bias );
 	void set_slice_distance( float slice_distance );
 	void set_volume_texture( int tex_unit );
 	void set_diffuse_texture( int tex_unit );
@@ -77,7 +76,6 @@ private:
 	int tex_bbox_size_loc_;
 	int texel_size_loc_;
 	int voxel_size_loc_;
-	int scale_bias_loc_;
 	int slice_distance_loc_;
 	int fog_range_loc_;
 	int clip_plane_loc_;

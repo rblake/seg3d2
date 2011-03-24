@@ -75,7 +75,6 @@ bool VolumeShaderSimple::post_initialize()
 	this->tex_bbox_size_loc_ = this->get_uniform_location( "tex_bbox_size" );
 	this->texel_size_loc_ = this->get_uniform_location( "texel_size" );
 	this->voxel_size_loc_ = this->get_uniform_location( "voxel_size" );
-	this->scale_bias_loc_ = this->get_uniform_location( "scale_bias" );
 	this->slice_distance_loc_ = this->get_uniform_location( "slice_distance" );
 	this->fog_range_loc_ = this->get_uniform_location( "fog_range" );
 	this->clip_plane_loc_ = this->get_uniform_location( "clip_plane" );
@@ -128,11 +127,6 @@ void VolumeShaderSimple::set_texel_size( float x, float y, float z )
 void VolumeShaderSimple::set_voxel_size( float x, float y, float z )
 {
 	glUniform3f( this->voxel_size_loc_, x, y, z );
-}
-
-void VolumeShaderSimple::set_scale_bias( float scale, float bias )
-{
-	glUniform2f( this->scale_bias_loc_, scale, bias );
 }
 
 void VolumeShaderSimple::set_fog_range( float znear, float zfar )
