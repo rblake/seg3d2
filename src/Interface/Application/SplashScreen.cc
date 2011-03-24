@@ -73,6 +73,9 @@ SplashScreen::SplashScreen( QWidget *parent ) :
 
 	// Set up the private internals of the AppSplash class
 	this->private_->ui_.setupUi( this );
+	this->setObjectName( QString::fromUtf8( "splashscreen" ) );
+
+	//this->setStyleSheet( QString::fromUtf8( "SplashScreen#splashscreen{ background-color: none; }" ) );
 
 	// Disable these since they arent being used yet.
 	this->private_->ui_.load_recent_button_->setEnabled( false );
