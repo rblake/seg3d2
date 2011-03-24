@@ -51,21 +51,21 @@ QtSliderIntCombo::QtSliderIntCombo( QWidget* parent, bool edit_range ) :
 {
     this->private_->ui_.setupUi( this );
     
-    this->private_->ui_.decrease_range_button_->hide();
-    this->private_->ui_.increase_range_button_->hide();
-    
-    if( !edit_range )
-    {
-        this->private_->ui_.edit_button_->setEnabled( edit_range );
-        this->private_->ui_.edit_button_->hide();
-    }
-    
-    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
-		this, SLOT( edit_ranges(bool ) ) );
-    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
-		this, SLOT( half_range() ) );
-    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked()), 
-		this, SLOT( double_range() ) );
+//    this->private_->ui_.decrease_range_button_->hide();
+//    this->private_->ui_.increase_range_button_->hide();
+//    
+//    if( !edit_range )
+//    {
+//        this->private_->ui_.edit_button_->setEnabled( edit_range );
+//        this->private_->ui_.edit_button_->hide();
+//    }
+//    
+//    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
+//		this, SLOT( edit_ranges(bool ) ) );
+//    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
+//		this, SLOT( half_range() ) );
+//    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked()), 
+//		this, SLOT( double_range() ) );
     
     this->connect( this->private_->ui_.horizontalSlider, SIGNAL( valueChanged( int ) ), 
 		this, SLOT( slider_signal( int ) ) );
@@ -84,6 +84,11 @@ QtSliderIntCombo::QtSliderIntCombo( QWidget* parent, bool edit_range ) :
 
 QtSliderIntCombo::~QtSliderIntCombo()
 {
+}
+	
+void QtSliderIntCombo::set_description( std::string description )
+{
+	this->private_->ui_.description_->setText( QString::fromStdString( description ) );
 }
 
 void QtSliderIntCombo::spinner_signal( int value )
@@ -166,32 +171,32 @@ void QtSliderIntCombo::change_max( int new_max )
     block_signals( false );
 }
 
-void QtSliderIntCombo::double_range()
-{
-    int new_max = this->private_->ui_.max_->text().toInt() * 2;
-    change_max( new_max );
-    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
-}
-void QtSliderIntCombo::half_range()
-{
-    int new_max = this->private_->ui_.max_->text().toInt() / 2;
-    change_max( new_max );
-    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
-}
-
-void QtSliderIntCombo::edit_ranges( bool edit )
-{
-	if( edit )
-	{
-		this->private_->ui_.decrease_range_button_->show();
-		this->private_->ui_.increase_range_button_->show();
-	}
-	else
-	{
-		this->private_->ui_.decrease_range_button_->hide();
-		this->private_->ui_.increase_range_button_->hide();
-	}
-}
+//void QtSliderIntCombo::double_range()
+//{
+//    int new_max = this->private_->ui_.max_->text().toInt() * 2;
+//    change_max( new_max );
+//    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
+//}
+//void QtSliderIntCombo::half_range()
+//{
+//    int new_max = this->private_->ui_.max_->text().toInt() / 2;
+//    change_max( new_max );
+//    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
+//}
+//
+//void QtSliderIntCombo::edit_ranges( bool edit )
+//{
+//	if( edit )
+//	{
+//		this->private_->ui_.decrease_range_button_->show();
+//		this->private_->ui_.increase_range_button_->show();
+//	}
+//	else
+//	{
+//		this->private_->ui_.decrease_range_button_->hide();
+//		this->private_->ui_.increase_range_button_->hide();
+//	}
+//}
 
 void QtSliderIntCombo::block_signals( bool block )
 {

@@ -115,6 +115,10 @@ bool PaintToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.clear_seeds_button_, boost::bind(
 		&SeedPointsTool::clear, tool, Core::Interface::GetWidgetActionContext() ) );
 	
+	this->private_->ui_.brush_radius_->set_description( "Radius" );
+	this->private_->ui_.upper_threshold_->set_description( "Upper" );
+	this->private_->ui_.lower_threshold_->set_description( "Lower" );
+	
 
 	//this->private_->ui_.message_alert_->set_warning_message( "Select a mask layer to activate this tool." );
 	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );

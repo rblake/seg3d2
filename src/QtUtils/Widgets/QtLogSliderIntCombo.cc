@@ -65,9 +65,9 @@ QtLogSliderIntCombo::QtLogSliderIntCombo( QWidget* parent ) :
 	this->private_->ui_.spinBox->setFont( font );
 #endif
 
-    this->private_->ui_.decrease_range_button_->hide();
-    this->private_->ui_.increase_range_button_->hide();
-	this->private_->ui_.edit_button_->hide();
+//    this->private_->ui_.decrease_range_button_->hide();
+//    this->private_->ui_.increase_range_button_->hide();
+//	this->private_->ui_.edit_button_->hide();
 	
 	this->private_->ui_.horizontalSlider->setTickPosition( QSlider::NoTicks );
 }

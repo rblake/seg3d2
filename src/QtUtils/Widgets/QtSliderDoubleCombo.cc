@@ -53,22 +53,21 @@ QtSliderDoubleCombo::QtSliderDoubleCombo( QWidget* parent, bool edit_range ) :
     private_( new QtSliderDoubleComboPrivate )
 {
     this->private_->ui_.setupUi( this );
+//    this->private_->ui_.decrease_range_button_->hide();
+//    this->private_->ui_.increase_range_button_->hide();
     
-    this->private_->ui_.decrease_range_button_->hide();
-    this->private_->ui_.increase_range_button_->hide();
+//    if( !edit_range )
+//    {
+//        this->private_->ui_.edit_button_->setEnabled( edit_range );
+//        this->private_->ui_.edit_button_->hide();
+//    }
     
-    if( !edit_range )
-    {
-        this->private_->ui_.edit_button_->setEnabled( edit_range );
-        this->private_->ui_.edit_button_->hide();
-    }
-    
-    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
-		this, SLOT(edit_ranges( bool )) );
-    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
-		this, SLOT( half_range() ) );
-    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked() ), 
-		this, SLOT( double_range() ) );
+//    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
+//		this, SLOT(edit_ranges( bool )) );
+//    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
+//		this, SLOT( half_range() ) );
+//    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked() ), 
+//		this, SLOT( double_range() ) );
     this->connect( this->private_->ui_.horizontalSlider, SIGNAL( valueChanged( int )), 
 		this, SLOT( slider_signal( int )) );
     this->connect( this->private_->ui_.spinBox, SIGNAL( valueChanged( double )), 
@@ -87,6 +86,11 @@ QtSliderDoubleCombo::QtSliderDoubleCombo( QWidget* parent, bool edit_range ) :
 
 QtSliderDoubleCombo::~QtSliderDoubleCombo()
 {
+}
+	
+void QtSliderDoubleCombo::set_description( std::string description )
+{
+	this->private_->ui_.description_->setText( QString::fromStdString( description ) );
 }
 
 // signal from the spinner
@@ -171,33 +175,33 @@ void QtSliderDoubleCombo::change_max( double new_max )
     this->block_signals( false );
 }
 
-void QtSliderDoubleCombo::double_range()
-{
-    double new_max = this->private_->ui_.max_->text().toDouble() * 2;
-    this->change_max( new_max );
-    Q_EMIT rangeChanged( this->private_->min_, new_max );
-}
+//void QtSliderDoubleCombo::double_range()
+//{
+//    double new_max = this->private_->ui_.max_->text().toDouble() * 2;
+//    this->change_max( new_max );
+//    Q_EMIT rangeChanged( this->private_->min_, new_max );
+//}
+//
+//void QtSliderDoubleCombo::half_range()
+//{
+//   double new_max = this->private_->ui_.max_->text().toDouble() / 2;
+//   this->change_max( new_max );
+//   Q_EMIT rangeChanged( this->private_->min_, new_max );
+//}
 
-void QtSliderDoubleCombo::half_range()
-{
-   double new_max = this->private_->ui_.max_->text().toDouble() / 2;
-   this->change_max( new_max );
-   Q_EMIT rangeChanged( this->private_->min_, new_max );
-}
-
-void QtSliderDoubleCombo::edit_ranges( bool edit )
-{
-    if( edit )
-    {
-        this->private_->ui_.decrease_range_button_->show();
-        this->private_->ui_.increase_range_button_->show();
-    }
-    else
-    {
-        this->private_->ui_.decrease_range_button_->hide();
-        this->private_->ui_.increase_range_button_->hide();
-    }
-}
+//void QtSliderDoubleCombo::edit_ranges( bool edit )
+//{
+//    if( edit )
+//    {
+//        this->private_->ui_.decrease_range_button_->show();
+//        this->private_->ui_.increase_range_button_->show();
+//    }
+//    else
+//    {
+//        this->private_->ui_.decrease_range_button_->hide();
+//        this->private_->ui_.increase_range_button_->hide();
+//    }
+//}
 
 void QtSliderDoubleCombo::block_signals( bool block )
 {
