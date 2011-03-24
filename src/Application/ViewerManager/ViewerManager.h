@@ -169,8 +169,17 @@ public:
 	// The target data layer for volume rendering
 	Core::StateLabeledOptionHandle volume_rendering_target_state_;
 
+	// Which volume renderer to use.
+	Core::StateLabeledOptionHandle volume_renderer_state_;
+
 	// The sampling rate of volume rendering
 	Core::StateRangedDoubleHandle volume_sample_rate_state_;
+
+	// The aperture angle of the cone for occlusion volume rendering
+	Core::StateRangedDoubleHandle vr_occlusion_angle_state_;
+
+	// The grid resolution for sampling the cone base
+	Core::StateRangedIntHandle vr_occlusion_grid_resolution_state_;
 
 	// Clipping planes enabled state
 	Core::StateBoolHandle enable_clip_plane_state_[ 6 ];

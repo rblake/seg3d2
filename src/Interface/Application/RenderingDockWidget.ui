@@ -224,7 +224,7 @@ QWidget#vr_content_{
          <x>0</x>
          <y>0</y>
          <width>295</width>
-         <height>966</height>
+         <height>970</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="scroll_area_layout_">
@@ -1445,6 +1445,35 @@ QWidget#vr_content_{
                </widget>
               </item>
               <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_7">
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="label_29">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>75</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Renderer:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="renderer_combobox_"/>
+                </item>
+               </layout>
+              </item>
+              <item>
                <widget class="QLabel" name="label_26">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1458,19 +1487,35 @@ QWidget#vr_content_{
                </widget>
               </item>
               <item>
-               <widget class="QtUtils::QtSliderDoubleCombo" name="vr_sample_rate_" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>35</height>
-                 </size>
-                </property>
+               <widget class="QtUtils::QtSliderDoubleCombo" name="vr_sample_rate_" native="true"/>
+              </item>
+              <item>
+               <widget class="QWidget" name="occlusion_widget_" native="true">
+                <layout class="QVBoxLayout" name="verticalLayout_25">
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="label_30">
+                   <property name="text">
+                    <string>Occlusion Angle:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QtUtils::QtSliderDoubleCombo" name="occlusion_angle_" native="true"/>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_31">
+                   <property name="text">
+                    <string>Disk Sampling Grid Resolution:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QtUtils::QtSliderIntCombo" name="grid_resolution_" native="true"/>
+                 </item>
+                </layout>
                </widget>
               </item>
               <item>
@@ -1639,6 +1684,13 @@ border: 0px</string>
                   </layout>
                  </item>
                  <item>
+                  <widget class="QCheckBox" name="faux_checkbox_">
+                   <property name="text">
+                    <string>Enable faux shading</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <layout class="QVBoxLayout" name="feature_control_layout_">
                    <property name="spacing">
                     <number>4</number>
@@ -1696,6 +1748,12 @@ border: 0px</string>
    <class>Seg3D::TransferFunctionFeatureWidget</class>
    <extends>QWidget</extends>
    <header location="global">Interface/Application/TransferFunctionFeatureWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QtUtils::QtSliderIntCombo</class>
+   <extends>QWidget</extends>
+   <header location="global">QtUtils/Widgets/QtSliderIntCombo.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

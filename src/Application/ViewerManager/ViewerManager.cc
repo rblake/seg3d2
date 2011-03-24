@@ -518,6 +518,19 @@ ViewerManager::ViewerManager() :
 	this->add_connection( this->volume_rendering_target_state_->state_changed_signal_.connect(
 		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
 
+	this->add_state( "volume_renderer", this->volume_renderer_state_, 
+		"simple", "simple=Simple|ao=Ambient Occlusion" );
+	this->add_connection( this->volume_renderer_state_->state_changed_signal_.connect(
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
+
+	this->add_state( "occlusion_angle", this->vr_occlusion_angle_state_, 50.0, 0.0, 80.0, 1.0 );
+	this->add_connection( this->vr_occlusion_angle_state_->state_changed_signal_.connect(
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
+
+	this->add_state( "sample_grid_resolution", this->vr_occlusion_grid_resolution_state_, 3, 1, 10, 1 );
+	this->add_connection( this->vr_occlusion_grid_resolution_state_->state_changed_signal_.connect(
+		boost::bind( &ViewerManagerPrivate::update_volume_rendering, this->private_ ) ) );
+
 	for ( size_t i = 0; i < 6; ++i )
 	{
 		std::string cp_name = "cp" + Core::ExportToString( i + 1 );

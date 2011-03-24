@@ -134,7 +134,7 @@ public:
 	Core::Texture2DHandle pattern_texture_;
 	Core::TextRendererHandle text_renderer_;
 	Core::Texture2DHandle text_texture_;
-	Core::VolumeRendererBaseHandle volume_renderer_;
+	Core::VolumeRendererBaseHandle volume_renderers_[ 2 ];
 
 	size_t viewer_id_;
 	bool rendering_enabled_;
@@ -583,8 +583,8 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->slice_shader_.reset( new SliceShader );
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
-	this->private_->volume_renderer_.reset( new Core::VolumeRendererOcclusion );
-	//this->private_->volume_renderer_.reset( new Core::VolumeRendererSimple );
+	this->private_->volume_renderers_[ 0 ].reset( new Core::VolumeRendererSimple );
+	this->private_->volume_renderers_[ 1 ].reset( new Core::VolumeRendererOcclusion );
 	this->private_->viewer_id_ = viewer_id;
 }
 
@@ -617,7 +617,8 @@ void Renderer::post_initialize()
 
 		this->private_->slice_shader_->initialize();
 		this->private_->isosurface_shader_->initialize();
-		this->private_->volume_renderer_->initialize();
+		this->private_->volume_renderers_[ 0 ]->initialize();
+		this->private_->volume_renderers_[ 1 ]->initialize();
 		this->private_->pattern_texture_.reset( new Core::Texture2D );
 		this->private_->pattern_texture_->set_image( PATTERN_SIZE_C, PATTERN_SIZE_C, 
 			GL_ALPHA, MASK_PATTERNS_C, GL_ALPHA, GL_UNSIGNED_BYTE );
@@ -710,7 +711,10 @@ bool Renderer::render()
 		bool draw_slices = viewer->volume_slices_visible_state_->get();
 		bool draw_isosurfaces = viewer->volume_isosurfaces_visible_state_->get();
 		bool render_volume = viewer->volume_volume_rendering_visible_state_->get();
+		int volume_renderer_index = ViewerManager::Instance()->volume_renderer_state_->index();
 		double sample_rate = ViewerManager::Instance()->volume_sample_rate_state_->get();
+		double occlusion_angle = ViewerManager::Instance()->vr_occlusion_angle_state_->get();
+		int occlusion_grid_resolution = ViewerManager::Instance()->vr_occlusion_grid_resolution_state_->get();
 		bool draw_bbox = viewer->volume_show_bounding_box_state_->get();
 		bool show_invisible_slices = viewer->volume_show_invisible_slices_state_->get();
 		size_t num_of_viewers = ViewerManager::Instance()->number_of_viewers();
@@ -835,7 +839,7 @@ bool Renderer::render()
 			CORE_CHECK_OPENGL_ERROR();
 		}
 
-		if ( draw_isosurfaces)
+		if ( draw_isosurfaces )
 		{
 			this->private_->isosurface_shader_->enable();
 			this->private_->isosurface_shader_->set_lighting( with_lighting );
@@ -905,9 +909,10 @@ bool Renderer::render()
 						vr_param.clip_plane_[ i ][ 3 ] = static_cast< float >( clip_plane_distance[ i ] );
 					}
 				}
-				vr_param.occlusion_angle_ = 70;
-				vr_param.grid_resolution_ = 5;
-				this->private_->volume_renderer_->render( data_layer->get_data_volume(), vr_param );
+				vr_param.occlusion_angle_ = occlusion_angle;
+				vr_param.grid_resolution_ = occlusion_grid_resolution;
+				this->private_->volume_renderers_[ volume_renderer_index ]->render( 
+					data_layer->get_data_volume(), vr_param );
 				CORE_CHECK_OPENGL_ERROR();
 			}
 		}

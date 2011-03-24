@@ -30,7 +30,10 @@
 #include <sstream>
 #include <iostream>
 
+// boost includes
 #include <boost/foreach.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 
 // Core includes
 #include <Core/Utils/Log.h>
@@ -212,9 +215,20 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 		ViewerManager::Instance()->volume_rendering_target_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.vr_sample_rate_,
 		ViewerManager::Instance()->volume_sample_rate_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.renderer_combobox_,
+		ViewerManager::Instance()->volume_renderer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.occlusion_angle_,
+		ViewerManager::Instance()->vr_occlusion_angle_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.grid_resolution_,
+		ViewerManager::Instance()->vr_occlusion_grid_resolution_state_ );
+	QtUtils::QtBridge::Show( this->private_->ui_.occlusion_widget_,
+		ViewerManager::Instance()->volume_renderer_state_,
+		boost::lambda::bind( &Core::StateLabeledOption::index, 
+		ViewerManager::Instance()->volume_renderer_state_.get() ) == 1 );
 	QtUtils::QtBridge::Connect( this->private_->ui_.tf_view_->get_scene(), tf );
 	QtUtils::QtBridge::Connect( this->private_->ui_.add_feature_button_, boost::bind(
 		ActionNewFeature::Dispatch, Core::Interface::GetWidgetActionContext() ) );
+	QtUtils::QtBridge::Connect( this->private_->ui_.faux_checkbox_, tf->faux_shading_state_ );
 	this->connect( this->private_->ui_.delete_feature_button_, SIGNAL( clicked() ),
 		SLOT( delete_active_curve() ) );
 	this->connect( this->private_->ui_.histogram_scale_combobox_, 
