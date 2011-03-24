@@ -102,6 +102,11 @@ bool ThresholdToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Enable( this->private_->ui_.target_layer_, 
 		tool->use_active_layer_state_, true ); 
 	
+	this->private_->ui_.upper_threshold_->set_description( "Upper" );
+	this->private_->ui_.lower_threshold_->set_description( "Lower" );
+	this->private_->ui_.preview_opacity_slider_->set_description( "Opacity" );
+
+	
 	QtUtils::QtBridge::Enable( this->private_->ui_.histogram_, tool->valid_target_state_ );
 
 	boost::function< bool () > condition = boost::lambda::bind( &Core::StateLabeledOption::get, 

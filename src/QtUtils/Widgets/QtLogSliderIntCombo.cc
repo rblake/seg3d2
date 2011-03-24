@@ -75,6 +75,11 @@ QtLogSliderIntCombo::QtLogSliderIntCombo( QWidget* parent ) :
 QtLogSliderIntCombo::~QtLogSliderIntCombo()
 {
 }
+	
+void QtLogSliderIntCombo::set_description( std::string description )
+{
+	this->private_->ui_.description_->setText( QString::fromStdString( description ) );
+}
 
 void QtLogSliderIntCombo::spinner_signal( int value )
 {

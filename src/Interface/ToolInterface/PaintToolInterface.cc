@@ -145,6 +145,10 @@ bool PaintToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Show( this->private_->ui_.mask_constraint_2_widget_, 
 		tool->mask_constraint2_layer_state_, condition );
 	
+#if defined ( __APPLE__ )
+	this->private_->ui_.verticalLayout_8->setSpacing( 8 );
+#endif
+	
 	
 	return true;
 } 

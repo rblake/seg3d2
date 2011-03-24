@@ -64,6 +64,7 @@ public Q_SLOTS:
 	
 public:
 	int get_value() { return value_; }
+	void set_description( std::string description );
 
 // -- widget internals -- 
 private:

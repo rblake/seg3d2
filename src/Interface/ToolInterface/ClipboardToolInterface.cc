@@ -129,6 +129,10 @@ bool ClipboardToolInterface::build_widget( QFrame* frame )
 		boost::bind( &ClipboardTool::grab_max_paste_slice, tool ) );
 	
 	this->private_->ui_.choose_slice_widget_->hide();
+	
+	this->private_->ui_.copy_slice_number_->set_description( "Slice Number" );
+	this->private_->ui_.paste_slice_number_min_->set_description( "Min Slice Number" );
+	this->private_->ui_.paste_slice_number_max_->set_description( "Max Slice Number" );
 
 	return true;
 } 
