@@ -255,6 +255,41 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	this->add_connection( ViewerManager::Instance()->show_fog_control_state_->
 		state_changed_signal_.connect( boost::bind( 
 			&RenderingDockWidget::HandleUpdateToolAppearance,qpointer ) ) ); 
+	
+	this->private_->ui_.cp1_d_->set_description( "Distance" );
+	this->private_->ui_.cp2_d_->set_description( "Distance" );
+	this->private_->ui_.cp3_d_->set_description( "Distance" );
+	this->private_->ui_.cp4_d_->set_description( "Distance" );
+	this->private_->ui_.cp5_d_->set_description( "Distance" );
+	this->private_->ui_.cp6_d_->set_description( "Distance" );
+	
+	this->private_->ui_.cp1_x_->set_description( "X" );
+	this->private_->ui_.cp2_x_->set_description( "X" );
+	this->private_->ui_.cp3_x_->set_description( "X" );
+	this->private_->ui_.cp4_x_->set_description( "X" );
+	this->private_->ui_.cp5_x_->set_description( "X" );
+	this->private_->ui_.cp6_x_->set_description( "X" );
+	
+	this->private_->ui_.cp1_y_->set_description( "Y" );
+	this->private_->ui_.cp2_y_->set_description( "Y" );
+	this->private_->ui_.cp3_y_->set_description( "Y" );
+	this->private_->ui_.cp4_y_->set_description( "Y" );
+	this->private_->ui_.cp5_y_->set_description( "Y" );
+	this->private_->ui_.cp6_y_->set_description( "Y" );
+	
+	this->private_->ui_.cp1_z_->set_description( "Z" );
+	this->private_->ui_.cp2_z_->set_description( "Z" );
+	this->private_->ui_.cp3_z_->set_description( "Z" );
+	this->private_->ui_.cp4_z_->set_description( "Z" );
+	this->private_->ui_.cp5_z_->set_description( "Z" );
+	this->private_->ui_.cp6_z_->set_description( "Z" );
+	
+	this->private_->ui_.fog_density_->set_description( "Density" );
+	
+	this->private_->ui_.vr_sample_rate_->set_description( "Sampling Rate" );
+	this->private_->ui_.occlusion_angle_->set_description( "Occlusion Angle" );
+	this->private_->ui_.grid_resolution_->set_description( "Sampling Resolution" );
+	
 			
 	update_tool_appearance();
 }

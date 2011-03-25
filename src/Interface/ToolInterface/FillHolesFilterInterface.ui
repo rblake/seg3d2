@@ -28,7 +28,7 @@
   <property name="styleSheet">
    <string notr="true">QWidget#FillHolesFilterInterface{
 	border-radius: 3px;
-	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(221, 221, 221, 255), stop:0.155779 rgba(228, 228, 228, 255), stop:1 rgba(202, 204, 204, 255));      
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(241, 241, 241, 255), stop:0.155779 rgba(250, 250, 250, 255), stop:1 rgba(222, 224, 224, 255));       
 }
 
 QPushButton{

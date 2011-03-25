@@ -428,6 +428,13 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 			boost::lambda::bind( &Core::StateBool::get, layer->visible_state_[ 5 ].get() ) );
 		QtUtils::QtBridge::Enable( this->private_->ui_.visibility_button_, enable_states, condition );
 		
+		this->private_->ui_.brightness_adjuster_->set_description( "Brightness" );
+		this->private_->ui_.contrast_adjuster_->set_description( "Contrast" );
+		this->private_->ui_.display_max_adjuster_->set_description( "Max" );
+		this->private_->ui_.display_min_adjuster_->set_description( "Min" );
+		this->private_->ui_.opacity_adjuster_->set_description( "Opacity" );
+		
+		
 		switch( this->get_volume_type() )
 		{
 			// This if for the Data Layers

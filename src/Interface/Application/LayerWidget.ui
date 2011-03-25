@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>263</width>
-    <height>494</height>
+    <width>261</width>
+    <height>749</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -919,7 +919,7 @@ QPushButton#activate_button_{
              <widget class="QWidget" name="bright_contrast_" native="true">
               <layout class="QVBoxLayout" name="verticalLayout_4">
                <property name="spacing">
-                <number>2</number>
+                <number>4</number>
                </property>
                <property name="margin">
                 <number>2</number>
@@ -933,19 +933,6 @@ QPushButton#activate_button_{
                   <property name="margin">
                    <number>0</number>
                   </property>
-                  <item>
-                   <widget class="QLabel" name="brigntness_label_">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>Brightness:</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="brightness_adjuster_" native="true"/>
                   </item>
@@ -962,31 +949,6 @@ QPushButton#activate_button_{
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="contrast_label_">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Contrast:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="contrast_adjuster_" native="true"/>
                   </item>
                  </layout>
@@ -1001,13 +963,6 @@ QPushButton#activate_button_{
                   <property name="margin">
                    <number>0</number>
                   </property>
-                  <item>
-                   <widget class="QLabel" name="label_4">
-                    <property name="text">
-                     <string>Max:</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="display_max_adjuster_" native="true"/>
                   </item>
@@ -1024,26 +979,37 @@ QPushButton#activate_button_{
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="label_6">
-                    <property name="text">
-                     <string>Min:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="display_min_adjuster_" native="true"/>
                   </item>
                  </layout>
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="adjust_minmax_checkbox_">
-                 <property name="toolTip">
-                  <string>Adjust the contrast/brightness by setting the minimum and maximum gray value</string>
+                <widget class="QWidget" name="widget_2" native="true">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
-                 <property name="text">
-                  <string>Adjust Min/Max</string>
-                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_25">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QCheckBox" name="adjust_minmax_checkbox_">
+                    <property name="toolTip">
+                     <string>Adjust the contrast/brightness by setting the minimum and maximum gray value</string>
+                    </property>
+                    <property name="text">
+                     <string>Adjust Min/Max</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </widget>
                </item>
                <item>
@@ -1315,26 +1281,7 @@ QPushButton#activate_button_{
              <number>4</number>
             </property>
             <item>
-             <widget class="QWidget" name="widget_3" native="true">
-              <layout class="QVBoxLayout" name="verticalLayout_2">
-               <property name="spacing">
-                <number>2</number>
-               </property>
-               <property name="margin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="opacity_label_">
-                 <property name="text">
-                  <string>Opacity:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QtUtils::QtSliderDoubleCombo" name="opacity_adjuster_" native="true"/>
-               </item>
-              </layout>
-             </widget>
+             <widget class="QtUtils::QtSliderDoubleCombo" name="opacity_adjuster_" native="true"/>
             </item>
            </layout>
           </widget>

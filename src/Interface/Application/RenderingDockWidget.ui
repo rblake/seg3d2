@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>297</width>
-    <height>994</height>
+    <width>306</width>
+    <height>778</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -223,8 +223,8 @@ QWidget#vr_content_{
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>295</width>
-         <height>970</height>
+         <width>289</width>
+         <height>767</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="scroll_area_layout_">
@@ -328,13 +328,6 @@ QWidget#vr_content_{
               <property name="margin">
                <number>4</number>
               </property>
-              <item>
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>Density:</string>
-                </property>
-               </widget>
-              </item>
               <item>
                <widget class="QtUtils::QtSliderDoubleCombo" name="fog_density_" native="true">
                 <property name="sizePolicy">
@@ -484,18 +477,11 @@ QWidget#vr_content_{
                    <widget class="QWidget" name="cp1_params_widget_" native="true">
                     <layout class="QVBoxLayout" name="verticalLayout">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_2">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp1_x_" native="true">
                        <property name="sizePolicy">
@@ -509,13 +495,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_3">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -536,13 +515,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_20">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp1_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -555,13 +527,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_4">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -630,18 +595,11 @@ QWidget#vr_content_{
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_2">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_5">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp2_x_" native="true">
                        <property name="sizePolicy">
@@ -655,13 +613,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_6">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -682,13 +633,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_21">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp2_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -701,13 +645,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_7">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -776,18 +713,11 @@ QWidget#vr_content_{
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_8">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_8">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp3_x_" native="true">
                        <property name="sizePolicy">
@@ -801,13 +731,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_9">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -828,13 +751,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_22">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp3_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -847,13 +763,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_10">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -922,18 +831,11 @@ QWidget#vr_content_{
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_12">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_11">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp4_x_" native="true">
                        <property name="sizePolicy">
@@ -947,13 +849,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_12">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -974,13 +869,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_23">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp4_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -993,13 +881,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_13">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -1068,18 +949,11 @@ QWidget#vr_content_{
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_14">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_14">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp5_x_" native="true">
                        <property name="sizePolicy">
@@ -1093,13 +967,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_15">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -1120,13 +987,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_24">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp5_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1139,13 +999,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_16">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -1214,18 +1067,11 @@ QWidget#vr_content_{
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_16">
                      <property name="spacing">
-                      <number>2</number>
+                      <number>4</number>
                      </property>
                      <property name="margin">
                       <number>0</number>
                      </property>
-                     <item>
-                      <widget class="QLabel" name="label_17">
-                       <property name="text">
-                        <string>X:</string>
-                       </property>
-                      </widget>
-                     </item>
                      <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp6_x_" native="true">
                        <property name="sizePolicy">
@@ -1239,13 +1085,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_18">
-                       <property name="text">
-                        <string>Y:</string>
                        </property>
                       </widget>
                      </item>
@@ -1266,13 +1105,6 @@ QWidget#vr_content_{
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="label_25">
-                       <property name="text">
-                        <string>Z:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
                       <widget class="QtUtils::QtSliderDoubleCombo" name="cp6_z_" native="true">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1285,13 +1117,6 @@ QWidget#vr_content_{
                          <width>0</width>
                          <height>35</height>
                         </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_19">
-                       <property name="text">
-                        <string>Distance:</string>
                        </property>
                       </widget>
                      </item>
@@ -1405,7 +1230,7 @@ QWidget#vr_content_{
             <widget class="QWidget" name="vr_content_" native="true">
              <layout class="QVBoxLayout" name="verticalLayout_21">
               <property name="spacing">
-               <number>6</number>
+               <number>4</number>
               </property>
               <property name="margin">
                <number>6</number>
@@ -1418,21 +1243,15 @@ QWidget#vr_content_{
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,2">
                  <property name="spacing">
-                  <number>6</number>
+                  <number>0</number>
                  </property>
                  <property name="margin">
                   <number>0</number>
                  </property>
                  <item>
                   <widget class="QLabel" name="label_27">
-                   <property name="maximumSize">
-                    <size>
-                     <width>60</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
                    <property name="text">
                     <string>Target:</string>
                    </property>
@@ -1445,45 +1264,31 @@ QWidget#vr_content_{
                </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_7">
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLabel" name="label_29">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>75</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>Renderer:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QComboBox" name="renderer_combobox_"/>
-                </item>
-               </layout>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_26">
+               <widget class="QWidget" name="widget_5" native="true">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="text">
-                 <string>Sampling Rate:</string>
-                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="1,2">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="label_29">
+                   <property name="text">
+                    <string>Renderer:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="renderer_combobox_"/>
+                 </item>
+                </layout>
                </widget>
               </item>
               <item>
@@ -1496,21 +1301,7 @@ QWidget#vr_content_{
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QLabel" name="label_30">
-                   <property name="text">
-                    <string>Occlusion Angle:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QtUtils::QtSliderDoubleCombo" name="occlusion_angle_" native="true"/>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_31">
-                   <property name="text">
-                    <string>Disk Sampling Grid Resolution:</string>
-                   </property>
-                  </widget>
                  </item>
                  <item>
                   <widget class="QtUtils::QtSliderIntCombo" name="grid_resolution_" native="true"/>
@@ -1684,10 +1475,22 @@ border: 0px</string>
                   </layout>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="faux_checkbox_">
-                   <property name="text">
-                    <string>Enable faux shading</string>
-                   </property>
+                  <widget class="QWidget" name="widget_4" native="true">
+                   <layout class="QHBoxLayout" name="horizontalLayout_8">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="margin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QCheckBox" name="faux_checkbox_">
+                      <property name="text">
+                       <string>Enable faux shading</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </widget>
                  </item>
                  <item>
@@ -1734,6 +1537,12 @@ border: 0px</string>
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>QtUtils::QtSliderIntCombo</class>
+   <extends>QWidget</extends>
+   <header location="global">QtUtils/Widgets/QtSliderIntCombo.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>QtUtils::QtHistogramGraph</class>
    <extends>QWidget</extends>
    <header location="global">QtUtils/Widgets/QtHistogramGraph.h</header>
@@ -1748,12 +1557,6 @@ border: 0px</string>
    <class>Seg3D::TransferFunctionFeatureWidget</class>
    <extends>QWidget</extends>
    <header location="global">Interface/Application/TransferFunctionFeatureWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>QtUtils::QtSliderIntCombo</class>
-   <extends>QWidget</extends>
-   <header location="global">QtUtils/Widgets/QtSliderIntCombo.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

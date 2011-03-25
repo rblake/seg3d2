@@ -53,6 +53,13 @@ QLabel#description_{
 	color: rgb( 60,60,60 );
 }
 
+QLabel#description_:disabled{
+	color: rgb( 140,140,140 );
+}
+
+QLabel#description_:enabled{
+	color: rgb( 60,60,60 );
+}
 QWidget#widget_3{ 
 	border: 1px solid rgb(240, 240, 240); border-radius: 3px;
 }

@@ -379,25 +379,25 @@ const QString StyleSheet::LAYER_WIDGET_BASE_INACTIVE_C = QString::fromUtf8(
 
 const QString StyleSheet::LAYER_WIDGET_HEADER_ACTIVE_C = QString::fromUtf8(
 	"QWidget#header_{"
-	"	border-bottom: 1px solid rgb(73, 111, 160);"
+	"	border-bottom: 1px solid rgba(73, 111, 160, 150);"
 	"}"
 );
 
 const QString StyleSheet::LAYER_WIDGET_HEADER_ACTIVE_IN_USE_C = QString::fromUtf8(
 	"QWidget#header_{"
-	"	border-bottom: 1px solid rgb(73, 111, 160);"
+	"	border-bottom: 1px solid rgba(73, 111, 160, 150);"
 	"}"
 );	
 
 const QString StyleSheet::LAYER_WIDGET_HEADER_IN_USE_C = QString::fromUtf8(
 	"QWidget#header_{"
-	"	border-bottom: 1px solid rgb(73, 111, 160);"
+	"	border-bottom: 1px solid rgba(73, 111, 160, 150);"
 	"}"
 );
 
 const QString StyleSheet::LAYER_WIDGET_HEADER_INACTIVE_C = QString::fromUtf8(
 	"QWidget#header_{"
-	"	border-bottom: 1px solid rgb(80, 80, 80);"
+	"	border-bottom: 1px solid rgb(a80, 80, 80, 150);"
 	"}"
 );
 

@@ -62,7 +62,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="spacing">
-       <number>2</number>
+       <number>4</number>
       </property>
       <property name="margin">
        <number>4</number>
@@ -104,7 +104,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <property name="spacing">
-       <number>2</number>
+       <number>4</number>
       </property>
       <property name="margin">
        <number>4</number>
