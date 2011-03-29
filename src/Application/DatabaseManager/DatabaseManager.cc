@@ -32,22 +32,23 @@
 // Application includes
 #include <Application/DatabaseManager/DatabaseManager.h>
 
+// Core includes
+#include <Core/Utils/Lockable.h>
+
+
 namespace Seg3D
 {
 
-class DatabaseManagerPrivate {
+class DatabaseManagerPrivate : public Core::RecursiveLockable {
 public:
 	sqlite3* database_;
 	boost::filesystem::path database_path_;
-	std::string error_;
-	
 };
 
 
 DatabaseManager::DatabaseManager() :
 	private_( new DatabaseManagerPrivate )
 {	
-	this->private_->error_ = "none";
 }
 
 DatabaseManager::~DatabaseManager()
@@ -61,13 +62,15 @@ void DatabaseManager::close_database()
 }
 
 bool DatabaseManager::initialize_database( const boost::filesystem::path& database_path, 
-	const std::vector< std::string > database_create_tables_statements )
+	const std::vector< std::string > database_create_tables_statements, std::string& error_message )
 {
+	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
+
 	this->private_->database_path_ = database_path;
 	// we check to see if the folder that has been passed as the location for the db actually exists
 	if( !boost::filesystem::exists( this->private_->database_path_.parent_path() ) )
 	{
-		this->private_->error_= "Database could not be created.  The path provided '"
+		error_message = "Database could not be created.  The path provided '"
 			+ this->private_->database_path_.string() + "', does not exist!";
 		return false;
 	}
@@ -94,7 +97,7 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 
 				if(  result != SQLITE_DONE  )
 				{
-					this->private_->error_=  "Database could not be created.  The create statement provided '"
+					error_message =  "Database could not be created.  The create statement provided '"
 						+ database_create_tables_statements[ i ] + "', returned error: "
 						+ Core::ExportToString( result );
 					return false;
@@ -103,7 +106,7 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 		}
 		else
 		{
-			this->private_->error_= "Database could not be created. The database could not be created.";
+			error_message = "Database could not be created. The database could not be created.";
 			return false;
 		}
 	}
@@ -112,7 +115,7 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 		result = sqlite3_open( ":memory:", &this->private_->database_ );
 		if( ( result != SQLITE_OK ) || ( !this->load_or_save_database( false ) ) )
 		{
-			this->private_->error_=  "Database could not be opened at '"
+			error_message =  "Database could not be opened at '"
 				+ this->private_->database_path_.string() + "'. And returned error: "
 				+ Core::ExportToString( result );
 			return false;
@@ -122,14 +125,15 @@ bool DatabaseManager::initialize_database( const boost::filesystem::path& databa
 	return true;
 }
 
-bool DatabaseManager::run_sql_statement( const std::string& sql_str )
+bool DatabaseManager::run_sql_statement( const std::string& sql_str, std::string& error_message )
 {
 	ResultSet dummy_results;
-	return this->run_sql_statement( sql_str, dummy_results );
+	return this->run_sql_statement( sql_str, dummy_results, error_message );
 }
 
-bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& results )
+bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& results, std::string& error_message )
 {
+	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
 	int result;
 	const char* tail;
 	sqlite3_stmt* statement = NULL;
@@ -178,7 +182,7 @@ bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& 
 
 	if( result != SQLITE_DONE )
 	{
-		this->private_->error_=  "The SQL statement '" + sql_str + "' returned error code: "
+		error_message =  "The SQL statement '" + sql_str + "' returned error code: "
 			+ Core::ExportToString( result );
 		return false;
 	} 
@@ -191,15 +195,9 @@ bool DatabaseManager::database_checkpoint()
 	return this->load_or_save_database( true /* this implys that we are saving */ );
 }
 
-std::string DatabaseManager::get_error()
-{
-	std::string temp_error = this->private_->error_;
-	this->private_->error_ = "none";
-	return temp_error;
-}
-
 bool DatabaseManager::load_or_save_database( bool is_save )
 {
+	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
 	int result;
 	sqlite3* temp_open_database;
 	sqlite3* to_database;

@@ -91,6 +91,10 @@ ToolBoxWidget::ToolBoxWidget( QWidget* parent ) :
 	this->setContentsMargins( 1, 1, 1, 1 );
 	this->setWidgetResizable( true );
 
+	this->setFrameShape( QFrame::NoFrame );
+	this->setFrameShadow( QFrame::Plain );
+	this->setLineWidth( 0 );
+
 	this->main_ = new QWidget( this );
 	setWidget( this->main_ );
 	

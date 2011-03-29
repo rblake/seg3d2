@@ -114,8 +114,11 @@ public:
 	
 public:
 	typedef boost::signals2::signal< void() > sessions_changed_signal_type;
+	typedef boost::signals2::signal<  void( std::vector< ProvenanceStepHandle > ) > provenance_records_signal_type;
+
 	sessions_changed_signal_type sessions_changed_signal_;
-	
+	provenance_records_signal_type provenance_record_signal_;
+
 public:
 	// INITIALIZE_FROM_FILE:
 	// this file initializes the state values for project from the file at the path specified
@@ -203,6 +206,10 @@ public:
 	// ADD_TO_PROVENANCE_DATABASE:
 	// adds the provenance step to the database
 	bool add_to_provenance_database( ProvenanceStepHandle& step );
+
+	// GET_PROVENANCE_RECORD:
+	// returns a vector that is the provenance record for a particular ProvenanceID
+	void request_signal_provenance_record( ProvenanceID prov_id );
 	
 public:
 	// SET_PROJECT_CHANGED:
@@ -219,7 +226,7 @@ public:
 	
 	// INSERT_SESSION_INTO_DATABASE:
 	// this inserts a session into the database
-	bool insert_session_into_database( const std::string& timestamp, const std::string& session_name, const std::string& user_name = "" );
+	bool insert_session_into_database( const std::string& timestamp, const std::string& session_name, std::string& error_message, const std::string& user_name = "" );
 	
 	// DELETE_SESSION_FROM_DATABASE:
 	// this deletes a session from the database

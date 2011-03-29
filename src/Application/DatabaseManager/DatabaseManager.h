@@ -53,7 +53,7 @@ typedef std::vector< std::map< std::string, boost::any > > ResultSet;
 class DatabaseManagerPrivate;
 
 // Class definition
-class DatabaseManager 
+class DatabaseManager
 {
 	// -- Constructor/Destructor --
 public:
@@ -65,21 +65,17 @@ public:
 	// Execute the given SQL statement on the database. If the statement generates
 	// any results, they will be put in the result set.
 	// Returns true on success, otherwise false.
-	bool run_sql_statement( const std::string& sql_str, ResultSet& results );
+	bool run_sql_statement( const std::string& sql_str, ResultSet& results, std::string& error_message );
 
 	// RUN_SQL_STATEMENT:
 	// Execute the given SQL statement on the database.
 	// Returns true on success, otherwise false.
-	bool run_sql_statement( const std::string& sql_str );
+	bool run_sql_statement( const std::string& sql_str, std::string& error_message );
 	
 	// DATABASE_CHECKPOINT:
 	// this is for writing the database to disk.  We need to do this because the db is stored in
 	// memory	
 	bool database_checkpoint();
-	
-	// GET_ERROR:
-	// this is an acessor function for getting the error if one of the query's returned false
-	std::string get_error();
 	
 	// CLOSE_DATABASE:
 	// this function writes the database to disk and closes the database 
@@ -92,7 +88,7 @@ public:
 	// INITIALIZE_DATABASE:
 	// this function does the actual creation of the databases 
 	bool initialize_database( const boost::filesystem::path& database_path, 
-		const std::vector< std::string > database_create_tables_statements );
+		const std::vector< std::string > database_create_tables_statements, std::string& error_message );
 	
 private:
 	// LOAD_OR_SAVE_DATABASE:

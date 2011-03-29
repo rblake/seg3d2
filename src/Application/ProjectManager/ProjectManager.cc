@@ -585,6 +585,7 @@ bool ProjectManager::project_save_as( const boost::filesystem::path& export_path
 ///////////////////////////// Recent Files Database Functionality //////////////////////////////////
 bool ProjectManager::create_database_schema()
 {
+	std::string error_message;
 	std::string create_query = "CREATE TABLE recentprojects "
 		"(id INTEGER NOT NULL, "
 		"name VARCHAR(255) NOT NULL, "
@@ -595,9 +596,9 @@ bool ProjectManager::create_database_schema()
 	std::vector< std::string > create_statements;
 	create_statements.push_back( create_query );
 	
-	if( !this->initialize_database( this->recent_projects_database_path_, create_statements ) )
+	if( !this->initialize_database( this->recent_projects_database_path_, create_statements, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;	
 	}
 	return true;
@@ -606,15 +607,16 @@ bool ProjectManager::create_database_schema()
 bool ProjectManager::insert_recent_projects_entry( const std::string& project_name, 
 	const std::string& project_path, const std::string& project_date )
 {
+	std::string error_message;
 	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
 		+ "') AND (path = '" + project_path + "')";
 		
-	this->run_sql_statement( delete_statement );
+	this->run_sql_statement( delete_statement, error_message );
 		
 	std::string insert_statement = "INSERT INTO recentprojects (name, path, date) "
 		"VALUES('" + project_name + "', '" + project_path + "', '" + project_date + "')";
 		
-	if( this->run_sql_statement( insert_statement ) )
+	if( this->run_sql_statement( insert_statement, error_message ) )
 	{
 		// if we've successfully added recent projects to our database
 		// then we let everyone know things have changed.
@@ -623,7 +625,7 @@ bool ProjectManager::insert_recent_projects_entry( const std::string& project_na
 	}	
 	else
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 		
@@ -632,12 +634,13 @@ bool ProjectManager::insert_recent_projects_entry( const std::string& project_na
 bool ProjectManager::delete_recent_projects_entry( const std::string& project_name, 
 	const std::string& project_path, const std::string& project_date )
 {
+	std::string error_message;
 	std::string delete_statement = "DELETE FROM recentprojects WHERE (name = '" + project_name
 		+ "') AND (path = '" + project_path + "')";
 
-	if( !this->run_sql_statement( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 	
@@ -648,10 +651,11 @@ bool ProjectManager::delete_recent_projects_entry( const std::string& project_na
 bool ProjectManager::get_recent_projects_from_database( std::vector< RecentProject >& recent_projects )
 {
 	ResultSet result_set;
-		std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	std::string error_message;
+	std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 	

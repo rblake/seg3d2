@@ -177,16 +177,18 @@ bool Project::delete_session( const std::string& session_name )
 
 bool Project::save_session( const std::string& timestamp, const std::string& session_name )
 {
+	std::string error_message;
 	std::string session_count = Core::ExportToString( this->session_count_state_->get() );
 	while( session_count.size() < 3 )
 	{
 		// we are going to pad session counts so that the os sorts them properly
 		session_count = "0" + session_count;
 	}
-
-	if( !this->insert_session_into_database( timestamp, session_count + "-" + session_name ) )
+	
+	if( !this->insert_session_into_database( timestamp, session_count + "-" + session_name, 
+		error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 
@@ -491,14 +493,15 @@ bool Project::create_database_schema()
 			"UNIQUE(session_name, data_file),"
 			"PRIMARY KEY (id));" );
 		
-
-	if(	this->initialize_database( database_path, create_table_commands ) )
+	std::string error_message;
+	if(	!this->initialize_database( database_path, create_table_commands, error_message ) )
 	{
-		this->database_initialized_ = true;
-		return true;
+		CORE_LOG_ERROR( error_message );
+		return false;
 	}
-	
-	return false;
+
+	this->database_initialized_ = true;
+	return true;
 }
 
 // This function is mostly just a placeholder.  Currently it just registers the actions.  We will probably want to 
@@ -517,6 +520,7 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 	ProvenanceIDList deleted_list = step->get_deleted_provenance_ids();
 	
 	std::string insert_statement;
+	std::string error_message;
 	
 	for( size_t i = 0; i < output_list.size(); ++i )
 	{
@@ -525,9 +529,9 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 			Core::ExportToString( output_list[ i ] )+ ", '" + action_desc + "', '" + 
 			timestamp + "', '" + user_name + "', " + Core::ExportToString( i+1 )+ ");";
 		
-		if( !this->run_sql_statement( insert_statement ) )
+		if( !this->run_sql_statement( insert_statement, error_message ) )
 		{
-			CORE_LOG_ERROR( this->get_error() );
+			CORE_LOG_ERROR( error_message );
 			return false;
 		}
 		
@@ -537,9 +541,9 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( input_list[ j ] ) + ");";
 
-			if( !this->run_sql_statement( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement, error_message ) )
 			{
-				CORE_LOG_ERROR( this->get_error() );
+				CORE_LOG_ERROR( error_message );
 				return false;
 			}
 		}
@@ -550,9 +554,9 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( output_list[ j ] ) + ");";
 
-			if( !this->run_sql_statement( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement, error_message ) )
 			{
-				CORE_LOG_ERROR( this->get_error() );
+				CORE_LOG_ERROR( error_message );
 				return false;
 			}
 		}
@@ -564,7 +568,11 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 				Core::ExportToString( output_list[ i ] ) + ", " +
 				Core::ExportToString( deleted_list[ j ] ) + ");";
 
-			this->run_sql_statement( insert_statement );
+			if( !this->run_sql_statement( insert_statement, error_message ) )
+			{
+				CORE_LOG_ERROR( error_message );
+				return false;
+			}
 		}	
 		
 	}
@@ -583,7 +591,7 @@ void Project::checkpoint_provenance_database()
 }
 
 bool Project::insert_session_into_database( const std::string& timestamp, 
-	const std::string& session_name, const std::string& user_name /*= "" */ )
+	const std::string& session_name, std::string& error_message, const std::string& user_name /*= "" */ )
 {
 	std::string user;
 	bool importing_old_sessions = false;
@@ -604,7 +612,7 @@ bool Project::insert_session_into_database( const std::string& timestamp,
 		"(session_name, username, timestamp) VALUES('" + 
 		session_name+ "', '" + user + "', '" + timestamp + "');";
 
-	if( !this->run_sql_statement( insert_statement ) )
+	if( !this->run_sql_statement( insert_statement, error_message ) )
 	{
 		CORE_LOG_WARNING( "Chill out. Wait at least a second before doing another save..." );
 		return false;
@@ -625,9 +633,9 @@ bool Project::insert_session_into_database( const std::string& timestamp,
 				"(session_name, data_file) VALUES('" + session_name + 
 				"', '" + Core::ExportToString( generation ) +	".nrrd');";
 
-			if( !this->run_sql_statement( insert_statement ) )
+			if( !this->run_sql_statement( insert_statement, error_message ) )
 			{
-				CORE_LOG_ERROR( this->get_error() );
+				CORE_LOG_ERROR( error_message );
 				return false;
 			}
 		}
@@ -640,21 +648,22 @@ bool Project::insert_session_into_database( const std::string& timestamp,
 
 bool Project::delete_session_from_database( const std::string& session_name )
 {
+	std::string error_message;
 	std::string delete_statement = "DELETE FROM sessions WHERE (session_name = '" + 
 		session_name + "');";
 
-	if( !this->run_sql_statement( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 	
 	delete_statement = "DELETE FROM data_relations WHERE (session_name = '" + 
 		session_name + "');";
 
-	if( !this->run_sql_statement( delete_statement ) )
+	if( !this->run_sql_statement( delete_statement, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 	
@@ -664,10 +673,11 @@ bool Project::delete_session_from_database( const std::string& session_name )
 bool Project::get_all_sessions( std::vector< SessionInfo >& sessions )
 {
 	ResultSet result_set;
+	std::string error_message;
 	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 
@@ -685,11 +695,12 @@ bool Project::get_all_sessions( std::vector< SessionInfo >& sessions )
 bool Project::get_session( SessionInfo& session, const std::string& session_name )
 {
 	ResultSet result_set;
+	std::string error_message;
 	std::string select_statement = "SELECT * FROM sessions WHERE session_name ='" + 
 		session_name + "';";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 
@@ -710,10 +721,11 @@ bool Project::get_session( SessionInfo& session, const std::string& session_name
 bool Project::get_most_recent_session_name( std::string& session_name )
 {
 	ResultSet result_set;
+	std::string error_message;
 	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 
@@ -784,11 +796,16 @@ void Project::import_old_session_info_into_database()
 		
 		std::string timestamp = year + "-" + month + "-" + day + " " + 
 			hour + ":" + minute + ":" + second;
-		
+		std::string error_message;
+
 		// Here we insert the converted session name into the database
-		bool success = this->insert_session_into_database( timestamp, new_session_name, 
-			old_session_name_vector[ 2 ] );
-		
+		if( !this->insert_session_into_database( timestamp, new_session_name, 
+			old_session_name_vector[ 2 ], error_message ) )
+		{
+			CORE_LOG_ERROR( error_message );
+			return;
+		}
+
 		// Now if it had data associated with it, put it in the database too.
 		std::vector< std::string > files;
 		if( this->data_manager_->get_session_files_vector( old_session_name, files ) )
@@ -799,9 +816,9 @@ void Project::import_old_session_info_into_database()
 					"(session_name, data_file) VALUES('" + new_session_name + 
 					"', '" + files[ i ] + "');";
 
-				if( !this->run_sql_statement( insert_statement ) )
+				if( !this->run_sql_statement( insert_statement, error_message ) )
 				{
-					CORE_LOG_ERROR( this->get_error() );
+					CORE_LOG_ERROR( error_message );
 					return;
 				}
 			}
@@ -820,10 +837,11 @@ void Project::import_old_session_info_into_database()
 long long Project::get_data_file_size()
 {
 	ResultSet result_set;
+	std::string error_message;
 	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return false;
 	}
 
@@ -846,10 +864,11 @@ long long Project::get_data_file_size()
 void Project::delete_unused_data_files()
 {
 	ResultSet result_set;
+	std::string error_message;
 	std::string select_statement = "SELECT DISTINCT data_file FROM data_relations;";
-	if( !this->run_sql_statement( select_statement, result_set ) )
+	if( !this->run_sql_statement( select_statement, result_set, error_message ) )
 	{
-		CORE_LOG_ERROR( this->get_error() );
+		CORE_LOG_ERROR( error_message );
 		return;
 	}
 
@@ -888,6 +907,53 @@ void Project::delete_unused_data_files()
 	}	
 }
 
+void Project::request_signal_provenance_record( ProvenanceID prov_id )
+{
+	std::vector< ProvenanceStepHandle > provenance_trail;
+	ProvenanceID parent_id = 0;
+	bool found_the_root = false;
+
+	while( !found_the_root )
+	{
+		ResultSet step_result_set;
+		std::string error_message;
+		std::string select_statement = "SELECT * FROM provenance_step WHERE provenance_id =" + Core::ExportToString( prov_id ) + " ;";
+		if( !this->run_sql_statement( select_statement, step_result_set, error_message ) )
+		{
+			CORE_LOG_ERROR( error_message );
+			return;
+		}
+
+		ProvenanceStepHandle temp_step_handle = ProvenanceStepHandle( new ProvenanceStep() );
+		temp_step_handle->set_action( boost::any_cast< std::string >( ( step_result_set[ 0 ] )[ "action" ] ) );
+
+		ResultSet source_result_set;
+		select_statement = "SELECT input_provenance_id FROM provenance_input_relations WHERE provenance_id =" + Core::ExportToString( prov_id ) + " ;";
+		if( !this->run_sql_statement( select_statement, source_result_set, error_message ) )
+		{
+			CORE_LOG_ERROR( error_message );
+			return;
+		}
+	}
+}
+
+// 
+// ResultSet result_set;
+// std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
+// if( !this->run_sql_statement( select_statement, result_set ) )
+// {
+// 	CORE_LOG_ERROR( this->get_error() );
+// 	return false;
+// }
+// 
+// for( size_t i = 0; i < result_set.size(); ++i )
+// {
+// 	recent_projects.push_back( RecentProject( 
+// 		boost::any_cast< std::string >( ( result_set[ i ] )[ "name" ] ),
+// 		boost::any_cast< std::string >( ( result_set[ i ] )[ "path" ] ),
+// 		boost::any_cast< std::string >( ( result_set[ i ] )[ "date" ] ), 
+// 		static_cast< int >( boost::any_cast< long long >( ( result_set[ i ] )[ "id" ] ) ) ) );
+// }
 
 
 } // end namespace Seg3D
