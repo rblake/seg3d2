@@ -418,6 +418,13 @@ void Menu::create_window_menu( QMenu* qmenu )
 	QtUtils::QtBridge::Connect( qaction,
 		InterfaceManager::Instance()->rendering_dockwidget_visibility_state_ );
 
+	// Provenance Widget
+	qaction = qmenu->addAction( "Provenance Window" );
+	qaction->setShortcut( tr( "Ctrl+Shift+P" ) );
+	qaction->setCheckable( true );
+	QtUtils::QtBridge::Connect( qaction, 
+		InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
+
 	qmenu->addSeparator();
 
 	// Controller Window

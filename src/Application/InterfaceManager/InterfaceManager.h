@@ -79,6 +79,7 @@ public:
 	Core::StateBoolHandle toolmanager_dockwidget_visibility_state_;
 	Core::StateBoolHandle layermanager_dockwidget_visibility_state_;
 	Core::StateBoolHandle rendering_dockwidget_visibility_state_;
+	Core::StateBoolHandle provenance_dockwidget_visibility_state_;
 	Core::StateBoolHandle history_dockwidget_visibility_state_;
 	
 	// Other widget visibility state

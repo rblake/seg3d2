@@ -909,23 +909,29 @@ void Project::delete_unused_data_files()
 
 void Project::request_signal_provenance_record( ProvenanceID prov_id )
 {
-	std::vector< ProvenanceStepHandle > provenance_trail;
-	ProvenanceID parent_id = 0;
-	bool found_the_root = false;
+	std::vector< std::pair< ProvenanceID, std::string > > provenance_trail;
+	this->provenance_recursive_helper( provenance_trail, prov_id );
 
-	while( !found_the_root )
+	this->provenance_record_signal_( provenance_trail );
+	
+}
+
+void Project::provenance_recursive_helper( std::vector< std::pair< ProvenanceID, std::string > >& provenance_trail, ProvenanceID prov_id )
+{
+	if( prov_id == -1 )
+		return;
+	else
 	{
 		ResultSet step_result_set;
 		std::string error_message;
-		std::string select_statement = "SELECT * FROM provenance_step WHERE provenance_id =" + Core::ExportToString( prov_id ) + " ;";
+		std::string select_statement = "SELECT action FROM provenance_step WHERE provenance_id =" + Core::ExportToString( prov_id ) + " ;";
 		if( !this->run_sql_statement( select_statement, step_result_set, error_message ) )
 		{
 			CORE_LOG_ERROR( error_message );
 			return;
 		}
 
-		ProvenanceStepHandle temp_step_handle = ProvenanceStepHandle( new ProvenanceStep() );
-		temp_step_handle->set_action( boost::any_cast< std::string >( ( step_result_set[ 0 ] )[ "action" ] ) );
+		std::string action = boost::any_cast< std::string >( ( step_result_set[ 0 ] )[ "action" ] );
 
 		ResultSet source_result_set;
 		select_statement = "SELECT input_provenance_id FROM provenance_input_relations WHERE provenance_id =" + Core::ExportToString( prov_id ) + " ;";
@@ -934,8 +940,15 @@ void Project::request_signal_provenance_record( ProvenanceID prov_id )
 			CORE_LOG_ERROR( error_message );
 			return;
 		}
+		for( size_t i = 0; i < source_result_set.size(); ++i )
+		{
+			ProvenanceID new_prov_id = boost::any_cast< long long >( ( source_result_set[ i ] )[ "input_provenance_id" ] );
+			this->provenance_recursive_helper( provenance_trail, new_prov_id );
+			provenance_trail.push_back( std::make_pair( prov_id, action ) );
+		}
 	}
 }
+
 
 // 
 // ResultSet result_set;

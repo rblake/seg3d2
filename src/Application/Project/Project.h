@@ -89,7 +89,7 @@ public:
 typedef boost::shared_ptr< Project > ProjectHandle;
 
 // Class definition
-class Project : public Core::StateHandler, public Core::RecursiveLockable, private DatabaseManager 
+class Project : public Core::StateHandler, private DatabaseManager // don't need Core::RecursiveLockable because DatabaseManager is one
 {
 
 	// -- constructor/destructor --
@@ -114,7 +114,7 @@ public:
 	
 public:
 	typedef boost::signals2::signal< void() > sessions_changed_signal_type;
-	typedef boost::signals2::signal<  void( std::vector< ProvenanceStepHandle > ) > provenance_records_signal_type;
+	typedef boost::signals2::signal<  void( std::vector< std::pair< ProvenanceID, std::string > > ) > provenance_records_signal_type;
 
 	sessions_changed_signal_type sessions_changed_signal_;
 	provenance_records_signal_type provenance_record_signal_;
@@ -233,7 +233,7 @@ public:
 	bool delete_session_from_database( const std::string& session_name );
 	
 	// GET_ALL_SESSIONS:
-	// 
+	// this returns all the sessions
 	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 	
 	// GET_SESSION:
@@ -248,6 +248,12 @@ public:
 	// CHECKPOINT_PROVENANCE_DATABASE:
 	// this function dumps the database to disk
 	void checkpoint_provenance_database();
+
+private:
+	// PROVENANCE_RECURSIVE_HELPER
+	// this is a recursive function that gets the provenance trail out of the database for a particular provenance id 
+	void provenance_recursive_helper( 
+		std::vector< std::pair< long long, std::string > >& provenance_trail, ProvenanceID prov_id );
 	
 private:
 	// Session current using

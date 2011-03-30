@@ -207,6 +207,7 @@ void PreferencesManager::initialize_states()
 	add_state( "show_tools_bar", this->show_tools_bar_state_, true );
 	add_state( "show_layermanager_bar", this->show_layermanager_bar_state_, true );
 	add_state( "show_projectmanager_bar", this->show_projectmanager_bar_state_, true );
+	add_state( "show_projectmanager_bar", this->show_provenance_bar_state_, false );
 	add_state( "show_history_bar", this->show_history_bar_state_, false );
 
 	this->add_connection( this->axis_labels_option_state_->value_changed_signal_.connect(

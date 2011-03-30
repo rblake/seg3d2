@@ -65,6 +65,8 @@
 #include <Application/Filters/LayerResampler.h>
 #include <Application/LayerManager/Actions/ActionMoveLayerBelow.h>
 
+#include <Application/ProjectManager/ProjectManager.h>
+
 
 //Interface Includes
 #include <Interface/Application/LayerWidget.h>
@@ -1202,6 +1204,9 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 	qaction = menu.addAction( tr( "Delete Layer" ) );
 	connect( qaction, SIGNAL( triggered() ), this, SLOT( delete_layer_from_context_menu() ) );
 	
+	qaction = menu.addAction( tr( "Show Provenance" ) );
+	connect( qaction, SIGNAL( triggered() ), this, SLOT( request_provenance() ) );
+
 	QMenu* export_menu;
 	export_menu = new QMenu( this );
 	if( this->private_->layer_->get_type() == Core::VolumeType::DATA_E )
@@ -1336,5 +1341,11 @@ void LayerWidget::set_iso_surface_visibility( bool visibility )
 		}
 	}
 }
+
+void LayerWidget::request_provenance()
+{
+	ProjectManager::Instance()->current_project_->request_signal_provenance_record( this->private_->layer_->provenance_id_state_->get() );
+}
+
 
 } //end namespace Seg3D

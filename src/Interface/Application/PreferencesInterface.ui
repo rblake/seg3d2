@@ -1254,6 +1254,13 @@ border: 1px solid gray;
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="volume_view_checkbox_">
+            <property name="text">
+             <string>Volume View</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>

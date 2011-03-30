@@ -109,6 +109,7 @@ public:
 	Core::StateBoolHandle show_tools_bar_state_;
 	Core::StateBoolHandle show_layermanager_bar_state_;
 	Core::StateBoolHandle show_projectmanager_bar_state_;
+	Core::StateBoolHandle show_provenance_bar_state_;
 	Core::StateBoolHandle show_history_bar_state_;
 	
 public:
