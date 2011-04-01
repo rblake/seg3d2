@@ -46,8 +46,7 @@ class ActionSaveSession : public Core::Action
 	
 CORE_ACTION(
 	CORE_ACTION_TYPE( "SaveSession", "Save a new session." )
-	CORE_ACTION_ARGUMENT( "sessionname", "Name of the session to load." )
-	CORE_ACTION_KEY( "autosave", "false", "Whether this action was triggered by the autosave feature." )
+	CORE_ACTION_ARGUMENT( "session", "Name of the new session or blank to use default name." )
 )
 
 	// -- Constructor/Destructor --
@@ -55,7 +54,6 @@ public:
 	ActionSaveSession()
 	{
 		this->add_parameter( this->session_name_ );
-		this->add_parameter( this->is_autosave_ );
 	}
 
 	// -- Functions that describe action --
@@ -64,19 +62,14 @@ public:
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
 private:
-	// This parameter contains the id of the layer
-	bool is_autosave_;
+	// The name of the new session.
 	std::string session_name_;
 	
 	// -- Dispatch this action from the interface --
 public:
 	// DISPATCH:
 	// Dispatch an action that activates a layer
-	static void Dispatch( Core::ActionContextHandle context, bool is_autosave, 
-		std::string session_name );
-
-private:
-	boost::posix_time::ptime time_stamp_;
+	static void Dispatch( Core::ActionContextHandle context, const std::string& session_name );
 };
 
 } // end namespace Seg3D

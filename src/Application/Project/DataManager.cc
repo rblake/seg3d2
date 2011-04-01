@@ -39,7 +39,7 @@ namespace Seg3D
 {
 
 DataManager::DataManager() :
-	StateHandler( "datamanager", false )
+	StateHandler( "datamanager", true )
 {	
 	this->add_state( "sessions_and_datafiles", this->sessions_and_datafiles_state_ );
 }

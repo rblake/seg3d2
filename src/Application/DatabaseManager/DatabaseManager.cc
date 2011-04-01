@@ -41,97 +41,69 @@ namespace Seg3D
 
 class DatabaseManagerPrivate : public Core::RecursiveLockable {
 public:
+	// The actual database
 	sqlite3* database_;
+	
+	// Where the database is located on disk
 	boost::filesystem::path database_path_;
 };
 
 
 DatabaseManager::DatabaseManager() :
 	private_( new DatabaseManagerPrivate )
-{	
+{
+	// Open a default database
+	int result = sqlite3_open( ":memory:", &this->private_->database_ );
+	if ( result != SQLITE_OK )
+	{
+		this->private_->database_ = 0;
+	}
 }
+
 
 DatabaseManager::~DatabaseManager()
 {	
-	this->close_database();
+	// We need to close the database to avoid memory being leaked
+	if ( this->private_->database_ )
+	{
+		sqlite3_close( this->private_->database_ );
+	}
 }
 
-void DatabaseManager::close_database()
+bool DatabaseManager::create_database( const std::vector< std::string >& create_tables_statements,
+	std::string& error )
 {
-	this->load_or_save_database( true );
-}
-
-bool DatabaseManager::initialize_database( const boost::filesystem::path& database_path, 
-	const std::vector< std::string > database_create_tables_statements, std::string& error_message )
-{
-	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
-
-	this->private_->database_path_ = database_path;
-	// we check to see if the folder that has been passed as the location for the db actually exists
-	if( !boost::filesystem::exists( this->private_->database_path_.parent_path() ) )
-	{
-		error_message = "Database could not be created.  The path provided '"
-			+ this->private_->database_path_.string() + "', does not exist!";
-		return false;
-	}
+	const char* tail;
+	sqlite3_stmt* statement;
 	
-	int result;
-	
-	// we check to see if the database already exists.
-	// if it doesn't, we create it using the passed create statements
-	if( !boost::filesystem::exists( this->private_->database_path_ ) )
+	for( size_t i = 0; i < create_tables_statements.size(); ++i )
 	{
-		result = sqlite3_open( ":memory:", &this->private_->database_ );
-		if ( result == SQLITE_OK )
-		{
-			const char* tail;
-			sqlite3_stmt* statement;
-			
-			for( size_t i = 0; i < database_create_tables_statements.size(); ++i )
-			{
-				statement = NULL;
-				sqlite3_prepare_v2( this->private_->database_, database_create_tables_statements[ i ].c_str(), 
-					static_cast< int >( database_create_tables_statements[ i ].size() ), &statement, &tail );
-				result = sqlite3_step( statement );
-				sqlite3_finalize( statement );				
+		statement = 0;
+		sqlite3_prepare_v2( this->private_->database_, create_tables_statements[ i ].c_str(), 
+			static_cast< int >( create_tables_statements[ i ].size() ), &statement, &tail );
+		int result = sqlite3_step( statement );
+		sqlite3_finalize( statement );				
 
-				if(  result != SQLITE_DONE  )
-				{
-					error_message =  "Database could not be created.  The create statement provided '"
-						+ database_create_tables_statements[ i ] + "', returned error: "
-						+ Core::ExportToString( result );
-					return false;
-				}
-			}
-		}
-		else
+		if( result != SQLITE_DONE  )
 		{
-			error_message = "Database could not be created. The database could not be created.";
-			return false;
-		}
-	}
-	else
-	{
-		result = sqlite3_open( ":memory:", &this->private_->database_ );
-		if( ( result != SQLITE_OK ) || ( !this->load_or_save_database( false ) ) )
-		{
-			error_message =  "Database could not be opened at '"
-				+ this->private_->database_path_.string() + "'. And returned error: "
+			error =  "Database could not be created. The create statement provided '"
+				+ create_tables_statements[ i ] + "', returned error: "
 				+ Core::ExportToString( result );
 			return false;
 		}
 	}
-	
-	return true;
 }
 
-bool DatabaseManager::run_sql_statement( const std::string& sql_str, std::string& error_message )
+
+bool DatabaseManager::run_sql_statement( const std::string& sql_str, std::string& error )
 {
 	ResultSet dummy_results;
-	return this->run_sql_statement( sql_str, dummy_results, error_message );
+	return this->run_sql_statement( sql_str, dummy_results, error );
 }
 
-bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& results, std::string& error_message )
+
+bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& results, 
+	std::string& error )
 {
 	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
 	int result;
@@ -182,7 +154,7 @@ bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& 
 
 	if( result != SQLITE_DONE )
 	{
-		error_message =  "The SQL statement '" + sql_str + "' returned error code: "
+		error =  "The SQL statement '" + sql_str + "' returned error code: "
 			+ Core::ExportToString( result );
 		return false;
 	} 
@@ -190,12 +162,52 @@ bool DatabaseManager::run_sql_statement( const std::string& sql_str, ResultSet& 
 	return true;
 }
 
-bool DatabaseManager::database_checkpoint()
+
+bool DatabaseManager::load_database( const boost::filesystem::path& database_file, 
+	std::string& error )
 {
-	return this->load_or_save_database( true /* this implys that we are saving */ );
+	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
+
+	int result;
+	sqlite3* temp_open_database;
+	sqlite3* to_database;
+	sqlite3* from_database;
+	sqlite3_backup* backup_database_object;
+	
+	result = sqlite3_open( database_file.string().c_str(), &temp_open_database );
+	
+	if ( result != SQLITE_OK ) 
+	{
+		sqlite3_close( temp_open_database );
+		error = std::string( "Could not open database file '" ) + database_file.string() + "'.";
+		return false;
+	}
+	
+	backup_database_object = 
+		sqlite3_backup_init( this->private_->database_, "main", temp_open_database, "main" );
+	
+	if ( backup_database_object )
+	{
+		sqlite3_backup_step( backup_database_object, -1 );
+		sqlite3_backup_finish( backup_database_object );
+	}
+	
+	result = sqlite3_errcode( this->private_->database_ );
+	if ( result != SQLITE_OK ) 
+	{
+		error = "Internal error in database.";
+		return false;
+	}
+	
+	sqlite3_close( temp_open_database );
+
+	error = "";
+	return true;	
 }
 
-bool DatabaseManager::load_or_save_database( bool is_save )
+
+bool DatabaseManager::save_database( const boost::filesystem::path& database_file, 
+	std::string& error )
 {
 	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
 	int result;
@@ -204,31 +216,36 @@ bool DatabaseManager::load_or_save_database( bool is_save )
 	sqlite3* from_database;
 	sqlite3_backup* backup_database_object;
 	
-	result = sqlite3_open( this->private_->database_path_.string().c_str(), &temp_open_database );
+	result = sqlite3_open( database_file.string().c_str(), &temp_open_database );
 	
-	if( result != SQLITE_OK ) 
+	if ( result != SQLITE_OK ) 
 	{
-		( void )sqlite3_close( temp_open_database );
+		sqlite3_close( temp_open_database );
+		error = std::string( "Could not open database file '" ) + database_file.string() + "'.";
 		return false;
 	}
 	
-	from_database = ( is_save ? this->private_->database_ : temp_open_database );
-	to_database = ( is_save ? temp_open_database : this->private_->database_ );
+	backup_database_object = 
+		sqlite3_backup_init( temp_open_database, "main", this->private_->database_, "main" );
 	
-	backup_database_object = sqlite3_backup_init( to_database, "main", from_database, "main" );
-	if( backup_database_object )
+	if ( backup_database_object )
 	{
-		( void )sqlite3_backup_step( backup_database_object, -1 );
-		( void )sqlite3_backup_finish( backup_database_object );
+		sqlite3_backup_step( backup_database_object, -1 );
+		sqlite3_backup_finish( backup_database_object );
 	}
 	
-	result = sqlite3_errcode( to_database );
+	result = sqlite3_errcode( temp_open_database );
+	if ( result != SQLITE_OK ) 
+	{
+		error = "Internal error in database.";
+		return false;
+	}
 	
-	( void )sqlite3_close( temp_open_database );
+	sqlite3_close( temp_open_database );
 
+	error = "";
 	return true;	
 }
-
 
 
 } // end namespace seg3D

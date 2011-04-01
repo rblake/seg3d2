@@ -43,7 +43,7 @@
 // Application includes
 #include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ProjectManager/Actions/ActionLoadProject.h>
-#include <Application/ProjectManager/Actions/ActionQuickOpen.h>
+#include <Application/ProjectManager/Actions/ActionNewProject.h>
 
 // Resources includes
 #include <Resources/QtResources.h>
@@ -133,21 +133,58 @@ void SplashScreen::unhide()
 	
 void SplashScreen::open_existing()
 {
-	boost::filesystem::path current_projects_path = complete( 
-		boost::filesystem::path( ProjectManager::Instance()->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
+	boost::filesystem::path current_projects_path = boost::filesystem::complete( 
+		boost::filesystem::path( ProjectManager::Instance()-> get_current_project_folder() ) );
 
-	boost::filesystem::path full_path = ( QFileDialog::getOpenFileName ( this, 
-		tr( "Open Seg3D Project" ), QString::fromStdString( current_projects_path.string() ), 
-		tr( "Seg3D Project File ( *.s3d )" ) ) ).toStdString(); 
+	std::string project_type = std::string( "Open " ) + 
+		Core::Application::GetApplicationName()	+ " Project";
+	std::string project_file_type =  Core::Application::GetApplicationName() +
+		" Project File ( *.s3d *.seg3dproj )";
+
+	boost::filesystem::path full_path = boost::filesystem::path( 
+		QFileDialog::getOpenFileName ( this, 
+		QString::fromStdString( project_type ), 
+		QString::fromStdString( current_projects_path.string() ), 
+		QString::fromStdString( project_file_type ) ).toStdString() ); 
+
+	if ( boost::filesystem::extension( full_path ) == ".seg3dproj" )
+	{
+		bool found_s3d_file = false;
+		
+		if ( boost::filesystem::is_directory( full_path ) )
+		{
+			boost::filesystem::directory_iterator dir_end;
+			for( boost::filesystem::directory_iterator dir_itr( full_path ); 
+				dir_itr != dir_end; ++dir_itr )
+			{
+				std::string filename = dir_itr->filename();
+				boost::filesystem::path dir_file = full_path / filename;
+				if ( boost::filesystem::extension( dir_file ) == ".s3d" )
+				{
+					full_path = dir_file;
+					found_s3d_file = true;
+					break;
+				}
+			}
+		}
+		
+		if ( !found_s3d_file )
+		{
+			QMessageBox::critical( 0, 
+				"Error reading project file",
+				"Error reading project file:\n"
+				"The project file is incomplete." );
+			return;		
+		}
+	}
+
 	
 	std::string path = full_path.parent_path().string();
 	std::string file_name = full_path.filename();
 
 	if( boost::filesystem::exists( full_path ) )
 	{
-		if ( ! ProjectManager::Instance()->check_if_file_is_valid_project( 
-			full_path ) )
+		if ( ! ProjectManager::CheckProjectFile( full_path ) )
 		{
 			QMessageBox::critical( 0, 
 				"Error reading project file",
@@ -171,14 +208,12 @@ void SplashScreen::open_recent()
 	if( recent_projects[ index ].name_ == 
 		( this->private_->ui_.recent_project_listwidget_->currentItem()->text() ).toStdString() )
 	{
-		boost::filesystem::path path = 
-			recent_projects[ index ].path_;
-		
-		path = path / recent_projects[ index ].name_ / ( recent_projects[ index ].name_ + ".s3d" );
+		boost::filesystem::path path = boost::filesystem::path( recent_projects[ index ].path_ ) / 
+			( recent_projects[ index ].name_ + ".s3d" );
 		
 		if( !boost::filesystem::exists( path ) ) return;
 		
-		if ( ! ProjectManager::Instance()->check_if_file_is_valid_project( path ) )
+		if ( ! ProjectManager::CheckProjectFile( path ) )
 		{
 			QMessageBox::critical( 0, 
 				"Error reading project file",
@@ -197,7 +232,8 @@ void SplashScreen::open_recent()
 
 void SplashScreen::quick_open_file()
 {
-	ActionQuickOpen::Dispatch( Core::Interface::GetWidgetActionContext() );
+	ActionNewProject::Dispatch( Core::Interface::GetWidgetActionContext(), "",
+		"Untitled Project" );
 	this->hide();
 	LayerIOFunctions::ImportFiles( dynamic_cast< QMainWindow* >( this->parentWidget() ), "" );
 	

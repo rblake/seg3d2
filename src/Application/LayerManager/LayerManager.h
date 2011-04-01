@@ -52,7 +52,7 @@
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/DataLayer.h>
 #include <Application/Layer/MaskLayer.h>
-#include <Application/Session/Session.h>
+#include <Application/Project/Project.h>
 
 namespace Seg3D
 {

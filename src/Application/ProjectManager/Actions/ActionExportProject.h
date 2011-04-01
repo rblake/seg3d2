@@ -29,9 +29,9 @@
 #ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONEXPORTPROJECT_H
 #define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONEXPORTPROJECT_H
 
+// Core includes
 #include <Core/Action/Action.h> 
 #include <Core/Interface/Interface.h>
-
 
 namespace Seg3D
 {
@@ -41,18 +41,18 @@ class ActionExportProject : public Core::Action
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "ExportProject", "Export a project." )
+	CORE_ACTION_ARGUMENT( "session", "Name of the exporting session." )
 	CORE_ACTION_ARGUMENT( "path", "Path to export the project to." )
 	CORE_ACTION_ARGUMENT( "name", "Name to export the project as." )
-	CORE_ACTION_ARGUMENT( "session", "Name of the exporting session." )
 )
 
 	// -- Constructor/Destructor --
 public:
 	ActionExportProject()
 	{
+		this->add_parameter( this->session_name_ );
 		this->add_parameter( this->export_path_ );
 		this->add_parameter( this->project_name_ );
-		this->add_parameter( this->session_name_ );
 	}
 
 	// -- Functions that describe action --
@@ -63,9 +63,10 @@ public:
 private:
 
 	// This parameter contains the name of the session to be loaded
+	std::string session_name_;
 	std::string export_path_;
 	std::string project_name_;
-	std::string session_name_;
+	
 	// -- Dispatch this action from the interface --
 public:
 	// DISPATCH:
@@ -76,4 +77,4 @@ public:
 
 } // end namespace Seg3D
 
-#endif  //ACTIONEXPORTPROJECT_H
+#endif 

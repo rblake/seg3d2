@@ -32,7 +32,6 @@
 #include <Core/Action/Action.h> 
 #include <Core/Interface/Interface.h>
 
-
 namespace Seg3D
 {
 
@@ -41,7 +40,7 @@ class ActionSaveProjectAs : public Core::Action
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "SaveProjectAs", "Save a project as..." )
-	CORE_ACTION_ARGUMENT( "path", "Path to save the project to." )
+	CORE_ACTION_ARGUMENT( "location", "Path to save the project to." )
 	CORE_ACTION_ARGUMENT( "name", "Name to save the project as." )
 )
 
@@ -49,7 +48,7 @@ CORE_ACTION(
 public:
 	ActionSaveProjectAs()
 	{
-		this->add_parameter( this->export_path_ );
+		this->add_parameter( this->project_location_ );
 		this->add_parameter( this->project_name_ );
 	}
 
@@ -61,8 +60,9 @@ public:
 private:
 
 	// This parameter contains the name of the session to be loaded
-	std::string export_path_;
+	std::string project_location_;
 	std::string project_name_;
+
 	// -- Dispatch this action from the interface --
 public:
 	// DISPATCH:

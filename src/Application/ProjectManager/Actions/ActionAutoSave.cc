@@ -26,19 +26,20 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Application includes
 #include <Application/ProjectManager/ProjectManager.h>
-#include <Application/ProjectManager/Actions/ActionSaveSession.h>
+#include <Application/ProjectManager/Actions/ActionAutoSave.h>
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, SaveSession )
+CORE_REGISTER_ACTION( Seg3D, AutoSave )
 
 namespace Seg3D
 {
 
-bool ActionSaveSession::validate( Core::ActionContextHandle& context )
+bool ActionAutoSave::validate( Core::ActionContextHandle& context )
 {
+	// TODO: We need to upgrade the system, so that when access is restored files can be used 
+	// again.
+
 	// Check whether files still exist, if not an error is being generated
 	// We are dealing with file I/O, hence there is no guarantee that files still exist.
 	// The user may have accidentally deleted the files, or a network connection may be lost, etc.
@@ -46,18 +47,26 @@ bool ActionSaveSession::validate( Core::ActionContextHandle& context )
 	{
 		context->report_error( "The project directory cannot be found." );
 		// Draw the users attention to this problem.
-		CORE_LOG_CRITICAL_ERROR( "Save FAILED as the project directory cannot found. "
+		CORE_LOG_CRITICAL_ERROR( "AutoSave FAILED as the project directory cannot found. "
 			"Please perform a 'Save As' as soon as possible to preserve your data." );				
 		return false;
 	}
 	
+	// Cancel auto save if project has been save between issuing autosave and now
+	if ( this->time_stamp_ < ProjectManager::Instance()->get_current_project()->
+		get_last_saved_session_time_stamp() )
+	{
+		// User already saved the session, hence the action is no longer needed
+		return false;
+	}
+
 	return true; // validated
 }
 
-bool ActionSaveSession::run( Core::ActionContextHandle& context, 
+bool ActionAutoSave::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	std::string message = std::string( "Please wait, while your session is being saved..." );
+	std::string message = std::string( "Please wait, while auto saving..." );
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
@@ -66,26 +75,29 @@ bool ActionSaveSession::run( Core::ActionContextHandle& context,
 
 	// A save can still fail, we have no control over whether disk actions will succeed, hence
 	// we need to keep checking the integrity of the file save.
-	bool success = ProjectManager::Instance()->save_project_session( this->session_name_ );
+	bool success = ProjectManager::Instance()->save_project_session( "AutoSave" );
 
 	progress->end_progress_reporting();
 
-	if( !success )
+	if( success )
+	{
+		// TODO: Check whether this call is still needed here
+		ProjectManager::Instance()->get_current_project()->reset_project_changed();
+		return true;
+	}
+	else 
 	{
 		// Draw the users attention to this problem.
-		CORE_LOG_CRITICAL_ERROR( "Save FAILED for project: '" 
+		CORE_LOG_CRITICAL_ERROR( "AutoSave FAILED for project: '" 
 			+ ProjectManager::Instance()->get_current_project()->project_name_state_->get() 
 			+ "'. Please perform a 'Save As' as soon as possible to preserve your data." );				
+		return false;		
 	}
-
-	return success;		
 }
 
-void ActionSaveSession::Dispatch( Core::ActionContextHandle context, const std::string& session_name )
+void ActionAutoSave::Dispatch( Core::ActionContextHandle context )
 {
-	ActionSaveSession* action = new ActionSaveSession;
-	action->session_name_ = session_name;
-
+	ActionAutoSave* action = new ActionAutoSave;
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 

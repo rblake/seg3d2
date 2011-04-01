@@ -890,8 +890,9 @@ bool LayerManager::post_save_states( Core::StateIO& state_io )
 
 	state_io.pop_current_element();
 
+	// TODO: Need to check this logic, this most liky saves too much data
 	return Core::MaskDataBlockManager::Instance()->save_data_blocks( 
-		ProjectManager::Instance()->get_project_data_path(),
+		ProjectManager::Instance()->get_current_project()->get_project_data_path(),
 		PreferencesManager::Instance()->compression_state_->get(),
 		PreferencesManager::Instance()->compression_level_state_->get() );
 }	

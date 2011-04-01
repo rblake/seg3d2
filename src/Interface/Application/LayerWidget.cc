@@ -1344,7 +1344,8 @@ void LayerWidget::set_iso_surface_visibility( bool visibility )
 
 void LayerWidget::request_provenance()
 {
-	ProjectManager::Instance()->current_project_->request_signal_provenance_record( this->private_->layer_->provenance_id_state_->get() );
+	ProjectManager::Instance()->get_current_project()->request_signal_provenance_record( 
+		this->private_->layer_->provenance_id_state_->get() );
 }
 
 

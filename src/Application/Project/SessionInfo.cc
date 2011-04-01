@@ -26,48 +26,21 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
-#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONDELETESESSION_H
-
-#include <Core/Action/Action.h> 
-#include <Core/Interface/Interface.h>
-
+#include <Application/Project/SessionInfo.h>
 
 namespace Seg3D
 {
 
-class ActionDeleteSession : public Core::Action
+SessionInfo::SessionInfo( std::string session_name , std::string username , 
+	std::string timestamp ) :
+		session_name_( session_name ),
+		username_( username ),
+		timestamp_( timestamp )
 {
+}
 
-CORE_ACTION( 
-	CORE_ACTION_TYPE( "DeleteSession", "Delete a session." )
-	CORE_ACTION_ARGUMENT( "name", "Name of the session to delete." )
-)
-
-	// -- Constructor/Destructor --
-public:
-	ActionDeleteSession()
-	{
-		this->add_parameter( this->session_name_ );
-	}
-
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
-private:
-
-	// This parameter contains the name of the session to be deleted
-	std::string session_name_;
-	
-	// -- Dispatch this action from the interface --
-public:
-	// DISPATCH:
-	// Dispatch an action loads a session
-	static void Dispatch( Core::ActionContextHandle context, const std::string& session_name );
-};
+SessionInfo::~SessionInfo()
+{
+}
 
 } // end namespace Seg3D
-
-#endif

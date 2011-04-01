@@ -26,12 +26,10 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Application includes
 #include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ProjectManager/Actions/ActionDeleteSession.h>
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
 CORE_REGISTER_ACTION( Seg3D, DeleteSession )
 
 namespace Seg3D
@@ -39,32 +37,47 @@ namespace Seg3D
 
 bool ActionDeleteSession::validate( Core::ActionContextHandle& context )
 {
-	if( ProjectManager::Instance()->current_project_->
-		validate_session_name( this->session_name_ ) )
+	// Check whether files still exist, if not an error is being generated.
+	// We are dealing with file I/O, hence there is no guarantee that files still exist.
+	// The user may have accidentally deleted the files, or a network connection may be lost, etc.
+	if ( ! ProjectManager::Instance()->get_current_project()->check_project_files() )
 	{
-		return true;
+		// In this case just report to the user using the normal mechanism.
+		// The user is deleting things, which may already not exist anymore, so this is not a 
+		// critical error at this point. 
+		context->report_error( "The current project directory cannot be found." );
+		return false;
 	}
-	return false;
+
+	// Ensure the session exists
+	if( !ProjectManager::Instance()->get_current_project()->
+		is_session( this->session_name_ ) )
+	{
+		std::string error = std::string( "'" ) + this->session_name_ +
+			"' is not a valid session.";
+		context->report_error( error );
+		return false;
+	}
+	
+	return true;
 }
 
 bool ActionDeleteSession::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	bool success = false;
-
-	std::string message = std::string( "Deleting session: '" ) + this->session_name_
-		+ std::string( "'" );
+	std::string message = std::string( "Deleting session: '" ) + this->session_name_ + 
+		std::string( "'." );
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
 
+	// NOTE: This will send a message to GUI to lock it and report what is going on.
 	progress->begin_progress_reporting();
 
-	if( ProjectManager::Instance()->delete_project_session( this->session_name_ ) )
-	{
-		success = true;
-	}
+	// Actual work is done here
+	bool success = ProjectManager::Instance()->delete_project_session( this->session_name_ );
 
+	// Allow the user to interact with the GUI once more.
 	progress->end_progress_reporting();
 
 	return success;
@@ -73,6 +86,7 @@ bool ActionDeleteSession::run( Core::ActionContextHandle& context,
 void ActionDeleteSession::Dispatch( Core::ActionContextHandle context, 
 	const std::string& session_name )
 {
+	// Create action
 	ActionDeleteSession* action = new ActionDeleteSession;
 	action->session_name_ = session_name;
 

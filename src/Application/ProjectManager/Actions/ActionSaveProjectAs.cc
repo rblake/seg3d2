@@ -33,9 +33,6 @@
 #include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ProjectManager/Actions/ActionSaveProjectAs.h>
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
 CORE_REGISTER_ACTION( Seg3D, SaveProjectAs )
 
 namespace Seg3D
@@ -43,24 +40,67 @@ namespace Seg3D
 
 bool ActionSaveProjectAs::validate( Core::ActionContextHandle& context )
 {
-	boost::filesystem::path path = complete( boost::filesystem::path( 
-		this->export_path_.c_str(), boost::filesystem::native ) );
-		
-	boost::filesystem::path current_project_path = boost::filesystem::path( 
-		ProjectManager::Instance()->current_project_path_state_->get() ) /
-		ProjectManager::Instance()->current_project_->project_name_state_->get() /
-		( ProjectManager::Instance()->current_project_->project_name_state_->get() + ".s3d" );
-		
-	if( !boost::filesystem::exists( current_project_path ) && ProjectManager::Instance()->project_saved_state_->get() )
+	// Check whether files still exist, if not an error is being generated.
+	// We are dealing with file I/O, hence there is no guarantee that files still exist.
+	// The user may have accidentally deleted the files, or a network connection may be lost, etc.
+	ProjectManager::Instance()->get_current_project()->check_project_files();
+
+	// Check whether the project has a name.
+	if ( this->project_name_.empty() )
 	{
-		CORE_LOG_ERROR( "Your project could not be found at the place it was last saved!" );
-		ProjectManager::Instance()->project_saved_state_->set( false );
+		context->report_error( "Project needs to have a name." );
+		return false;
 	}
 
-	if( !boost::filesystem::exists( path ) )
+	// Need to check whether the location exists
+	if ( ! this->project_location_.empty() )
 	{
-		CORE_LOG_ERROR( "Project saving FAILED! The location specified does not exist." );
-		return false;
+		boost::filesystem::path project_location( this->project_location_ );
+
+		// Complete the project location
+		try 
+		{
+			project_location = boost::filesystem::complete( project_location );
+		}
+		catch ( ... )
+		{
+			std::string error = std::string( "Directory '" ) + project_location.string() +
+				"' does not exist.";
+			context->report_error( error );
+			return false;
+		}
+		
+		// Check whether the new location actually exists
+		if ( !boost::filesystem::exists( project_location ) )
+		{
+			std::string error = std::string( "Directory '" ) + project_location.string() +
+				"' does not exist.";
+			context->report_error( error );
+			return false;
+		}
+		
+		// Check whether it is actually a directory
+		if ( !boost::filesystem::is_directory( project_location ) )
+		{
+			std::string error = std::string( "File location '" ) + project_location.string() +
+				"' is not a directory.";
+			context->report_error( error );
+			return false;
+		}
+
+		// Generate the new name of the project folder, to check if it is available
+		boost::filesystem::path project_folder = 
+			boost::filesystem::path( this->project_location_ ) /
+				( this->project_name_ + ".seg3dproj" );
+		
+		// Check if folder already exists
+		if ( boost::filesystem::exists( project_folder ) )
+		{
+			std::string error = std::string( "Directory '" ) + project_folder.string() +
+				"' already exists.";		
+			context->report_error( error );
+			return false;
+		}
 	}
 
 	return true;
@@ -69,8 +109,6 @@ bool ActionSaveProjectAs::validate( Core::ActionContextHandle& context )
 bool ActionSaveProjectAs::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	bool success = false;
-
 	std::string message = std::string( "Saving project as: '" ) + this->project_name_
 		+ std::string( "'" );
 
@@ -79,31 +117,29 @@ bool ActionSaveProjectAs::run( Core::ActionContextHandle& context,
 
 	progress->begin_progress_reporting();
 	
-	boost::filesystem::path path = complete( boost::filesystem::path( 
-		this->export_path_.c_str(), boost::filesystem::native ) );
-
-	if( ProjectManager::Instance()->project_save_as( path,
-		this->project_name_ ) )
-	{
-		success = true;
-	}
+	bool success = 
+		ProjectManager::Instance()->save_project_as( 
+			this->project_location_, this->project_name_ );
 
 	progress->end_progress_reporting();
 	
-	if( success )
+	if( !success )
 	{
-		ProjectManager::Instance()->get_current_project()->reset_project_changed();
+		// Draw the users attention to this problem.
+		CORE_LOG_CRITICAL_ERROR( "Save As FAILED for project: '" 
+			+ ProjectManager::Instance()->get_current_project()->project_name_state_->get() 
+			+ "'. Please perform a 'Save As' as soon as possible to preserve your data." );				
 	}
 	
 	return success;
 }
 
 void ActionSaveProjectAs::Dispatch( Core::ActionContextHandle context, 
-	const std::string& export_path, const std::string& project_name )
+	const std::string& project_location, const std::string& project_name )
 {
 	ActionSaveProjectAs* action = new ActionSaveProjectAs;
 	
-	action->export_path_ = export_path;
+	action->project_location_ = project_location;
 	action->project_name_ = project_name;
 	
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

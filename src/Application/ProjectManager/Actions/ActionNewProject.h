@@ -49,7 +49,7 @@ CORE_ACTION(
 public:
 	ActionNewProject()
 	{
-		this->add_parameter( this->project_path_ );
+		this->add_parameter( this->project_location_ );
 		this->add_parameter( this->project_name_ );
 	}
 
@@ -60,17 +60,17 @@ public:
 	
 private:
 
-	// This parameter contains the name of the session to be loaded
+	// The name of the new project
 	std::string project_name_;
-
-	// This parameter contains the index of the session to be loaded
-	std::string project_path_;
+	
+	// The name of the directory in which the project directory will be created
+	std::string project_location_;
 	
 	// -- Dispatch this action from the interface --
 public:
 	// DISPATCH:
 	// Dispatch an action loads a session
-	static void Dispatch( Core::ActionContextHandle context, const std::string& project_path, 
+	static void Dispatch( Core::ActionContextHandle context, const std::string& project_location, 
 		const std::string& project_name );
 };
 

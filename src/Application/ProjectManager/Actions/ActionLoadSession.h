@@ -29,18 +29,19 @@
 #ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
 #define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
 
+// Core includes
 #include <Core/Action/Action.h> 
 #include <Core/Interface/Interface.h>
-
 
 namespace Seg3D
 {
 
 class ActionLoadSession : public Core::Action
 {
+
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "LoadSession", "Load a saved session.")
-	CORE_ACTION_ARGUMENT( "name", "Name of the session that needs to be loaded." )
+	CORE_ACTION_ARGUMENT( "session", "Name of the session that needs to be loaded." )
 )
 	// -- Constructor/Destructor --
 public:
@@ -59,7 +60,6 @@ public:
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
 private:
-
 	// This parameter contains the name of the session to be loaded
 	std::string session_name_;
 	
@@ -72,4 +72,4 @@ public:
 
 } // end namespace Seg3D
 
-#endif  //ACTIONSAVESESSION_H
+#endif

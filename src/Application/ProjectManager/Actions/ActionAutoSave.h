@@ -26,48 +26,54 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONAUTOSAVE_H
+#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONAUTOSAVE_H
+
+
 // Boost includes
-#include <boost/filesystem.hpp>
+#include <boost/date_time.hpp>
 
-// Application includes
-#include <Application/ProjectManager/ProjectManager.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/UndoBuffer/UndoBuffer.h>
-#include <Application/ToolManager/ToolManager.h>
-#include <Application/ProjectManager/Actions/ActionQuickOpen.h>
+// Core includes
+#include <Core/Action/Action.h> 
+#include <Core/Interface/Interface.h>
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, QuickOpen )
 
 namespace Seg3D
 {
 
-bool ActionQuickOpen::validate( Core::ActionContextHandle& context )
+class ActionAutoSave : public Core::Action
 {
-	return true;
-}
+	
+CORE_ACTION(
+	CORE_ACTION_TYPE( "AutoAutoSave", "Create a new auto save session if needed." )
+)
 
-bool ActionQuickOpen::run( Core::ActionContextHandle& context, 
-	Core::ActionResultHandle& result )
-{
-	ProjectManager::Instance()->new_project( "", "", false );
-	if ( ProjectManager::Instance()->get_current_project() )
+	// -- Constructor/Destructor --
+public:
+	ActionAutoSave()
 	{
-		ProjectManager::Instance()->get_current_project()->reset_project_changed();
+		// Get the local time, so we can cancel the auto save if a save occurs between issuing
+		// the action and the actual save.
+		this->time_stamp_ = boost::posix_time::second_clock::local_time();
 	}
-	
-	// Clear undo buffer
-	UndoBuffer::Instance()->reset_undo_buffer();
-	
-	return true;
-}
 
-void ActionQuickOpen::Dispatch( Core::ActionContextHandle context )
-{
-	ActionQuickOpen* action = new ActionQuickOpen;
-	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
-}
+	// -- Functions that describe action --
+public:
+	virtual bool validate( Core::ActionContextHandle& context );
+	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+		
+	// -- Dispatch this action from the interface --
+public:
+	// DISPATCH:
+	// Dispatch an action that activates a layer
+	static void Dispatch( Core::ActionContextHandle context );
+	
+	// -- time stamp --
+private:
+	boost::posix_time::ptime time_stamp_;
+	
+};
 
 } // end namespace Seg3D
+
+#endif

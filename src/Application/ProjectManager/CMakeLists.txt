@@ -39,6 +39,8 @@ SET(APPLICATION_PROJECTMANAGER_SRCS
 )
 
 SET(APPLICATION_PROJECTMANAGER_ACTIONS_SRCS
+    Actions/ActionAutoSave.h
+    Actions/ActionAutoSave.cc
     Actions/ActionDeleteSession.h
     Actions/ActionDeleteSession.cc
     Actions/ActionExportProject.h
@@ -49,8 +51,6 @@ SET(APPLICATION_PROJECTMANAGER_ACTIONS_SRCS
     Actions/ActionLoadSession.cc
     Actions/ActionNewProject.h
     Actions/ActionNewProject.cc
-	Actions/ActionQuickOpen.h
-	Actions/ActionQuickOpen.cc
     Actions/ActionResetChangesMade.h
     Actions/ActionResetChangesMade.cc
     Actions/ActionSaveProjectAs.h

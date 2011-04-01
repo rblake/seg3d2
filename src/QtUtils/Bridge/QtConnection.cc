@@ -26,46 +26,30 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONQUICKOPEN_H
-#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONQUICKOPEN_H
+// QtUtils includes
+#include <QtUtils/Bridge/QtConnection.h>
+#include <QtUtils/Bridge/detail/QtConnectorBase.h>
 
-#include <Core/Action/Action.h> 
-#include <Core/Interface/Interface.h>
-
-
-namespace Seg3D
+namespace QtUtils
 {
 
-class ActionQuickOpen : public Core::Action
+QtConnection::QtConnection( QtConnectorBase* connection )
 {
-	
-CORE_ACTION( 
-	CORE_ACTION_TYPE( "QuickOpen", "View a supported file." )
-)
+	this->connection_ = QPointer< QtConnectorBase >( connection );
+}
 
-	// -- Constructor/Destructor --
-public:
-	ActionQuickOpen()
+QtConnection::~QtConnection()
+{
+}
+
+void QtConnection::disconnect()
+{
+	if ( this->connection_.data() )
 	{
+		// Schedule delete and enforce disconnection
+		this->connection_->disable();
+		this->connection_->deleteLater();
 	}
+}
 
-	// -- Functions that describe action --
-public:
-	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
-	// -- Dispatch this action from the interface --
-public:
-	
-	// CREATE:
-	// Create an action that loads a session
-	static Core::ActionHandle Create();
-	
-	// DISPATCH:
-	// Dispatch an action loads a session
-	static void Dispatch( Core::ActionContextHandle context );
-};
-
-} // end namespace Seg3D
-
-#endif  //ACTIONNEWPROJECT_H
+} // end namespace QtUtils

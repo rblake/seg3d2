@@ -72,7 +72,7 @@ ProvenanceDockWidget::ProvenanceDockWidget( QWidget *parent ) :
 		
 		this->private_->ui_.setupUi( this );
 
-		add_connection( ProjectManager::Instance()->current_project_->provenance_record_signal_.
+		add_connection( ProjectManager::Instance()->get_current_project()->provenance_record_signal_.
 			connect( boost::bind( &ProvenanceDockWidget::HandleProvenanceResult, 
 			project_dock_widget, _1 ) ) );
 	}

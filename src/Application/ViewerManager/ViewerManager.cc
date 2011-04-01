@@ -35,7 +35,7 @@
 #include <Application/Viewer/Viewer.h> 
 #include <Application/ViewerManager/ViewerManager.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
-#include <Application/Session/Session.h>
+#include <Application/Project/Project.h>
 
 // Core includes
 #include <Core/Utils/StringUtil.h>

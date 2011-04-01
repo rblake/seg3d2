@@ -65,35 +65,25 @@ public:
 	// Execute the given SQL statement on the database. If the statement generates
 	// any results, they will be put in the result set.
 	// Returns true on success, otherwise false.
-	bool run_sql_statement( const std::string& sql_str, ResultSet& results, std::string& error_message );
+	bool run_sql_statement( const std::string& sql_str, ResultSet& results, std::string& error );
 
 	// RUN_SQL_STATEMENT:
 	// Execute the given SQL statement on the database.
 	// Returns true on success, otherwise false.
-	bool run_sql_statement( const std::string& sql_str, std::string& error_message );
+	bool run_sql_statement( const std::string& sql_str, std::string& error );
 	
-	// DATABASE_CHECKPOINT:
-	// this is for writing the database to disk.  We need to do this because the db is stored in
-	// memory	
-	bool database_checkpoint();
+	// CREATE_DATABASE:
+	// Create new tables for the database
+	bool create_database( const std::vector< std::string >& database_create_tables_statements,
+		std::string& error );
 	
-	// CLOSE_DATABASE:
-	// this function writes the database to disk and closes the database 
-	void close_database();
+	// SAVE_DATABASE:
+	// Save the database to disk
+	bool save_database( const boost::filesystem::path& database_file, std::string& error );
 	
-	// CREATE_DATABASE_SCHEMA:
-	// this function call the intitialize database function
-	virtual bool create_database_schema(){ return false; }
-	
-	// INITIALIZE_DATABASE:
-	// this function does the actual creation of the databases 
-	bool initialize_database( const boost::filesystem::path& database_path, 
-		const std::vector< std::string > database_create_tables_statements, std::string& error_message );
-	
-private:
-	// LOAD_OR_SAVE_DATABASE:
-	// function that handles both loading or saving of the db to file
-	bool load_or_save_database( bool is_save );
+	// LOAD_DATABASE:
+	// Load the database from disk
+	bool load_database( const boost::filesystem::path& database_file, std::string& error );
 
 private:
 	boost::shared_ptr< DatabaseManagerPrivate > private_;

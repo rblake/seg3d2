@@ -336,7 +336,8 @@ bool StateLabeledOption::set( const std::string& input_value, Core::ActionSource
 			}
 		}
 
-		return false;
+		if ( input_value.size() ) return false;
+		return true;
 	}
 
 	// NOTE: input_value can be either an option or its label, so it's necessary to set
