@@ -48,7 +48,6 @@
 // Application includes
 #include <Application/Provenance/Provenance.h>
 #include <Application/Provenance/ProvenanceStep.h>
-#include <Application/Session/Session.h>
 #include <Application/Project/DataManager.h>
 
 // Core includes
