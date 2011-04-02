@@ -53,7 +53,7 @@ friend class MeasurementTableModel;
 SEG3D_TOOL
 (
 	SEG3D_TOOL_NAME( "MeasurementTool", "Tool for creating measurements in slices" )
-	SEG3D_TOOL_MENULABEL( "Measure --TEST--" )
+	SEG3D_TOOL_MENULABEL( "Measure" )
 	SEG3D_TOOL_MENU( "Tools" )
 	SEG3D_TOOL_SHORTCUT_KEY( "Ctrl+ALT+0" )
 	SEG3D_TOOL_URL( "http://www.sci.utah.edu/SCIRunDocs/index.php/CIBC:Seg3D2:MeasurementTool:1" )
@@ -63,21 +63,6 @@ SEG3D_TOOL
 public:
 	MeasurementTool( const std::string& toolid );
 	virtual ~MeasurementTool();
-
-	// Note: The following get_* functions are convenience functions that ensure thread-safe access 
-	// to state variables.
-
-	// GET_MEASUREMENTS:
-	// Get vector of all measurements
-	std::vector< Core::Measurement > get_measurements() const;
-
-	// GET_SHOW_WORLD_UNITS:
-	// Get boolean indicating whether world units (true) or index units (false) should be displayed.
-	bool get_show_world_units() const;
-
-	// GET_OPACITY:
-	// Get opacity [0, 1] applied to all measurements
-	double get_opacity() const;
 
 	// HANDLE_MOUSE_MOVE:
 	// Called when the mouse moves in a viewer.
@@ -94,13 +79,30 @@ public:
 	// REDRAW:
 	// Draw seed points in the specified viewer.
 	// The function should only be called by the renderer, which has a valid GL context.
+	// Locks: StateEngine and RenderResources (not at same time)
 	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat );
+
+	// HAS_2D_VISUAL:
+	// Returns true if the tool draws itself in the 2D view, otherwise false.
 	virtual bool has_2d_visual();
+
+	// GET_LENGTH_STRING:
+	// Get length as formatted string, respecting index vs. world units.  Function is here so that
+	// both interface and rendering use consistent formatting of length.  
+	// Locks: StateEngine
+	// NOTE: Since this function locks the StateEngine, do not call it if RenderResources is locked
+	// or deadlock will occur.
+	std::string get_length_string( const Core::Measurement& measurement ) const;
+	
 	// -- signals --
 public:
 	// UNITS_CHANGED_SIGNAL:
 	typedef boost::signals2::signal< void () > units_changed_signal_type;
 	units_changed_signal_type units_changed_signal_;
+
+	// NUM_MEASUREMENTS_CHANGED_SIGNAL:
+	typedef boost::signals2::signal< void () > num_measurements_changed_signal_type;
+	units_changed_signal_type num_measurements_changed_signal_;
 
 	// -- state --
 public:

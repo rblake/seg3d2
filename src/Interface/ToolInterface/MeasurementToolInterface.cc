@@ -72,10 +72,10 @@ void MeasurementToolInterfacePrivate::handle_go_to_active_measurement()
 	// Lock state engine so measurements list doesn't change between getting active index
 	// and getting list.
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-	std::vector< Core::Measurement > measurements = tool_handle->measurements_state_->get();
-	size_t active_index = tool_handle->active_index_state_->get();
+	const std::vector< Core::Measurement >& measurements = tool_handle->measurements_state_->get();
+	int active_index = tool_handle->active_index_state_->get();
 
-	if( active_index < static_cast< int >( measurements.size() ) )
+	if( 0 <= active_index && active_index < static_cast< int >( measurements.size() ) )
 	{
 		Core::Point pick_point;
 		measurements[ active_index ].get_point( this->go_to_point_index_, pick_point );
@@ -126,16 +126,14 @@ bool MeasurementToolInterface::build_widget( QFrame* frame )
 	MeasurementToolInterface calls update on the model when the measurements state is modified.  
 	The model in turn gets its data from the measurements state. */ 
 	qpointer_type measurement_interface( this );	
+	this->add_connection( tool_handle->num_measurements_changed_signal_.connect( 
+		boost::bind( &MeasurementToolInterface::UpdateMeasurementTable, measurement_interface ) ) );
 	this->add_connection( tool_handle->measurements_state_->state_changed_signal_.connect( 
 		boost::bind( &MeasurementToolInterface::UpdateMeasurementCells, measurement_interface ) ) );
 	this->add_connection( tool_handle->units_changed_signal_.connect(
 		boost::bind( &MeasurementToolInterface::UpdateMeasurementCells, measurement_interface ) ) );
-	// Active index changing indicates that table size may have changed, and either way need to 
-	// scroll to active index.
 	this->add_connection( tool_handle->active_index_state_->state_changed_signal_.connect( 
-		boost::bind( &MeasurementToolInterface::UpdateMeasurementTable, measurement_interface ) ) );
-	this->add_connection( tool_handle->active_index_state_->state_changed_signal_.connect( 
-		boost::bind( &MeasurementToolInterface::UpdateMeasurementNote, measurement_interface ) ) );
+		boost::bind( &MeasurementToolInterface::UpdateActiveIndex, measurement_interface ) ) );
 	
 	// Copied from resample tool
 	QButtonGroup* button_group = new QButtonGroup( this );
@@ -203,24 +201,19 @@ void MeasurementToolInterface::UpdateMeasurementTable( qpointer_type measurement
 		// Updates table view
 		measurement_interface->private_->table_model_->update_table();
 
+		MeasurementToolHandle tool_handle = 
+			boost::dynamic_pointer_cast< MeasurementTool >( measurement_interface->tool() );
+
 		// Enable widgets only if measurements exist and active index is valid
-		if( measurement_interface->private_->table_model_->rowCount( QModelIndex() ) > 0 &&
-			measurement_interface->private_->table_model_->get_active_index() != -1 )
-		{
-			measurement_interface->private_->ui_.table_view_->setEnabled( true );
-			measurement_interface->private_->ui_.note_textbox_->setEnabled( true );
-			measurement_interface->private_->ui_.goto_button_->setEnabled( true );
-			measurement_interface->private_->ui_.copy_button_->setEnabled( true );
-			measurement_interface->private_->ui_.delete_button_->setEnabled( true );
-		}
-		else
-		{
-			measurement_interface->private_->ui_.table_view_->setEnabled( false );
-			measurement_interface->private_->ui_.note_textbox_->setEnabled( false );
-			measurement_interface->private_->ui_.goto_button_->setEnabled( false );
-			measurement_interface->private_->ui_.copy_button_->setEnabled( false );
-			measurement_interface->private_->ui_.delete_button_->setEnabled( false );
-		}
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+		bool enable_widgets = ( tool_handle->measurements_state_->get().size() > 0 &&
+			tool_handle->active_index_state_->get() != -1 );
+
+		measurement_interface->private_->ui_.table_view_->setEnabled( enable_widgets );
+		measurement_interface->private_->ui_.note_textbox_->setEnabled( enable_widgets );
+		measurement_interface->private_->ui_.goto_button_->setEnabled( enable_widgets );
+		measurement_interface->private_->ui_.copy_button_->setEnabled( enable_widgets );
+		measurement_interface->private_->ui_.delete_button_->setEnabled( enable_widgets );
 	}
 }
 
@@ -244,20 +237,23 @@ void MeasurementToolInterface::UpdateMeasurementCells( qpointer_type measurement
 	}
 }
 
-void MeasurementToolInterface::UpdateMeasurementNote( qpointer_type measurement_interface )
+void MeasurementToolInterface::UpdateActiveIndex( qpointer_type measurement_interface )
 {
 	// Ensure that this call gets relayed to the right thread
 	if ( !( Core::Interface::IsInterfaceThread() ) )
 	{
 		Core::Interface::PostEvent( boost::bind( 
-			&MeasurementToolInterface::UpdateMeasurementNote, measurement_interface ) );
+			&MeasurementToolInterface::UpdateActiveIndex, measurement_interface ) );
 		return;
 	}
 
 	// Protect interface pointer, so we do not execute if interface does not exist anymore
 	if ( measurement_interface.data() )
 	{
-		// Updates table view
+		// Select active index and scroll to it
+		measurement_interface->private_->table_view_->update_active_index();
+
+		// Update note in text box to correspond to active index
 		measurement_interface->private_->ui_.note_textbox_->setText( 
 			measurement_interface->private_->table_model_->get_active_note() );
 	}
