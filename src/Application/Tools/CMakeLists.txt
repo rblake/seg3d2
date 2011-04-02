@@ -135,6 +135,12 @@ SET(APPLICATION_TOOLS_ACTIONS_SRCS
   Actions/ActionPaste.cc
   Actions/ActionFloodFill.h
   Actions/ActionFloodFill.cc
+  Actions/ActionSetMeasurementNote.h
+  Actions/ActionSetMeasurementNote.cc
+  Actions/ActionSetMeasurementPoint.h
+  Actions/ActionSetMeasurementPoint.cc
+  Actions/ActionSetMeasurementVisible.h
+  Actions/ActionSetMeasurementVisible.cc
   )
 
 CORE_ADD_LIBRARY(Application_Tools 
@@ -161,4 +167,5 @@ TARGET_LINK_LIBRARIES(Application_Tools
 REGISTER_LIBRARY_AND_CLASSES(Application_Tools
 							 ${APPLICATION_TOOLS_SRCS}
 							 ${APPLICATION_TOOLS_ACTIONS_SRCS})
+
                     

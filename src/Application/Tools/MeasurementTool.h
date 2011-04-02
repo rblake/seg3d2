@@ -64,34 +64,38 @@ public:
 	MeasurementTool( const std::string& toolid );
 	virtual ~MeasurementTool();
 
-	// Note: All of the following functions ensure thread-safe access to state variables.
+	// Note: The following get_* functions are convenience functions that ensure thread-safe access 
+	// to state variables.
 
 	// GET_MEASUREMENTS:
 	// Get vector of all measurements
 	std::vector< Core::Measurement > get_measurements() const;
 
-	// SET_MEASUREMENT:
-	// Set measurement at existing index.  Useful for modifying note or visibility of existing
-	// measurement.
-	void set_measurement( size_t index, const Core::Measurement& measurement );
-
-	// REMOVE_MEASUREMENT:
-	// Remove measurement matching this one.  By not passing index, we avoid issues with indices
-	// changing as measurements are removed.
-	bool remove_measurement( const Core::Measurement& measurement );
-
-	// GET_ACTIVE_INDEX:
-	// Get index of active measurement, or -1 if none.
-	int get_active_index() const;
-
-	// SET_ACTIVE_INDEX:
-	// Set index indicating active measurement.
-	void set_active_index( int active_index );
-
 	// GET_SHOW_WORLD_UNITS:
 	// Get boolean indicating whether world units (true) or index units (false) should be displayed.
 	bool get_show_world_units() const;
 
+	// GET_OPACITY:
+	// Get opacity [0, 1] applied to all measurements
+	double get_opacity() const;
+
+	// HANDLE_MOUSE_MOVE:
+	// Called when the mouse moves in a viewer.
+	virtual bool handle_mouse_move( ViewerHandle viewer, 
+		const Core::MouseHistory& mouse_history, 
+		int button, int buttons, int modifiers );
+
+	// HANDLE_MOUSE_PRESS:
+	// Called when a mouse button has been pressed.
+	virtual bool handle_mouse_press( ViewerHandle viewer, 
+		const Core::MouseHistory& mouse_history, 
+		int button, int buttons, int modifiers );
+
+	// REDRAW:
+	// Draw seed points in the specified viewer.
+	// The function should only be called by the renderer, which has a valid GL context.
+	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat );
+	virtual bool has_2d_visual();
 	// -- signals --
 public:
 	// UNITS_CHANGED_SIGNAL:
@@ -100,10 +104,20 @@ public:
 
 	// -- state --
 public:
+	// List of measurements
 	Core::StateMeasurementVectorHandle measurements_state_;
+
+	// Index of active measurement in table
 	Core::StateIntHandle active_index_state_;
-	Core::StateLabeledOptionHandle units_selection_state_; // Used for display purposes only
-	Core::StateBoolHandle show_world_units_state_; // Used for display purposes only
+
+	// Selection between display of index and world units.  Needed for radio button group.
+	Core::StateLabeledOptionHandle units_selection_state_; 
+
+	// Boolean indicating whether world units (true) or index units (false) should be displayed.
+	Core::StateBoolHandle show_world_units_state_; 
+	
+	// The opacity of all the measurements for this tool
+	Core::StateRangedDoubleHandle opacity_state_;
 
 public:
 	static const std::string INDEX_UNITS_C;
