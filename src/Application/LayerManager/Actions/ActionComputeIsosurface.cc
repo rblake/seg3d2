@@ -68,7 +68,7 @@ bool ActionComputeIsosurface::run( Core::ActionContextHandle& context,
 	Core::ActionResultHandle& result )
 {
 	MaskLayerHandle mask_layer = LayerManager::FindMaskLayer( this->layer_id_ );
-	mask_layer->compute_isosurface( this->quality_factor_ );
+	mask_layer->compute_isosurface( this->quality_factor_, this->capping_enabled_ );
 
 	/*
 	Hide the abort message (if aborted).  This is a workaround for the fact that this action is
@@ -95,12 +95,13 @@ bool ActionComputeIsosurface::run( Core::ActionContextHandle& context,
 }
 
 void ActionComputeIsosurface::Dispatch( Core::ActionContextHandle context, 
-	MaskLayerHandle mask_layer, double quality_factor )
+	MaskLayerHandle mask_layer, double quality_factor, bool capping_enabled )
 {
 	ActionComputeIsosurface* action = new ActionComputeIsosurface;
 
 	action->layer_id_= mask_layer->get_layer_id();
 	action->quality_factor_ = quality_factor;
+	action->capping_enabled_ = capping_enabled;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
@@ -114,11 +115,14 @@ void ActionComputeIsosurface::Dispatch( Core::ActionContextHandle context )
 	}
 	
 	double quality;
+	bool capping_enabled;
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		Core::ImportFromString( active_layer->get_layer_group()->isosurface_quality_state_->get(), quality );
+		capping_enabled = active_layer->get_layer_group()->isosurface_capping_enabled_state_->get();
 	}
-	Dispatch( context, boost::dynamic_pointer_cast< MaskLayer >( active_layer ), quality );
+	Dispatch( context, boost::dynamic_pointer_cast< MaskLayer >( active_layer ), quality, 
+		capping_enabled );
 }
 
 } // end namespace Seg3D

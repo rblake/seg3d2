@@ -119,6 +119,11 @@ ProjectDockWidget::ProjectDockWidget( QWidget *parent ) :
 		this, SLOT( enable_load_delete_and_export_buttons( int, int ) ) );
 
 
+		
+	// This will make sure that the starting active tab is always the sessions tab
+	this->private_->ui_.tabWidget->setCurrentIndex( this->private_->ui_.tabWidget->indexOf( 
+		this->private_->ui_.sessions_tab_ ) );
+
 	this->update_widget();
 }
 
