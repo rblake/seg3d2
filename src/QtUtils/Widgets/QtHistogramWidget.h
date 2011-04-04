@@ -85,6 +85,8 @@ public:
 
 	virtual void mouseMoveEvent( QMouseEvent* e );
 
+	virtual void resizeEvent( QResizeEvent* e );
+
 	void set_thresholds( QtSliderDoubleCombo* upper_threshold, 
 		QtSliderDoubleCombo* lower_threshold );
 	

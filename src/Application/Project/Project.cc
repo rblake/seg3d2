@@ -694,11 +694,11 @@ bool ProjectPrivate::setup_database()
 	std::string error;
 	if(	this->create_database( create_table_commands, error ) )
 	{
-		CORE_LOG_ERROR( error );
 		this->database_initialized_ = true;
 		return true;
 	}
 	
+	CORE_LOG_ERROR( error );
 	return false;
 }
 

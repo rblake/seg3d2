@@ -220,6 +220,9 @@ QLabel#label_3{
                </property>
                <item>
                 <widget class="QComboBox" name="log_histogram_combo_">
+                 <property name="currentIndex">
+                  <number>0</number>
+                 </property>
                  <item>
                   <property name="text">
                    <string>Linear</string>

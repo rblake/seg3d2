@@ -69,11 +69,8 @@ private:
     QtSliderDoubleComboPrivateHandle private_;
     
 private Q_SLOTS:
-//    void edit_ranges( bool edit );
     void change_min( double new_min );
     void change_max( double new_max );
-//    void double_range();
-//    void half_range();
     void slider_signal( int value );
     void spinner_signal( double value );
 

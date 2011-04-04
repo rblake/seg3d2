@@ -50,37 +50,17 @@ public:
 
 QtSliderDoubleCombo::QtSliderDoubleCombo( QWidget* parent, bool edit_range ) :
 	QWidget( parent ),
+	value_( 0 ),
     private_( new QtSliderDoubleComboPrivate )
 {
     this->private_->ui_.setupUi( this );
-//    this->private_->ui_.decrease_range_button_->hide();
-//    this->private_->ui_.increase_range_button_->hide();
-    
-//    if( !edit_range )
-//    {
-//        this->private_->ui_.edit_button_->setEnabled( edit_range );
-//        this->private_->ui_.edit_button_->hide();
-//    }
-    
-//    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
-//		this, SLOT(edit_ranges( bool )) );
-//    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
-//		this, SLOT( half_range() ) );
-//    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked() ), 
-//		this, SLOT( double_range() ) );
+
     this->connect( this->private_->ui_.horizontalSlider, SIGNAL( valueChanged( int )), 
 		this, SLOT( slider_signal( int )) );
     this->connect( this->private_->ui_.spinBox, SIGNAL( valueChanged( double )), 
 		this, SLOT( spinner_signal( double )) );
-	
-#if defined ( __APPLE__ )  
-	QFont font;
-	font.setPointSize( 10 );
-	this->private_->ui_.min_->setFont( font );
-	this->private_->ui_.max_->setFont( font );
-	this->private_->ui_.spinBox->setFont( font );
-#endif
-	
+
+	this->private_->ui_.horizontalSlider->setPageStep( 10000 );
 	
 }
 
@@ -99,7 +79,7 @@ void QtSliderDoubleCombo::spinner_signal( double value )
 	this->value_ = Core::Clamp( value, this->private_->min_, this->private_->max_ );
 
     this->private_->ui_.horizontalSlider->blockSignals( true );
-    this->private_->ui_.horizontalSlider->setValue( Core::Round( this->value_ * 100 ) );
+    this->private_->ui_.horizontalSlider->setValue( Core::Round( this->value_ * 10000 ) );
     Q_EMIT valueAdjusted( this->value_ );
 	this->private_->ui_.horizontalSlider->blockSignals( false );
 }
@@ -108,7 +88,7 @@ void QtSliderDoubleCombo::spinner_signal( double value )
 void QtSliderDoubleCombo::slider_signal( int value )
 {
     this->private_->ui_.spinBox->blockSignals( true );
-	this->value_ = Core::Clamp( value / 100.0, 
+	this->value_ = Core::Clamp( value / 10000.0, 
 		this->private_->min_, this->private_->max_ );
     this->private_->ui_.spinBox->setValue( this->value_ );
     Q_EMIT valueAdjusted( this->value_ );
@@ -118,7 +98,7 @@ void QtSliderDoubleCombo::slider_signal( int value )
 void QtSliderDoubleCombo::setStep( double step )
 {
     this->block_signals( true );
-    int int_step = static_cast< int >( step * 100 );
+    int int_step = static_cast< int >( step * 10000 );
     this->private_->ui_.horizontalSlider->setSingleStep( int_step );
     this->private_->ui_.spinBox->setSingleStep( step );
     this->block_signals( false );
@@ -129,13 +109,13 @@ void QtSliderDoubleCombo::setRange( double min, double max )
     this->block_signals( true );
 	this->private_->min_ = min;
 	this->private_->max_ = max;
-    this->private_->ui_.horizontalSlider->setRange( static_cast<int>( min * 100 ), 
-		static_cast<int>( max * 100 ) );
+    this->private_->ui_.horizontalSlider->setRange( static_cast<int>( min * 10000 ), 
+		static_cast<int>( max * 10000 ) );
     this->private_->ui_.spinBox->setRange( min, max );
     this->private_->ui_.min_->setNum( min );
     this->private_->ui_.max_->setNum( max );
     
-    double tick = ( ( max * 100.0 ) - ( min * 100.0 ) ) / 10.0;
+    double tick = ( ( max * 10000.0 ) - ( min * 10000.0 ) ) / 10.0;
     this->private_->ui_.horizontalSlider->setTickInterval( tick );
     this->block_signals( false );
 }
@@ -143,7 +123,7 @@ void QtSliderDoubleCombo::setCurrentValue( double value )
 {
     this->block_signals( true );
 	this->value_ = Core::Clamp( value, this->private_->min_, this->private_->max_ );
-    this->private_->ui_.horizontalSlider->setValue( static_cast<int>( this->value_ * 100.0 ) );
+    this->private_->ui_.horizontalSlider->setValue( static_cast<int>( this->value_ * 10000.0 ) );
     this->private_->ui_.spinBox->setValue( this->value_ );
     this->block_signals( false );
     Q_EMIT valueAdjusted( this->value_ );
@@ -153,12 +133,12 @@ void QtSliderDoubleCombo::change_min( double new_min )
 {
 	this->private_->min_ = new_min;
     this->block_signals( true );
-    this->private_->ui_.horizontalSlider->setMinimum( static_cast<int>( new_min * 100.0 ) );
+    this->private_->ui_.horizontalSlider->setMinimum( static_cast<int>( new_min * 10000.0 ) );
     this->private_->ui_.spinBox->setMinimum( new_min );
     this->private_->ui_.min_->setNum( new_min );
     int tick = ( this->private_->ui_.max_->text().toInt() - 
 		this->private_->ui_.min_->text().toInt()) / 10;
-    this->private_->ui_.horizontalSlider->setTickInterval( tick * 100 );
+    this->private_->ui_.horizontalSlider->setTickInterval( tick * 10000 );
     this->block_signals( false );
 }
 
@@ -166,42 +146,14 @@ void QtSliderDoubleCombo::change_max( double new_max )
 {
 	this->private_->max_ = new_max;
     this->block_signals( true );
-    this->private_->ui_.horizontalSlider->setMaximum( static_cast<int>( new_max * 100.0 ) );
+    this->private_->ui_.horizontalSlider->setMaximum( static_cast<int>( new_max * 10000.0 ) );
     this->private_->ui_.spinBox->setMaximum( new_max );
     this->private_->ui_.max_->setNum( new_max );
     int tick = (this->private_->ui_.max_->text().toInt() - 
 		this->private_->ui_.min_->text().toInt()) / 10;
-    this->private_->ui_.horizontalSlider->setTickInterval( tick * 100 );
+    this->private_->ui_.horizontalSlider->setTickInterval( tick * 10000 );
     this->block_signals( false );
 }
-
-//void QtSliderDoubleCombo::double_range()
-//{
-//    double new_max = this->private_->ui_.max_->text().toDouble() * 2;
-//    this->change_max( new_max );
-//    Q_EMIT rangeChanged( this->private_->min_, new_max );
-//}
-//
-//void QtSliderDoubleCombo::half_range()
-//{
-//   double new_max = this->private_->ui_.max_->text().toDouble() / 2;
-//   this->change_max( new_max );
-//   Q_EMIT rangeChanged( this->private_->min_, new_max );
-//}
-
-//void QtSliderDoubleCombo::edit_ranges( bool edit )
-//{
-//    if( edit )
-//    {
-//        this->private_->ui_.decrease_range_button_->show();
-//        this->private_->ui_.increase_range_button_->show();
-//    }
-//    else
-//    {
-//        this->private_->ui_.decrease_range_button_->hide();
-//        this->private_->ui_.increase_range_button_->hide();
-//    }
-//}
 
 void QtSliderDoubleCombo::block_signals( bool block )
 {
