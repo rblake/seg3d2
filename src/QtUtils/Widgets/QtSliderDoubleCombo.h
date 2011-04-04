@@ -52,7 +52,7 @@ Q_SIGNALS:
 	
 // -- constructor/destructor --
 public:
-    QtSliderDoubleCombo( QWidget* parent = 0, bool edit_range = false );
+	QtSliderDoubleCombo( QWidget* parent = 0 );
     virtual ~QtSliderDoubleCombo();
     
 public Q_SLOTS:
@@ -71,7 +71,7 @@ private:
 private Q_SLOTS:
     void change_min( double new_min );
     void change_max( double new_max );
-    void slider_signal( int value );
+    void slider_signal( int percentage );
     void spinner_signal( double value );
 
 private:
