@@ -41,6 +41,7 @@
 
 // Application includes
 #include <Application/Project/Project.h>
+#include <Application/Provenance/Provenance.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 
 // TODO:
@@ -224,10 +225,13 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 	}
 
 #if defined( __APPLE__ )	
-	if ( boost::filesystem::extension( project_directory ) == ".seg3dproj" )
+	if ( PreferencesManager::Instance()->generate_osx_project_bundle_state_->get() )
 	{
-		std::string command = std::string( "SetFile -a B \"" ) + project_directory.string() +"\"";
-		system( command.c_str() );
+		if ( boost::filesystem::extension( project_directory ) == ".seg3dproj" )
+		{
+			std::string command = std::string( "SetFile -a B \"" ) + project_directory.string() +"\"";
+			system( command.c_str() );
+		}
 	}
 #endif
 
@@ -1478,6 +1482,10 @@ bool Project::pre_save_states( Core::StateIO& state_io )
 	// numbers are unique project wide.
 	this->generation_count_state_->set( Core::DataBlockManager::Instance()->get_generation_count() );
 
+	// We need to store the provenance count as well.
+	// NOTE: This will ensure that everything will get unique provenance numbers
+	this->provenance_count_state_->set( GetProvenanceCount() );
+
 	return true;
 }
 
@@ -1497,6 +1505,8 @@ bool Project::post_load_states( const Core::StateIO& state_io )
 	// TODO: Need to move this out of this function
 	boost::filesystem::path project_path( this->project_path_state_->get() );
 	this->private_->data_manager_->initialize( project_path );
+
+	// We need to restore provenance and generation count for the project
 
 	Core::DataBlock::generation_type generation = this->generation_count_state_->get();
 
@@ -1528,7 +1538,13 @@ bool Project::post_load_states( const Core::StateIO& state_io )
 	}
 	/////////////////////////////////////////////////////////////////////////
 	
+	// Read the generation count from file
 	Core::DataBlockManager::Instance()->set_generation_count( generation );
+
+	ProvenanceID provenance_id = this->provenance_count_state_->get();
+
+	// Read the provenance count from file
+	SetProvenanceCount( provenance_id );
 
 	return true;
 }

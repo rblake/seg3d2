@@ -197,10 +197,20 @@ void PreferencesInterface::setup_general_prefs()
 	
 	QtUtils::QtBridge::Enable( this->private_->ui_.compression_adjuster_, 
 		PreferencesManager::Instance()->compression_state_ );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.embed_input_files_,
+		PreferencesManager::Instance()->embed_input_files_state_ );
+	
+	QtUtils::QtBridge::Connect( this->private_->ui_.generate_osx_project_bundle_,
+		PreferencesManager::Instance()->generate_osx_project_bundle_state_ );
+		
+#ifndef __APPLE__
+	this->private_->ui_.generate_osx_project_bundle_->hide();
+#endif	
 	
 	this->private_->ui_.compression_adjuster_->set_description( "Compression" );
 	this->private_->ui_.auto_save_timer_adjuster_->set_description( "Frequency (minutes)" );
-	this->private_->ui_.percent_of_memory_->set_description( "Main memory to use (%)" );
+	this->private_->ui_.percent_of_memory_->set_description( "Undo/Redo buffer size" );
 	this->private_->ui_.opacity_adjuster_->set_description( "Default layer opacity" );
 
 }
