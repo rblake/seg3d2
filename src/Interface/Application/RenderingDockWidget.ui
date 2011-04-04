@@ -23,28 +23,28 @@
    </size>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton{
+   <string notr="true">QToolButton{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(221, 221, 221, 255), stop:0.155779 rgba(238, 238, 238, 255), stop:1 rgba(192, 194, 194, 255));
 	border-radius: 4px;
 	border: 1px solid rgb(90, 90, 90);
 	margin:4px;
 }
 
-QPushButton:hover{
+QToolButton:hover{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(195, 195, 195, 255), stop:0.253769 rgba(206, 206, 206, 255), stop:1 rgba(185, 185, 185, 255));
 	border-radius: 4px;
 	border: 1px solid rgb(90, 90, 90);
 	margin:4px;
 }
 
-QPushButton:pressed{
+QToolButton:pressed{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(150, 150, 150, 255), stop:0.753769 rgba(206, 206, 206, 255), stop:1 rgba(185, 185, 185, 255));
 	border-radius: 4px;
 	border: 1px solid rgb(90, 90, 90);
 	margin:4px;
 }
 
-QPushButton#fog_open_button_{
+QToolButton#fog_open_button_{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
 	border: none;
@@ -56,19 +56,7 @@ QPushButton#fog_open_button_{
 	margin:0px;
 }
 
-QPushButton#fog_open_button_:hover{
-	color: rgb(255, 255, 255);
-}
-
-QPushButton#fog_open_button_:pressed{
-	background-color:rgba(0, 0, 0, 0);
-	border-color: rgba(0, 0, 0, 0);
-	padding-left: 4px;
-	border: none;
-	color:  rgb(100, 100, 100);
-}
-
-QPushButton#clipping_open_button_{
+QToolButton#fog_spacer_{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
 	border: none;
@@ -80,19 +68,8 @@ QPushButton#clipping_open_button_{
 	margin:0px;
 }
 
-QPushButton#clipping_open_button_:hover{
-	color: rgb(255, 255, 255);
-}
 
-QPushButton#clipping_open_button_:pressed{
-	background-color:rgba(0, 0, 0, 0);
-	border-color: rgba(0, 0, 0, 0);
-	padding-left: 4px;
-	border: none;
-	color:  rgb(100, 100, 100);
-}
-
-QPushButton#vr_open_button_{
+QToolButton#clipping_open_button_{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
 	border: none;
@@ -104,16 +81,40 @@ QPushButton#vr_open_button_{
 	margin:0px;
 }
 
-QPushButton#vr_open_button_:hover{
-	color: rgb(255, 255, 255);
-}
-
-QPushButton#vr_open_button_:pressed{
+QToolButton#clipping_spacer_{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
-	padding-left: 4px;
 	border: none;
-	color:  rgb(100, 100, 100);
+	height: 24px;
+	text-align: left;
+	color: rgb(255, 255, 255);
+	padding-left:4px;
+	font: bold;
+	margin:0px;
+}
+
+QToolButton#vr_open_button_{
+	background-color:rgba(0, 0, 0, 0);
+	border-color: rgba(0, 0, 0, 0);
+	border: none;
+	height: 24px;
+	text-align: left;
+	color: rgb(255, 255, 255);
+	padding-left:4px;
+	font: bold;
+	margin:0px;
+}
+
+QToolButton#vr_spacer_{
+	background-color:rgba(0, 0, 0, 0);
+	border-color: rgba(0, 0, 0, 0);
+	border: none;
+	height: 24px;
+	text-align: left;
+	color: rgb(255, 255, 255);
+	padding-left:4px;
+	font: bold;
+	margin:0px;
 }
 
 QLabel#fog_label_{
@@ -189,14 +190,6 @@ QWidget#vr_widget_{
 	background-color: rgba( 0, 0, 0, 0 );
 }
 
-QToolButton#vr_open_button_{
-	background-color: rgba(0, 0, 0, 0);
-	border-radius: 4px;
-}
-
-QToolButton#vr_open_button_:hover{
-	background-color: rgba( 0, 0, 0, 30 ); border-radius: 3px;
-}
 
 QWidget#vr_header_{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(0, 0, 0, 0), stop:0.45 rgba(0, 0, 0, 30), stop:1 rgba(0, 0, 0, 25));
@@ -256,8 +249,8 @@ QWidget#vr_content_{
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>260</width>
-         <height>745</height>
+         <width>262</width>
+         <height>773</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="scroll_area_layout_">
@@ -311,7 +304,7 @@ QWidget#vr_content_{
                   <height>21</height>
                  </size>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+                <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
                  <property name="spacing">
                   <number>2</number>
                  </property>
@@ -319,7 +312,13 @@ QWidget#vr_content_{
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QPushButton" name="fog_open_button_">
+                  <widget class="QToolButton" name="fog_open_button_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="minimumSize">
                     <size>
                      <width>21</width>
@@ -343,6 +342,19 @@ QWidget#vr_content_{
                    </property>
                    <property name="checked">
                     <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="fog_spacer_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -426,7 +438,13 @@ QWidget#vr_content_{
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QPushButton" name="clipping_open_button_">
+                  <widget class="QToolButton" name="clipping_open_button_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="minimumSize">
                     <size>
                      <width>21</width>
@@ -447,6 +465,19 @@ QWidget#vr_content_{
                    </property>
                    <property name="checked">
                     <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="clipping_spacer_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string/>
                    </property>
                   </widget>
                  </item>
@@ -477,7 +508,7 @@ QWidget#vr_content_{
                  <enum>QTabWidget::Rounded</enum>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="clipping_plane1_">
                  <attribute name="title">
@@ -1235,7 +1266,13 @@ QWidget#vr_content_{
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QPushButton" name="vr_open_button_">
+                  <widget class="QToolButton" name="vr_open_button_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="minimumSize">
                     <size>
                      <width>21</width>
@@ -1250,6 +1287,19 @@ QWidget#vr_content_{
                    </property>
                    <property name="text">
                     <string>Volume Rendering</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="vr_spacer_">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string/>
                    </property>
                   </widget>
                  </item>

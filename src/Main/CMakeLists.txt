@@ -82,6 +82,7 @@ TARGET_LINK_LIBRARIES(Seg3D2
   QtUtils_Bridge
   Interface_Application
   Interface_ToolInterface
+  ${RESOURCES_LIBRARY}
 )
 
 IF(WIN32)

@@ -318,7 +318,6 @@ ADD_SUBDIRECTORY(Core)
 MESSAGE(STATUS "Configuring Seg3D Application")
 ADD_SUBDIRECTORY(Application)
 
-
 MESSAGE(STATUS "Configuring Seg3D Interface")
 IF(SEG3D_BUILD_INTERFACE)
   ADD_SUBDIRECTORY(Resources)
@@ -335,6 +334,8 @@ ENDIF(SEG3D_BUILD_INTERFACE)
 # factories.
 ###########################################
 
+SET(IGNORE_RESOURCES FALSE CACHE INTERNAL "Ignore default resources library." FORCE)
+
 MESSAGE(STATUS "Configuring Seg3D Plugins")
 FILE(GLOB PLUGIN_DIRS "Plugins/*" )
 
@@ -347,6 +348,20 @@ FOREACH(DIR ${PLUGIN_DIRS})
 	ENDIF(IS_DIRECTORY ${DIR}) 
   ENDIF(NOT ${DIR} MATCHES "Plugins/.svn")
 ENDFOREACH(DIR ${PLUGIN_DIRS})
+
+###########################################
+# Rsources:
+# images + icons
+###########################################
+
+
+IF(NOT IGNORE_RESOURCES)
+MESSAGE(STATUS "Configuring Seg3D Resources")
+IF(SEG3D_BUILD_INTERFACE)
+  ADD_SUBDIRECTORY(Resources)
+ENDIF(SEG3D_BUILD_INTERFACE)
+ENDIF(NOT IGNORE_RESOURCES)
+
 
 ###########################################
 # Main:

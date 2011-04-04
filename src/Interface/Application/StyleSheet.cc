@@ -30,6 +30,10 @@
 // Interface includes
 #include <Interface/Application/StyleSheet.h>
 
+#define ACCENT_COLOR " rgb( 237, 165, 76 ) "
+// #define ACCENT_COLOR " rgb( 237, 55, 55 ) "
+
+
 namespace Seg3D
 {
 // === ViewerWidget Styles === //
@@ -101,7 +105,7 @@ const QString StyleSheet::LAYERIMPORTERWIDGET_INACTIVE_BUTTON_C = QString(
 // - page_background_ - //
 const QString StyleSheet::TOOLBOXPAGEWIDGET_PAGE_BACKGROUND_ACTIVE_C = QString( 
 	"QWidget#page_background_ {"
-	"	background-color: rgb( 237, 165, 76 );"
+	"	background-color:" ACCENT_COLOR ";"
 	"	border-radius: 3px;"
 	"}" );
 const QString StyleSheet::TOOLBOXPAGEWIDGET_PAGE_BACKGROUND_INACTIVE_C = QString( 
@@ -112,10 +116,9 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_PAGE_BACKGROUND_INACTIVE_C = QString
 	
 // - activate_button_ - //
 const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_ACTIVE_C = QString( 
-	"QPushButton#activate_button_{"
+	"QToolButton#activate_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
-	"	text-align: left;"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: white;"
@@ -124,17 +127,32 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_ACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#activate_button_:hover{"
+	"QToolButton#activate_button_:hover{"
 	"   color: white;"
 	"}"
-	"QPushButton#activate_button_:pressed{"
+	"QToolButton#activate_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"   color: white;"
-	"}\n");
+	"}\n"
+	"QToolButton#spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"}\n"
+	"QToolButton#spacer_:hover{"
+	"   color: white;"
+	"}"
+	"QToolButton#spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n"
+	);
 	
 const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_INACTIVE_C = QString( 
-	"QPushButton#activate_button_{"
+	"QToolButton#activate_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -145,26 +163,41 @@ const QString StyleSheet::TOOLBOXPAGEWIDGET_ACTIVATE_BUTTON_INACTIVE_C = QString
 #ifdef __APPLLE__
 	"   font-size: 13;"
 #endif	
-	"}"
-	"QPushButton#activate_button_:hover{"
+	"}\n"
+	"QToolButton#activate_button_:hover{"
 	"	color: silver;"
-	"}"
-	"QPushButton#activate_button_:pressed{"
+	"}\n"
+	"QToolButton#activate_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: rgb(68, 68, 68);"
-	"}");
+	"}\n"
+	"QToolButton#spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"}\n"
+	"QToolButton#spacer_:hover{"
+	"	color: silver;"
+	"}\n"
+	"QToolButton#spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}\n"
+	);
 
 const QString StyleSheet::RENDERING_CLIPPING_ACTIVE_C = QString( 
 	"QWidget#clipping_header_bkg_ {"
-	"	background-color: rgb( 237, 165, 76 );"
+	"	background-color:" ACCENT_COLOR ";"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#clipping_open_button_{"
+	"ToolButton#clipping_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
-	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: white;"
 	"	font: bold;"
@@ -172,21 +205,41 @@ const QString StyleSheet::RENDERING_CLIPPING_ACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#clipping_open_button_:hover{"
+	"QToolButton#clipping_open_button_:hover{"
 	"   color: white;"
 	"}"
-	"QPushButton#clipping_open_button_:pressed{"
+	"QToolButton#clipping_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"   color: white;"
-	"}\n");
+	"}\n"
+
+	"QWidget#clipping_header_bkg_ {"
+	"	background-color:" ACCENT_COLOR ";"
+	"	border-radius: 3px;"
+	"}"
+	"ToolButton#clipping_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"}"
+	"QToolButton#clipping_spacer_:hover{"
+	"   color: white;"
+	"}"
+	"QToolButton#clipping_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n"
+	);
 	
 const QString StyleSheet::RENDERING_CLIPPING_INACTIVE_C = QString( 
 	"QWidget#clipping_header_bkg_ {"
 	"	background-color: rgb( 170, 170, 170 );"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#clipping_open_button_{"
+	"QToolButton#clipping_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -198,22 +251,44 @@ const QString StyleSheet::RENDERING_CLIPPING_INACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#clipping_open_button_:hover{"
+	"QToolButton#clipping_open_button_:hover{"
 	"	color: silver;"
 	"}"
-	"QPushButton#clipping_open_button_:pressed{"
+	"QToolButton#clipping_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: rgb(68, 68, 68);"
-	"}");
+	"}"
+	"QToolButton#clipping_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"	font: normal;"
+#ifdef __APPLLE__
+	"   font-size: 13;"
+#endif	
+	"}"
+	"QToolButton#clipping_spacer_:hover{"
+	"	color: silver;"
+	"}"
+	"QToolButton#clipping_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}"
+
+	);
 
 
 const QString StyleSheet::RENDERING_VR_ACTIVE_C = QString( 
 	"QWidget#vr_header_bkg_ {"
-	"	background-color: rgb( 237, 165, 76 );"
+	"	background-color:" ACCENT_COLOR ";"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#vr_open_button_{"
+	"QToolButton#vr_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -225,21 +300,37 @@ const QString StyleSheet::RENDERING_VR_ACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#vr_open_button_:hover{"
+	"QToolButton#vr_open_button_:hover{"
 	"   color: white;"
 	"}"
-	"QPushButton#vr_open_button_:pressed{"
+	"QToolButton#vr_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"   color: white;"
-	"}\n");
+	"}\n"
+
+	"QToolButton#vr_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"}"
+	"QToolButton#vr_spacer_:hover{"
+	"   color: white;"
+	"}"
+	"QToolButton#vr_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n"
+	);
 	
 const QString StyleSheet::RENDERING_VR_INACTIVE_C = QString( 
 	"QWidget#vr_header_bkg_ {"
 	"	background-color: rgb( 170, 170, 170 );"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#vr_open_button_{"
+	"QToolButton#vr_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -251,21 +342,37 @@ const QString StyleSheet::RENDERING_VR_INACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#vr_open_button_:hover{"
+	"QToolButton#vr_open_button_:hover{"
 	"	color: silver;"
 	"}"
-	"QPushButton#vr_open_button_:pressed{"
+	"QToolButton#vr_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: rgb(68, 68, 68);"
-	"}");
+	"}"
+	"QToolButton#vr_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	text-align: left;"
+	"	border: none;"
+	"	color: rgb(25, 25, 25);"
+	"}"
+	"QToolButton#vr_spacer_:hover{"
+	"	color: silver;"
+	"}"
+	"QToolButton#vr_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}"
+	);
 
 const QString StyleSheet::RENDERING_FOG_ACTIVE_C = QString( 
 	"QWidget#fog_header_bkg_ {"
-	"	background-color: rgb( 237, 165, 76 );"
+	"	background-color:" ACCENT_COLOR ";"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#fog_open_button_{"
+	"QToolButton#fog_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -277,21 +384,36 @@ const QString StyleSheet::RENDERING_FOG_ACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#fog_open_button_:hover{"
+	"QToolButton#fog_open_button_:hover{"
 	"   color: white;"
 	"}"
-	"QPushButton#fog_open_button_:pressed{"
+	"QToolButton#fog_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"   color: white;"
-	"}\n");
+	"}\n"
+	"QToolButton#fog_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"}"
+	"QToolButton#fog_spacer_:hover{"
+	"   color: white;"
+	"}"
+	"QToolButton#fog_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"   color: white;"
+	"}\n"
+	);
 	
 const QString StyleSheet::RENDERING_FOG_INACTIVE_C = QString( 
 	"QWidget#fog_header_bkg_ {"
 	"	background-color: rgb( 170, 170, 170 );"
 	"	border-radius: 3px;"
 	"}"
-	"QPushButton#fog_open_button_{"
+	"QToolButton#fog_open_button_{"
 	"	margin-right: 7px;"
 	"	height: 24px;"
 	"	text-align: left;"
@@ -303,15 +425,29 @@ const QString StyleSheet::RENDERING_FOG_INACTIVE_C = QString(
 	"   font-size: 13;"
 #endif	
 	"}"
-	"QPushButton#fog_open_button_:hover{"
+	"QToolButton#fog_open_button_:hover{"
 	"	color: silver;"
 	"}"
-	"QPushButton#fog_open_button_:pressed{"
+	"QToolButton#fog_open_button_:pressed{"
 	"	padding-left: 4px;"
 	"	border: none;"
 	"	color: rgb(68, 68, 68);"
-	"}");
-
+	"}"
+	"QToolButton#fog_spacer_{"
+	"	margin-right: 7px;"
+	"	height: 24px;"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"}"
+	"QToolButton#fog_spacer_:hover{"
+	"	color: silver;"
+	"}"
+	"QToolButton#fog_spacer_:pressed{"
+	"	padding-left: 4px;"
+	"	border: none;"
+	"	color: rgb(68, 68, 68);"
+	"}"
+	);
 
 
 // === LayerWidget Styles === //
@@ -502,7 +638,7 @@ const QString StyleSheet::GROUP_WIDGET_BASE_ACTIVE_C = QString::fromUtf8(
 	"}");
 const QString StyleSheet::GROUP_WIDGET_BACKGROUND_ACTIVE_C = QString::fromUtf8(  
 	"QWidget#group_background_{"
-	"	background-color: rgb(232, 145, 32);"
+	"	background-color: " ACCENT_COLOR ";"
 	"	border: 1px solid rgb(90, 90, 90);"
 	"	border-radius: 3px;"
 	"	color: white;"
@@ -594,10 +730,10 @@ const QString StyleSheet::DROPSPACEWIDGET_C = QString::fromUtf8(
 // - ViewerWidget - //
 const QString StyleSheet::VIEWERSELECTED_C = QString::fromUtf8(
 	"QWidget#border_{"
-	"	border-top: 3px solid rgb( 215, 145, 80 );"
-	"	border-bottom: 3px solid rgb( 180, 120, 80 );"
-	"	border-left: 3px solid rgb( 215, 145, 80 );"
-	"	border-right: 3px solid rgb( 180, 120, 80 );"
+	"	border-top: 3px solid " ACCENT_COLOR ";"
+	"	border-bottom: 3px solid " ACCENT_COLOR ";"
+	"	border-left: 3px solid " ACCENT_COLOR ";"
+	"	border-right: 3px solid " ACCENT_COLOR ";"
 	"}");
 
 const QString StyleSheet::VIEWERNOTSELECTED_C = QString::fromUtf8(
@@ -607,5 +743,6 @@ const QString StyleSheet::VIEWERNOTSELECTED_C = QString::fromUtf8(
    "	border-left: 3px solid rgb( 100, 100, 100 );"
    "	border-right: 3px solid rgb(100, 100, 100 );"
    "}");
+
 
 }  // end namespace Seg3D

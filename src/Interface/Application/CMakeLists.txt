@@ -213,6 +213,5 @@ TARGET_LINK_LIBRARIES(Interface_Application
                       QtUtils_Utils
                       QtUtils_Widgets
 					  QtUtils_Bridge
-					  Resources_QtResources
                       ${QT_LIBRARIES} 
                       ${SCI_BOOST_LIBRARY})

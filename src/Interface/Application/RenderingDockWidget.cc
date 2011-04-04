@@ -38,6 +38,7 @@
 // Core includes
 #include <Core/Utils/Log.h>
 #include <Core/Application/Application.h>
+#include <Core/State/Actions/ActionToggle.h>
 
 // QtUtils includes
 #include <QtUtils/Bridge/QtBridge.h>
@@ -89,8 +90,6 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 
 	// Fog widgets
-	QtUtils::QtBridge::Connect( this->private_->ui_.fog_open_button_,
-		ViewerManager::Instance()->show_fog_control_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.fog_content_,
 		ViewerManager::Instance()->show_fog_control_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.fog_density_, 
@@ -103,8 +102,6 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 		this->private_->ui_.clipping_widget_->hide();
 	}
 	
-	QtUtils::QtBridge::Connect( this->private_->ui_.clipping_open_button_,
-		ViewerManager::Instance()->show_clipping_control_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.clipping_content_,
 		ViewerManager::Instance()->show_clipping_control_state_ );
 
@@ -207,8 +204,6 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	
 	// Volume rendering widgets
 	Core::TransferFunctionHandle tf = ViewerManager::Instance()->get_transfer_function();
-	QtUtils::QtBridge::Connect( this->private_->ui_.vr_open_button_,
-		ViewerManager::Instance()->show_volume_rendering_control_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.vr_content_,
 		ViewerManager::Instance()->show_volume_rendering_control_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.vr_target_, 
@@ -243,6 +238,32 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 		&RenderingDockWidget::HandleVolumeRenderingTargetChanged, qpointer, _2 ) ) );
 	this->add_connection( Core::Application::Instance()->reset_signal_.connect( boost::bind(
 		&RenderingDockWidget::HandleReset, qpointer ) ) );
+		
+		
+	QtUtils::QtBridge::Connect( this->private_->ui_.clipping_open_button_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_clipping_control_state_ ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.clipping_spacer_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_clipping_control_state_ ) );
+		
+	QtUtils::QtBridge::Connect( this->private_->ui_.fog_open_button_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_fog_control_state_ ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.fog_spacer_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_fog_control_state_ ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.vr_open_button_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_volume_rendering_control_state_ ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.vr_spacer_, 
+		boost::bind( &Core::ActionToggle::Dispatch, Core::Interface::GetWidgetActionContext(), 
+		ViewerManager::Instance()->show_volume_rendering_control_state_ ) );
+
 		
 	this->add_connection( ViewerManager::Instance()->show_clipping_control_state_->
 		state_changed_signal_.connect( boost::bind( 

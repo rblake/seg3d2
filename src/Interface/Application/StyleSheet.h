@@ -130,6 +130,7 @@ public:
 
 		const static QString RENDERING_VR_ACTIVE_C;
 		const static QString RENDERING_VR_INACTIVE_C;		
+		
 };    
 
 }  // end namespace Seg3D

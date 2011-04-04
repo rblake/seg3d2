@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>215</width>
-    <height>43</height>
+    <height>44</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton#activate_button_{
+   <string notr="true">QToolButton#activate_button_{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
 	border: none;
@@ -28,11 +28,30 @@
 	font: bold;
 }
 
-QPushButton#activate_button_:hover{
+QToolButton#spacer_{
+	background-color:rgba(0, 0, 0, 0);
+	border-color: rgba(0, 0, 0, 0);
+	border: none;
+	height: 24px;
+	text-align: left;
+	color: rgb(255, 255, 255);
+	padding-left:4px;
+	font: bold;
+}
+
+QToolButton#activate_button_:hover{
 	color: rgb(255, 255, 255);
 }
 
-QPushButton#activate_button_:pressed{
+QToolButton#activate_button_:pressed{
+	background-color:rgba(0, 0, 0, 0);
+	border-color: rgba(0, 0, 0, 0);
+	padding-left: 4px;
+	border: none;
+	color:  rgb(100, 100, 100);
+}
+
+QToolButton#spacer_:pressed{
 	background-color:rgba(0, 0, 0, 0);
 	border-color: rgba(0, 0, 0, 0);
 	padding-left: 4px;
@@ -150,6 +169,9 @@ QWidget#tool_frame_{
           <height>24</height>
          </size>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
           <number>0</number>
@@ -167,9 +189,9 @@ QWidget#tool_frame_{
           <number>0</number>
          </property>
          <item>
-          <widget class="QPushButton" name="activate_button_">
+          <widget class="QToolButton" name="activate_button_">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -185,6 +207,19 @@ QWidget#tool_frame_{
            </property>
            <property name="checkable">
             <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="spacer_">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string/>
            </property>
           </widget>
          </item>

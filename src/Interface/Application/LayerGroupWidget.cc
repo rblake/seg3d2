@@ -162,6 +162,8 @@ LayerGroupWidget::LayerGroupWidget( QWidget* parent, LayerGroupHandle group ) :
 	
 	this->private_->ui_.group_dummy_->hide();
 	
+	this->private_->ui_.group_background_->setStyleSheet( StyleSheet::GROUP_WIDGET_BACKGROUND_ACTIVE_C );
+
 	this->private_->group_height = this->private_->ui_.tools_and_layers_widget_->height();
 }
 
