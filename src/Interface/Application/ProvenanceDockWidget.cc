@@ -68,13 +68,12 @@ ProvenanceDockWidget::ProvenanceDockWidget( QWidget *parent ) :
 {
 	if( this->private_ )
 	{
-		qpointer_type project_dock_widget( this );
-		
 		this->private_->ui_.setupUi( this );
-
-		add_connection( ProjectManager::Instance()->get_current_project()->provenance_record_signal_.
-			connect( boost::bind( &ProvenanceDockWidget::HandleProvenanceResult, 
-			project_dock_widget, _1 ) ) );
+		
+		this->add_connection( ProjectManager::Instance()->current_project_changed_signal_.
+			connect( boost::bind( &ProvenanceDockWidget::HandleProjectChanged, qpointer_type( this ) ) ) );
+		
+		this->connect_project();
 	}
 
 }
@@ -85,6 +84,7 @@ ProvenanceDockWidget::~ProvenanceDockWidget()
 }
 	
 
+	
 void ProvenanceDockWidget::HandleProvenanceResult( qpointer_type qpointer, 
 	std::vector< std::pair< ProvenanceID, std::string > > provenance_trail )
 {
@@ -93,7 +93,14 @@ void ProvenanceDockWidget::HandleProvenanceResult( qpointer_type qpointer,
 		&ProvenanceDockWidget::populate_provenance_list, qpointer.data(), provenance_trail ) ) );
 
 }
-
+	
+void ProvenanceDockWidget::HandleProjectChanged( qpointer_type qpointer )
+{
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind( 
+		&ProvenanceDockWidget::connect_project, qpointer.data() ) ) );
+	
+}
+	
 
 void ProvenanceDockWidget::populate_provenance_list( 
 	std::vector< std::pair< ProvenanceID, std::string > > provenance_trail )
@@ -124,6 +131,18 @@ void ProvenanceDockWidget::populate_provenance_list(
 	this->private_->ui_.provenance_list_->verticalHeader()->setUpdatesEnabled( true );
 	this->private_->ui_.provenance_list_->repaint();
 }
+	
+void ProvenanceDockWidget::connect_project()
+{
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	// Grab this one, once again, but now within the lock
+	ProjectHandle current_project = ProjectManager::Instance()->get_current_project();
+	if( !current_project ) return;
+	
+	add_connection( current_project->provenance_record_signal_.
+		connect( boost::bind( &ProvenanceDockWidget::HandleProvenanceResult, 
+		qpointer_type( this ), _1 ) ) );
+}	
 		
 
 	

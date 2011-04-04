@@ -69,9 +69,17 @@ private:
 	// A function that handles the signal that contains the provenance of a particular layer.
 	static void HandleProvenanceResult( qpointer_type qpointer, std::vector< std::pair< ProvenanceID, std::string > > provenance_trail );
 	
+	// HANDLEPROJECTCHANGED:
+	// A function that handles reconnecting the provenance dock widget to the current project when it has changed
+	static void HandleProjectChanged( qpointer_type qpointer );
+	
 	// POPULATE_PROVENANCE_LIST:
 	// this handles the actual updating of the ui
 	void populate_provenance_list( std::vector< std::pair< ProvenanceID, std::string > > provenance_trail );
+	
+	// CONNECT_PROJECT:
+	// this function does the actual reconnecting
+	void connect_project();
 
 private:
 	boost::shared_ptr< ProvenanceDockWidgetPrivate > private_;
