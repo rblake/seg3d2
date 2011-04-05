@@ -75,7 +75,7 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 	std::vector<std::string> file_extensions = Project::GetProjectFileExtensions();
 	for ( size_t j = 0; j < file_extensions.size(); j++ ) 
 	{
-		if ( boost::filesystem::extension( full_filename ) != file_extensions[ j ] )
+		if ( boost::filesystem::extension( full_filename ) == file_extensions[ j ] )
 		{
 			is_s3d_file = true;
 			break;
