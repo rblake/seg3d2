@@ -78,6 +78,16 @@ SET(SEG3D_MINOR_VERSION 1)
 SET(SEG3D_PATCH_VERSION 0)
 
 ###########################################
+# APPLICATION NAME
+###########################################
+
+SET(APPLICATION_NAME "Seg3D2" CACHE INTERNAL "Name of the application" FORCE)
+SET(APPLICATION_EXTENSION ".s3d" CACHE INTERNAL "Name of the extension" FORCE)
+SET(APPLICATION_URL "www.seg3d.org" CACHE INTERNAL "URL where more information can be found" FORCE)
+SET(APPLICATION_VENDOR "SCI" CACHE INTERNAL "Who generated the applicatio" FORCE)
+SET(APPLICATION_CONTACT "seg3d-users@sci.utah.edu" CACHE INTERNAL "Contact information" FORCE)
+
+###########################################
 # DO STANDARD TESTS
 ###########################################
 
@@ -261,6 +271,11 @@ ENDIF(NOT WIN32 AND NOT APPLE)
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/Configuration/ApplicationConfiguration.h.in 
                 ${CMAKE_CURRENT_BINARY_DIR}/ApplicationConfiguration.h 
                 @ONLY )
+
+CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/Configuration/InterfaceConfiguration.h.in 
+                ${CMAKE_CURRENT_BINARY_DIR}/InterfaceConfiguration.h 
+                @ONLY )
+
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 
 ###########################################
@@ -403,11 +418,11 @@ MESSAGE(STATUS "Configuring Seg3D packaging")
 
 INCLUDE(InstallRequiredSystemLibraries)
 
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Seg3D2")
-SET(CPACK_PACKAGE_VENDOR "SCI")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${APPLICATION_NAME}")
+SET(CPACK_PACKAGE_VENDOR "${APPLICATION_VENDOR}")
       
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/ReadMe.txt")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Seg3D2 ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}.${SEG3D_PATCH_VERSION} is a segmentation program")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}.${SEG3D_PATCH_VERSION} is a segmentation program")
 
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/License.txt")
 SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/ReleaseNotes.txt")
@@ -418,7 +433,7 @@ SET(CPACK_PACKAGE_VERSION_MINOR "${SEG3D_MINOR_VERSION}")
 SET(CPACK_PACKAGE_VERSION_PATCH "${SEG3D_PATCH_VERSION}")
 
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY 
-    "Seg3D ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
+    "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
     
 IF(WIN32 AND NOT UNIX)
   # There is a bug in NSIS that does not handle full unix paths properly. Make
@@ -428,45 +443,45 @@ IF(WIN32 AND NOT UNIX)
       SET(CPACK_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
       SET(CMAKE_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
     ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\Seg3D")
+  SET(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\${APPLICATION_NAME}")
   SET(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\Seg3D.ico")
-  SET(CPACK_NSIS_DISPLAY_NAME "Seg3D ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
-  SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\www.seg3d.org")
-  SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\www.seg3d.org")
+  SET(CPACK_NSIS_DISPLAY_NAME "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
+  SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\${APPLICATION_URL}")
+  SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\${APPLICATION_URL}")
   SET(CPACK_NSIS_CONTACT "seg3d-users@sci.utah.edu")
   SET(CPACK_NSIS_MODIFY_PATH ON)
-  SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2" "Seg3D2")
+  SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}" "${APPLICATION_NAME}")
   SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-	WriteRegStr HKCR '.nrrd' '' 'Seg3D2-nrrd'
-	WriteRegStr HKCR 'Seg3D2-nrrd' '' 'Seg3D2 NRRD File'
-	WriteRegStr HKCR 'Seg3D2-nrrd\\\\shell' '' 'open'
-	WriteRegStr HKCR 'Seg3D2-nrrd\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe,0'
-	WriteRegStr HKCR 'Seg3D2-nrrd\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
-	WriteRegStr HKCR 'Seg3D2-nrrd\\\\shell\\\\edit' '' 'Open NRRD Data File'
-	WriteRegStr HKCR 'Seg3D2-nrrd\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
+	WriteRegStr HKCR '.nrrd' '' '${APPLICATION_NAME}-nrrd'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd' '' '${APPLICATION_NAME} NRRD File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit' '' 'Open NRRD Data File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
 	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
-	WriteRegStr HKCR '.nhdr' '' 'Seg3D2-nhdr'
-	WriteRegStr HKCR 'Seg3D2-nhdr' '' 'Seg3D2 NHDR File'
-	WriteRegStr HKCR 'Seg3D2-nhdr\\\\shell' '' 'open'
-	WriteRegStr HKCR 'Seg3D2-nhdr\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe,0'
-	WriteRegStr HKCR 'Seg3D2-nhdr\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
-	WriteRegStr HKCR 'Seg3D2-nhdr\\\\shell\\\\edit' '' 'Open NHDR Data File'
-	WriteRegStr HKCR 'Seg3D2-nhdr\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
+	WriteRegStr HKCR '.nhdr' '' '${APPLICATION_NAME}-nhdr'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr' '' '${APPLICATION_NAME} NHDR File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit' '' 'Open NHDR Data File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
 	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
-	WriteRegStr HKCR '.s3d' '' 'Seg3D2'
-	WriteRegStr HKCR 'Seg3D2' '' 'Seg3D2 Project File'
-	WriteRegStr HKCR 'Seg3D2\\\\shell' '' 'open'
-	WriteRegStr HKCR 'Seg3D2\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe,0'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\edit' '' 'Open Seg3D2 Project File'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_EXTENSION}' '' '${APPLICATION_NAME}'
+	WriteRegStr HKCR '${APPLICATION_NAME}' '' '${APPLICATION_NAME} Project File'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit' '' 'Open ${APPLICATION_NAME} Project File'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
 	System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
   ")
   SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
 	DeleteRegKey HKCR '.nrrd'
 	DeleteRegKey HKCR '.nhdr'
-	DeleteRegKey HKCR '.s3d'
-	DeleteRegKey HKCR 'Seg3D2'
+	DeleteRegKey HKCR '${APPLICATION_EXTENSION}'
+	DeleteRegKey HKCR '${APPLICATION_NAME}'
   ")
 ELSE(WIN32 AND NOT UNIX)
   IF(APPLE)
@@ -479,11 +494,11 @@ ELSE(WIN32 AND NOT UNIX)
     SET(CPACK_PACKAGING_INSTALL_PREFIX "/")
     SET(CPACK_STRIP_FILES TRUE)
     SET(CPACK_SOURCE_STRIP_FILES TRUE)
-    SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2.app" "Seg3D2")
+    SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}.app" "${APPLICATION_NAME}")
   ELSE(APPLE)
     SET(CPACK_STRIP_FILES TRUE)
     SET(CPACK_SOURCE_STRIP_FILES TRUE)
-    SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2" "Seg3D2")
+    SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}" "${APPLICATION_NAME}")
   ENDIF(APPLE)
 ENDIF(WIN32 AND NOT UNIX)
 

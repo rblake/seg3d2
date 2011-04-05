@@ -107,7 +107,11 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 
 	// Allow the user to interact with the GUI once more.
 	progress->end_progress_reporting();
-
+	
+	std::string success_message = std::string( "Successfully loaded session '" ) + this->session_name_ + 
+		"'.";
+	CORE_LOG_SUCCESS( success_message );
+	
 	return success;
 }
 

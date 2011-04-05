@@ -69,6 +69,7 @@ public:
 // -- widget internals -- 
 private:
     QtLogSliderIntComboPrivateHandle private_;
+	int value_;  
     
 private Q_SLOTS:
     void change_min( int new_min );
@@ -78,8 +79,6 @@ private Q_SLOTS:
     
 private:
 	void block_signals( bool block );
-	int value_;
-  
 };
 
 }  // end namespace QtUtils

@@ -161,27 +161,46 @@ bool ActionImportLayer::run( Core::ActionContextHandle& context, Core::ActionRes
 	// Now insert the layers one by one into the layer manager.
 	for ( size_t j = 0; j < layers.size(); j++ )
 	{
+		layers[ j ]->provenance_id_state_->set( this->get_output_provenance_id( j ) );
 		LayerManager::Instance()->insert_layer( layers[ j ] );
 	}
 
 	// Now the layers are properly inserted, generate the undo item that will undo this action.
-
-	// Create an undo item for this action
-	LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Import Layer" ) );
-
-	// Tell which action has to be re-executed to obtain the result
-	item->set_redo_action( this->shared_from_this() );
-
-	// Tell which layer was added so undo can delete it
-	for ( size_t j = 0; j < layers.size(); j++ )
 	{
-		item->add_layer_to_delete( layers[ j ] );
-	}
-	// Tell what the layer/group id counters are so we can undo those as well
-	item->add_id_count_to_restore( id_count );
-	// Add the complete record to the undo buffer
-	UndoBuffer::Instance()->insert_undo_item( context, item );
+		// Create an undo item for this action
+		LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Import Layer" ) );
 
+		// Tell which action has to be re-executed to obtain the result
+		item->set_redo_action( this->shared_from_this() );
+
+		// Tell which layer was added so undo can delete it
+		for ( size_t j = 0; j < layers.size(); j++ )
+		{
+			item->add_layer_to_delete( layers[ j ] );
+		}
+		// Tell what the layer/group id counters are so we can undo those as well
+		item->add_id_count_to_restore( id_count );
+		
+		// Add the complete record to the undo buffer
+		UndoBuffer::Instance()->insert_undo_item( context, item );
+
+		// Create a provenance record
+		ProvenanceStepHandle provenance_step( new ProvenanceStep );
+		
+		// Get the input provenance ids from the translate step
+		provenance_step->set_input_provenance_ids( this->get_input_provenance_ids() );
+		
+		// Get the output and replace provenance ids from the analysis above
+		provenance_step->set_output_provenance_ids( this->get_output_provenance_ids() );
+			
+		// Get the action and turn it into provenance	
+		provenance_step->set_action( this->export_to_provenance_string() );		
+		
+		// Add step to provenance record
+		ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
+			provenance_step );		
+	}
+	
 	// We are done processing
 	progress->end_progress_reporting();
 

@@ -402,7 +402,7 @@ void Menu::create_tool_menus( QMenuBar* qmenubar )
 		{
 			// Add menu option to open tool
 			qaction = qmenu->addAction( QString::fromStdString( ( *it )->get_menu_label() ) );
-			qaction->setShortcut( QString::fromStdString( ( *it )->get_shortcut_key() ) );
+			// qaction->setShortcut( QString::fromStdString( ( *it )->get_shortcut_key() ) );
 
 			// Connect the action with dispatching a command in the ToolManager
 			QtUtils::QtBridge::Connect( qaction, boost::bind( &ActionOpenTool::Dispatch, 
@@ -586,8 +586,22 @@ void Menu::open_project()
 		
 	std::string project_type = std::string( "Open " ) + 
 		Core::Application::GetApplicationName()	+ " Project";
-	std::string project_file_type =  Core::Application::GetApplicationName() +
-		" Project File ( *.s3d *.seg3dproj )";
+		
+	std::vector<std::string> project_file_extensions = Project::GetProjectFileExtensions();	
+	std::vector<std::string> project_path_extensions = Project::GetProjectPathExtensions();	
+	std::string project_file_type =  Core::Application::GetApplicationName() + " Project File (";
+	
+	for ( size_t j = 0; j < project_file_extensions.size(); j++ )
+	{
+		project_file_type += std::string( " *" ) + project_file_extensions[ j ];
+	}
+
+	for ( size_t j = 0; j < project_path_extensions.size(); j++ )
+	{
+		project_file_type += std::string( " *" ) + project_path_extensions[ j ];
+	}
+
+	project_file_type += " )";
 
 	boost::filesystem::path full_path =  boost::filesystem::path( ( 
 		QFileDialog::getOpenFileName ( this->main_window_, 
@@ -596,7 +610,18 @@ void Menu::open_project()
 		QString::fromStdString( project_file_type ) ) ).toStdString() ); 
 
 
-	if ( boost::filesystem::extension( full_path ) == ".seg3dproj" )
+	bool is_path_extension = false;
+	for ( size_t j = 0; j < project_path_extensions.size(); j++ )
+	{
+		if ( boost::filesystem::extension( full_path ) == project_path_extensions[ j ] )
+		{
+			is_path_extension = true;
+			break;
+		}
+	}
+
+
+	if ( is_path_extension )
 	{
 		bool found_s3d_file = false;
 		
@@ -608,12 +633,17 @@ void Menu::open_project()
 			{
 				std::string filename = dir_itr->filename();
 				boost::filesystem::path dir_file = full_path / filename;
-				if ( boost::filesystem::extension( dir_file ) == ".s3d" )
+				for ( size_t j = 0; j < project_file_extensions.size(); j++ )
 				{
-					full_path = dir_file;
-					found_s3d_file = true;
-					break;
+					if ( boost::filesystem::extension( dir_file ) ==project_file_extensions[ j ] )
+					{
+						full_path = dir_file;
+						found_s3d_file = true;
+						break;
+					}
 				}
+				
+				if ( found_s3d_file ) break;
 			}
 		}
 		

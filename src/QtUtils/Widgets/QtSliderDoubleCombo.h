@@ -66,6 +66,7 @@ public:
     
 // -- widget internals -- 
 private:
+    double value_;
     QtSliderDoubleComboPrivateHandle private_;
     
 private Q_SLOTS:
@@ -76,7 +77,6 @@ private Q_SLOTS:
 
 private:
     void block_signals( bool block );    
-    double value_;
   
 };
 

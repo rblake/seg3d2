@@ -70,7 +70,20 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 	}
 
 	// Check if it is a .s3d file, if not we look inside the directory to find one.
-	if ( boost::filesystem::extension( full_filename ) != ".s3d" )
+	bool is_s3d_file = false;
+	
+	std::vector<std::string> file_extensions = Project::GetProjectFileExtensions();
+	for ( size_t j = 0; j < file_extensions.size(); j++ ) 
+	{
+		if ( boost::filesystem::extension( full_filename ) != file_extensions[ j ] )
+		{
+			is_s3d_file = true;
+			break;
+		} 
+	}
+	
+	
+	if ( is_s3d_file == false )
 	{
 		bool found_s3d_file = false;
 		
@@ -82,12 +95,16 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 			{
 				std::string filename = dir_itr->filename();
 				boost::filesystem::path dir_file = full_filename / filename;
-				if ( boost::filesystem::extension( dir_file ) == ".s3d" )
+				for ( size_t j = 0; j < file_extensions.size(); j++ ) 
 				{
-					full_filename = dir_file;
-					found_s3d_file = true;
-					break;
+					if ( boost::filesystem::extension( dir_file ) == file_extensions[ j ] )
+					{
+						full_filename = dir_file;
+						found_s3d_file = true;
+						break;
+					}
 				}
+				if ( found_s3d_file ) break;
 			}
 		}
 		
@@ -136,7 +153,7 @@ bool ActionLoadProject::run( Core::ActionContextHandle& context,
 			ActionResetChangesMade::Dispatch( Core::Interface::GetWidgetActionContext() );
 		}
 
-		CORE_LOG_SUCCESS( "Project: '" + this->project_file_ + "' has been successfully opened." );
+		CORE_LOG_SUCCESS( "Successfully loaded project '" + this->project_file_ + "'." );
 	}
 	else
 	{

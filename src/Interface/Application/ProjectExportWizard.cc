@@ -145,7 +145,8 @@ bool ExportInfoPage::validatePage()
 {
 	boost::filesystem::path project_path = 
 		boost::filesystem::path( this->project_path_lineedit_->text().toStdString() ) / 
-		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() + ".seg3dproj" );
+		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() + 
+			Project::GetDefaultProjectPathExtension() );
 
 	if( boost::filesystem::exists( project_path ) )
 	{

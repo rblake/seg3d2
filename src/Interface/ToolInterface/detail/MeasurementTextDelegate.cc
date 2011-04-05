@@ -37,8 +37,10 @@ namespace Seg3D
 {
 
 MeasurementTextDelegate::MeasurementTextDelegate( int text_column, QObject * parent /*= 0 */ ) : 
-	text_column_( text_column ),
-	QItemDelegate( parent ) {}
+	QItemDelegate( parent ),
+	text_column_( text_column )
+{
+}
 
 void MeasurementTextDelegate::paint( QPainter *painter, const QStyleOptionViewItem &option, 
 	const QModelIndex &index ) const

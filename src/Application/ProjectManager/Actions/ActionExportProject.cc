@@ -100,7 +100,8 @@ bool ActionExportProject::validate( Core::ActionContextHandle& context )
 	}
 
 	// Ensure a project can be written in this directory
-	if ( boost::filesystem::exists( export_path / ( this->project_name_ + ".seg3dproj" ) ) )
+	if ( boost::filesystem::exists( export_path / ( this->project_name_ + 
+		Project::GetDefaultProjectPathExtension() ) ) )
 	{
 		std::string error = std::string( "'" ) + export_path.string() + " already contains a "
 			"project called '" + this->project_name_  + "'.";
@@ -127,6 +128,10 @@ bool ActionExportProject::run( Core::ActionContextHandle& context,
 		this->project_name_, this->session_name_ );
 
 	progress->end_progress_reporting();
+
+	std::string success_message = std::string( "Successfully exported project '" ) +
+		this->project_name_ + "'.";
+	CORE_LOG_SUCCESS( success_message );
 
 	return success;
 }

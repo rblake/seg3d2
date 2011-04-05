@@ -123,7 +123,7 @@ bool ProjectManagerPrivate::create_project_directory( const std::string& project
 	}
 
 	// Generate the new name of the directory
-	project_path = project_loc / ( project_name + ".seg3dproj" );
+	project_path = project_loc / ( project_name + Project::GetDefaultProjectPathExtension() );
 
 	// Check if the directory already existed
 	if ( boost::filesystem::exists( project_path ) )
@@ -254,13 +254,28 @@ void ProjectManagerPrivate::cleanup_recent_projects_database()
 
 	// Check the entries
 
+	std::vector<std::string> file_extensions = Project::GetProjectFileExtensions();
+
 	for( size_t i = 0; i < recent_projects.size(); ++i )
 	{
-		// Check whether the current one exists, if not we need to delete it from the database
-		boost::filesystem::path path = boost::filesystem::path( recent_projects[ i ].path_ ) / 
-			( recent_projects[ i ].name_ + ".s3d" );
+		bool found_project = false;
+		
+		for ( size_t j = 0; j < file_extensions.size(); j++ )
+		{
+	
+			// Check whether the current one exists, if not we need to delete it from the database
+			boost::filesystem::path path = boost::filesystem::path( recent_projects[ i ].path_ ) / 
+				( recent_projects[ i ].name_ + file_extensions[ j ] );
 
-		if( !boost::filesystem::exists( path ) )
+			if( boost::filesystem::exists( path ) ) 
+			{
+				found_project = true;
+				break;
+			}
+		}
+		
+
+		if( !found_project )
 		{
 			this->delete_recent_projects_entry( recent_projects[ i ].name_, 
 				recent_projects[ i ].path_, recent_projects[ i ].date_ );
@@ -269,7 +284,7 @@ void ProjectManagerPrivate::cleanup_recent_projects_database()
 			// same name as the top project name
 
 			///////// BACKWARDS COMPATIBILITY /////////////////////////
-			path = boost::filesystem::path( recent_projects[ i ].path_ ) / 
+			boost::filesystem::path path = boost::filesystem::path( recent_projects[ i ].path_ ) / 
 				recent_projects[ i ].name_ / ( recent_projects[ i ].name_ + ".s3d" );
 
 

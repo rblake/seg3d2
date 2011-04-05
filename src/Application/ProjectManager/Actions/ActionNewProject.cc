@@ -92,7 +92,7 @@ bool ActionNewProject::validate( Core::ActionContextHandle& context )
 		// Generate the new name of the project folder, to check if it is available
 		boost::filesystem::path project_folder = 
 			boost::filesystem::path( this->project_location_ ) / 
-				( this->project_name_ + ".seg3dproj" );
+				( this->project_name_ + Project::GetDefaultProjectPathExtension() );
 		
 		// Check if folder already exists
 		if ( boost::filesystem::exists( project_folder ) )
@@ -138,6 +138,10 @@ bool ActionNewProject::run( Core::ActionContextHandle& context,
 		context->report_error( "Could not create new project" );
 		return false;
 	}
+
+	std::string success_message = std::string( "Successfully created new project '" ) +
+		this->project_name_ + "'.";
+	CORE_LOG_SUCCESS( success_message );
 
 	return true;
 }

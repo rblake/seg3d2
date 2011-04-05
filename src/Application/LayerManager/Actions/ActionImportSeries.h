@@ -35,6 +35,7 @@
 
 // Application includes
 #include <Application/LayerIO/LayerFileSeriesImporter.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
@@ -42,7 +43,7 @@ namespace Seg3D
 // TODO: We should split this in importfromfile and importfromseries
 // --JGS
 	
-class ActionImportSeries : public Core::Action
+class ActionImportSeries : public LayerAction
 {
 
 CORE_ACTION( 

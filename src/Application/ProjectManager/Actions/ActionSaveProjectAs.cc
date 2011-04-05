@@ -91,7 +91,7 @@ bool ActionSaveProjectAs::validate( Core::ActionContextHandle& context )
 		// Generate the new name of the project folder, to check if it is available
 		boost::filesystem::path project_folder = 
 			boost::filesystem::path( this->project_location_ ) /
-				( this->project_name_ + ".seg3dproj" );
+				( this->project_name_ + Project::GetDefaultProjectPathExtension() );
 		
 		// Check if folder already exists
 		if ( boost::filesystem::exists( project_folder ) )
@@ -130,6 +130,10 @@ bool ActionSaveProjectAs::run( Core::ActionContextHandle& context,
 			+ ProjectManager::Instance()->get_current_project()->project_name_state_->get() 
 			+ "'. Please perform a 'Save As' as soon as possible to preserve your data." );				
 	}
+	
+	std::string success_message = std::string( "Successfully saved project as '" ) + 
+		ProjectManager::Instance()->get_current_project()->project_name_state_->get() + "'.";
+	CORE_LOG_SUCCESS( success_message );
 	
 	return success;
 }

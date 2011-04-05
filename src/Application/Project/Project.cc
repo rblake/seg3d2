@@ -43,12 +43,10 @@
 #include <Application/Project/Project.h>
 #include <Application/Provenance/Provenance.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
-
-// TODO:
-// Circular dependency: we should fix this dependency
-#include <Application/LayerManager/LayerManager.h>
 #include <Application/DatabaseManager/DatabaseManager.h>
 
+// Include CMake generated files
+#include "ApplicationConfiguration.h"
 
 namespace Seg3D
 {
@@ -227,10 +225,16 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 #if defined( __APPLE__ )	
 	if ( PreferencesManager::Instance()->generate_osx_project_bundle_state_->get() )
 	{
-		if ( boost::filesystem::extension( project_directory ) == ".seg3dproj" )
+		std::vector<std::string> project_path_extensions = Project::GetProjectPathExtensions();
+		
+		for ( size_t j = 0; j < project_path_extensions.size(); j++ )
 		{
-			std::string command = std::string( "SetFile -a B \"" ) + project_directory.string() +"\"";
-			system( command.c_str() );
+			if ( boost::filesystem::extension( project_directory ) == project_path_extensions[ j ] )
+			{
+				std::string command = std::string( "SetFile -a B \"" ) + project_directory.string() +"\"";
+				system( command.c_str() );
+				break;
+			}
 		}
 	}
 #endif
@@ -429,9 +433,9 @@ bool ProjectPrivate::save_state( const boost::filesystem::path& project_director
 		return false;
 	}	
 
-	// Save the project file
-	std::string project_name = this->project_->project_name_state_->get();
-	boost::filesystem::path project_file = project_directory / ( project_name + ".s3d" );
+	// Save the project file using the name specified
+	std::string project_file_name = this->project_->project_file_state_->get();
+	boost::filesystem::path project_file = project_directory / ( project_file_name );
 
 	Core::StateIO stateio;
 	stateio.initialize();
@@ -489,6 +493,8 @@ bool ProjectPrivate::copy_all_files( const boost::filesystem::path& src_path,
 		}
 	}
 
+	std::string extension = Project::GetDefaultProjectFileExtension();
+	
 	boost::filesystem::directory_iterator dir_end;
 	for( boost::filesystem::directory_iterator dir_itr( src_path ); 
 		dir_itr != dir_end; ++dir_itr )
@@ -499,7 +505,7 @@ bool ProjectPrivate::copy_all_files( const boost::filesystem::path& src_path,
 		
 		if ( boost::filesystem::is_regular_file( dir_file ) )
 		{
-			if ( !copy_s3d_file && dir_file.extension() == ".s3d" ) continue;
+			if ( !copy_s3d_file && dir_file.extension() == extension ) continue;
 			try
 			{
 				boost::filesystem::copy_file( dir_file, ( dst_path / dir_itr->filename() ) );
@@ -818,6 +824,10 @@ Project::Project( const std::string& project_name ) :
 	// Name of the project
 	this->add_state( "project_name", this->project_name_state_, project_name );
 
+	// File that contains project information
+	std::string project_file = project_name + Project::GetDefaultProjectFileExtension();
+	this->add_state( "project_file", this->project_file_state_, project_file );
+
 	// Path of the project
 	this->add_state( "project_path", this->project_path_state_, "" );
 
@@ -834,6 +844,7 @@ Project::Project( const std::string& project_name ) :
 	// These three properties do not need to be saved into the file:
 	// They are dynamically generated, and hence have no place in the xml file
 	this->project_name_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
+	this->project_file_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
 	this->project_path_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
 	this->project_files_generated_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
 	this->project_files_accessible_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
@@ -952,7 +963,12 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 	// First update the state variables that were not saved, such as
 	// project name and project path
 	
+	
+	// The name of the project
 	this->project_name_state_->set( full_filename.stem() );
+
+	// The file in which the project was saved
+	this->project_file_state_->set( full_filename.filename() );
 
 	// Ensure all directories that we require are present, if not this function
 	// will generate them.
@@ -1058,6 +1074,7 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 	{		
 		// Set the new project name.
 		this->project_name_state_->set( project_name );
+		std::string project_file_name = project_name + Project::GetDefaultProjectFileExtension();
 
 		// Generate the project directory if it does not exist and generate all the sub directories.
 		if (! this->private_->update_project_directory( project_path ) )
@@ -1079,6 +1096,7 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 		boost::filesystem::path current_project_path( this->project_path_state_->get() );
 		current_project_path = boost::filesystem::complete( current_project_path );
 		std::string current_project_name = this->project_name_state_->get();
+		std::string current_project_file = this->project_file_state_->get();
 		
 		if ( current_project_path == project_path && current_project_name == project_name )
 		{
@@ -1090,11 +1108,11 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 		{
 			// OK, the user gave us a new name, but directory is the same
 					
-			// Generate the new .s3d file and delete the old one		
-			boost::filesystem::path current_xml_file = current_project_path / 
-				( current_project_name + ".s3d" );
+			// Generate the new .s3d file and delete the old one	
+			boost::filesystem::path current_xml_file = current_project_path / current_project_file;
 
-			boost::filesystem::path new_xml_file = current_project_path / ( project_name + ".s3d" );			
+			boost::filesystem::path new_xml_file = current_project_path / 
+				( project_name + Project::GetDefaultProjectFileExtension() );			
 
 			// First save the new file, with all the new state information			
 			this->private_->save_state( new_xml_file );
@@ -1123,6 +1141,8 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 			
 			// Update the project
 			this->project_name_state_->set( project_name );
+			this->project_file_state_->set( project_name + 
+				Project::GetDefaultProjectFileExtension() );
 			this->project_path_state_->set( project_path.string() );
 			
 			// This will save a session and update the project file and 
@@ -1269,7 +1289,7 @@ bool Project::check_project_files()
 	}
 
 	// Check if s3d file still exists
-	if ( !boost::filesystem::exists( project_path / ( this->project_name_state_->get() + ".s3d" ) ) )
+	if ( !boost::filesystem::exists( project_path / ( this->project_file_state_->get()) ) )
 	{
 		this->project_files_generated_state_->set( false );
 		this->project_files_accessible_state_->set( false );
@@ -1717,6 +1737,68 @@ void Project::request_signal_provenance_record( ProvenanceID prov_id )
 	this->private_->provenance_recursive_helper( provenance_trail, prov_id );
 
 	this->provenance_record_signal_( provenance_trail );
+}
+
+std::string Project::GetDefaultProjectPathExtension()
+{
+	std::vector<std::string> path_extensions = 
+		Core::SplitString( CORE_APPLICATION_PROJECT_FOLDER_EXTENSION, ";");
+		
+	if ( path_extensions.size() > 0 )
+	{
+		return path_extensions[ 0 ];
+	}
+	else
+	{
+		return ".seg3dproj";
+	}
+}
+	
+std::string Project::GetDefaultProjectFileExtension()
+{
+	std::vector<std::string> file_extensions = 
+		Core::SplitString( CORE_APPLICATION_PROJECT_EXTENSION, ";");
+		
+	if ( file_extensions.size() > 0 )
+	{
+		return file_extensions[ 0 ];
+	}
+	else
+	{
+		return ".s3d";
+	}
+}
+
+std::vector<std::string> Project::GetProjectPathExtensions()
+{
+	std::vector<std::string> path_extensions = 
+		Core::SplitString( CORE_APPLICATION_PROJECT_FOLDER_EXTENSION, ";");
+		
+	if ( path_extensions.size() > 0 )
+	{
+		return path_extensions;
+	}
+	else
+	{
+		std::vector<std::string> default_vector( 1, ".seg3dproj" );
+		return default_vector;
+	}
+}	
+	
+std::vector<std::string> Project::GetProjectFileExtensions()		
+{
+	std::vector<std::string> file_extensions = 
+		Core::SplitString( CORE_APPLICATION_PROJECT_EXTENSION, ";");
+		
+	if ( file_extensions.size() )
+	{
+		return file_extensions;
+	}
+	else
+	{
+		std::vector<std::string> default_vector( 1, ".s3d" );
+		return default_vector;
+	}
 }
 
 } // end namespace Seg3D

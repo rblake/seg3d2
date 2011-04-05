@@ -92,6 +92,8 @@ bool DatabaseManager::create_database( const std::vector< std::string >& create_
 			return false;
 		}
 	}
+	
+	return true;
 }
 
 
@@ -170,8 +172,6 @@ bool DatabaseManager::load_database( const boost::filesystem::path& database_fil
 
 	int result;
 	sqlite3* temp_open_database;
-	sqlite3* to_database;
-	sqlite3* from_database;
 	sqlite3_backup* backup_database_object;
 	
 	result = sqlite3_open( database_file.string().c_str(), &temp_open_database );
@@ -212,8 +212,6 @@ bool DatabaseManager::save_database( const boost::filesystem::path& database_fil
 	DatabaseManagerPrivate::lock_type lock( this->private_->get_mutex() );
 	int result;
 	sqlite3* temp_open_database;
-	sqlite3* to_database;
-	sqlite3* from_database;
 	sqlite3_backup* backup_database_object;
 	
 	result = sqlite3_open( database_file.string().c_str(), &temp_open_database );

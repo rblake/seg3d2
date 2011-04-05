@@ -263,16 +263,30 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	
 	this->private_->progress_ = new ProgressWidget( this->private_->viewer_interface_->parentWidget() );
 	
-	if( ( file_to_view_on_open != "" ) && ( ( extension == ".nrrd" ) || ( extension == ".nhdr" ) ) )
+	if( file_to_view_on_open == "" ) return;
+	
+	if( ( extension == ".nrrd" ) || ( extension == ".nhdr" ) )
 	{
 		// No location is set, so no project will be generated on disk for now
-		ActionNewProject::Dispatch( Core::Interface::GetWidgetActionContext(), "", "Untitled Project" );
+		ActionNewProject::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			"", "Untitled Project" );
 		LayerIOFunctions::ImportFiles( this, file_to_view_on_open );
+		return;
 	}
-	else if( ( file_to_view_on_open != "" ) && ( extension == ".s3d" ) )
+	
+	std::vector<std::string> project_file_extensions = Project::GetProjectFileExtensions();
+	if ( std::find( project_file_extensions.begin(), project_file_extensions.end(), extension ) !=
+		project_file_extensions.end() )
 	{
 		ActionLoadProject::Dispatch( Core::Interface::GetWidgetActionContext(), file_to_view_on_open );	
 	}
+	
+	std::vector<std::string> project_folder_extensions = Project::GetProjectPathExtensions();
+	if ( std::find( project_folder_extensions.begin(), project_folder_extensions.end(), extension ) !=
+		project_folder_extensions.end() )
+	{
+		ActionLoadProject::Dispatch( Core::Interface::GetWidgetActionContext(), file_to_view_on_open );	
+	}	
 }
 
 ApplicationInterface::~ApplicationInterface()

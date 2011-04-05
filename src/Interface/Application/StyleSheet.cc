@@ -27,12 +27,14 @@
  */
 
 
+// Interface configuration
+#include "InterfaceConfiguration.h"
+
 // Interface includes
 #include <Interface/Application/StyleSheet.h>
 
-#define ACCENT_COLOR " rgb( 237, 165, 76 ) "
-// #define ACCENT_COLOR " rgb( 237, 55, 55 ) "
-
+// Set the accent color of the application
+#define ACCENT_COLOR " rgb( " INTERFACE_ACCENT_COLOR " ) "
 
 namespace Seg3D
 {

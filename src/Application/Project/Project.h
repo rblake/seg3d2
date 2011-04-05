@@ -96,6 +96,9 @@ public:
 public:
 	// The name of the project
 	Core::StateStringHandle project_name_state_;
+
+	// The filename that contains the project information
+	Core::StateStringHandle project_file_state_;
 	
 	// Path of the current project
 	Core::StateStringHandle	project_path_state_;	
@@ -276,6 +279,23 @@ public:
 private:
 	ProjectPrivateHandle private_;
 	
+	// -- File extension information --
+public:
+	// GETDEFAULTPROJECTPATHEXTENSION
+	// Get the extension that the project directories get
+	static std::string GetDefaultProjectPathExtension();
+	
+	// GETDEFAUTLPROEJCTFILEEXTENSION
+	// Get the extension of the project file itself
+	static std::string GetDefaultProjectFileExtension();
+	
+	// GETPROJECTPATHEXTENSION
+	// Get all the possible project extensions that we read
+	static std::vector<std::string> GetProjectPathExtensions();
+	
+	// GETPROJECTFILEEXTENSION
+	// Get all the possible project file extensions that we read
+	static std::vector<std::string> GetProjectFileExtensions();		
 };
 
 } // end namespace Seg3D

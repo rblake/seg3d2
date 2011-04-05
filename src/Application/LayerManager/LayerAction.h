@@ -34,6 +34,7 @@
 
 // Application includes
 #include <Application/Provenance/Provenance.h>
+#include <Application/ProjectManager/ProjectManager.h>
 #include <Application/Layer/LayerFWD.h> 
 
 namespace Seg3D
