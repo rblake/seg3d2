@@ -108,8 +108,6 @@ QtHistogramWidget::QtHistogramWidget( QWidget *parent, QtSliderDoubleCombo* uppe
 		
 	this->private_->min_bar_ = new QWidget( this );
 	this->private_->max_bar_ = new QWidget( this );
-// 	this->private_->min_bar_->hide();
-// 	this->private_->max_bar_->hide();
 
 	this->private_->ui_.label_3->setAlignment( Qt::AlignHCenter | Qt::AlignVCenter );
 
@@ -134,6 +132,8 @@ void QtHistogramWidget::set_histogram( const Core::Histogram& histogram )
 
 	if( this->private_->min_bar_ ) this->private_->min_bar_->deleteLater();
 	if( this->private_->max_bar_ ) this->private_->max_bar_->deleteLater();
+	
+	this->private_->histogram_graph_->repaint();
 
 	this->private_->min_bar_ = new QWidget( this );
 	this->private_->max_bar_ = new QWidget( this );
@@ -163,7 +163,10 @@ void QtHistogramWidget::set_histogram( const Core::Histogram& histogram )
 	{
 		this->set_min( this->private_->lower_threshold_->get_value() );
 	}
-	this->private_->histogram_graph_->repaint();
+	
+	this->private_->min_bar_->show();
+	this->private_->max_bar_->show();
+	
 }
 
 void QtHistogramWidget::reset_histogram( )
@@ -171,21 +174,12 @@ void QtHistogramWidget::reset_histogram( )
 	this->private_->histogram_graph_->reset_histogram();
 	this->private_->ui_.min->setText( "-" );
 	this->private_->ui_.max->setText( "-" );
-// 	this->private_->min_bar_->hide();
-// 	this->private_->max_bar_->hide();
 	this->private_->histogram_graph_->repaint();
 }
 
 void QtHistogramWidget::set_min( double min )
 {
 	this->private_->min_threshold_value_ = min;
-// 	if( !this->private_->threshold_bars_enabled_ ) 
-// 	{	
-// 		this->private_->min_bar_->hide();
-// 		return;
-// 	}
-// 
-// 	if( this->private_->min_bar_->isHidden() ) this->private_->min_bar_->show();
 
 	double temp_max;
 
@@ -212,13 +206,6 @@ void QtHistogramWidget::set_min( double min )
 void QtHistogramWidget::set_max( double max )
 {
 	this->private_->max_threshold_value_ = max;
-// 	if( !this->private_->threshold_bars_enabled_ )
-// 	{	
-// 		this->private_->max_bar_->hide();
-// 		return;
-// 	}
-// 
-// 	if( this->private_->max_bar_->isHidden() ) this->private_->max_bar_->show();
 
 	double temp_max;
 
@@ -244,8 +231,7 @@ void QtHistogramWidget::set_max( double max )
 void QtHistogramWidget::handle_left_button_click( int lower_location )
 {
 	if( this->private_->lower_threshold_ == 0 ) return;
-// 	if( this->private_->max_bar_->isHidden() ) this->private_->max_bar_->show();
-// 	if( this->private_->min_bar_->isHidden() ) this->private_->min_bar_->show();
+
 	double percent_of_width = lower_location / 
 		double ( this->private_->histogram_graph_->width( ) );
 	double current_value = ( this->private_->max_ - 
@@ -257,8 +243,7 @@ void QtHistogramWidget::handle_left_button_click( int lower_location )
 void QtHistogramWidget::handle_right_button_click( int upper_location )
 {
 	if( this->private_->upper_threshold_ == 0 ) return;
-// 	if( this->private_->max_bar_->isHidden() ) this->private_->max_bar_->show();
-// 	if( this->private_->min_bar_->isHidden() ) this->private_->min_bar_->show();
+
 	double percent_of_width = upper_location / 
 		double ( this->private_->histogram_graph_->width() );
 	double current_value = ( this->private_->max_ - 
@@ -314,9 +299,16 @@ void QtHistogramWidget::resizeEvent( QResizeEvent* event )
 
 void QtHistogramWidget::set_bars_enabled( bool enabled )
 {
-	this->private_->max_bar_->setVisible( enabled );
-	this->private_->min_bar_->setVisible( enabled );
-	//this->private_->threshold_bars_enabled_ = enabled;
+	if( enabled )
+	{
+		this->private_->min_bar_->show();
+		this->private_->max_bar_->show();
+	}
+	else 
+	{
+		this->private_->min_bar_->hide();
+		this->private_->max_bar_->hide();
+	}
 }
 
 
