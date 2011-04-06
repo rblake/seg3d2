@@ -62,7 +62,7 @@ std::string LayerFileSeriesImporter::get_file_tag() const
 {
 	if ( this->private_->filenames_.size() == 0 ) return "";
 	boost::filesystem::path full_filename( this->private_->filenames_[ 0 ] );
-	return full_filename.parent_path().stem();
+	return full_filename.parent_path().stem().string();
 }
 
 
@@ -73,7 +73,7 @@ void LayerFileSeriesImporter::set_filenames( const std::vector< std::string >& f
 		for ( size_t j = 0 ; j < filenames.size(); j++ )
 		{
 			boost::filesystem::path full_filename( filenames[ j ] );
-			full_filename = boost::filesystem::complete( full_filename );
+			full_filename = boost::filesystem::absolute( full_filename );
 			this->private_->filenames_.push_back( full_filename.string() );
 		}
 	}

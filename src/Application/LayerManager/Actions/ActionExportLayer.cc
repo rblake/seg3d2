@@ -62,7 +62,7 @@ bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 	
 	if( this->extension_ == "" )
 	{
-		this->extension_ = boost::filesystem::path( this->file_path_ ).extension();
+		this->extension_ = boost::filesystem::extension( boost::filesystem::path( this->file_path_ ) );
 	}
 	
 	if( this->exporter_ == "" )
@@ -93,7 +93,7 @@ bool ActionExportLayer::validate( Core::ActionContextHandle& context )
 bool ActionExportLayer::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
 {
 	boost::filesystem::path filename_and_path = boost::filesystem::path( this->file_path_ );
-	std::string filename_without_extension = filename_and_path.filename();
+	std::string filename_without_extension = filename_and_path.filename().string();
 	filename_without_extension = filename_without_extension.substr( 0, 
 		filename_without_extension.find_last_of( "." ) );
 		

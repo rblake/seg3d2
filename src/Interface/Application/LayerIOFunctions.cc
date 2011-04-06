@@ -269,7 +269,7 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 			boost::filesystem::path( filename.toStdString() ).parent_path().string() );
 	}
 		
-	std::string extension = boost::filesystem::path( filename.toStdString() ).extension(); 
+	std::string extension = boost::filesystem::extension( boost::filesystem::path( filename.toStdString() ) ); 
 	std::string exportername;
 	
 	if( extension == ".nrrd" ) exportername = "NRRD Exporter";

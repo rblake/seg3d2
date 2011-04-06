@@ -73,7 +73,7 @@ bool ActionImportSeries::validate( Core::ActionContextHandle& context )
 		// Update the filename to include the full path, so the filename has an absolute path
 		try
 		{
-			full_filename = boost::filesystem::complete( full_filename );
+			full_filename = boost::filesystem::absolute( full_filename );
 		}
 		catch ( ... )
 		{
@@ -141,7 +141,7 @@ bool ActionImportSeries::run( Core::ActionContextHandle& context, Core::ActionRe
 	// Forwarding a message to the UI that we are importing a layer. This generates a progress bar
 	boost::filesystem::path full_filename = this->filenames_[ 0 ];
 	boost::filesystem::path file_path = full_filename.parent_path();
-	std::string message = std::string("Importing file series from '") + file_path.filename() 
+	std::string message = std::string("Importing file series from '") + file_path.filename().string() 
 		+ std::string("'");
 	Core::ActionProgressHandle progress = Core::ActionProgressHandle( 
 		new Core::ActionProgress( message ) );

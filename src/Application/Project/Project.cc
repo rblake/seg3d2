@@ -184,7 +184,7 @@ long long ProjectPrivate::compute_directory_size( const boost::filesystem::path&
 	boost::filesystem::directory_iterator dir_end;
 	for( boost::filesystem::directory_iterator dir_itr( directory ); dir_itr != dir_end; ++dir_itr )
 	{
-		std::string filename = dir_itr->filename();
+		std::string filename = dir_itr->path().filename().string();
 		boost::filesystem::path dir_file = directory / filename;
 			
 		// We only scan directories and regular files, to avoid circular dependencies from
@@ -215,7 +215,7 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		}
 		catch ( ... )
 		{
-			std::string error = std::string( "Could not create '" ) + project_directory.filename()
+			std::string error = std::string( "Could not create '" ) + project_directory.filename().string()
 				+ "'.";
 			CORE_LOG_ERROR( error );
 			return false; 
@@ -250,7 +250,7 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		{
 			std::string error = 
 				std::string( "Could not create sessions directory in project folder '" ) + 
-				project_directory.filename() + "'.";
+				project_directory.filename().string() + "'.";
 			CORE_LOG_ERROR( error );
 			return false; 
 		}		
@@ -266,7 +266,7 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		{
 			std::string error = 
 				std::string( "Could not create data directory in project folder '" ) + 
-				project_directory.filename() + "'.";
+				project_directory.filename().string() + "'.";
 			CORE_LOG_ERROR( error );
 			return false; 
 		}
@@ -282,7 +282,7 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		{
 			std::string error = 
 				std::string( "Could not create database directory in project folder '" ) + 
-				project_directory.filename() + "'.";
+				project_directory.filename().string() + "'.";
 			CORE_LOG_ERROR( error );
 			return false; 
 		}
@@ -298,7 +298,7 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		{
 			std::string error = 
 				std::string( "Could not create inputfiles directory in project folder '" ) + 
-				project_directory.filename() + "'.";
+				project_directory.filename().string() + "'.";
 			CORE_LOG_ERROR( error );
 			return false; 
 		}		
@@ -501,19 +501,19 @@ bool ProjectPrivate::copy_all_files( const boost::filesystem::path& src_path,
 	{
 		// Only copy regular files and directories
 		// Do not touch symbolic links, as they can generate circular paths
-		boost::filesystem::path dir_file( src_path / dir_itr->filename() );
+		boost::filesystem::path dir_file( src_path / dir_itr->path().filename().string() );
 		
 		if ( boost::filesystem::is_regular_file( dir_file ) )
 		{
 			if ( !copy_s3d_file && dir_file.extension() == extension ) continue;
 			try
 			{
-				boost::filesystem::copy_file( dir_file, ( dst_path / dir_itr->filename() ) );
+				boost::filesystem::copy_file( dir_file, ( dst_path / dir_itr->path().filename().string() ) );
 			}
 			catch ( ... )
 			{
 				std::string error = std::string( "Could not copy file '" ) +
-					dir_itr->filename() + "'.";
+					dir_itr->path().filename().string() + "'.";
 				CORE_LOG_ERROR( error );
 				return false;
 			}
@@ -521,7 +521,7 @@ bool ProjectPrivate::copy_all_files( const boost::filesystem::path& src_path,
 		else if ( boost::filesystem::is_directory( dir_file ) )
 		{
 			// Iterative copy of all files
-			if ( ! this->copy_all_files( dir_file, ( dst_path / dir_itr->filename() ), true ) )
+			if ( ! this->copy_all_files( dir_file, ( dst_path / dir_itr->path().filename().string() ), true ) )
 			{
 				return false;
 			}
@@ -557,7 +557,7 @@ void ProjectPrivate::delete_unused_data_files()
 	boost::filesystem::directory_iterator dir_end;
 	for( boost::filesystem::directory_iterator dir_itr( data_path ); dir_itr != dir_end; ++dir_itr )
 	{
-		existing_data_files.push_back( dir_itr->filename() );
+		existing_data_files.push_back( dir_itr->path().filename().string() );
 	}
 	
 	for( size_t j = 0; j < existing_data_files.size(); j++ )
@@ -910,7 +910,7 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 	
 	try
 	{
-		full_filename = boost::filesystem::complete( project_file ); 
+		full_filename = boost::filesystem::absolute( project_file ); 
 
 		// Ensure the given file actually exists
 		if ( ! boost::filesystem::exists( full_filename ) )
@@ -965,10 +965,10 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 	
 	
 	// The name of the project
-	this->project_name_state_->set( full_filename.stem() );
+	this->project_name_state_->set( full_filename.stem().string() );
 
 	// The file in which the project was saved
-	this->project_file_state_->set( full_filename.filename() );
+	this->project_file_state_->set( full_filename.filename().string() );
 
 	// Ensure all directories that we require are present, if not this function
 	// will generate them.
@@ -1042,7 +1042,7 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 	boost::filesystem::path full_path;
 	try
 	{
-		full_path = boost::filesystem::complete( project_path );
+		full_path = boost::filesystem::absolute( project_path );
 	}
 	catch ( ... )
 	{
@@ -1094,7 +1094,7 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 	else 
 	{
 		boost::filesystem::path current_project_path( this->project_path_state_->get() );
-		current_project_path = boost::filesystem::complete( current_project_path );
+		current_project_path = boost::filesystem::absolute( current_project_path );
 		std::string current_project_name = this->project_name_state_->get();
 		std::string current_project_file = this->project_file_state_->get();
 		
@@ -1245,13 +1245,13 @@ bool Project::export_project( const boost::filesystem::path& export_path,
 	{
 		try
 		{
-			boost::filesystem::copy_file( ( data_path / data_dir_itr->filename() ),
-				( export_data_path / data_dir_itr->filename() ) );
+			boost::filesystem::copy_file( ( data_path / data_dir_itr->path().filename().string() ),
+				( export_data_path / data_dir_itr->path().filename().string() ) );
 		}
 		catch ( ... ) 
 		{
 			std::string error = std::string( "Could not copy file '" ) +
-				( data_path / data_dir_itr->filename() ).string() + "'.";
+				( data_path / data_dir_itr->path().filename() ).string() + "'.";
 			CORE_LOG_ERROR( error );
 			return false;
 		}
@@ -1544,7 +1544,7 @@ bool Project::post_load_states( const Core::StateIO& state_io )
 			if ( boost::filesystem::extension( *dir_itr ) == ".nrrd" )
 			{
 				Core::DataBlock::generation_type file_generation = -1;
-				if ( Core::ImportFromString( boost::filesystem::basename( dir_itr->filename() ),
+				if ( Core::ImportFromString( boost::filesystem::basename( dir_itr->path().filename().string() ),
 					file_generation ) )
 				{
 					if ( file_generation > generation ) generation = file_generation;

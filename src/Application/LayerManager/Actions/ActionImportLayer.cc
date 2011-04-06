@@ -61,7 +61,7 @@ bool ActionImportLayer::validate( Core::ActionContextHandle& context )
 	// Update the filename to include the full path, so the filename has an absolute path
 	try
 	{
-		full_filename = boost::filesystem::complete( full_filename );
+		full_filename = boost::filesystem::absolute( full_filename );
 	}
 	catch ( ... )
 	{

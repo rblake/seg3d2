@@ -139,7 +139,7 @@ void SplashScreen::unhide()
 	
 void SplashScreen::open_existing()
 {
-	boost::filesystem::path current_projects_path = boost::filesystem::complete( 
+	boost::filesystem::path current_projects_path = boost::filesystem::absolute( 
 		boost::filesystem::path( ProjectManager::Instance()-> get_current_project_folder() ) );
 
 
@@ -190,7 +190,7 @@ void SplashScreen::open_existing()
 			for( boost::filesystem::directory_iterator dir_itr( full_path ); 
 				dir_itr != dir_end; ++dir_itr )
 			{
-				std::string filename = dir_itr->filename();
+				std::string filename = dir_itr->path().filename().string();
 				boost::filesystem::path dir_file = full_path / filename;
 				for ( size_t j = 0; j < project_file_extensions.size(); j++ )
 				{
@@ -217,7 +217,7 @@ void SplashScreen::open_existing()
 	}
 	
 	std::string path = full_path.parent_path().string();
-	std::string file_name = full_path.filename();
+	std::string file_name = full_path.filename().string();
 
 	if( boost::filesystem::exists( full_path ) )
 	{

@@ -104,7 +104,7 @@ bool ProjectManagerPrivate::create_project_directory( const std::string& project
 
 	try 
 	{
-		project_loc = boost::filesystem::complete( project_loc );
+		project_loc = boost::filesystem::absolute( project_loc );
 	}
 	catch ( ... ) 
 	{
@@ -141,7 +141,7 @@ bool ProjectManagerPrivate::create_project_directory( const std::string& project
 	}
 	catch ( ... ) // any errors that we might get thrown
 	{
-		std::string error = std::string( "Could not create '" ) + project_path.filename()
+		std::string error = std::string( "Could not create '" ) + project_path.filename().string()
 			+ "'.";
 		CORE_LOG_ERROR( error );
 		return false;
@@ -382,7 +382,7 @@ boost::filesystem::path ProjectManager::get_current_project_folder()
 	try
 	{
 		// Complete the path to have an absolute path
-		current_project_folder = boost::filesystem::complete( current_project_folder );
+		current_project_folder = boost::filesystem::absolute( current_project_folder );
 	}
 	catch ( ... )
 	{
@@ -485,7 +485,7 @@ bool ProjectManager::open_project( const std::string& project_file )
 	
 	try 
 	{
-		full_filename = boost::filesystem::complete( full_filename );
+		full_filename = boost::filesystem::absolute( full_filename );
 	}
 	catch( ... ) 
 	{

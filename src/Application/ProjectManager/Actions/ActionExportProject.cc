@@ -72,7 +72,7 @@ bool ActionExportProject::validate( Core::ActionContextHandle& context )
 	
 	try
 	{
-		export_path = boost::filesystem::complete( export_path );
+		export_path = boost::filesystem::absolute( export_path );
 	}
 	catch( ... )
 	{

@@ -385,7 +385,7 @@ QFrame#line{
      </property>
      <property name="maximumSize">
       <size>
-       <width>384</width>
+       <width>470</width>
        <height>20</height>
       </size>
      </property>
@@ -533,7 +533,7 @@ QFrame#line{
           <widget class="QLabel" name="x_">
            <property name="minimumSize">
             <size>
-             <width>58</width>
+             <width>80</width>
              <height>0</height>
             </size>
            </property>
@@ -616,7 +616,7 @@ QFrame#line{
           <widget class="QLabel" name="y_">
            <property name="minimumSize">
             <size>
-             <width>58</width>
+             <width>80</width>
              <height>0</height>
             </size>
            </property>
@@ -699,7 +699,7 @@ QFrame#line{
           <widget class="QLabel" name="z_">
            <property name="minimumSize">
             <size>
-             <width>58</width>
+             <width>80</width>
              <height>0</height>
             </size>
            </property>

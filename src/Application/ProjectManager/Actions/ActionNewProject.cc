@@ -61,7 +61,7 @@ bool ActionNewProject::validate( Core::ActionContextHandle& context )
 		// Complete the project location
 		try 
 		{
-			project_location = boost::filesystem::complete( project_location );
+			project_location = boost::filesystem::absolute( project_location );
 		}
 		catch ( ... )
 		{

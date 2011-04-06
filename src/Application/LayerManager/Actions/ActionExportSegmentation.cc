@@ -109,7 +109,7 @@ bool ActionExportSegmentation::run( Core::ActionContextHandle& context, Core::Ac
 	progress->begin_progress_reporting();
 		
 	boost::filesystem::path filename_and_path = boost::filesystem::path( this->file_path_ );
-	std::string filename_without_extension = filename_and_path.filename();
+	std::string filename_without_extension = filename_and_path.filename().string();
 	filename_without_extension = filename_without_extension.substr( 0, 
 		filename_without_extension.find_last_of( "." ) );
 

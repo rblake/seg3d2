@@ -137,11 +137,14 @@ void TransformToolPrivate::handle_target_layers_changed()
 	for ( size_t i = 0; i < target_layers.size(); ++i )
 	{
 		std::string layer_id = target_layers[ i ];
-		Core::OptionLabelPairVector::const_iterator it = std::find_if( option_list.begin(),
-			option_list.end(), boost::lambda::bind( &Core::OptionLabelPair::first, 
-			boost::lambda::_1 ) == layer_id );
-		assert( it != option_list.end() );
-		preview_layers_list.push_back( *it );
+		for ( size_t j = 0; j < option_list.size(); j++ )
+		{
+			if ( option_list[ j ].first == layer_id )
+			{
+				preview_layers_list.push_back( option_list[ j ] );
+				break;
+			}
+		}
 	}
 	
 	this->tool_->preview_layer_state_->set_option_list( 	preview_layers_list );

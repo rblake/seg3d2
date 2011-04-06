@@ -51,7 +51,7 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 	// Complete the file name
 	try 
 	{
-		full_filename = boost::filesystem::complete( full_filename );
+		full_filename = boost::filesystem::absolute( full_filename );
 	}
 	catch( ... )
 	{
@@ -82,6 +82,7 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 		} 
 	}
 	
+
 	
 	if ( is_s3d_file == false )
 	{
@@ -90,10 +91,11 @@ bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 		if ( boost::filesystem::is_directory( full_filename ) )
 		{
 			boost::filesystem::directory_iterator dir_end;
+			
 			for( boost::filesystem::directory_iterator dir_itr( full_filename ); 
 				dir_itr != dir_end; ++dir_itr )
 			{
-				std::string filename = dir_itr->filename();
+				std::string filename = dir_itr->path().filename().string();
 				boost::filesystem::path dir_file = full_filename / filename;
 				for ( size_t j = 0; j < file_extensions.size(); j++ ) 
 				{
@@ -127,7 +129,7 @@ bool ActionLoadProject::run( Core::ActionContextHandle& context,
 	boost::filesystem::path full_filename( this->project_file_ );
 	
 	std::string message = std::string("Please wait, while loading project '") + 
-		full_filename.stem() + std::string("' ...");
+		full_filename.stem().string() + std::string("' ...");
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );

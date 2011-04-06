@@ -281,8 +281,9 @@ void LayerImporterWidget::list_import_options()
 	
 		for( size_t i = 0; i < filenames.size(); i++, row++ )
 		{
+			boost::filesystem::path path( filenames[ i ] );
 			QTableWidgetItem *new_item = new QTableWidgetItem( QString::fromStdString( 
-					boost::filesystem::path( filenames[ i ] ).filename() ) );
+					path.filename().string() ) );
 			this->private_->ui_.file_name_table_->insertRow( row );
 			this->private_->ui_.file_name_table_->setItem( row, 0, new_item );
 		}

@@ -116,7 +116,7 @@ bool export_mask_series( const std::string& file_path, const std::string& file_n
 	}
 	}
 
-	std::string extension = boost::filesystem::path( file_name ).extension();
+	std::string extension = boost::filesystem::extension( boost::filesystem::path( file_name ) );
 	boost::to_lower( extension );
 
 	if ( extension == ".dcm" || extension == ".dicom" || extension == ".ima" )
@@ -235,7 +235,7 @@ void set_mask_series_names( itk::NumericSeriesFileNames::Pointer& name_series_ge
 {	
 	boost::filesystem::path path = boost::filesystem::path( file_path );
 
-	std::string extension = boost::filesystem::path( file_name ).extension();
+	std::string extension = boost::filesystem::extension( boost::filesystem::path( file_name ) );
 
 	std::string filename_without_extension = file_name;
 	filename_without_extension = filename_without_extension.substr( 0, 

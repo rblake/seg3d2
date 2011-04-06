@@ -580,7 +580,7 @@ void Menu::open_project()
 	}
 
 	// The user did not press cancel, so proceed with opening the next file
-	boost::filesystem::path current_projects_path = boost::filesystem::complete( 
+	boost::filesystem::path current_projects_path = boost::filesystem::absolute( 
 		boost::filesystem::path( ProjectManager::Instance()-> get_current_project_folder() ) );
 		
 		
@@ -631,7 +631,7 @@ void Menu::open_project()
 			for( boost::filesystem::directory_iterator dir_itr( full_path ); 
 				dir_itr != dir_end; ++dir_itr )
 			{
-				std::string filename = dir_itr->filename();
+				std::string filename = dir_itr->path().filename().string();
 				boost::filesystem::path dir_file = full_path / filename;
 				for ( size_t j = 0; j < project_file_extensions.size(); j++ )
 				{
@@ -695,7 +695,7 @@ void Menu::open_project_folder()
 	
 	try
 	{
-		project_path =boost::filesystem::complete( project_path );
+		project_path =boost::filesystem::absolute( project_path );
 	}
 	catch ( ... )
 	{

@@ -154,7 +154,7 @@ bool LayerIO::create_single_file_importer( const std::string& filename,
 
 	// Determine the file extension	 
 	// NOTE: extension includes the dot
-	std::string extension = full_filename.extension();
+	std::string extension = boost::filesystem::extension( full_filename );
 	boost::to_lower( extension );
 
 	// Lock the factory
@@ -319,7 +319,7 @@ bool LayerIO::create_file_series_importer( const std::vector< std::string >& fil
 	// Determine the file extension	 
 	// NOTE: extension includes the dot
 	boost::filesystem::path full_filename( filenames[ 0 ] );
-	std::string extension = full_filename.extension();
+	std::string extension = boost::filesystem::extension( full_filename );
 	boost::to_lower( extension );
 
 	// Lock the factory
@@ -479,7 +479,7 @@ bool LayerIO::FindFileSeries( std::vector<std::string >& filenames )
 		boost::filesystem::path full_filename( filenames[ 0 ] );
 		try
 		{
-			full_filename = boost::filesystem::complete( full_filename );
+			full_filename = boost::filesystem::absolute( full_filename );
 		}
 		catch( ... )
 		{
@@ -520,7 +520,7 @@ bool LayerIO::FindFileSeries( std::vector<std::string >& filenames )
 				dir_itr != dir_end; ++dir_itr )
 			{
 				dir_full_filenames.push_back( *dir_itr );
-				dir_files.push_back( boost::filesystem::basename( dir_itr->filename() ) );
+				dir_files.push_back( boost::filesystem::basename( dir_itr->path().filename().string() ) );
 			}
 		}
 

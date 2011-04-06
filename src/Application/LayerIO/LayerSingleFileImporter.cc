@@ -61,7 +61,7 @@ std::string LayerSingleFileImporter::get_file_tag() const
 {
 	if ( this->private_->filename_.size() == 0 ) return "";
 	boost::filesystem::path full_filename( this->private_->filename_ );
-	return full_filename.stem();
+	return full_filename.stem().string();
 }
 
 void LayerSingleFileImporter::set_filename( const std::string& filename )
@@ -69,7 +69,7 @@ void LayerSingleFileImporter::set_filename( const std::string& filename )
 	try
 	{
 		boost::filesystem::path full_filename( filename );
-		full_filename = boost::filesystem::complete( full_filename );
+		full_filename = boost::filesystem::absolute( full_filename );
 		this->private_->filename_ = full_filename.string();
 	}
 	catch( ... )
