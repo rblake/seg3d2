@@ -50,6 +50,11 @@ QPushButton:pressed{
 	border-radius: 4px;
 	border: 1px solid rgb(90, 90, 90);
 	margin:4px;
+}
+
+QPushButton:reset_button_{
+	margin-left: 10px;
+	margin-right: 10px;
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -586,7 +591,7 @@ QPushButton:pressed{
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>24</height>
+       <height>32</height>
       </size>
      </property>
      <property name="maximumSize">
@@ -698,6 +703,12 @@ QPushButton:pressed{
       </item>
       <item>
        <widget class="QWidget" name="preview_chooser_widget_" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -710,6 +721,12 @@ QPushButton:pressed{
          </property>
          <item>
           <widget class="QLabel" name="label_7">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="text">
             <string>Preview layer:</string>
            </property>
@@ -718,7 +735,7 @@ QPushButton:pressed{
          <item>
           <widget class="QComboBox" name="preview_layer_combobox_">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+            <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>

@@ -88,6 +88,11 @@ bool ThresholdToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.target_layer_, tool->target_layer_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.upper_threshold_, tool->upper_threshold_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.lower_threshold_, tool->lower_threshold_state_ );
+	
+	// Connect the thresholds so that they keep in sync
+	this->private_->ui_.lower_threshold_->connect_min( this->private_->ui_.upper_threshold_ );
+	this->private_->ui_.upper_threshold_->connect_max( this->private_->ui_.lower_threshold_ );
+	
 	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.show_preview_checkbox_, 
 		tool->show_preview_state_ );
@@ -128,8 +133,12 @@ void ThresholdToolInterface::refresh_histogram( QString layer_name )
 	if( layer_name == "" || 
 		layer_name == Tool::NONE_OPTION_C.c_str() )
 	{
+		this->private_->ui_.histogram_->set_bars_enabled( false );
 		return;
 	}
+
+	this->private_->ui_.histogram_->set_bars_enabled( true );
+
 
 	DataLayerHandle data_layer = boost::dynamic_pointer_cast< DataLayer >(
 		LayerManager::Instance()->get_layer_by_name( layer_name.toStdString() ) );

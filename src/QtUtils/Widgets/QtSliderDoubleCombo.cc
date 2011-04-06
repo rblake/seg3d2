@@ -116,6 +116,10 @@ void QtSliderDoubleCombo::slider_signal( int percentage )
 	}
 	double new_value = temp_max * ( percentage * 0.01 );
 
+	if( percentage == 0 )
+	{
+		new_value = this->private_->min_;
+	}
 	this->value_ = new_value;
 
     this->private_->ui_.spinBox->setValue( this->value_ );
@@ -189,5 +193,35 @@ void QtSliderDoubleCombo::block_signals( bool block )
     this->private_->ui_.horizontalSlider->blockSignals( block );
     this->private_->ui_.spinBox->blockSignals( block ); 
 }
+
+void QtSliderDoubleCombo::connect_min( QtSliderDoubleCombo* min )
+{
+	connect( min, SIGNAL( valueAdjusted( double ) ), this, SLOT( handle_min_signal( double ) ) );
+}
+
+void QtSliderDoubleCombo::connect_max( QtSliderDoubleCombo* max )
+{
+	connect( max, SIGNAL( valueAdjusted( double ) ), this, SLOT( handle_max_signal( double ) ) );
+}
+
+void QtSliderDoubleCombo::handle_min_signal( double value )
+{
+	if( value < this->value_ )
+	{
+		this->setCurrentValue( value );
+	}
+}
+
+void QtSliderDoubleCombo::handle_max_signal( double value )
+{
+	if( value > this->value_ )
+	{
+		this->setCurrentValue( value );
+	}
+}
+
+
+
+
 
 }  // end namespace QtUtils

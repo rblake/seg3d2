@@ -34,7 +34,7 @@
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/thread/mutex.hpp> 
-#include <boost/thread/condition_variable.hpp> 
+#include <boost/thread/condition_variable.hpp>
  
 // Core includes
 #include <Core/Utils/Log.h>
@@ -440,6 +440,16 @@ bool LayerFilter::create_and_lock_data_layer_from_layer( LayerHandle src_layer,
 		return false;
 	}
 	
+	if( src_layer->get_type() == Core::VolumeType::DATA_E )
+	{
+		DataLayerHandle temp_source = boost::dynamic_pointer_cast< DataLayer >( src_layer );
+		DataLayerHandle temp_destination = boost::dynamic_pointer_cast< DataLayer >( dst_layer );
+		
+		temp_destination->contrast_state_->set( temp_source->contrast_state_->get() );
+		temp_destination->brightness_state_->set( temp_source->brightness_state_->get() );
+	}
+
+
 	// Record that the layer is locked
 	this->private_->created_layers_.push_back( dst_layer );
 

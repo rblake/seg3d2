@@ -102,6 +102,10 @@ bool PaintToolInterface::build_widget( QFrame* frame )
 		tool->upper_threshold_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.lower_threshold_, 
 		tool->lower_threshold_state_ );
+
+	this->private_->ui_.lower_threshold_->connect_min( this->private_->ui_.upper_threshold_ );
+	this->private_->ui_.upper_threshold_->connect_max( this->private_->ui_.lower_threshold_ );
+
 	QtUtils::QtBridge::Connect( this->private_->ui_.eraseCheckBox, 
 		tool->erase_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.show_boundary_,
