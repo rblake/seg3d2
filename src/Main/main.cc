@@ -37,6 +37,7 @@
 
 // Core includes
 #include <Core/Utils/Log.h>
+#include <Core/Utils/LogStreamer.h>
 #include <Core/Utils/LogHistory.h>
 #include <Core/Application/Application.h>
 #include <Core/Interface/Interface.h>
@@ -94,6 +95,11 @@ int main( int argc, char **argv )
 
 	// -- Send message to revolving log file --	
 	Core::RolloverLogFile event_log( Core::LogMessageType::ALL_E );
+
+#ifndef NDEBUG
+	// -- Stream errors to console window
+	new Core::LogStreamer( Core::LogMessageType::ALL_E, &std::cerr );
+#endif
 
 	// -- Log application information --
 	Core::Application::Instance()->log_start();
