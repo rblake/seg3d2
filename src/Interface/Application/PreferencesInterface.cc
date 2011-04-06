@@ -289,7 +289,11 @@ void PreferencesInterface::setup_sidebar_prefs()
 	this->private_->ui_.project_manager_checkbox_->setChecked( 
 		PreferencesManager::Instance()->show_projectmanager_bar_state_->get() );
 	this->private_->ui_.volume_view_checkbox_->setChecked( 
+		PreferencesManager::Instance()->show_rendering_bar_state_->get() );
+	this->private_->ui_.provenance_checkbox_->setChecked( 
 		PreferencesManager::Instance()->show_provenance_bar_state_->get() );
+	
+	
 	
 // 	this->private_->ui_.history_checkbox_->setChecked( 
 // 		PreferencesManager::Instance()->show_history_bar_state_->get() );
@@ -302,7 +306,10 @@ void PreferencesInterface::setup_sidebar_prefs()
 	QtUtils::QtBridge::Connect( this->private_->ui_.project_manager_checkbox_, 
 		PreferencesManager::Instance()->show_projectmanager_bar_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.volume_view_checkbox_, 
+		PreferencesManager::Instance()->show_rendering_bar_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.provenance_checkbox_, 
 		PreferencesManager::Instance()->show_provenance_bar_state_ );
+	
 // 	QtUtils::QtBridge::Connect( this->private_->ui_.history_checkbox_, 
 // 		PreferencesManager::Instance()->show_history_bar_state_ );
 	

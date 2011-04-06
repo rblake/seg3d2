@@ -213,8 +213,8 @@ void PreferencesManager::initialize_states()
 	this->add_state( "show_tools_bar", this->show_tools_bar_state_, true );
 	this->add_state( "show_layermanager_bar", this->show_layermanager_bar_state_, true );
 	this->add_state( "show_projectmanager_bar", this->show_projectmanager_bar_state_, true );
-	this->add_state( "show_projectmanager_bar", this->show_provenance_bar_state_, false );
-	this->add_state( "show_history_bar", this->show_history_bar_state_, false );
+	this->add_state( "show_provenance_bar", this->show_provenance_bar_state_, false );
+	this->add_state( "show_rendering_bar", this->show_rendering_bar_state_, false );
 
 	this->add_connection( this->axis_labels_option_state_->value_changed_signal_.connect(
 		boost::bind( &PreferencesManagerPrivate::handle_axis_labels_option_changed, 

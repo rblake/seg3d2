@@ -61,9 +61,10 @@ void InterfaceManager::initialize_states()
 		PreferencesManager::Instance()->show_tools_bar_state_->get() );
 	this->add_state( "layermanager_dockwidget_visibility", this->layermanager_dockwidget_visibility_state_, 
 		PreferencesManager::Instance()->show_layermanager_bar_state_->get() );
-	this->add_state( "rendering_dockwidget_visible", this->rendering_dockwidget_visibility_state_, true );
-	this->add_state( "history_dockwidget_visibility", this->history_dockwidget_visibility_state_, 
-		PreferencesManager::Instance()->show_history_bar_state_->get() );
+	this->add_state( "rendering_dockwidget_visible", this->rendering_dockwidget_visibility_state_, 
+		PreferencesManager::Instance()->show_rendering_bar_state_->get() );
+	//this->add_state( "history_dockwidget_visibility", this->history_dockwidget_visibility_state_, 
+//		PreferencesManager::Instance()->show_history_bar_state_->get() );
 	this->add_state( "provenance_dockwidget_visibility", this->provenance_dockwidget_visibility_state_, 
 		PreferencesManager::Instance()->show_provenance_bar_state_->get() );
 	

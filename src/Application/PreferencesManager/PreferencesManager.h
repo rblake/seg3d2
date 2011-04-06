@@ -114,7 +114,7 @@ public:
 	Core::StateBoolHandle show_layermanager_bar_state_;
 	Core::StateBoolHandle show_projectmanager_bar_state_;
 	Core::StateBoolHandle show_provenance_bar_state_;
-	Core::StateBoolHandle show_history_bar_state_;
+	Core::StateBoolHandle show_rendering_bar_state_;
 	
 public:
 	// GET_DEFAULT_COLORS:
