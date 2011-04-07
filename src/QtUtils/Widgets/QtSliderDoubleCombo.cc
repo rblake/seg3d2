@@ -120,6 +120,10 @@ void QtSliderDoubleCombo::slider_signal( int percentage )
 	{
 		new_value = this->private_->min_;
 	}
+	else if( percentage == 100 )
+	{
+		new_value = this->private_->max_;
+	}
 	this->value_ = new_value;
 
     this->private_->ui_.spinBox->setValue( this->value_ );

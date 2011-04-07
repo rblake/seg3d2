@@ -152,6 +152,8 @@ public:
 	// this is a recursive function that gets the provenance trail out of the database for a particular provenance id 
 	void provenance_recursive_helper( 
 		std::vector< std::pair< long long, std::string > >& provenance_trail, ProvenanceID prov_id );
+	
+	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 
 };
 
@@ -407,7 +409,7 @@ void ProjectPrivate::cleanup_session_database()
 
 	// We need to cleanup the database once a while, to remove none existing sessions
 	std::vector< SessionInfo > sessions;
-	if( this->project_->get_all_sessions( sessions ) )
+	if( this->get_all_sessions( sessions ) )
 	{
 		for( size_t i = 0; i < sessions.size(); ++i )
 		{
@@ -808,6 +810,29 @@ void ProjectPrivate::provenance_recursive_helper(
 	}
 }
 
+bool ProjectPrivate::get_all_sessions( std::vector< SessionInfo >& sessions )
+{
+	std::string error;
+
+	ResultSet result_set;
+	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
+	if( !this->run_sql_statement( select_statement, result_set, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	for( size_t i = 0; i < result_set.size(); ++i )
+	{
+		sessions.push_back( SessionInfo( 
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "session_name" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "username" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "timestamp" ] ) ) );
+	}
+
+	return true;
+}
+
 
 //////////////////////////////////////////////////////////
 
@@ -1070,7 +1095,8 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 	// (4) If the project is directed towards a new directory all files are copied and the project
 	// is saved in the new location. Afterwards the project refers to that new project.
 	
-	if ( this->project_files_generated_state_->get() == false )
+	if ( this->project_files_generated_state_->get() == false ||
+		this->project_files_accessible_state_->get() == false )
 	{		
 		// Set the new project name.
 		this->project_name_state_->set( project_name );
@@ -1262,7 +1288,7 @@ bool Project::export_project( const boost::filesystem::path& export_path,
 		boost::filesystem::copy_file( ( project_path / "sessions" / ( session_name + ".xml" ) ),
 			( export_path / "sessions" / ( session_name + ".xml" ) ) );
 	}
-	catch ( std::exception& e ) // any errors that we might get thrown
+	catch ( ... ) // any errors that we might get thrown
 	{
 		std::string error = std::string( "Could not copy file '" ) +
 			( project_path / "sessions" / ( session_name + ".xml" ) ).string() + "'.";
@@ -1283,7 +1309,7 @@ bool Project::check_project_files()
 	boost::filesystem::path project_path( this->project_path_state_->get() );
 	if ( !boost::filesystem::exists( project_path ) )
 	{
-		this->project_files_generated_state_->set( false );
+		//this->project_files_generated_state_->set( false );
 		this->project_files_accessible_state_->set( false );
 		return false;
 	}
@@ -1291,11 +1317,20 @@ bool Project::check_project_files()
 	// Check if s3d file still exists
 	if ( !boost::filesystem::exists( project_path / ( this->project_file_state_->get()) ) )
 	{
-		this->project_files_generated_state_->set( false );
+		//this->project_files_generated_state_->set( false );
 		this->project_files_accessible_state_->set( false );
 		return false;		
 	}
-	
+
+	// Check if s3d file still exists
+	if ( !boost::filesystem::exists( project_path / "database" / "project_database.sqlite" ) )
+	{
+		//this->project_files_generated_state_->set( false );
+		this->project_files_accessible_state_->set( false );
+		return false;		
+	}
+
+	this->project_files_accessible_state_->set( true );
 	return true;
 }
 
@@ -1665,25 +1700,9 @@ bool Project::add_to_provenance_database( ProvenanceStepHandle& step )
 
 bool Project::get_all_sessions( std::vector< SessionInfo >& sessions )
 {
-	std::string error;
-
-	ResultSet result_set;
-	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->private_->run_sql_statement( select_statement, result_set, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
-
-	for( size_t i = 0; i < result_set.size(); ++i )
-	{
-		sessions.push_back( SessionInfo( 
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "session_name" ] ),
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "username" ] ),
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "timestamp" ] ) ) );
-	}
-  
-	return true;
+	// lets clean up any sessions that dont exist first
+	this->private_->cleanup_session_database();
+	return this->private_->get_all_sessions( sessions );
 }
 
 bool Project::get_session( SessionInfo& session, const std::string& session_name )

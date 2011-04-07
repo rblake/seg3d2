@@ -743,11 +743,29 @@ void Menu::set_recent_file_list()
 				
 			qaction->setToolTip( tr( "Load this recent project" ) );
 			
-			boost::filesystem::path path = boost::filesystem::path( recent_projects[ i ].path_ ) /
-				boost::filesystem::path( recent_projects[ i ].name_ );
-			
-			QtUtils::QtBridge::Connect( qaction, boost::bind( &Menu::ConfirmRecentFileLoad,
-				qpointer_type( this ), path.string() ) );
+// 			boost::filesystem::path path = boost::filesystem::path( recent_projects[ i ].path_ ) /
+// 				boost::filesystem::path( recent_projects[ i ].name_ );
+			std::vector<std::string> file_extensions = Project::GetProjectFileExtensions();	
+
+			boost::filesystem::path project_file;
+			bool found_file = false;
+			for ( size_t j = 0;  j < file_extensions.size(); j++ )
+			{
+				project_file = boost::filesystem::path( recent_projects[ i ].path_ ) /
+					( recent_projects[ i ].name_ + file_extensions[ j ]);
+				if ( boost::filesystem::exists( project_file ) )
+				{
+					found_file = true;
+					break;
+				}
+			}
+
+			if ( found_file )
+			{
+				QtUtils::QtBridge::Connect( qaction, boost::bind( &Menu::ConfirmRecentFileLoad,
+					qpointer_type( this ), project_file.string() ) );
+			}
+
 
 		}
 	}

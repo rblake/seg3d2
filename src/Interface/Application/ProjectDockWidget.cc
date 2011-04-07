@@ -54,6 +54,7 @@
 // Interface includes
 #include <Interface/Application/ProjectDockWidget.h>
 #include <Interface/Application/ProjectExportWizard.h>
+#include <Interface/Application/SaveProjectAsWizard.h>
 #include "ui_ProjectDockWidget.h"
 
 namespace Seg3D
@@ -216,6 +217,17 @@ void ProjectDockWidget::update_widget()
 	
 void ProjectDockWidget::save_session()
 {
+	ProjectHandle current_project = ProjectManager::Instance()->get_current_project();
+
+	// Need to lock state engine as we need query state properties of the current project.
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	if ( current_project->project_files_generated_state_->get() == false ||
+		current_project->project_files_accessible_state_->get() == false )
+	{
+		SaveProjectAsWizard* save_project_as_wizard_ = new SaveProjectAsWizard( qobject_cast< QWidget* >( this->parent() ) );
+		save_project_as_wizard_->exec();
+	}
+
 	ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );
 }
 
@@ -339,7 +351,10 @@ void ProjectDockWidget::populate_session_list()
 	{
 		this->private_->ui_.sessions_list_->removeRow( j );
 	}
-	
+	this->private_->ui_.sessions_list_->verticalHeader()->setUpdatesEnabled( true );
+	this->private_->ui_.sessions_list_->repaint();
+	this->private_->ui_.sessions_list_->verticalHeader()->setUpdatesEnabled( false );
+
 	std::vector< SessionInfo > sessions_info;
 	if( !this->private_->current_project_->get_all_sessions( sessions_info ) )
 	{

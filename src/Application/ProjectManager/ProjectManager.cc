@@ -81,6 +81,10 @@ public:
 	bool delete_recent_projects_entry( const std::string& project_name, 
 		const std::string& project_path, const std::string& project_date );
 
+	// GET_RECENT_PROJECTS_FROM_DATABASE:
+	// gets projects from database
+	bool get_recent_projects_from_database( std::vector< RecentProject >& recent_projects );
+
 public:
 	// public handle to the current project
 	ProjectHandle current_project_;
@@ -241,6 +245,7 @@ bool ProjectManagerPrivate::delete_recent_projects_entry( const std::string& pro
 
 	std::string error;
 	this->run_sql_statement( delete_statement, error );
+	this->project_manager_->recent_projects_changed_signal_();
 	
 	return true;
 }
@@ -250,7 +255,7 @@ void ProjectManagerPrivate::cleanup_recent_projects_database()
 {
 	// Get all the entries in the current database
 	std::vector< RecentProject > recent_projects;
-	this->project_manager_->get_recent_projects_from_database( recent_projects ); 
+	this->get_recent_projects_from_database( recent_projects ); 
 
 	// Check the entries
 
@@ -310,6 +315,33 @@ void ProjectManagerPrivate::cleanup_recent_projects_database()
 		// Just log the error if things do not work
 		CORE_LOG_ERROR( error );
 	}
+}
+
+bool ProjectManagerPrivate::get_recent_projects_from_database( 
+	std::vector< RecentProject >& recent_projects )
+{
+	ResultSet result_set;
+	std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
+
+	// Get the 20 latest entries into this database
+	std::string error;
+	if( !this->run_sql_statement( select_statement, result_set, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	// Get the information from the database
+	for( size_t i = 0; i < result_set.size(); ++i )
+	{
+		recent_projects.push_back( RecentProject( 
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "name" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "path" ] ),
+			boost::any_cast< std::string >( ( result_set[ i ] )[ "date" ] ), 
+			static_cast< int >( boost::any_cast< long long >( ( result_set[ i ] )[ "id" ] ) ) ) );
+	}
+
+	return true;
 }
 
 
@@ -668,28 +700,8 @@ void ProjectManager::checkpoint_projectmanager()
 bool ProjectManager::get_recent_projects_from_database( 
 	std::vector< RecentProject >& recent_projects )
 {
-	ResultSet result_set;
-	std::string select_statement = "SELECT * FROM recentprojects ORDER BY id DESC LIMIT 20";
-	
-	// Get the 20 latest entries into this database
-	std::string error;
-	if( !this->private_->run_sql_statement( select_statement, result_set, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
-	
-	// Get the information from the database
-	for( size_t i = 0; i < result_set.size(); ++i )
-	{
-		recent_projects.push_back( RecentProject( 
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "name" ] ),
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "path" ] ),
-			boost::any_cast< std::string >( ( result_set[ i ] )[ "date" ] ), 
-			static_cast< int >( boost::any_cast< long long >( ( result_set[ i ] )[ "id" ] ) ) ) );
-	}
-	
-	return true;
+	this->private_->cleanup_recent_projects_database();
+	return this->private_->get_recent_projects_from_database( recent_projects );
 }
 
 //////////////////////////////////////////////

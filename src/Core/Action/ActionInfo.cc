@@ -43,6 +43,7 @@ namespace Core
 class ActionInfoPrivate 
 {
 public:
+	ActionInfoPrivate();
 	// Definition of the action in XML
 	std::string definition_;
 
@@ -84,11 +85,18 @@ public:
 	bool changes_provenance_data_;
 };
 
+ActionInfoPrivate::ActionInfoPrivate() :
+	valid_( false ),
+	is_undoable_( false ),
+	changes_project_data_( false ),
+	changes_provenance_data_( false )
+{
+}
+
 
 ActionInfo::ActionInfo( const std::string& definition ) :
 	private_( new ActionInfoPrivate )
 {
-	this->private_->valid_ = false;
 	CORE_LOG_MESSAGE( std::string( "Registering action: " ) + definition );
 
 	// NOTE: We need to add an end line, otherwise tinyXML does not accept the xml string
@@ -271,7 +279,7 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 	}
 
 	if ( std::find( this->private_->properties_.begin(), this->private_->properties_.end(), 
-		"changes_proenance_data" ) !=  this->private_->properties_.end() )
+		"changes_provenance_data" ) !=  this->private_->properties_.end() )
 	{
 		this->private_->changes_provenance_data_ = true;
 	}
