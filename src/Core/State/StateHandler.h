@@ -200,12 +200,11 @@ protected:
 	// This function enables/disables signals in the state variables
 	void enable_signals( bool enabled );
 	
+public:
 	// SET_INITIALIZING:
 	// This function denotes whether a state handler is initializing or not. During the initializing
 	// phase signals and thread checking are turned off
 	void set_initializing( bool initializing );
-
-public:
 
 	// TODO:
 	// These should be private and only the StateEngine should have access as a friend of this class

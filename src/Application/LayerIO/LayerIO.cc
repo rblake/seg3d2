@@ -154,8 +154,7 @@ bool LayerIO::create_single_file_importer( const std::string& filename,
 
 	// Determine the file extension	 
 	// NOTE: extension includes the dot
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 
 	// Lock the factory
 	lock_type lock( this->get_mutex() );
@@ -319,8 +318,7 @@ bool LayerIO::create_file_series_importer( const std::vector< std::string >& fil
 	// Determine the file extension	 
 	// NOTE: extension includes the dot
 	boost::filesystem::path full_filename( filenames[ 0 ] );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 
 	// Lock the factory
 	lock_type lock( this->get_mutex() );

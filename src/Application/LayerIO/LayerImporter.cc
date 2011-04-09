@@ -57,8 +57,12 @@ std::string LayerImporter::get_error() const
 	return this->private_->error_;
 }
 
-void LayerImporter::set_dicom_swap_xyspacing_hint( bool /*value*/ )
+void LayerImporter::set_dicom_swap_xyspacing_hint( bool )
 {
 }
 
-} // end namespace seg3D
+void LayerImporter::reset()
+{
+}
+
+} // end namespace Seg3D

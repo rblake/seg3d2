@@ -26,54 +26,25 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_STATE_STATEIO_H
-#define CORE_STATE_STATEIO_H
+#ifndef CORE_UTILS_REGISTER_H
+#define CORE_UTILS_REGISTER_H
 
-// Boost includes
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/utility.hpp>
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
 
-// TinyXML includes
-#include <tinyxml.h>
+// Macro for adding function for registering code
+// Note these functions will be called in the init
+// call of the program.
 
-namespace Core
-{
+#define CORE_REGISTER_FUNCTION(namesp, name)\
+namespace Core\
+{\
+	using namespace namesp;\
+	void register_##name()\
+	{\
+		name();\
+	}\
+}
 
-class StateIO;
-class StateIOPrivate;
-typedef boost::shared_ptr< StateIOPrivate > StateIOPrivateHandle;
-
-class StateIO : public boost::noncopyable
-{
-
-public:
-	StateIO();
-	~StateIO();
-
-public:
-
-	void initialize();
-
-	const TiXmlElement* get_current_element() const;
-	TiXmlElement* get_current_element();
-
-	bool import_from_file( const boost::filesystem::path& path );
-	bool export_to_file( const boost::filesystem::path& path );
-
-	void push_current_element() const;
-	void pop_current_element() const;
-	void set_current_element( const TiXmlElement* element ) const;
-
-	int get_major_version() const;
-	int get_minor_version() const;
-	int get_patch_version() const;
-
-private:
-	StateIOPrivateHandle private_;
-};
-
-
-} // end namespace Core
-
-#endif //CORE_STATE_STATEIO_H
+#endif

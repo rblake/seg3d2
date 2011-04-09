@@ -81,6 +81,10 @@ public:
 	bool delete_recent_projects_entry( const std::string& project_name, 
 		const std::string& project_path, const std::string& project_date );
 
+	// RESET_CURRENT_PROJECT_FOLDER:
+	// Reset the current project folder variable to the one the preference
+	void reset_current_project_folder();
+
 	// GET_RECENT_PROJECTS_FROM_DATABASE:
 	// gets projects from database
 	bool get_recent_projects_from_database( std::vector< RecentProject >& recent_projects );
@@ -154,6 +158,13 @@ bool ProjectManagerPrivate::create_project_directory( const std::string& project
 	// The directory has been made
 	return true;
 }
+
+void ProjectManagerPrivate::reset_current_project_folder()
+{
+	this->project_manager_->current_project_folder_state_->set( 
+		PreferencesManager::Instance()->project_path_state_->get() );
+}
+
 
 
 bool ProjectManagerPrivate::setup_database()
@@ -396,6 +407,9 @@ ProjectManager::ProjectManager() :
 
 	// Start the auto save thread
 	AutoSave::Instance()->start();
+
+	PreferencesManager::Instance()->project_path_state_->state_changed_signal_.connect(
+		boost::bind( &ProjectManagerPrivate::reset_current_project_folder, this->private_ ) );
 
 	this->set_initializing( false );
 }

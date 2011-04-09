@@ -166,8 +166,7 @@ bool export_dicom_series( const std::string& file_path, const std::string& file_
 	}
 	}
 
-	std::string l_extension = extension;
-	boost::to_lower( l_extension );
+	std::string l_extension = boost::to_lower_copy( extension );
 	if ( l_extension == ".dcm" || l_extension == ".dicom" || l_extension == ".ima" )
 	{
 		is_dicom = true;

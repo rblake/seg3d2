@@ -116,8 +116,8 @@ bool export_mask_series( const std::string& file_path, const std::string& file_n
 	}
 	}
 
-	std::string extension = boost::filesystem::extension( boost::filesystem::path( file_name ) );
-	boost::to_lower( extension );
+	std::string extension = 
+		boost::to_lower_copy( boost::filesystem::extension( boost::filesystem::path( file_name ) ) );
 
 	if ( extension == ".dcm" || extension == ".dicom" || extension == ".ima" )
 	{

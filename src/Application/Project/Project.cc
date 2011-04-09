@@ -27,7 +27,8 @@
  */
 
 // STL includes
-#include <time.h>
+#include <vector>
+#include <set>
 
 // Boost includes
 #include <boost/filesystem.hpp>
@@ -151,7 +152,8 @@ public:
 	// PROVENANCE_RECURSIVE_HELPER
 	// this is a recursive function that gets the provenance trail out of the database for a particular provenance id 
 	void provenance_recursive_helper( 
-		std::vector< std::pair< long long, std::string > >& provenance_trail, ProvenanceID prov_id );
+		std::vector< std::pair< ProvenanceID, std::string > >& provenance_trail, 
+		std::set<ProvenanceID>& provenance_ids, ProvenanceID prov_id );
 	
 	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 
@@ -400,6 +402,8 @@ void ProjectPrivate::import_old_session_info_into_database()
 	// Finally we set the session list to an empty vector so we aren't tempted to do this again.
 	// This variable remains empty and unused from this point onward. 
 	this->project_->sessions_state_->clear();
+	
+	this->project_->save_state();
 }
 
 void ProjectPrivate::cleanup_session_database()
@@ -773,10 +777,14 @@ bool ProjectPrivate::delete_session_from_database( const std::string& session_na
 }
 
 void ProjectPrivate::provenance_recursive_helper( 
-	std::vector< std::pair< ProvenanceID, std::string > >& provenance_trail, ProvenanceID prov_id )
+		std::vector< std::pair< ProvenanceID, std::string > >& provenance_trail, 
+		std::set<ProvenanceID>& provenance_ids, ProvenanceID prov_id )
+	
 {
 	if( prov_id == -1 )
+	{
 		return;
+	}
 	else
 	{
 		ResultSet step_result_set;
@@ -790,6 +798,8 @@ void ProjectPrivate::provenance_recursive_helper(
 		}
 
 		std::string action = boost::any_cast< std::string >( ( step_result_set[ 0 ] )[ "action" ] );
+		provenance_trail.push_back( std::make_pair( prov_id, action ) );
+		provenance_ids.insert( prov_id );
 
 		ResultSet source_result_set;
 		select_statement = 
@@ -800,12 +810,16 @@ void ProjectPrivate::provenance_recursive_helper(
 			CORE_LOG_ERROR( error );
 			return;
 		}
+
 		for( size_t i = 0; i < source_result_set.size(); ++i )
 		{
 			ProvenanceID new_prov_id = 
 				boost::any_cast< long long >( ( source_result_set[ i ] )[ "input_provenance_id" ] );
-			this->provenance_recursive_helper( provenance_trail, new_prov_id );
-			provenance_trail.push_back( std::make_pair( prov_id, action ) );
+			
+			if ( provenance_ids.find( new_prov_id ) == provenance_ids.end() )
+			{
+				this->provenance_recursive_helper( provenance_trail, provenance_ids, new_prov_id );
+			}
 		}
 	}
 }
@@ -1050,7 +1064,7 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 	}
 	
 	// We could not load the file, hence send a message to the user
-	std::string error = std::string( "Could not read open session '" ) +
+	std::string error = std::string( "Could not open session '" ) +
 		most_recent_session_name + "'.";
 	CORE_LOG_ERROR( error );
 
@@ -1753,7 +1767,13 @@ boost::posix_time::ptime Project::get_last_saved_session_time_stamp() const
 void Project::request_signal_provenance_record( ProvenanceID prov_id )
 {
 	std::vector< std::pair< ProvenanceID, std::string > > provenance_trail;
-	this->private_->provenance_recursive_helper( provenance_trail, prov_id );
+	std::set< ProvenanceID > provenance_ids;
+	this->private_->provenance_recursive_helper( provenance_trail, provenance_ids, prov_id );
+
+
+	std::sort( provenance_trail.begin(), provenance_trail.end() );
+
+	// TODO: Need to change this to just send a handle
 
 	this->provenance_record_signal_( provenance_trail );
 }

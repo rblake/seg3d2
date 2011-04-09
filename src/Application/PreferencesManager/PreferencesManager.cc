@@ -141,7 +141,7 @@ void PreferencesManager::initialize_states()
 {
 	boost::filesystem::path user_path;
 	Core::Application::Instance()->get_user_directory( user_path );
-	user_path = user_path / "Seg3D-Projects";
+	user_path = user_path / ( Core::Application::GetApplicationName() + "-Projects" );
 	
 	boost::filesystem::path desktop_path;
 	Core::Application::Instance()->get_user_desktop_directory( desktop_path );

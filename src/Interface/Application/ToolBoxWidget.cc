@@ -41,6 +41,9 @@
 // QtUtils includes
 #include <QtUtils/Bridge/QtBridge.h>
 
+// Application includes
+#include <Application/InterfaceManager/InterfaceManager.h>
+
 // Interface includes
 #include <Interface/Application/ToolBoxWidget.h>
 #include <Interface/Application/StyleSheet.h>
@@ -136,6 +139,14 @@ void ToolBoxWidget::add_tool( QWidget * tool, const QString &label,
 	new_page.ui_.help_button_->setIcon( active_help_icon_ );
 	new_page.ui_.help_button_->setIconSize( QSize( 18, 18 ) );
 
+	{
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+		if ( InterfaceManager::Instance()->enable_tool_help_state_->get() == false )
+		{
+			new_page.ui_.help_button_->hide();
+		}
+	}
+	
 	new_page.ui_.close_button_->setIcon( active_close_icon_ );
 	new_page.ui_.close_button_->setIconSize( QSize( 18, 18 ) );
 

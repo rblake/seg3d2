@@ -153,7 +153,16 @@ public:
 	// Get the file data from the file/ file series
 	// NOTE: The information is generated again, so that hints can be processed
 	virtual bool get_file_data( LayerImporterFileDataHandle& data ) = 0;
-
+	
+	
+	// -- Reset the data --
+public:	
+	// RESET
+	// Reset the data and clear out the buffer that were generated for get_file_info and
+	// get_file_data. 
+	// NOTE: this does not clear out the filenames, as copy_files can be called after reset
+	virtual void reset();
+	
 	// -- Copy files --
 public:
 	// COPY_FILES

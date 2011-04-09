@@ -89,6 +89,10 @@ public:
 	Core::StateBoolHandle splash_screen_visibility_state_;
 	Core::StateBoolHandle keyboard_shortcut_visibility_state_;
 	
+	//Options of what to show
+	Core::StateBoolHandle enable_controller_state_;
+	Core::StateBoolHandle enable_tool_help_state_;
+	
 private:
 	// INITIALIZE_STATES:
 	// This function is called by the constructor to initialize the state variables

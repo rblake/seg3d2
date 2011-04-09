@@ -145,8 +145,7 @@ LayerImporterHandle LayerImporterInfo::build() const
 bool LayerImporterInfo::converts_file_type( const std::string& file_type, bool strict ) const
 {
 	if ( this->private_->any_type_ && !strict ) return true;
-	std::string lower_file_type = file_type;
-	boost::to_lower( lower_file_type );
+	std::string lower_file_type = boost::to_lower_copy( file_type );
 	return ( std::find( this->private_->file_types_.begin(), this->private_->file_types_.end(), 
 		lower_file_type ) != this->private_->file_types_.end() );
 }

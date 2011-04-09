@@ -463,13 +463,19 @@ void Menu::create_window_menu( QMenuBar* menubar )
 
 	qmenu->addSeparator();
 
-	// == Controller Window ==
-	qaction = qmenu->addAction( "Controller Window" );
-	qaction->setShortcut( tr( "Ctrl+Shift+C" ) );
-	qaction->setCheckable( true );
-	QtUtils::QtBridge::Connect( qaction, 
-		InterfaceManager::Instance()->controller_visibility_state_ );
-
+	{
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+		if ( InterfaceManager::Instance()->enable_controller_state_->get() )
+		{
+			// == Controller Window ==
+			qaction = qmenu->addAction( "Controller Window" );
+			qaction->setShortcut( tr( "Ctrl+Shift+C" ) );
+			qaction->setCheckable( true );
+			QtUtils::QtBridge::Connect( qaction, 
+				InterfaceManager::Instance()->controller_visibility_state_ );
+		}
+	}
+	
 	// == Preferences Window ==
 	// NOTE: On the Mac Qt will move preferences to the main program menu
 	qaction = qmenu->addAction( "Preferences Window" );
@@ -511,14 +517,7 @@ void Menu::about()
 		QString( "<h3>" ) + 
 		QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ) +
 		QString( "</h3>" ) +
-		QString(
-			"<p align=\"justify\">Seg3D is a free volume segmentation and image processing tool"
-			" that was created by the NIH NCRR Center for Integrative Biomedical (CIBC) located "
-			"at the Scientific Computing and Imaging Instititute (SCI) at the University of Utah"
-			" and was developed in collaboration with Numira Biosciences. "
-		    "Seg3D combines a flexible manual segmentation interface with powerful "
-		    "image processing and segmentation tools from the Insight "
-		    "Toolkit.</p>") );
+		QString::fromStdString( Core::Application::GetAbout() ) );
 }
 
 void Menu::new_project()
@@ -695,15 +694,35 @@ void Menu::open_project_folder()
 	
 	try
 	{
-		project_path =boost::filesystem::absolute( project_path );
+		project_path = boost::filesystem::absolute( project_path );
 	}
 	catch ( ... )
 	{
 	}
 
+
 	if( boost::filesystem::exists( project_path ) )
 	{
 		QString qstring_path = QString::fromStdString( project_path.string() );
+
+#ifdef __APPLE__
+		{
+			QProcess process;
+			process.setReadChannelMode( QProcess::MergedChannels );
+			process.start( "GetFileInfo", QStringList() << "-ab" << qstring_path );
+			
+			if ( process.waitForFinished() )
+			{
+				int result = 0;
+				Core::ImportFromString( QString( process.readAll() ).toStdString(), result );
+				if ( result )
+				{
+					qstring_path = QString::fromStdString( project_path.parent_path().string() );
+				}
+			}
+		}
+#endif
+
 		QProcess process;
 		process.setReadChannelMode( QProcess::MergedChannels );
 		

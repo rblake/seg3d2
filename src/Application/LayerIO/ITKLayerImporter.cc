@@ -223,8 +223,7 @@ bool ITKLayerImporterPrivate::read_header()
 	// Get the extension to see which reader to use
 	// NOTE: We spell them out so we can read the header data returned by the IO class.
 	boost::filesystem::path full_filename( this->importer_->get_filename() );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 
 	// Set file type and scan the file for data type and transform
 	if ( extension == ".tif" || extension == ".tiff" || extension == ".stk" )
@@ -362,8 +361,7 @@ bool ITKLayerImporterPrivate::read_data()
 	
 	// Get the extension of the file
 	boost::filesystem::path full_filename( this->importer_->get_filename() );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 
 	if ( extension == ".tif" || extension == ".tiff" || extension == ".stk" )
 	{
@@ -460,8 +458,7 @@ bool ITKLayerImporter::get_file_data( LayerImporterFileDataHandle& data )
 bool ITKLayerImporter::copy_files( boost::filesystem::path& project_cache_path )
 {
 	boost::filesystem::path full_filename( this->get_filename() );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 
 	if ( extension != ".mhd" )
 	{

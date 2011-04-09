@@ -164,8 +164,7 @@ bool ITKSeriesLayerImporterPrivate::read_header()
 	// Extract the extension from the file name and use this to define
 	// which importer to use.
 	boost::filesystem::path full_filename( this->importer_->get_filename() );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 	
 	if( extension == ".png" )
 	{
@@ -349,8 +348,7 @@ bool ITKSeriesLayerImporterPrivate::read_data()
 	// Extract the extension from the file name and use this to define
 	// which importer to use.
 	boost::filesystem::path full_filename( this->importer_->get_filename() );
-	std::string extension = boost::filesystem::extension( full_filename );
-	boost::to_lower( extension );
+	std::string extension = boost::to_lower_copy( boost::filesystem::extension( full_filename ) );
 	
 	if( extension == ".png" )
 	{

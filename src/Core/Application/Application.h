@@ -260,6 +260,10 @@ public:
 	// GETAPPLICATIONNAMEANDVERSION
 	// Get the name of the application and its version
 	static std::string GetApplicationNameAndVersion();
+
+	// GETABOUT
+	// Get the information that should be shown in the about screen
+	static std::string GetAbout();
 	
 };
 

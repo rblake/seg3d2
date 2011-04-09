@@ -143,11 +143,6 @@ void ProvenanceDockWidget::connect_project()
 		connect( boost::bind( &ProvenanceDockWidget::HandleProvenanceResult, 
 		qpointer_type( this ), _1 ) ) );
 }	
-		
-
-	
-
-
 
 
 } // end namespace Seg3D
