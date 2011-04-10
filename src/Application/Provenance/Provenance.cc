@@ -26,39 +26,68 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_VOLUMERENDERER_VOLUMERENDERER_H
-#define CORE_VOLUMERENDERER_VOLUMERENDERER_H
+// Boost includes
+#include <boost/thread.hpp>
 
-#include <boost/utility.hpp>
+// Core includes
+#include <Core/Application/Application.h>
 
-#include <Core/Geometry/View3D.h>
-#include <Core/Volume/DataVolume.h>
-#include <Core/VolumeRenderer/TransferFunction.h>
+// Application includes
+#include <Application/Provenance/Provenance.h>
 
-namespace Core
+
+
+namespace Seg3D
 {
 
-class VolumeRenderer;
-typedef boost::shared_ptr< VolumeRenderer > VolumeRendererHandle;
-
-class VolumeRendererPrivate;
-typedef boost::shared_ptr< VolumeRendererPrivate > VolumeRendererPrivateHandle;
-
-class VolumeRenderer : public boost::noncopyable
+class ProvenanceCounter 
 {
 public:
-	VolumeRenderer();
-	~VolumeRenderer();
+	ProvenanceCounter() :
+		count_ ( 0 )
+	{
+	}
 
-	void initialize();
-	void render( DataVolumeHandle volume, const View3D& view, double znear, double zfar,
-		double sample_rate, bool enable_lighting, bool enable_fog, TransferFunctionHandle tf, 
-		bool orthographic = false ); 
+	ProvenanceID generate()
+	{
+		lock_type lock( this->mutex_ );
+		count_++;
+		return count_;
+	}
+
+	ProvenanceID get()
+	{
+		lock_type lock( this->mutex_ );
+		return count_;
+	}
+
+	void set( ProvenanceID count )
+	{
+		lock_type lock( this->mutex_ );
+		count_ = count;
+	}
 
 private:
-	VolumeRendererPrivateHandle private_;
+	typedef boost::mutex::scoped_lock lock_type;
+	boost::mutex mutex_;
+	ProvenanceID count_;
 };
 
-} // end namespace Core
+static ProvenanceCounter ProvenanceCounter;
 
-#endif
+ProvenanceID GenerateProvenanceID()
+{
+	return ProvenanceCounter.generate();
+}
+
+ProvenanceID GetProvenanceCount()
+{
+	return ProvenanceCounter.get();	
+}
+
+void SetProvenanceCount( ProvenanceID count )
+{
+	ProvenanceCounter.set( count );
+}
+
+} // end namespace Seg3D

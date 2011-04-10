@@ -26,55 +26,56 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// Boost includes
-#include <boost/filesystem.hpp>
+#include <Core/Utils/Variant.h>
 
-// Application includes
-#include <Application/ProjectManager/ProjectManager.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/UndoBuffer/UndoBuffer.h>
-#include <Application/ToolManager/ToolManager.h>
-#include <Application/ProjectManager/Actions/ActionQuickOpen.h>
-
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, QuickOpen )
-
-namespace Seg3D
+namespace Core
 {
 
-bool ActionQuickOpen::validate( Core::ActionContextHandle& context )
+VariantBase::~VariantBase()
 {
-	return true;
-
 }
 
-bool ActionQuickOpen::run( Core::ActionContextHandle& context, 
-	Core::ActionResultHandle& result )
+Variant::Variant()
 {
+}
 
-	ProjectManager::Instance()->new_project( "", "", false );
-	if ( ProjectManager::Instance()->get_current_project() )
+Variant::~Variant()
+{
+}
+
+std::string Variant::export_to_string() const
+{
+	// Export a value that is still typed or has been convereted to a string
+	// if typed_value exist, we need to convert it
+	if ( this->typed_value_.get() )
 	{
-		ProjectManager::Instance()->get_current_project()->reset_project_changed();
+		return this->typed_value_->export_to_string();
 	}
-	
-	// Clear undo buffer
-	UndoBuffer::Instance()->reset_undo_buffer();
-	
+	else
+	{
+		// in case typed_value does not exist it must be recorded as a string
+		return this->string_value_;
+	}
+}
+
+bool Variant::import_from_string( const std::string& str )
+{
+	// As we do not know the implied type. It can only be recorded as a string
+	this->typed_value_.reset();
+	this->string_value_ = str;
+
 	return true;
 }
 
-Core::ActionHandle ActionQuickOpen::Create()
+std::string ExportToString( const Variant& variant )
 {
-	ActionQuickOpen* action = new ActionQuickOpen;
-	return Core::ActionHandle( action );
+	return variant.export_to_string();
 }
 
-void ActionQuickOpen::Dispatch( Core::ActionContextHandle context )
+
+bool ImportFromString( const std::string& str, Variant& variant )
 {
-	Core::ActionDispatcher::PostAction( Create(), context );
+	return variant.import_from_string( str );
 }
 
-} // end namespace Seg3D
+} // namespace Core

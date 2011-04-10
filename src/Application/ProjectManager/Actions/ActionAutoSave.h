@@ -26,9 +26,14 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONQUICKOPEN_H
-#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONQUICKOPEN_H
+#ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONAUTOSAVE_H
+#define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONAUTOSAVE_H
 
+
+// Boost includes
+#include <boost/date_time.hpp>
+
+// Core includes
 #include <Core/Action/Action.h> 
 #include <Core/Interface/Interface.h>
 
@@ -36,40 +41,39 @@
 namespace Seg3D
 {
 
-class ActionQuickOpen : public Core::Action
+class ActionAutoSave : public Core::Action
 {
 	
-CORE_ACTION( 
-	CORE_ACTION_TYPE( "QuickOpen", "View a supported file." )
+CORE_ACTION(
+	CORE_ACTION_TYPE( "AutoAutoSave", "Create a new auto save session if needed." )
 )
 
 	// -- Constructor/Destructor --
 public:
-	ActionQuickOpen()
+	ActionAutoSave()
 	{
-	}
-
-	virtual ~ActionQuickOpen()
-	{
+		// Get the local time, so we can cancel the auto save if a save occurs between issuing
+		// the action and the actual save.
+		this->time_stamp_ = boost::posix_time::second_clock::local_time();
 	}
 
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-	
+		
 	// -- Dispatch this action from the interface --
 public:
-	
-	// CREATE:
-	// Create an action that loads a session
-	static Core::ActionHandle Create();
-	
 	// DISPATCH:
-	// Dispatch an action loads a session
+	// Dispatch an action that activates a layer
 	static void Dispatch( Core::ActionContextHandle context );
+	
+	// -- time stamp --
+private:
+	boost::posix_time::ptime time_stamp_;
+	
 };
 
 } // end namespace Seg3D
 
-#endif  //ACTIONNEWPROJECT_H
+#endif

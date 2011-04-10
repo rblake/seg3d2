@@ -430,16 +430,16 @@ void matlabfile::importmatlabarray(matlabarray& matrix,int mode)
       case mxINT8: case mxUINT8: case mxINT16: case mxUINT16: 
       case mxINT32: case mxUINT32: case mxSINGLE: case mxDOUBLE:
     
-			{
-            // create the numeric array
+	  {
+		// create the numeric array
         matrix.createdensearray(dims,converttype(matrixtype));
         matrix.setname(name);
                 
-            // read the real and imaginary (optional) parts of the data    
+		// read the real and imaginary (optional) parts of the data    
         if (nexttag()) 
-        { matfiledata preal = matrix.getpreal(); if ((mode == 2)||(numelems < 10)) { readdat(preal); } else { readtag(preal); } }
+        { matfiledata preal = matrix.getpreal(); if ((mode == 2)||(numelems < 100)) { readdat(preal); } else { readtag(preal); } }
         if (nexttag()) 
-        { matfiledata pimag = matrix.getpimag(); if ((mode == 2)||(numelems < 10)) { readdat(pimag); } else { readtag(pimag); } }
+        { matfiledata pimag = matrix.getpimag(); if ((mode == 2)||(numelems < 100)) { readdat(pimag); } else { readtag(pimag); } }
       }
       break;
 

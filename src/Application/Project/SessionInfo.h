@@ -26,62 +26,38 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_SESSION_SESSION_H
-#define APPLICATION_SESSION_SESSION_H
+#ifndef APPLICATION_PROJECT_SESSIONINFO_H
+#define APPLICATION_PROJECT_SESSIONINFO_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 #pragma once
 #endif
 
-// Boost includes
-#include <boost/filesystem.hpp>
-#include <boost/shared_ptr.hpp>
-
-// Core includes
-#include <Core/State/State.h>
-#include <Core/Utils/EnumClass.h>
+// STL includes
+#include <string>
 
 namespace Seg3D
 {
 
-CORE_ENUM_CLASS
-(
-	SessionPriority,
-	DEFAULT_PRIORITY_E = -1,
-	LAYER_MANAGER_PRIORITY_E = 300,
-	VIEWER_MANAGER_PRIORITY_E = 200,
-	TOOL_MANAGER_PRIORITY_E = 100
-)
-
-// CLASS Session
-// This is the main class for collecting state information on a Session
-class Session;
-	
-typedef boost::shared_ptr< Session > SessionHandle;
-
-// Class definition
-class Session : public Core::StateHandler
+// CLASS SessionInfo
+// This helper class is for storing sessions in the database
+class SessionInfo
 {
-	// -- constructor/destructor --
 public:
-	Session( const std::string& session_name );
-	virtual ~Session();
+	SessionInfo( std::string session_name = "", std::string username = "", 
+		std::string timestamp = "" );
+
+	virtual ~SessionInfo();
 	
 public:
-	// general session data
-	Core::StateStringHandle session_name_state_;
-
-public:
-	// INITIALIZE_FROM_FILE:
-	// this file initializes the state values for Session from the file at the path specified
-	bool load( boost::filesystem::path path, const std::string& session_name );
-	
-	// SAVE_CURRENT_STATE:
-	// this function will take a snapshot of the current state of the project and save it
-	bool save( boost::filesystem::path path, const std::string& session_name );
-
-};
+	// Name of the session
+	std::string session_name_;
+	// User that saved the session
+	std::string username_;
+	// Timestamp of when the session was saved
+	std::string timestamp_;
+};	
 
 } // end namespace Seg3D
 
-#endif // SESSION_H
+#endif
