@@ -9,6 +9,7 @@ import sys
 import gc
 import weakref
 import array
+import io
 
 
 class AbstractMemoryTests:
@@ -27,11 +28,11 @@ class AbstractMemoryTests:
         b = tp(self._source)
         oldrefcount = sys.getrefcount(b)
         m = self._view(b)
-        self.assertEquals(m[0], item(b"a"))
-        self.assertTrue(isinstance(m[0], bytes), type(m[0]))
-        self.assertEquals(m[5], item(b"f"))
-        self.assertEquals(m[-1], item(b"f"))
-        self.assertEquals(m[-6], item(b"a"))
+        self.assertEqual(m[0], item(b"a"))
+        self.assertIsInstance(m[0], bytes)
+        self.assertEqual(m[5], item(b"f"))
+        self.assertEqual(m[-1], item(b"f"))
+        self.assertEqual(m[-6], item(b"a"))
         # Bounds checking
         self.assertRaises(IndexError, lambda: m[6])
         self.assertRaises(IndexError, lambda: m[-7])
@@ -42,7 +43,7 @@ class AbstractMemoryTests:
         self.assertRaises(TypeError, lambda: m[0.0])
         self.assertRaises(TypeError, lambda: m["a"])
         m = None
-        self.assertEquals(sys.getrefcount(b), oldrefcount)
+        self.assertEqual(sys.getrefcount(b), oldrefcount)
 
     def test_getitem(self):
         for tp in self._types:
@@ -66,7 +67,7 @@ class AbstractMemoryTests:
         self.assertRaises(TypeError, setitem, 65)
         self.assertRaises(TypeError, setitem, memoryview(b"a"))
         m = None
-        self.assertEquals(sys.getrefcount(b), oldrefcount)
+        self.assertEqual(sys.getrefcount(b), oldrefcount)
 
     def test_setitem_writable(self):
         if not self.rw_type:
@@ -109,7 +110,16 @@ class AbstractMemoryTests:
         self.assertRaises(ValueError, setitem, slice(0,2), b"a")
 
         m = None
-        self.assertEquals(sys.getrefcount(b), oldrefcount)
+        self.assertEqual(sys.getrefcount(b), oldrefcount)
+
+    def test_delitem(self):
+        for tp in self._types:
+            b = tp(self._source)
+            m = self._view(b)
+            with self.assertRaises(TypeError):
+                del m[1]
+            with self.assertRaises(TypeError):
+                del m[1:4]
 
     def test_tobytes(self):
         for tp in self._types:
@@ -118,14 +128,14 @@ class AbstractMemoryTests:
             # This calls self.getitem_type() on each separate byte of b"abcdef"
             expected = b"".join(
                 self.getitem_type(bytes([c])) for c in b"abcdef")
-            self.assertEquals(b, expected)
-            self.assertTrue(isinstance(b, bytes), type(b))
+            self.assertEqual(b, expected)
+            self.assertIsInstance(b, bytes)
 
     def test_tolist(self):
         for tp in self._types:
             m = self._view(tp(self._source))
             l = m.tolist()
-            self.assertEquals(l, list(b"abcdef"))
+            self.assertEqual(l, list(b"abcdef"))
 
     def test_compare(self):
         # memoryviews can compare for equality with other objects
@@ -159,26 +169,26 @@ class AbstractMemoryTests:
 
     def check_attributes_with_type(self, tp):
         m = self._view(tp(self._source))
-        self.assertEquals(m.format, self.format)
-        self.assertEquals(m.itemsize, self.itemsize)
-        self.assertEquals(m.ndim, 1)
-        self.assertEquals(m.shape, (6,))
-        self.assertEquals(len(m), 6)
-        self.assertEquals(m.strides, (self.itemsize,))
-        self.assertEquals(m.suboffsets, None)
+        self.assertEqual(m.format, self.format)
+        self.assertEqual(m.itemsize, self.itemsize)
+        self.assertEqual(m.ndim, 1)
+        self.assertEqual(m.shape, (6,))
+        self.assertEqual(len(m), 6)
+        self.assertEqual(m.strides, (self.itemsize,))
+        self.assertEqual(m.suboffsets, None)
         return m
 
     def test_attributes_readonly(self):
         if not self.ro_type:
             return
         m = self.check_attributes_with_type(self.ro_type)
-        self.assertEquals(m.readonly, True)
+        self.assertEqual(m.readonly, True)
 
     def test_attributes_writable(self):
         if not self.rw_type:
             return
         m = self.check_attributes_with_type(self.rw_type)
-        self.assertEquals(m.readonly, False)
+        self.assertEqual(m.readonly, False)
 
     def test_getbuffer(self):
         # Test PyObject_GetBuffer() on a memoryview object.
@@ -189,9 +199,9 @@ class AbstractMemoryTests:
             oldviewrefcount = sys.getrefcount(m)
             s = str(m, "utf-8")
             self._check_contents(tp, b, s.encode("utf-8"))
-            self.assertEquals(sys.getrefcount(m), oldviewrefcount)
+            self.assertEqual(sys.getrefcount(m), oldviewrefcount)
             m = None
-            self.assertEquals(sys.getrefcount(b), oldrefcount)
+            self.assertEqual(sys.getrefcount(b), oldrefcount)
 
     def test_gc(self):
         for tp in self._types:
@@ -216,6 +226,62 @@ class AbstractMemoryTests:
             gc.collect()
             self.assertTrue(wr() is None, wr())
 
+    def _check_released(self, m, tp):
+        check = self.assertRaisesRegex(ValueError, "released")
+        with check: bytes(m)
+        with check: m.tobytes()
+        with check: m.tolist()
+        with check: m[0]
+        with check: m[0] = b'x'
+        with check: len(m)
+        with check: m.format
+        with check: m.itemsize
+        with check: m.ndim
+        with check: m.readonly
+        with check: m.shape
+        with check: m.strides
+        with check:
+            with m:
+                pass
+        # str() and repr() still function
+        self.assertIn("released memory", str(m))
+        self.assertIn("released memory", repr(m))
+        self.assertEqual(m, m)
+        self.assertNotEqual(m, memoryview(tp(self._source)))
+        self.assertNotEqual(m, tp(self._source))
+
+    def test_contextmanager(self):
+        for tp in self._types:
+            b = tp(self._source)
+            m = self._view(b)
+            with m as cm:
+                self.assertIs(cm, m)
+            self._check_released(m, tp)
+            m = self._view(b)
+            # Can release explicitly inside the context manager
+            with m:
+                m.release()
+
+    def test_release(self):
+        for tp in self._types:
+            b = tp(self._source)
+            m = self._view(b)
+            m.release()
+            self._check_released(m, tp)
+            # Can be called a second time (it's a no-op)
+            m.release()
+            self._check_released(m, tp)
+
+    def test_writable_readonly(self):
+        # Issue #10451: memoryview incorrectly exposes a readonly
+        # buffer as writable causing a segfault if using mmap
+        tp = self.ro_type
+        if tp is None:
+            return
+        b = tp(self._source)
+        m = self._view(b)
+        i = io.BytesIO(b'ZZZZ')
+        self.assertRaises(TypeError, i.readinto, m)
 
 # Variations on source objects for the buffer: bytes-like objects, then arrays
 # with itemsize > 1.
@@ -231,7 +297,7 @@ class BaseBytesMemoryTests(AbstractMemoryTests):
 class BaseArrayMemoryTests(AbstractMemoryTests):
     ro_type = None
     rw_type = lambda self, b: array.array('i', list(b))
-    getitem_type = lambda self, b: array.array('i', list(b)).tostring()
+    getitem_type = lambda self, b: array.array('i', list(b)).tobytes()
     itemsize = array.array('i').itemsize
     format = 'i'
 
@@ -253,7 +319,7 @@ class BaseMemoryviewTests:
         return memoryview(obj)
 
     def _check_contents(self, tp, obj, contents):
-        self.assertEquals(obj, tp(contents))
+        self.assertEqual(obj, tp(contents))
 
 class BaseMemorySliceTests:
     source_bytes = b"XabcdefY"
@@ -263,14 +329,14 @@ class BaseMemorySliceTests:
         return m[1:7]
 
     def _check_contents(self, tp, obj, contents):
-        self.assertEquals(obj[1:7], tp(contents))
+        self.assertEqual(obj[1:7], tp(contents))
 
     def test_refs(self):
         for tp in self._types:
             m = memoryview(tp(self._source))
             oldrefcount = sys.getrefcount(m)
             m[1:2]
-            self.assertEquals(sys.getrefcount(m), oldrefcount)
+            self.assertEqual(sys.getrefcount(m), oldrefcount)
 
 class BaseMemorySliceSliceTests:
     source_bytes = b"XabcdefY"
@@ -280,7 +346,7 @@ class BaseMemorySliceSliceTests:
         return m[:7][1:]
 
     def _check_contents(self, tp, obj, contents):
-        self.assertEquals(obj[1:7], tp(contents))
+        self.assertEqual(obj[1:7], tp(contents))
 
 
 # Concrete test classes
@@ -307,7 +373,7 @@ class ArrayMemoryviewTest(unittest.TestCase,
         m = memoryview(a)
         new_a = array.array('i', range(9, -1, -1))
         m[:] = new_a
-        self.assertEquals(a, new_a)
+        self.assertEqual(a, new_a)
 
 
 class BytesMemorySliceTest(unittest.TestCase,

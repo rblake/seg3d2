@@ -4,15 +4,16 @@
 # a real test suite
 
 import poplib
-import threading
 import asyncore
 import asynchat
 import socket
 import os
 import time
+import errno
 
 from unittest import TestCase
 from test import support as test_support
+threading = test_support.import_module('threading')
 
 HOST = test_support.HOST
 PORT = 0
@@ -121,6 +122,7 @@ class DummyPOP3Server(asyncore.dispatcher, threading.Thread):
         self.active = False
         self.active_lock = threading.Lock()
         self.host, self.port = self.socket.getsockname()[:2]
+        self.handler_instance = None
 
     def start(self):
         assert not self.active
@@ -142,10 +144,8 @@ class DummyPOP3Server(asyncore.dispatcher, threading.Thread):
         self.active = False
         self.join()
 
-    def handle_accept(self):
-        conn, addr = self.accept()
-        self.handler = self.handler(conn)
-        self.close()
+    def handle_accepted(self, conn, addr):
+        self.handler_instance = self.handler(conn)
 
     def handle_connect(self):
         self.close()
@@ -241,12 +241,38 @@ if hasattr(poplib, 'POP3_SSL'):
         def __init__(self, conn):
             asynchat.async_chat.__init__(self, conn)
             ssl_socket = ssl.wrap_socket(self.socket, certfile=CERTFILE,
-                                          server_side=True)
+                                          server_side=True,
+                                          do_handshake_on_connect=False)
             self.del_channel()
             self.set_socket(ssl_socket)
+            # Must try handshake before calling push()
+            self._ssl_accepting = True
+            self._do_ssl_handshake()
             self.set_terminator(b"\r\n")
             self.in_buffer = []
             self.push('+OK dummy pop3 server ready. <timestamp>')
+
+        def _do_ssl_handshake(self):
+            try:
+                self.socket.do_handshake()
+            except ssl.SSLError as err:
+                if err.args[0] in (ssl.SSL_ERROR_WANT_READ,
+                                   ssl.SSL_ERROR_WANT_WRITE):
+                    return
+                elif err.args[0] == ssl.SSL_ERROR_EOF:
+                    return self.handle_close()
+                raise
+            except socket.error as err:
+                if err.args[0] == errno.ECONNABORTED:
+                    return self.handle_close()
+            else:
+                self._ssl_accepting = False
+
+        def handle_read(self):
+            if self._ssl_accepting:
+                self._do_ssl_handshake()
+            else:
+                DummyPOP3Handler.handle_read(self)
 
     class TestPOP3_SSLClass(TestPOP3Class):
         # repeat previous tests by using poplib.POP3_SSL
@@ -258,7 +284,24 @@ if hasattr(poplib, 'POP3_SSL'):
             self.client = poplib.POP3_SSL(self.server.host, self.server.port)
 
         def test__all__(self):
-            self.assertTrue('POP3_SSL' in poplib.__all__)
+            self.assertIn('POP3_SSL', poplib.__all__)
+
+        def test_context(self):
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+            self.assertRaises(ValueError, poplib.POP3_SSL, self.server.host,
+                              self.server.port, keyfile=CERTFILE, context=ctx)
+            self.assertRaises(ValueError, poplib.POP3_SSL, self.server.host,
+                              self.server.port, certfile=CERTFILE, context=ctx)
+            self.assertRaises(ValueError, poplib.POP3_SSL, self.server.host,
+                              self.server.port, keyfile=CERTFILE,
+                              certfile=CERTFILE, context=ctx)
+
+            self.client.quit()
+            self.client = poplib.POP3_SSL(self.server.host, self.server.port,
+                                          context=ctx)
+            self.assertIsInstance(self.client.sock, ssl.SSLSocket)
+            self.assertIs(self.client.sock.context, ctx)
+            self.assertTrue(self.client.noop().startswith(b'+OK'))
 
 
 class TestTimeouts(TestCase):

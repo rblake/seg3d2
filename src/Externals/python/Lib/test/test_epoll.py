@@ -21,12 +21,10 @@
 """
 Tests for epoll wrapper.
 """
-import os
 import socket
 import errno
 import time
 import select
-import tempfile
 import unittest
 
 from test import support
@@ -58,7 +56,7 @@ class TestEPoll(unittest.TestCase):
         try:
             client.connect(('127.0.0.1', self.serverSocket.getsockname()[1]))
         except socket.error as e:
-            self.assertEquals(e.args[0], errno.EINPROGRESS)
+            self.assertEqual(e.args[0], errno.EINPROGRESS)
         else:
             raise AssertionError("Connect should have raised EINPROGRESS")
         server, addr = self.serverSocket.accept()
@@ -164,7 +162,7 @@ class TestEPoll(unittest.TestCase):
                     (server.fileno(), select.EPOLLOUT)]
         expected.sort()
 
-        self.assertEquals(events, expected)
+        self.assertEqual(events, expected)
         self.assertFalse(then - now > 0.01, then - now)
 
         now = time.time()
@@ -185,7 +183,7 @@ class TestEPoll(unittest.TestCase):
                     (server.fileno(), select.EPOLLIN | select.EPOLLOUT)]
         expected.sort()
 
-        self.assertEquals(events, expected)
+        self.assertEqual(events, expected)
 
         ep.unregister(client.fileno())
         ep.modify(server.fileno(), select.EPOLLOUT)
@@ -195,7 +193,7 @@ class TestEPoll(unittest.TestCase):
         self.assertFalse(then - now > 0.01)
 
         expected = [(server.fileno(), select.EPOLLOUT)]
-        self.assertEquals(events, expected)
+        self.assertEqual(events, expected)
 
     def test_errors(self):
         self.assertRaises(ValueError, select.epoll, -2)

@@ -5,7 +5,6 @@ from test.support import verbose, run_doctest, run_unittest, EnvironmentVarGuard
 import unittest
 
 import getopt
-import os
 
 sentinel = object()
 
@@ -174,6 +173,12 @@ class GetoptTests(unittest.TestCase):
         m = types.ModuleType("libreftest", s)
         run_doctest(m, verbose)
 
+    def test_issue4629(self):
+        longopts, shortopts = getopt.getopt(['--help='], '', ['help='])
+        self.assertEqual(longopts, [('--help', '')])
+        longopts, shortopts = getopt.getopt(['--help=x'], '', ['help='])
+        self.assertEqual(longopts, [('--help', 'x')])
+        self.assertRaises(getopt.GetoptError, getopt.getopt, ['--help='], '', ['help'])
 
 def test_main():
     run_unittest(GetoptTests)

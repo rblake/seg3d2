@@ -3,17 +3,17 @@
 from test import support
 import unittest
 
-from fnmatch import fnmatch, fnmatchcase
-
+from fnmatch import fnmatch, fnmatchcase, translate, filter
 
 class FnmatchTestCase(unittest.TestCase):
-    def check_match(self, filename, pattern, should_match=1):
+
+    def check_match(self, filename, pattern, should_match=1, fn=fnmatch):
         if should_match:
-            self.assertTrue(fnmatch(filename, pattern),
+            self.assertTrue(fn(filename, pattern),
                          "expected %r to match pattern %r"
                          % (filename, pattern))
         else:
-            self.assertTrue(not fnmatch(filename, pattern),
+            self.assertTrue(not fn(filename, pattern),
                          "expected %r not to match pattern %r"
                          % (filename, pattern))
 
@@ -50,14 +50,39 @@ class FnmatchTestCase(unittest.TestCase):
         self.assertRaises(TypeError, fnmatchcase, 'test', b'*')
         self.assertRaises(TypeError, fnmatchcase, b'test', '*')
 
+    def test_fnmatchcase(self):
+        check = self.check_match
+        check('AbC', 'abc', 0, fnmatchcase)
+        check('abc', 'AbC', 0, fnmatchcase)
+
     def test_bytes(self):
         self.check_match(b'test', b'te*')
         self.check_match(b'test\xff', b'te*\xff')
         self.check_match(b'foo\nbar', b'foo*')
 
+class TranslateTestCase(unittest.TestCase):
+
+    def test_translate(self):
+        self.assertEqual(translate('*'), '.*\Z(?ms)')
+        self.assertEqual(translate('?'), '.\Z(?ms)')
+        self.assertEqual(translate('a?b*'), 'a.b.*\Z(?ms)')
+        self.assertEqual(translate('[abc]'), '[abc]\Z(?ms)')
+        self.assertEqual(translate('[]]'), '[]]\Z(?ms)')
+        self.assertEqual(translate('[!x]'), '[^x]\Z(?ms)')
+        self.assertEqual(translate('[^x]'), '[\\^x]\Z(?ms)')
+        self.assertEqual(translate('[x'), '\\[x\Z(?ms)')
+
+
+class FilterTestCase(unittest.TestCase):
+
+    def test_filter(self):
+        self.assertEqual(filter(['a', 'b'], 'a'), ['a'])
+
 
 def test_main():
-    support.run_unittest(FnmatchTestCase)
+    support.run_unittest(FnmatchTestCase,
+                         TranslateTestCase,
+                         FilterTestCase)
 
 
 if __name__ == "__main__":
