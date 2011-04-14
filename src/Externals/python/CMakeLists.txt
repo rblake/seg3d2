@@ -259,7 +259,6 @@ set(OBJECT_SRCS Objects/abstract.c
 				Objects/capsule.c
                 Objects/cellobject.c
                 Objects/classobject.c
-                Objects/cobject.c
                 Objects/codeobject.c
                 Objects/complexobject.c
                 Objects/descrobject.c
@@ -304,6 +303,7 @@ set(PYTHON_SRCS Python/Python-ast.c
                 Python/codecs.c 
 				Python/dtoa.c
                 Python/errors.c 
+				Python/fileutils.c
                 Python/formatter_unicode.c
                 Python/frozen.c 
                 Python/frozenmain.c 
