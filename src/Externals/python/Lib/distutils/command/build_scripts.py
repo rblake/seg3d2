@@ -2,7 +2,7 @@
 
 Implements the Distutils 'build_scripts' command."""
 
-__revision__ = "$Id: build_scripts.py 69600 2009-02-13 23:04:17Z tarek.ziade $"
+__revision__ = "$Id: build_scripts.py 83053 2010-07-22 12:50:05Z tarek.ziade $"
 
 import os, re
 from stat import ST_MODE

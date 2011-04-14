@@ -10,6 +10,7 @@ from distutils.core import Distribution
 from distutils.errors import DistutilsFileError
 
 from distutils.tests import support
+from test.support import run_unittest
 
 
 class BuildPyTestCase(support.TempdirManager,
@@ -19,11 +20,15 @@ class BuildPyTestCase(support.TempdirManager,
     def test_package_data(self):
         sources = self.mkdtemp()
         f = open(os.path.join(sources, "__init__.py"), "w")
-        f.write("# Pretend this is a package.")
-        f.close()
+        try:
+            f.write("# Pretend this is a package.")
+        finally:
+            f.close()
         f = open(os.path.join(sources, "README.txt"), "w")
-        f.write("Info about this package")
-        f.close()
+        try:
+            f.write("Info about this package")
+        finally:
+            f.close()
 
         destination = self.mkdtemp()
 
@@ -110,4 +115,4 @@ def test_suite():
     return unittest.makeSuite(BuildPyTestCase)
 
 if __name__ == "__main__":
-    unittest.main(defaultTest="test_suite")
+    run_unittest(test_suite())
