@@ -2,7 +2,7 @@
 
 Implements the Distutils 'build' command."""
 
-__revision__ = "$Id: build.py 62242 2008-04-09 08:37:03Z christian.heimes $"
+__revision__ = "$Id: build.py 83053 2010-07-22 12:50:05Z tarek.ziade $"
 
 import sys, os
 from distutils.core import Command
