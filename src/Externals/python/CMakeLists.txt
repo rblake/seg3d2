@@ -151,7 +151,9 @@ SET(MOD_SRCS ${MOD_SRCS}
 			Modules/_io/fileio.c
 			Modules/_io/iobase.c
 			Modules/_io/stringio.c
-			Modules/_io/textio.c)
+			Modules/_io/textio.c
+			Modules/_math.c
+			Modules/_time.c)
 			
 #zlib module
 add_python_module(zlib         	MOD_SRCS Modules/zlibmodule.c)
@@ -188,7 +190,7 @@ add_python_module(_csv          MOD_SRCS Modules/_csv.c)
 add_python_module(_sre      	MOD_SRCS Modules/_sre.c)
 add_python_module(parser        MOD_SRCS Modules/parsermodule.c)
 add_python_module(_struct       MOD_SRCS Modules/_struct.c)
-add_python_module(datetime      MOD_SRCS Modules/datetimemodule.c)
+add_python_module(_datetime      MOD_SRCS Modules/_datetimemodule.c)
 add_python_module(_functools    MOD_SRCS Modules/_functoolsmodule.c)
 add_python_module(_json    		MOD_SRCS Modules/_json.c )
 add_python_module(xxsubtype 	MOD_SRCS Modules/xxsubtype.c)
@@ -330,7 +332,8 @@ set(PYTHON_SRCS Python/Python-ast.c
                 Python/pystate.c 
                 Python/pystrcmp.c
                 Python/pystrtod.c 
-                Python/pythonrun.c 
+                Python/pythonrun.c
+				Python/pytime.c
                 Python/structmember.c 
                 Python/symtable.c 
                 Python/sysmodule.c 
