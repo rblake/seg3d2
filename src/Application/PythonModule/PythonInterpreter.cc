@@ -146,41 +146,41 @@ void PythonInterpreter::initialize_eventhandler()
 
 	PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 	PyImport_AppendInittab( "seg3d", PyInit_seg3d );
-	PyImport_AppendInittab( "interpreter", PyInit_interpreter );
+	//PyImport_AppendInittab( "interpreter", PyInit_interpreter );
 	Py_SetProgramName( this->private_->program_name_ );
-	Py_IgnoreEnvironmentFlag = 1;
-	Py_InspectFlag = 1;
-	Py_InteractiveFlag = 1;
+	//Py_IgnoreEnvironmentFlag = 1;
+	//Py_InspectFlag = 1;
+	//Py_InteractiveFlag = 1;
 	Py_Initialize();
 	PyRun_SimpleString( "import seg3d\n"
 		"from seg3d import *\n" );
-	PyRun_SimpleString( "import interpreter\n" );
-	PyRun_SimpleString( "term = interpreter.terminal()\n" );
-	boost::python::object main_module = boost::python::import( "__main__" );
-	boost::python::object main_namespace = main_module.attr( "__dict__" );
-	boost::python::dict main_dict = boost::python::extract< dict >( main_namespace );
-	boost::python::extract< PythonTerminal& > X( main_dict[ "term" ] );
-	if ( X.check() )
-	{
-		PythonTerminal& pyterm = X();
-		pyterm.install_interface( AbstractPythonTerminalInterfaceHandle( new AbstractPythonTerminalInterface ) );
-	}
-	PyRun_SimpleString( "import sys\n" 
-		"sys.stdin = term\n"
-		"sys.stdout = term\n"
-		"sys.stderr = term\n" );
-
-	object sys_module = import( "sys" );
-	object sys_stdin = sys_module.attr( "stdin" );
-	extract< FILE* > stdin_extractor( sys_stdin );
-	if ( stdin_extractor.check() )
-	{
-		FILE* fp = stdin_extractor();
-	}
-
-	PyRun_SimpleString( "term.write('hello')\n" );
-	PyRun_SimpleString( "cmd = sys.stdin.read()\n" 
-		"print(cmd)\n" );
+// 	PyRun_SimpleString( "import interpreter\n" );
+// 	PyRun_SimpleString( "term = interpreter.terminal()\n" );
+// 	boost::python::object main_module = boost::python::import( "__main__" );
+// 	boost::python::object main_namespace = main_module.attr( "__dict__" );
+// 	boost::python::dict main_dict = boost::python::extract< dict >( main_namespace );
+// 	boost::python::extract< PythonTerminal& > X( main_dict[ "term" ] );
+// 	if ( X.check() )
+// 	{
+// 		PythonTerminal& pyterm = X();
+// 		pyterm.install_interface( AbstractPythonTerminalInterfaceHandle( new AbstractPythonTerminalInterface ) );
+// 	}
+// 	PyRun_SimpleString( "import sys\n" 
+// 		"sys.stdin = term\n"
+// 		"sys.stdout = term\n"
+// 		"sys.stderr = term\n" );
+// 
+// 	object sys_module = import( "sys" );
+// 	object sys_stdin = sys_module.attr( "stdin" );
+// 	extract< FILE* > stdin_extractor( sys_stdin );
+// 	if ( stdin_extractor.check() )
+// 	{
+// 		FILE* fp = stdin_extractor();
+// 	}
+// 
+// 	PyRun_SimpleString( "term.write('hello')\n" );
+// 	PyRun_SimpleString( "cmd = sys.stdin.read()\n" 
+// 		"print(cmd)\n" );
 
 	this->private_->thread_condition_variable_.notify_one();
 }
