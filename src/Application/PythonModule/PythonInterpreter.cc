@@ -148,7 +148,7 @@ void PythonInterpreter::initialize_eventhandler()
 	PyImport_AppendInittab( "seg3d", PyInit_seg3d );
 	//PyImport_AppendInittab( "interpreter", PyInit_interpreter );
 	Py_SetProgramName( this->private_->program_name_ );
-	//Py_IgnoreEnvironmentFlag = 1;
+	Py_IgnoreEnvironmentFlag = 1;
 	//Py_InspectFlag = 1;
 	//Py_InteractiveFlag = 1;
 	Py_Initialize();

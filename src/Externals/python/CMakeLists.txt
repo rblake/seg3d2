@@ -167,7 +167,9 @@ add_python_module(binascii      MOD_SRCS Modules/binascii.c)
 add_python_module(cmath         MOD_SRCS Modules/cmathmodule.c)
 add_python_module(errno     	MOD_SRCS Modules/errnomodule.c)
 add_python_module(math          MOD_SRCS Modules/mathmodule.c)
+IF(NOT APPLE)
 add_python_module(${PY_POSIX_NAME}  MOD_SRCS Modules/posixmodule.c)
+ENDIF(NOT APPLE)
 add_python_module(operator      MOD_SRCS Modules/operator.c)
 add_python_module(signal    	MOD_SRCS Modules/signalmodule.c)
 add_python_module(_md5			MOD_SRCS Modules/md5module.c)
@@ -373,6 +375,10 @@ endif(WIN32)
 add_definitions(-DPy_BUILD_CORE)
 ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
 
+IF(SCI_ZLIB_MANGLE)
+	ADD_DEFINITIONS(-DZ_PREFIX)
+ENDIF(SCI_ZLIB_MANGLE)
+
 #if(NOT HAVE_HYPOT)
 #  add_definitions(-DWITHOUT_COMPLEX)
 #endif(NOT HAVE_HYPOT)
@@ -398,9 +404,11 @@ IF(WIN32)
 		   COMMAND if not exist "${PYTHONLIB_DST_PATH}" md "${PYTHONLIB_DST_PATH}"
 		   COMMAND copy /Y "${PYTHONLIB_SOURCE_PATH}" "${PYTHONLIB_DST_PATH}")
 ELSE(WIN32)
+	SET(PYTHONLIB_DST_PATH "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/")
 	ADD_CUSTOM_COMMAND(TARGET python 
 		   POST_BUILD
-		   COMMAND cp -rf "${CMAKE_CURRENT_SOURCE_DIR}/pythonlib.zip" "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/")		   
+		   COMMAND [ -d ${PYTHONLIB_DST_PATH} ] || mkdir "${PYTHONLIB_DST_PATH}" 
+		   COMMAND cp -rf "${CMAKE_CURRENT_SOURCE_DIR}/pythonlib.zip" "${PYTHONLIB_DST_PATH}")		   
 ENDIF(WIN32)
 
 SET(SCI_PYTHON_LIBRARY python CACHE INTERNAL "Python library." FORCE)
