@@ -26,7 +26,12 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef _MSC_VER
+#pragma warning( disable: 4244 )
+#endif
+
 #include <Python.h>
+#include <boost/filesystem.hpp>
 #include <boost/python.hpp>
 #include <boost/thread/mutex.hpp>
 
@@ -148,6 +153,9 @@ void PythonInterpreter::initialize_eventhandler()
 	PyImport_AppendInittab( "seg3d", PyInit_seg3d );
 	//PyImport_AppendInittab( "interpreter", PyInit_interpreter );
 	Py_SetProgramName( this->private_->program_name_ );
+	boost::filesystem::path lib_path( this->private_->program_name_ );
+	lib_path = lib_path.parent_path() / PYTHONPATH;
+	Py_SetPath( lib_path.wstring().c_str() );
 	Py_IgnoreEnvironmentFlag = 1;
 	//Py_InspectFlag = 1;
 	//Py_InteractiveFlag = 1;
@@ -296,4 +304,3 @@ PythonActionContextHandle PythonInterpreter::GetActionContext()
 }
 
 } // end namespace Core
-
