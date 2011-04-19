@@ -4147,10 +4147,10 @@ posix_openpty(PyObject *self, PyObject *noargs)
     if (slave_fd < 0)
         return posix_error();
 #if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
-    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
-    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
+//    ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
+//    ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
 #ifndef __hpux
-    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
+//    ioctl(slave_fd, I_PUSH, "ttcompat"); /* push ttcompat */
 #endif /* __hpux */
 #endif /* HAVE_CYGWIN */
 #endif /* HAVE_OPENPTY */
