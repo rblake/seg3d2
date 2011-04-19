@@ -58,6 +58,13 @@ extern int Py_InteractiveFlag;
 // Set this flag so the program won't exit at SystemError
 extern int Py_InspectFlag;
 
+// Py_NoSiteFlag:
+// Suppress 'import site'
+extern int Py_NoSiteFlag;
+
+// Py_OptimizeFlag:
+extern int Py_OptimizeFlag;
+
 //////////////////////////////////////////////////////////////////////////
 // Class PythonTerminal
 //////////////////////////////////////////////////////////////////////////
@@ -157,7 +164,9 @@ void PythonInterpreter::initialize_eventhandler()
 	lib_path = lib_path.parent_path() / PYTHONPATH;
 	Py_SetPath( lib_path.wstring().c_str() );
 	Py_IgnoreEnvironmentFlag = 1;
-	//Py_InspectFlag = 1;
+	Py_InspectFlag = 1;
+	Py_OptimizeFlag = 2;
+	Py_NoSiteFlag = 1;
 	//Py_InteractiveFlag = 1;
 	Py_Initialize();
 	PyRun_SimpleString( "import seg3d\n"
