@@ -115,6 +115,8 @@ SET(APPLICATION_TOOLS_SRCS
   TransformTool.cc
   ClipboardTool.h
   ClipboardTool.cc
+  ICPFilter.h
+  ICPFilter.cc
   )
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS
