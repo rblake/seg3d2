@@ -37,6 +37,7 @@
 
 #include <Core/Utils/Exception.h>
 #include <Core/Utils/Lockable.h>
+#include <Core/Utils/Log.h>
 
 #include <Application/PythonModule/ActionModule.h>
 #include <Application/PythonModule/PythonInterpreter.h>
@@ -77,7 +78,7 @@ public:
 	std::string read_from_console( const int bytes = -1 );
 
 	// The name of the executable
-	wchar_t* program_name_;
+	const wchar_t* program_name_;
 	// An instance of python CommandCompiler object (defined in codeop.py)
 	boost::python::object compiler_;
 	// The context of the Python main module.
@@ -118,7 +119,7 @@ std::string PythonInterpreterPrivate::read_from_console( const int bytes /*= -1 
 		else
 		{
 			result = input_buffer_.substr( 0, bytes );
-			if ( bytes < input_buffer_.size() )
+			if ( bytes < static_cast< int >( input_buffer_.size() ) )
 			{
 				input_buffer_ = input_buffer_.substr( bytes );
 			}
@@ -147,7 +148,7 @@ std::string PythonInterpreterPrivate::read_from_console( const int bytes /*= -1 
 		else
 		{
 			result += input_buffer_.substr( 0, more_bytes );
-			if ( more_bytes < input_buffer_.size() )
+			if ( more_bytes < static_cast< int >( input_buffer_.size() ) )
 			{
 				input_buffer_ = input_buffer_.substr( more_bytes );
 			}
@@ -246,7 +247,7 @@ void PythonInterpreter::initialize_eventhandler()
 	PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 	PyImport_AppendInittab( "seg3d", PyInit_seg3d );
 	PyImport_AppendInittab( "interpreter", PyInit_interpreter );
-	Py_SetProgramName( this->private_->program_name_ );
+	Py_SetProgramName( const_cast< wchar_t* >( this->private_->program_name_ ) );
 	boost::filesystem::path lib_path( this->private_->program_name_ );
 	lib_path = lib_path.parent_path() / PYTHONPATH;
 	Py_SetPath( lib_path.wstring().c_str() );
@@ -301,12 +302,14 @@ void PythonInterpreter::initialize_eventhandler()
 
 void PythonInterpreter::initialize( wchar_t* program_name )
 {
+	CORE_LOG_DEBUG( "Initializing Python ..." );
 	this->private_->program_name_ = program_name;
 
 	PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 	this->start_eventhandler();
 	this->private_->thread_condition_variable_.wait( lock );
 	this->private_->initialized_ = true;
+	CORE_LOG_DEBUG( "Python initialized." );
 }
 
 void PythonInterpreter::print_banner()
@@ -488,7 +491,7 @@ void PythonInterpreter::start_terminal()
 	//Py_DECREF(io);
 	//Py_DECREF(pystdout);
 	wchar_t** argv = new wchar_t*[ 2 ];
-	argv[ 0 ] = this->private_->program_name_;
+	argv[ 0 ] = const_cast< wchar_t* >( this->private_->program_name_ );
 	argv[ 1 ] = 0;
 	Py_Main( 1, argv );
 	delete[] argv;

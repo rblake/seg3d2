@@ -182,8 +182,8 @@ bool ActionCopyPaste::run( Core::ActionContextHandle& context, Core::ActionResul
 	this->private_->target_vol_slice_->set_slice_data( &buffer[ 0 ], true );
 	this->private_->target_layer_->provenance_id_state_->set( this->get_output_provenance_id() );
 	
-	ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
-		ProvenanceStepHandle( prov_step ) );
+	ProvenanceStepHandle prov_step_handle( prov_step );
+	ProjectManager::Instance()->get_current_project()->add_to_provenance_database( prov_step_handle );
 
 	return true;
 }

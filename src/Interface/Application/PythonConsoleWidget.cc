@@ -106,7 +106,7 @@ PythonConsoleEdit::PythonConsoleEdit( PythonConsoleWidget* parent ) :
 	f.setFamily( "Courier" );
 	f.setStyleHint( QFont::TypeWriter );
 	f.setFixedPitch( true );
-	f.setPointSize( 8 );
+	f.setPointSize( 10 );
 
 	// Set the tab width to 4 spaces
 	QFontMetrics fm( f, this );

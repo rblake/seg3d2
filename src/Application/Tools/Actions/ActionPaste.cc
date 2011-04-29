@@ -240,8 +240,8 @@ bool ActionPaste::run( Core::ActionContextHandle& context, Core::ActionResultHan
 	action_str += Core::ExportToString( this->private_->min_slice_ ) + " ";
 	action_str += Core::ExportToString( this->private_->max_slice_ );
 	prov_step->set_action( action_str );
-	ProjectManager::Instance()->get_current_project()->add_to_provenance_database(
-		ProvenanceStepHandle( prov_step ) );
+	ProvenanceStepHandle prov_step_handle( prov_step );
+	ProjectManager::Instance()->get_current_project()->add_to_provenance_database( prov_step_handle );
 
 	return true;
 }
