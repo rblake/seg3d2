@@ -145,7 +145,7 @@
 					TYPED_IMAGE_TYPE,
 					TYPED_IMAGE_TYPE > ResampleFilterType;
 
-				ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+				typename ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 				typename Core::ITKImageDataT<VALUE_TYPE>::Handle moving_image; 
 				this->get_itk_image_from_layer<VALUE_TYPE>( moving_layer, moving_image );
 				resampler->SetInput( moving_image->get_image() );

@@ -106,7 +106,7 @@
 	public:
 		/** Standard class typedefs. */
 		typedef Rigid3DTransformSurrogate        Self;
-		typedef Rigid3DTransform< TScalarType >  Superclass;
+		typedef itk::Rigid3DTransform< TScalarType >  Superclass;
 		typedef itk::SmartPointer< Self >             Pointer;
 		typedef itk::SmartPointer< const Self >       ConstPointer;
 
@@ -141,7 +141,7 @@
 		// is launched.
 
 
-		bool ICPFilterAlgo::check_abort()
+		bool check_abort()
 		{
 			return false;
 		}
@@ -460,7 +460,7 @@
 				TYPED_IMAGE_TYPE,
 				TYPED_IMAGE_TYPE > ResampleFilterType;
 
-			ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+			typename ResampleFilterType::Pointer resampler = ResampleFilterType::New();
 			typename Core::ITKImageDataT<VALUE_TYPE>::Handle moving_image; 
 			this->get_itk_image_from_layer<VALUE_TYPE>( this->mask_layer_, moving_image );
 			resampler->SetInput( moving_image->get_image() );
