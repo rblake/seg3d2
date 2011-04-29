@@ -26,33 +26,47 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_PYTHONMODULE_ABSTRACTPYTHONTERMINALINTERFACE_H
-#define APPLICATION_PYTHONMODULE_ABSTRACTPYTHONTERMINALINTERFACE_H
+#ifndef INTERFACE_APPLICATION_PYTHONCONSOLEWIDGET_H
+#define INTERFACE_APPLICATION_PYTHONCONSOLEWIDGET_H
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif 
 
 // Boost includes
-#include <boost/utility.hpp>
 #include <boost/shared_ptr.hpp>
+
+// QT includes
+#include <QWidget>
+
+// Core includes
+#include <Core/Utils/ConnectionHandler.h>
+#include <Core/Utils/Log.h>
+#include <Core/Action/Actions.h>
+
+#include <QtUtils/Widgets/QtCustomDialog.h>
 
 namespace Seg3D
 {
 
+class PythonConsoleWidgetPrivate;
+typedef boost::shared_ptr< PythonConsoleWidgetPrivate > PythonConsoleWidgetPrivateHandle;
+
 // Forward declaration
-class AbstractPythonTerminalInterface;
-typedef boost::shared_ptr< AbstractPythonTerminalInterface > AbstractPythonTerminalInterfaceHandle;
+class PythonConsoleWidget;
 
-// Class AbstractPythonTerminalInterface:
-// Defines interfaces that a subclass must define in order to function as a python terminal interface.
-class AbstractPythonTerminalInterface : public boost::noncopyable
+// Class definition
+class PythonConsoleWidget : public QtUtils::QtCustomDialog, private Core::ConnectionHandler
 {
-	// -- I/O functions --
-public:
-	// READ:
-	// Read and return up to n bytes, or if n is negative, read until EOF is reached.
-	virtual std::string read( int n );
+	Q_OBJECT
 
-	// WRITE:
-	// Write data out to the stream, and return the number of bytes written.
-	virtual int write( std::string data );
+	// -- constructor/destructor --
+public:
+	PythonConsoleWidget( QWidget* parent = 0 );
+	virtual ~PythonConsoleWidget();
+
+private:
+	PythonConsoleWidgetPrivateHandle private_;
 };
 
 } // end namespace Seg3D

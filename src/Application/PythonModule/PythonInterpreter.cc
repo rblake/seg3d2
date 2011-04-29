@@ -40,7 +40,6 @@
 
 #include <Application/PythonModule/ActionModule.h>
 #include <Application/PythonModule/PythonInterpreter.h>
-#include <Application/PythonModule/AbstractPythonTerminalInterface.h>
 
 //////////////////////////////////////////////////////////////////////////
 // Python flags defined in pythonrun.c
@@ -65,76 +64,163 @@ extern int Py_NoSiteFlag;
 // Py_OptimizeFlag:
 extern int Py_OptimizeFlag;
 
+namespace Seg3D
+{
+
+//////////////////////////////////////////////////////////////////////////
+// Class PythonInterpreterPrivate
+//////////////////////////////////////////////////////////////////////////
+
+class PythonInterpreterPrivate : public Core::Lockable
+{
+public:
+	std::string read_from_console( const int bytes = -1 );
+
+	// The name of the executable
+	wchar_t* program_name_;
+	// An instance of python CommandCompiler object (defined in codeop.py)
+	boost::python::object compiler_;
+	// The context of the Python main module.
+	boost::python::object globals_;
+	// Whether the Python interpreter has been initialized.
+	bool initialized_;
+	bool terminal_running_;
+	// The action context for the Python thread.
+	PythonActionContextHandle action_context_;
+	// The input buffer
+	std::string input_buffer_;
+	// Whether the interpreter is waiting for input
+	bool waiting_for_input_;
+	// The command buffer (for Python statement split into multiple lines)
+	std::string command_buffer_;
+	// Python sys.ps1
+	std::string prompt1_;
+	// Python sys.ps2
+	std::string prompt2_;
+
+	// Condition variable to make sure the PythonInterpreter thread has 
+	// completed initialization before continuing the main thread.
+	boost::condition_variable thread_condition_variable_;
+};
+
+std::string PythonInterpreterPrivate::read_from_console( const int bytes /*= -1 */ )
+{
+	lock_type lock( this->get_mutex() );
+
+	std::string result;
+	if ( !input_buffer_.empty() )
+	{
+		if ( bytes <= 0 )
+		{
+			result = input_buffer_;
+			input_buffer_.clear();
+		}
+		else
+		{
+			result = input_buffer_.substr( 0, bytes );
+			if ( bytes < input_buffer_.size() )
+			{
+				input_buffer_ = input_buffer_.substr( bytes );
+			}
+			else
+			{
+				input_buffer_.clear();
+			}
+		}
+	}
+
+	int more_bytes = bytes - static_cast< int >( result.size() );
+	while ( ( bytes <= 0 && result.empty() ) ||
+		( bytes > 0 && more_bytes > 0 ) )
+	{
+		this->waiting_for_input_ = true;
+		this->thread_condition_variable_.wait( lock );
+
+		// Abort reading if an interrupt signal has been received.
+		if ( PyErr_CheckSignals() != 0 ) break;
+
+		if ( bytes <= 0 )
+		{
+			result = input_buffer_;
+			input_buffer_.clear();
+		}
+		else
+		{
+			result += input_buffer_.substr( 0, more_bytes );
+			if ( more_bytes < input_buffer_.size() )
+			{
+				input_buffer_ = input_buffer_.substr( more_bytes );
+			}
+			else
+			{
+				input_buffer_.clear();
+			}
+		}
+
+		more_bytes = bytes - static_cast< int >( result.size() );
+	}
+
+	this->waiting_for_input_ = false;
+	return result;
+}
+
+} // end namespace Seg3D
+
+
 //////////////////////////////////////////////////////////////////////////
 // Class PythonTerminal
 //////////////////////////////////////////////////////////////////////////
-class PythonTerminal
+class PythonStdIO
 {
 public:
-
-	void install_interface( Seg3D::AbstractPythonTerminalInterfaceHandle interface )
-	{
-		this->terminal_interface_ = interface;
-	}
-
 	boost::python::object read( int n )
 	{
-		if ( !this->terminal_interface_ )
-		{
-			CORE_THROW_LOGICERROR( "No Python terminal interface has been installed" );
-		}
-
-		std::string data = this->terminal_interface_->read( n );
+		std::string data = Seg3D::PythonInterpreter::Instance()->private_->read_from_console( n );
 		boost::python::str pystr( data.c_str() );
 		return pystr.encode();
 	}
 
 	std::string readline()
 	{
-		return this->terminal_interface_->read( -1 );
+		return Seg3D::PythonInterpreter::Instance()->private_->read_from_console();
 	}
 
 	int write( std::string data )
 	{
-		if ( !this->terminal_interface_ )
-		{
-			CORE_THROW_LOGICERROR( "No Python terminal interface has been installed" );
-		}
-
-		//std::string str_data = boost::python::extract< std::string >( data.attr( "decode" )() );
-		return this->terminal_interface_->write( data );
+		Seg3D::PythonInterpreter::Instance()->output_signal_( data );
+		return static_cast< int >( data.size() );
 	}
+};
 
-	Seg3D::AbstractPythonTerminalInterfaceHandle terminal_interface_;
+class PythonStdErr
+{
+public:
+	int write( std::string data )
+	{
+		Seg3D::PythonInterpreter::Instance()->error_signal_( data );
+		return static_cast< int >( data.size() );
+	}
 };
 
 BOOST_PYTHON_MODULE( interpreter )
 {
-	boost::python::class_< PythonTerminal >( "terminal" )
-		.def( "read", &PythonTerminal::read )
-		.def( "read", &PythonTerminal::readline )
-		.def( "write", &PythonTerminal::write );
+	boost::python::class_< PythonStdIO >( "terminalio" )
+		.def( "read", &PythonStdIO::read )
+		.def( "readline", &PythonStdIO::readline )
+		.def( "write", &PythonStdIO::write );
+
+	boost::python::class_< PythonStdErr >( "terminalerr" )
+		.def( "write", &PythonStdErr::write );
 }
 
 namespace Seg3D
 {
 
+//////////////////////////////////////////////////////////////////////////
+// Class PythonInterpreter
+//////////////////////////////////////////////////////////////////////////
+
 CORE_SINGLETON_IMPLEMENTATION( PythonInterpreter );
-
-class PythonInterpreterPrivate : public Core::Lockable
-{
-public:
-	// The name of the executable
-	wchar_t* program_name_;
-
-	bool initialized_;
-	bool terminal_running_;
-	PythonActionContextHandle action_context_;
-
-	// Condition variable to make sure the PythonInterpreter thread has 
-	// completed initialization before continuing the main thread.
-	boost::condition_variable thread_condition_variable_;
-};
 	
 PythonInterpreter::PythonInterpreter() :
 	Core::EventHandler(),
@@ -143,6 +229,7 @@ PythonInterpreter::PythonInterpreter() :
 	this->private_->program_name_ = L"";
 	this->private_->initialized_ = false;
 	this->private_->terminal_running_ = false;
+	this->private_->waiting_for_input_ = false;
 	this->private_->action_context_.reset( new PythonActionContext );
 }
 
@@ -158,7 +245,7 @@ void PythonInterpreter::initialize_eventhandler()
 
 	PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
 	PyImport_AppendInittab( "seg3d", PyInit_seg3d );
-	//PyImport_AppendInittab( "interpreter", PyInit_interpreter );
+	PyImport_AppendInittab( "interpreter", PyInit_interpreter );
 	Py_SetProgramName( this->private_->program_name_ );
 	boost::filesystem::path lib_path( this->private_->program_name_ );
 	lib_path = lib_path.parent_path() / PYTHONPATH;
@@ -169,35 +256,45 @@ void PythonInterpreter::initialize_eventhandler()
 	Py_NoSiteFlag = 1;
 	//Py_InteractiveFlag = 1;
 	Py_Initialize();
+
+	// Import seg3d module and everything inside
 	PyRun_SimpleString( "import seg3d\n"
 		"from seg3d import *\n" );
-// 	PyRun_SimpleString( "import interpreter\n" );
-// 	PyRun_SimpleString( "term = interpreter.terminal()\n" );
-// 	boost::python::object main_module = boost::python::import( "__main__" );
-// 	boost::python::object main_namespace = main_module.attr( "__dict__" );
-// 	boost::python::dict main_dict = boost::python::extract< dict >( main_namespace );
-// 	boost::python::extract< PythonTerminal& > X( main_dict[ "term" ] );
-// 	if ( X.check() )
-// 	{
-// 		PythonTerminal& pyterm = X();
-// 		pyterm.install_interface( AbstractPythonTerminalInterfaceHandle( new AbstractPythonTerminalInterface ) );
-// 	}
-// 	PyRun_SimpleString( "import sys\n" 
-// 		"sys.stdin = term\n"
-// 		"sys.stdout = term\n"
-// 		"sys.stderr = term\n" );
-// 
-// 	object sys_module = import( "sys" );
-// 	object sys_stdin = sys_module.attr( "stdin" );
-// 	extract< FILE* > stdin_extractor( sys_stdin );
-// 	if ( stdin_extractor.check() )
-// 	{
-// 		FILE* fp = stdin_extractor();
-// 	}
-// 
-// 	PyRun_SimpleString( "term.write('hello')\n" );
-// 	PyRun_SimpleString( "cmd = sys.stdin.read()\n" 
-// 		"print(cmd)\n" );
+
+	// Create the compiler object
+	PyRun_SimpleString( "from codeop import CommandCompiler\n"
+		"__internal_compiler = CommandCompiler()\n" );
+ 	boost::python::object main_module = boost::python::import( "__main__" );
+ 	boost::python::object main_namespace = main_module.attr( "__dict__" );
+	this->private_->compiler_ = main_namespace[ "__internal_compiler" ];
+	this->private_->globals_ = main_namespace;
+
+	// Set up the prompt strings
+	PyRun_SimpleString( "import sys\n"
+		"try:\n"
+		"\tsys.ps1\n"
+		"except AttributeError:\n"
+		"\tsys.ps1 = \">>> \"\n"
+		"try:\n"
+		"\tsys.ps2\n"
+		"except AttributeError:\n"
+		"\tsys.ps2 = \"... \"\n" );
+	boost::python::object sys_module = main_namespace[ "sys" ];
+	boost::python::object sys_namespace = sys_module.attr( "__dict__" );
+	this->private_->prompt1_ = boost::python::extract< std::string >( sys_namespace[ "ps1" ] );
+	this->private_->prompt2_ = boost::python::extract< std::string >( sys_namespace[ "ps2" ] );
+
+	// Hook up the I/O
+	PyRun_SimpleString( "import interpreter\n"
+		"__term_io = interpreter.terminalio()\n"
+		"__term_err = interpreter.terminalerr()\n" );
+	PyRun_SimpleString( "import sys\n" 
+		"sys.stdin = __term_io\n"
+		"sys.stdout = __term_io\n"
+		"sys.stderr = __term_err\n" );
+
+	// Remove intermediate python variables
+	PyRun_SimpleString( "del (interpreter, __internal_compiler, __term_io, __term_err)\n" );
 
 	this->private_->thread_condition_variable_.notify_one();
 }
@@ -212,6 +309,18 @@ void PythonInterpreter::initialize( wchar_t* program_name )
 	this->private_->initialized_ = true;
 }
 
+void PythonInterpreter::print_banner()
+{
+	if ( !this->is_eventhandler_thread() )
+	{
+		this->post_event( boost::bind( &PythonInterpreter::print_banner, this ) );
+		return;
+	}
+
+	PyRun_SimpleString( "print('Pyton %s on %s' % (sys.version, sys.platform))\n" );
+	this->prompt_signal_( this->private_->prompt1_ );
+}
+
 void PythonInterpreter::run_string( std::string command )
 {
 	{
@@ -224,12 +333,79 @@ void PythonInterpreter::run_string( std::string command )
 	
 	if ( !this->is_eventhandler_thread() )
 	{
+		{
+			PythonInterpreterPrivate::lock_type lock( this->private_->get_mutex() );
+			// If the Python thread is currently waiting for input, feed the string
+			// to the input buffer directly and return.
+			if ( this->private_->waiting_for_input_ )
+			{
+				this->private_->input_buffer_ = command + "\n";
+				this->private_->thread_condition_variable_.notify_one();
+				return;
+			}
+		}
+
 		this->post_event( boost::bind( &PythonInterpreter::run_string, this, command ) );
 		return;
 	}
-	
-	command += "\n";
-	PyRun_SimpleString( command.c_str() );
+
+	// Clear any previous Python errors.
+	PyErr_Clear();
+
+	// Append the command to the current command buffer
+	if ( this->private_->command_buffer_.empty() )
+	{
+		this->private_->command_buffer_ = command;
+	}
+	else
+	{
+		if ( *this->private_->command_buffer_.rbegin() != '\n' )
+		{
+			this->private_->command_buffer_ += "\n";
+		}
+		this->private_->command_buffer_ += command;
+	}
+
+	// Compile the statement in the buffer
+	boost::python::object code_obj;
+	try
+	{
+		code_obj = this->private_->compiler_( this->private_->command_buffer_ );
+	}
+	catch ( ... ) {}
+
+	// If an error happened during compilation, print the error message
+	if ( PyErr_Occurred() != NULL )
+	{
+		PyErr_Print();
+	}
+	// If compilation succeeded and the code object is not Py_None
+	else if ( code_obj )
+	{
+		PyObject* result = PyEval_EvalCode( code_obj.ptr(), this->private_->globals_.ptr(), NULL );
+		Py_XDECREF( result );
+		if ( PyErr_Occurred() != NULL )
+		{
+			if ( PyErr_ExceptionMatches( PyExc_EOFError ) )
+			{
+				this->error_signal_( "\nKeyboardInterrupt\n" );
+				PyErr_Clear();
+			}
+			else
+			{
+				PyErr_Print();
+			}
+		}
+	}
+	// If the code object is Py_None, prompt for more input
+	else
+	{
+		this->prompt_signal_( this->private_->prompt2_ );
+		return;
+	}
+
+	this->private_->command_buffer_.clear();
+	this->prompt_signal_( this->private_->prompt1_ );
 }
 
 void PythonInterpreter::run_file( std::string file_name )
@@ -252,6 +428,25 @@ void PythonInterpreter::run_file( std::string file_name )
 	if ( fp != 0 )
 	{
 		PyRun_SimpleFileEx( fp, file_name.c_str(), 1 );
+	}
+}
+
+void PythonInterpreter::interrupt()
+{
+	if ( !this->is_eventhandler_thread() )
+	{
+		PyErr_SetInterrupt();
+		this->private_->thread_condition_variable_.notify_all();
+		this->post_event( boost::bind( &PythonInterpreter::interrupt, this ) );
+	}
+	else
+	{
+		if ( PyErr_CheckSignals() != 0 )
+		{
+			this->error_signal_( "\nKeyboardInterrupt\n" );
+			this->private_->command_buffer_.clear();
+			this->prompt_signal_( this->private_->prompt1_ );
+		}
 	}
 }
 
