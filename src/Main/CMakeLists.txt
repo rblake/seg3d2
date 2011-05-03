@@ -142,10 +142,15 @@ IF(APPLE)
        COMMAND [ ! -d Release ] || cp "-rf" "${QT_QTGUI_LIBRARY_RELEASE}/Versions/Current/Resources" "Release/${APPLICATION_NAME}.app/Contents"
        COMMAND [ ! -d Release ] || [ -d Release/${APPLICATION_NAME}.app/Contents/MacOS/plugins ] || mkdir Release/${APPLICATION_NAME}.app/Contents/MacOS/plugins
        COMMAND [ ! -d Release ] || cp -rf "${CMAKE_SOURCE_DIR}/CMake/qt.conf" Release/${APPLICATION_NAME}.app/Contents/Resources
-       
-       COMMAND [ ! -d "${CMAKE_CFG_INTDIR}/lib" ] || cp -rf "${CMAKE_CFG_INTDIR}/lib" "${CMAKE_CFG_INTDIR}/${APPLICATION_NAME}.app/Contents/MacOS/"
 
        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+    IF(BUILD_WITH_PYTHON)
+      ADD_CUSTOM_COMMAND(TARGET ${APPLICATION_NAME} 
+        POST_BUILD
+        COMMAND [ ! -d "${CMAKE_CFG_INTDIR}/lib" ] || cp -rf "${CMAKE_CFG_INTDIR}/lib" "${CMAKE_CFG_INTDIR}/${APPLICATION_NAME}.app/Contents/MacOS/"
+        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    ENDIF(BUILD_WITH_PYTHON)
 
   ELSE(${CMAKE_GENERATOR} MATCHES "Xcode")
     ADD_CUSTOM_COMMAND(TARGET ${APPLICATION_NAME} 
@@ -165,9 +170,15 @@ IF(APPLE)
        COMMAND cp "-rf" "${QT_QTGUI_LIBRARY_RELEASE}/Versions/Current/Resources" "${APPLICATION_NAME}.app/Contents"
        COMMAND [ -d ${APPLICATION_NAME}.app/Contents/MacOS/plugins ] || mkdir ${APPLICATION_NAME}.app/Contents/MacOS/plugins
        COMMAND cp -rf "${CMAKE_SOURCE_DIR}/CMake/qt.conf" ${APPLICATION_NAME}.app/Contents/Resources
-       COMMAND [ ! -d lib ] || cp -rf "lib" "${APPLICATION_NAME}.app/Contents/MacOS/"
-
+       
        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+    IF(BUILD_WITH_PYTHON)
+      ADD_CUSTOM_COMMAND(TARGET ${APPLICATION_NAME} 
+        POST_BUILD
+        COMMAND [ ! -d lib ] || cp -rf "lib" "${APPLICATION_NAME}.app/Contents/MacOS/"
+        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    ENDIF(BUILD_WITH_PYTHON)
 
   ENDIF(${CMAKE_GENERATOR} MATCHES "Xcode")
 ENDIF(APPLE)
