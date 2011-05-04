@@ -29,8 +29,7 @@
 #ifndef APPLICATION_TOOLS_ACTIONS_ACTIONPASTE_H
 #define APPLICATION_TOOLS_ACTIONS_ACTIONPASTE_H
 
-// Core includes
-#include <Core/Action/Actions.h>
+#include <Application/LayerManager/LayerAction.h>
 
 namespace Seg3D
 {
@@ -38,7 +37,7 @@ namespace Seg3D
 class ActionPastePrivate;
 typedef boost::shared_ptr< ActionPastePrivate > ActionPastePrivateHandle;
 
-class ActionPaste : public Core::Action
+class ActionPaste : public LayerAction
 {
 
 CORE_ACTION

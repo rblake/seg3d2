@@ -3,7 +3,7 @@
 Utility functions for operating on single files.
 """
 
-__revision__ = "$Id: file_util.py 69336 2009-02-06 00:53:43Z tarek.ziade $"
+__revision__ = "$Id: file_util.py 86248 2010-11-06 06:00:54Z eric.araujo $"
 
 import os
 from distutils.errors import DistutilsFileError
@@ -130,15 +130,6 @@ def copy_file(src, dst, preserve_mode=1, preserve_times=1, update=0,
     if dry_run:
         return (dst, 1)
 
-    # On Mac OS, use the native file copy routine
-    if os.name == 'mac':
-        import macostools
-        try:
-            macostools.copy(src, dst, 0, preserve_times)
-        except os.error as exc:
-            raise DistutilsFileError(
-                  "could not copy '%s' to '%s': %s" % (src, dst, exc.args[-1]))
-
     # If linking (hard or symbolic), use the appropriate system call
     # (Unix only, of course, but that's the caller's responsibility)
     elif link == 'hard':
@@ -234,6 +225,8 @@ def write_file (filename, contents):
     sequence of strings without line terminators) to it.
     """
     f = open(filename, "w")
-    for line in contents:
-        f.write(line + "\n")
-    f.close()
+    try:
+        for line in contents:
+            f.write(line + "\n")
+    finally:
+        f.close()

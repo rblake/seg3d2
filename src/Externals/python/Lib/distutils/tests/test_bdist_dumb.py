@@ -3,6 +3,7 @@
 import unittest
 import sys
 import os
+from test.support import run_unittest
 
 from distutils.core import Distribution
 from distutils.command.bdist_dumb import bdist_dumb
@@ -68,7 +69,7 @@ class BuildDumbTestCase(support.TempdirManager,
             base = base.replace(':', '-')
 
         wanted = ['%s.zip' % base]
-        self.assertEquals(dist_created, wanted)
+        self.assertEqual(dist_created, wanted)
 
         # now let's check what we have in the zip file
         # XXX to be done
@@ -77,4 +78,4 @@ def test_suite():
     return unittest.makeSuite(BuildDumbTestCase)
 
 if __name__ == '__main__':
-    test_support.run_unittest(test_suite())
+    run_unittest(test_suite())

@@ -56,6 +56,24 @@ def fact(n):
     return prod(range(1, n+1))
 
 class TestBasicOps(unittest.TestCase):
+
+    def test_accumulate(self):
+        self.assertEqual(list(accumulate(range(10))),               # one positional arg
+                          [0, 1, 3, 6, 10, 15, 21, 28, 36, 45])
+        self.assertEqual(list(accumulate(iterable=range(10))),      # kw arg
+                          [0, 1, 3, 6, 10, 15, 21, 28, 36, 45])
+        for typ in int, complex, Decimal, Fraction:                 # multiple types
+            self.assertEqual(
+                list(accumulate(map(typ, range(10)))),
+                list(map(typ, [0, 1, 3, 6, 10, 15, 21, 28, 36, 45])))
+        self.assertEqual(list(accumulate('abc')), ['a', 'ab', 'abc'])   # works with non-numeric
+        self.assertEqual(list(accumulate([])), [])                  # empty iterable
+        self.assertEqual(list(accumulate([7])), [7])                # iterable of length one
+        self.assertRaises(TypeError, accumulate, range(10), 5)      # too many args
+        self.assertRaises(TypeError, accumulate)                    # too few args
+        self.assertRaises(TypeError, accumulate, x=range(10))       # unexpected kwd arg
+        self.assertRaises(TypeError, list, accumulate([1, []]))     # args that don't add
+
     def test_chain(self):
 
         def chain2(*iterables):
@@ -195,7 +213,7 @@ class TestBasicOps(unittest.TestCase):
 
                 regular_combs = list(combinations(values, r))           # compare to combs without replacement
                 if n == 0 or r <= 1:
-                    self.assertEquals(result, regular_combs)            # cases that should be identical
+                    self.assertEqual(result, regular_combs)            # cases that should be identical
                 else:
                     self.assertTrue(set(result) >= set(regular_combs))     # rest should be supersets of regular combs
 
@@ -291,20 +309,20 @@ class TestBasicOps(unittest.TestCase):
                 comb = list(combinations(s, r))
 
                 # Check size
-                self.assertEquals(len(prod), n**r)
-                self.assertEquals(len(cwr), (fact(n+r-1) / fact(r)/ fact(n-1)) if n else (not r))
-                self.assertEquals(len(perm), 0 if r>n else fact(n) / fact(n-r))
-                self.assertEquals(len(comb), 0 if r>n else fact(n) / fact(r) / fact(n-r))
+                self.assertEqual(len(prod), n**r)
+                self.assertEqual(len(cwr), (fact(n+r-1) / fact(r)/ fact(n-1)) if n else (not r))
+                self.assertEqual(len(perm), 0 if r>n else fact(n) / fact(n-r))
+                self.assertEqual(len(comb), 0 if r>n else fact(n) / fact(r) / fact(n-r))
 
                 # Check lexicographic order without repeated tuples
-                self.assertEquals(prod, sorted(set(prod)))
-                self.assertEquals(cwr, sorted(set(cwr)))
-                self.assertEquals(perm, sorted(set(perm)))
-                self.assertEquals(comb, sorted(set(comb)))
+                self.assertEqual(prod, sorted(set(prod)))
+                self.assertEqual(cwr, sorted(set(cwr)))
+                self.assertEqual(perm, sorted(set(perm)))
+                self.assertEqual(comb, sorted(set(comb)))
 
                 # Check interrelationships
-                self.assertEquals(cwr, [t for t in prod if sorted(t)==list(t)]) # cwr: prods which are sorted
-                self.assertEquals(perm, [t for t in prod if len(set(t))==r])    # perm: prods with no dups
+                self.assertEqual(cwr, [t for t in prod if sorted(t)==list(t)]) # cwr: prods which are sorted
+                self.assertEqual(perm, [t for t in prod if len(set(t))==r])    # perm: prods with no dups
                 self.assertEqual(comb, [t for t in perm if sorted(t)==list(t)]) # comb: perms that are sorted
                 self.assertEqual(comb, [t for t in cwr if len(set(t))==r])      # comb: cwrs without dups
                 self.assertEqual(comb, list(filter(set(cwr).__contains__, perm)))     # comb: perm that is a cwr
@@ -788,6 +806,11 @@ class TestBasicOps(unittest.TestCase):
         self.assertRaises(ValueError, islice, range(10), 1, 'a', 1)
         self.assertEqual(len(list(islice(count(), 1, 10, maxsize))), 1)
 
+        # Issue #10323:  Less islice in a predictable state
+        c = count()
+        self.assertEqual(list(islice(c, 1, 3, 50)), [1])
+        self.assertEqual(next(c), 3)
+
     def test_takewhile(self):
         data = [1, 3, 5, 20, 2, 4, 6, 8]
         underten = lambda x: x<10
@@ -927,6 +950,9 @@ class TestBasicOps(unittest.TestCase):
 
 class TestExamples(unittest.TestCase):
 
+    def test_accumlate(self):
+        self.assertEqual(list(accumulate([1,2,3,4,5])), [1, 3, 6, 10, 15])
+
     def test_chain(self):
         self.assertEqual(''.join(chain('ABC', 'DEF')), 'ABCDEF')
 
@@ -1013,6 +1039,10 @@ class TestGC(unittest.TestCase):
         container.append(iterator)
         next(iterator)
         del container, iterator
+
+    def test_accumulate(self):
+        a = []
+        self.makecycle(accumulate([1,2,a,3]), a)
 
     def test_chain(self):
         a = []
@@ -1182,6 +1212,17 @@ def L(seqn):
 
 
 class TestVariousIteratorArgs(unittest.TestCase):
+
+    def test_accumulate(self):
+        s = [1,2,3,4,5]
+        r = [1,3,6,10,15]
+        n = len(s)
+        for g in (G, I, Ig, L, R):
+            self.assertEqual(list(accumulate(g(s))), r)
+        self.assertEqual(list(accumulate(S(s))), [])
+        self.assertRaises(TypeError, accumulate, X(s))
+        self.assertRaises(TypeError, accumulate, N(s))
+        self.assertRaises(ZeroDivisionError, list, accumulate(E(s)))
 
     def test_chain(self):
         for s in ("123", "", range(1000), ('do', 1.2), range(2000,2200,5)):
@@ -1405,7 +1446,7 @@ class SubclassWithKwargsTest(unittest.TestCase):
                 Subclass(newarg=1)
             except TypeError as err:
                 # we expect type errors because of wrong argument count
-                self.assertFalse("does not take keyword arguments" in err.args[0])
+                self.assertNotIn("does not take keyword arguments", err.args[0])
 
 
 libreftest = """ Doctest for examples in the library reference: libitertools.tex

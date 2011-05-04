@@ -275,8 +275,7 @@ class OperatorTestCase(unittest.TestCase):
         self.assertEqual(f(a), 'arthur')
         f = operator.attrgetter('rank')
         self.assertRaises(AttributeError, f, a)
-        f = operator.attrgetter(2)
-        self.assertRaises(TypeError, f, a)
+        self.assertRaises(TypeError, operator.attrgetter, 2)
         self.assertRaises(TypeError, operator.attrgetter)
 
         # multiple gets
@@ -285,7 +284,7 @@ class OperatorTestCase(unittest.TestCase):
         record.y = 'Y'
         record.z = 'Z'
         self.assertEqual(operator.attrgetter('x','z','y')(record), ('X', 'Z', 'Y'))
-        self.assertRaises(TypeError, operator.attrgetter('x', (), 'y'), record)
+        self.assertRaises(TypeError, operator.attrgetter, ('x', (), 'y'))
 
         class C(object):
             def __getattr__(self, name):
@@ -303,6 +302,10 @@ class OperatorTestCase(unittest.TestCase):
         f = operator.attrgetter('name', 'child.name')
         self.assertEqual(f(a), ('arthur', 'thomas'))
         f = operator.attrgetter('name', 'child.name', 'child.child.name')
+        self.assertRaises(AttributeError, f, a)
+        f = operator.attrgetter('child.')
+        self.assertRaises(AttributeError, f, a)
+        f = operator.attrgetter('.child')
         self.assertRaises(AttributeError, f, a)
 
         a.child.child = A()
@@ -357,12 +360,12 @@ class OperatorTestCase(unittest.TestCase):
         f = operator.methodcaller('foo')
         self.assertRaises(IndexError, f, a)
         f = operator.methodcaller('foo', 1, 2)
-        self.assertEquals(f(a), 3)
+        self.assertEqual(f(a), 3)
         f = operator.methodcaller('bar')
-        self.assertEquals(f(a), 42)
+        self.assertEqual(f(a), 42)
         self.assertRaises(TypeError, f, a, a)
         f = operator.methodcaller('bar', f=5)
-        self.assertEquals(f(a), 5)
+        self.assertEqual(f(a), 5)
 
     def test_inplace(self):
         class C(object):

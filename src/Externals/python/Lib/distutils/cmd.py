@@ -4,7 +4,7 @@ Provides the Command class, the base class for the command classes
 in the distutils.command package.
 """
 
-__revision__ = "$Id: cmd.py 74991 2009-09-21 13:10:05Z tarek.ziade $"
+__revision__ = "$Id: cmd.py 83053 2010-07-22 12:50:05Z tarek.ziade $"
 
 import sys, os, re
 from distutils.errors import DistutilsOptionError
