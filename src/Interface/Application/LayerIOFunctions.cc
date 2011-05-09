@@ -86,9 +86,16 @@ void LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 		
 		// Step (2): Bring up the file dialog
 		QString qs_filtername;
+
+		std::string default_dir;
+		{
+			Core::StateEngine::lock_type lock(Core::StateEngine::GetMutex() );
+			default_dir = PreferencesManager::Instance()->project_path_state_->get();
+		}
+
 		file_list = QFileDialog::getOpenFileNames( main_window, 
-			"Import Layer(s)... ", "/home", filters, &qs_filtername );
-		
+			"Import Layer(s)... ", QString::fromStdString( default_dir ), filters, &qs_filtername );
+					
 		if( file_list.size() == 0) return;
 		filtername = qs_filtername.toStdString();
 	}
@@ -147,8 +154,16 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 
 	// Step (2): Bring up the file dialog
 	QString filtername;
+
+	std::string default_dir;
+	{
+		Core::StateEngine::lock_type lock(Core::StateEngine::GetMutex() );
+		default_dir = PreferencesManager::Instance()->project_path_state_->get();
+	}
+	
 	QStringList file_list = QFileDialog::getOpenFileNames( main_window, 
-		"Select a file from the series... ", "/home", filters, &filtername );
+		"Select a file from the series... ", QString::fromStdString( default_dir ), 
+		filters, &filtername );
 	
 	if( file_list.size() == 0) return;
 	
