@@ -7,13 +7,11 @@ PROJECT(SQLite)
 SET( SQLITE_SRCS
 	sqlite3.h
 	sqlite3ext.h
-	shell.c
 	sqlite3.c
 )
 
 ###########################################
 # Set the name of the library
-
 SET(SCI_SQLITE_LIBRARY sqlite CACHE INTERNAL "SQLite Library name." FORCE)
 
 ###########################################
