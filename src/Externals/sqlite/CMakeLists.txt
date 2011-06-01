@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 PROJECT(SQLite)
 
-
 ###########################################
 # Source files for SQLite
 SET( SQLITE_SRCS
@@ -9,6 +8,8 @@ SET( SQLITE_SRCS
 	sqlite3ext.h
 	sqlite3.c
 )
+
+ADD_DEFINITIONS(-DSQLITE_ENABLE_COLUMN_METADATA)
 
 ###########################################
 # Set the name of the library
