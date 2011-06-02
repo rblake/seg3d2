@@ -75,7 +75,7 @@ private:
 	Core::ActionParameter< double > quality_factor_;
 
 	// This parameter describes whether capping is enabled for the isosurface
-	Core::ActionParameter< double > capping_enabled_;
+	Core::ActionParameter< bool > capping_enabled_;
 
 	// -- Dispatch this action from the interface --
 public:

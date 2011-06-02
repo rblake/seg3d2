@@ -49,6 +49,7 @@
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/LayerManager/Actions/ActionExportLayer.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
+#include <Application/ProjectManager/ProjectManager.h>
 
 // Interface includes
 #include <Interface/Application/LayerImporterWidget.h>
@@ -87,14 +88,11 @@ void LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 		// Step (2): Bring up the file dialog
 		QString qs_filtername;
 
-		std::string default_dir;
-		{
-			Core::StateEngine::lock_type lock(Core::StateEngine::GetMutex() );
-			default_dir = PreferencesManager::Instance()->project_path_state_->get();
-		}
+		boost::filesystem::path current_file_folder = 
+			ProjectManager::Instance()->get_current_file_folder();
 
 		file_list = QFileDialog::getOpenFileNames( main_window, 
-			"Import Layer(s)... ", QString::fromStdString( default_dir ), filters, &qs_filtername );
+			"Import Layer(s)... ", current_file_folder.string().c_str(), filters, &qs_filtername );
 					
 		if( file_list.size() == 0) return;
 		filtername = qs_filtername.toStdString();
@@ -152,17 +150,13 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 		filters = filters + ";;" + QString::fromStdString( importer_types[j] );
 	}
 
-	// Step (2): Bring up the file dialog
-	QString filtername;
+	boost::filesystem::path current_file_folder = 
+		ProjectManager::Instance()->get_current_file_folder();
 
-	std::string default_dir;
-	{
-		Core::StateEngine::lock_type lock(Core::StateEngine::GetMutex() );
-		default_dir = PreferencesManager::Instance()->project_path_state_->get();
-	}
-	
+	// Step (2): Bring up the file dialog
+	QString filtername;	
 	QStringList file_list = QFileDialog::getOpenFileNames( main_window, 
-		"Select a file from the series... ", QString::fromStdString( default_dir ), 
+		"Select a file from the series... ", current_file_folder.string().c_str(), 
 		filters, &filtername );
 	
 	if( file_list.size() == 0) return;
@@ -442,8 +436,7 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 		return;
 	}
 
-	boost::filesystem::path file_path = boost::filesystem::path( 
-		PreferencesManager::Instance()->export_path_state_->get() ) / layer_handles[ 0 ]->get_layer_name();
+	boost::filesystem::path file_path = ProjectManager::Instance()->get_current_file_folder();
 
 	QString filename = QFileDialog::getSaveFileName( main_window, "Export Data Layer As... ",
 		QString::fromStdString( file_path.string() ),

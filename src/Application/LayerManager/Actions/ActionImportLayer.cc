@@ -35,6 +35,7 @@
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
+#include <Application/ProjectManager/ProjectManager.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
@@ -122,6 +123,11 @@ bool ActionImportLayer::run( Core::ActionContextHandle& context, Core::ActionRes
 	{
 		if ( layers[ j ] ) LayerManager::Instance()->insert_layer( layers[ j ] );
 	}
+
+	boost::filesystem::path full_filename( this->filename_.value() );
+	ProjectManager::Instance()->current_file_folder_state_->set( 
+		full_filename.parent_path().string() );
+	ProjectManager::Instance()->save_projectmanager_state();
 
 	progress->end_progress_reporting();
 

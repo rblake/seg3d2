@@ -68,6 +68,10 @@ ProjectManager::ProjectManager() :
 	this->add_state( "project_saved", this->project_saved_state_, false );
 	this->project_saved_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
 
+	// This state variable keeps track of what the last directory was that we
+	// used for saving/loading layer files
+	this->add_state( "current_file_folder", this->current_file_folder_state_, "" );
+
 	try
 	{
 		boost::filesystem::path path = complete( boost::filesystem::path(
@@ -90,14 +94,17 @@ ProjectManager::ProjectManager() :
 	{
 		this->load_states( stateio );
 	}
-	
+
+	boost::filesystem::path current_file_folder = this->get_current_file_folder();
+	this->current_file_folder_state_->set( current_file_folder.string() );
+
 	// Here we check to see if the recent projects database exists, otherwise we create it
 	if( !boost::filesystem::exists( this->recent_projects_database_path_ ) )
 	{
 		this->create_database_scheme();
 	}
 	
-	// Here we clean out any projects that dont exist where we think they should
+	// Here we clean out any projects that don't exist where we think they should
 	this->cleanup_recent_projects_database();
 
 	this->set_initializing( false );
@@ -113,6 +120,34 @@ ProjectManager::~ProjectManager()
 {
 }
 
+boost::filesystem::path ProjectManager::get_current_file_folder()
+{
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() ); 
+
+	boost::filesystem::path current_file_folder( this->current_file_folder_state_->get() );
+	try
+	{
+		// Complete the path to have an absolute path
+		current_file_folder = boost::filesystem::system_complete( current_file_folder );
+	}
+	catch ( ... )
+	{
+	}
+
+	// If it does not exist reset the path to another path
+	if ( !boost::filesystem::exists( current_file_folder ) )
+	{
+		Core::Application::Instance()->get_user_directory( current_file_folder );
+
+		// Try current working path
+		if ( !boost::filesystem::exists( current_file_folder ) )
+		{
+			current_file_folder = current_file_folder.parent_path();
+		}
+	}
+
+	return current_file_folder;
+}
 
 bool ProjectManager::check_if_file_is_valid_project( const boost::filesystem::path& path )
 {

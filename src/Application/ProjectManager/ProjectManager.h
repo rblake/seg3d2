@@ -163,10 +163,13 @@ public:
 	
 	// Get a vector of recent projects of recent
 	bool get_recent_projects_from_database( std::vector< RecentProject >& recent_projects );
+
+	// GET_CURRENT_FILE_FOLDER:
+	// Get a current_file_folder that is actually available
+	boost::filesystem::path get_current_file_folder();
 	
 public:
 	typedef boost::signals2::signal< void() > recent_project_signal_type;
-
 	recent_project_signal_type recent_projects_changed_signal_;
 	
 public:
@@ -175,6 +178,9 @@ public:
 
 	// Counter for making new project names
 	Core::StateIntHandle			default_project_name_counter_state_;
+
+	// Path to the directory from which files are loaded
+	Core::StateStringHandle current_file_folder_state_; 
 
 	// Whether the current project has been saved or not
 	Core::StateBoolHandle			project_saved_state_;
