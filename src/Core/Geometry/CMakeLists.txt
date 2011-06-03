@@ -58,6 +58,8 @@ SET(CORE_GEOMETRY_SRCS
   Algorithm.cc
   Measurement.h
   Measurement.cc
+  Path.h
+  Path.cc
 )
 
 ##################################################
