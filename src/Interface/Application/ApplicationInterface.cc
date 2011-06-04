@@ -106,7 +106,7 @@ public:
 	QPointer< ToolsDockWidget > tools_dock_window_;
 	QPointer< LayerManagerDockWidget > layer_manager_dock_window_;
 	QPointer< RenderingDockWidget > rendering_dock_window_;
-	QPointer< ProvenanceDockWidget > provenance_dock_window_;
+	//QPointer< ProvenanceDockWidget > provenance_dock_window_;
 	QPointer< ProgressWidget > progress_;
 	
 	// Pointer to the new project wizard
@@ -189,8 +189,8 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	this->private_->tools_dock_window_ = new ToolsDockWidget( this );
 	this->addDockWidget( Qt::LeftDockWidgetArea, this->private_->tools_dock_window_ );
 
-	this->private_->provenance_dock_window_ = new ProvenanceDockWidget( this );
-	this->addDockWidget( Qt::RightDockWidgetArea, this->private_->provenance_dock_window_ );
+	//this->private_->provenance_dock_window_ = new ProvenanceDockWidget( this );
+	//this->addDockWidget( Qt::RightDockWidgetArea, this->private_->provenance_dock_window_ );
 	
 	
 	// Connect the windows and widgets to their visibility states
@@ -206,8 +206,8 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	QtUtils::QtBridge::Show( this->private_->project_dock_window_, 
 		InterfaceManager::Instance()->project_dockwidget_visibility_state_ );
 
-	QtUtils::QtBridge::Show( this->private_->provenance_dock_window_, 
-		InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
+	//QtUtils::QtBridge::Show( this->private_->provenance_dock_window_, 
+	//	InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
 
 // 	QtUtils::QtBridge::Show( this->private_->history_dock_window_, 
 // 		InterfaceManager::Instance()->history_dockwidget_visibility_state_ );

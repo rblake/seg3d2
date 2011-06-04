@@ -57,13 +57,15 @@ bool ActionLoadSession::validate( Core::ActionContextHandle& context )
 	}
 
 	// Ensure the session exists
+	SessionInfo session_info;
 	if( !ProjectManager::Instance()->get_current_project()->
-		is_session( this->session_id_ ) )
+		get_session_info( this->session_id_, session_info ) )
 	{
 		std::string error = Core::ExportToString( this->session_id_ ) + " is not a valid session ID.";
 		context->report_error( error );
 		return false;
 	}
+	this->session_name_ = session_info.session_name();
 	
 	return true;
 }
@@ -71,8 +73,8 @@ bool ActionLoadSession::validate( Core::ActionContextHandle& context )
 bool ActionLoadSession::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	std::string message = std::string( "Loading session: " ) + 
-		Core::ExportToString( this->session_id_ ) + std::string( " ..." );
+	std::string message = std::string( "Loading session '" ) + 
+		this->session_name_ + std::string( "' ..." );
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
@@ -89,14 +91,11 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 	}
 	catch( ... )
 	{
-		std::string error = std::string( "Failed to load session " ) + 
-			Core::ExportToString( this->session_id_ ) + ".";
+		std::string error = std::string( "Failed to load session '" ) + 
+			this->session_name_ + "'.";
 		context->report_error( error );
 		success = false;	
 	}
-	
-	// Clear undo buffer, we do not keep the undo buffer around
-	UndoBuffer::Instance()->reset_undo_buffer();
 
 	// TODO: This works around a problem in the current code, that makes a change when a session
 	// is loaded. This adds a reset on the current application callback stack so only changes 
@@ -109,9 +108,17 @@ bool ActionLoadSession::run( Core::ActionContextHandle& context,
 	// Allow the user to interact with the GUI once more.
 	progress->end_progress_reporting();
 	
-	std::string success_message = std::string( "Successfully loaded session " ) + 
-		Core::ExportToString( this->session_id_ ) + ".";
-	CORE_LOG_SUCCESS( success_message );
+	if ( success )
+	{
+		std::string success_message = std::string( "Successfully loaded session '" ) + 
+			this->session_name_ + "'.";
+		CORE_LOG_SUCCESS( success_message );
+	}
+	else
+	{
+		std::string error = "Failed to load session '" + this->session_name_ + "'.";
+		context->report_error( error );
+	}
 	
 	return success;
 }

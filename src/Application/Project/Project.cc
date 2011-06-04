@@ -133,6 +133,7 @@ public:
 
 	void query_provenance_trail( ProvenanceID prov_id, ProvenanceTrail& provenance_trail );
 	
+	void extract_session_info( ResultSet& result_set, std::vector< SessionInfo >& sessions );
 	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 
 	void convert_version1_project();
@@ -140,7 +141,6 @@ public:
 	bool parse_session_data( const boost::filesystem::path& file_path, std::set< long long >& generations );
 
 	void set_session_file( SessionID id, const std::string& file_name );
-
 	// -- internal variables --
 public:
 	// Pointer back to the project
@@ -291,21 +291,21 @@ bool ProjectPrivate::update_project_directory( const boost::filesystem::path& pr
 		}
 	}
 	
-	if ( ! boost::filesystem::exists( project_directory / PROVENANCE_DIR_C ) )
-	{					
-		try // to create a folder with the provenance data base
-		{
-			boost::filesystem::create_directory( project_directory / PROVENANCE_DIR_C );
-		}
-		catch ( ... )
-		{
-			std::string error = 
-				std::string( "Could not create provenance directory in project folder '" ) + 
-				project_directory.filename().string() + "'.";
-			CORE_LOG_ERROR( error );
-			return false; 
-		}
-	}
+	//if ( ! boost::filesystem::exists( project_directory / PROVENANCE_DIR_C ) )
+	//{					
+	//	try // to create a folder with the provenance data base
+	//	{
+	//		boost::filesystem::create_directory( project_directory / PROVENANCE_DIR_C );
+	//	}
+	//	catch ( ... )
+	//	{
+	//		std::string error = 
+	//			std::string( "Could not create provenance directory in project folder '" ) + 
+	//			project_directory.filename().string() + "'.";
+	//		CORE_LOG_ERROR( error );
+	//		return false; 
+	//	}
+	//}
 
 	if ( ! boost::filesystem::exists( project_directory / "inputfiles" ) )
 	{						
@@ -353,16 +353,12 @@ bool ProjectPrivate::clean_up_session_database()
 		if ( boost::filesystem::exists( session_file ) ) continue;
 
 		// Otherwise, if there is 'session_file' explicitly stored in the database, try it also
-		ResultSet::value_type::iterator it = result_set[ i ].find( "session_file" );
-		if ( it != result_set[ i ].end() )
+		try
 		{
-			std::string session_file_str = boost::any_cast< std::string >( ( *it ).second );
-			if ( !session_file_str.empty() )
-			{
-				session_file = project_path / SESSION_DIR_C / session_file_str;
-				if ( boost::filesystem::exists( session_file ) ) continue;
-			}
+			std::string session_file_str = boost::any_cast< std::string >( result_set[ i ][ "session_file" ] );
+			if ( boost::filesystem::exists( project_path / SESSION_DIR_C / session_file_str ) ) continue;
 		}
+		catch ( ... ) {}
 
 		// No session file exists for the session, delete it from database
 		this->delete_session_from_database( session_id );
@@ -409,8 +405,8 @@ bool ProjectPrivate::save_state( const boost::filesystem::path& project_director
 	// Save the project database
 	boost::filesystem::path session_database = project_directory / 
 		SESSION_DIR_C / SESSION_DATABASE_C;
-	boost::filesystem::path provenance_database = project_directory /
-		PROVENANCE_DIR_C / PROVENANCE_DATABASE_C;
+	//boost::filesystem::path provenance_database = project_directory /
+	//	PROVENANCE_DIR_C / PROVENANCE_DATABASE_C;
 	std::string error;
 	if ( !this->session_database_.save_database( session_database, error ) )
 	{
@@ -418,11 +414,11 @@ bool ProjectPrivate::save_state( const boost::filesystem::path& project_director
 		return false;
 	}
 
-	if ( !this->provenance_database_.save_database( provenance_database, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
+	//if ( !this->provenance_database_.save_database( provenance_database, error ) )
+	//{
+	//	CORE_LOG_ERROR( error );
+	//	return false;
+	//}
 
 	return true;
 }
@@ -629,12 +625,12 @@ bool ProjectPrivate::initialize_provenance_database()
 	// Set the database version to 1
 	sql_statements += "INSERT INTO database_version VALUES (1);";
 
-	std::string error;
-	if ( !this->provenance_database_.run_sql_script( sql_statements, error ) )
-	{
-		CORE_LOG_ERROR( "Failed to initialize the provenance database: " + error );
-		return false;
-	}
+	//std::string error;
+	//if ( !this->provenance_database_.run_sql_script( sql_statements, error ) )
+	//{
+	//	CORE_LOG_ERROR( "Failed to initialize the provenance database: " + error );
+	//	return false;
+	//}
 
 	return true;
 }
@@ -757,18 +753,8 @@ void ProjectPrivate::query_provenance_trail( ProvenanceID prov_id, ProvenanceTra
 	}
 }
 
-bool ProjectPrivate::get_all_sessions( std::vector< SessionInfo >& sessions )
+void ProjectPrivate::extract_session_info( ResultSet& result_set, std::vector< SessionInfo >& sessions )
 {
-	std::string error;
-
-	ResultSet result_set;
-	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
-	if( !this->session_database_.run_sql_statement( select_statement, result_set, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
-
 	typedef boost::date_time::c_local_adjustor< boost::posix_time::ptime > local_adjustor;
 	std::stringstream ss;
 	ss.imbue( std::locale( ss.getloc(), new boost::posix_time::time_input_facet( 
@@ -793,7 +779,21 @@ bool ProjectPrivate::get_all_sessions( std::vector< SessionInfo >& sessions )
 		}
 		sessions.push_back( SessionInfo( session_id, session_name, user_id, timestamp ) );
 	}
+}
 
+bool ProjectPrivate::get_all_sessions( std::vector< SessionInfo >& sessions )
+{
+	std::string error;
+
+	ResultSet result_set;
+	std::string select_statement = "SELECT * FROM sessions ORDER BY session_id DESC;";
+	if( !this->session_database_.run_sql_statement( select_statement, result_set, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	this->extract_session_info( result_set, sessions );
 	return true;
 }
 
@@ -863,8 +863,11 @@ void ProjectPrivate::convert_version1_project()
 		std::set< long long > generations;
 		if ( !this->parse_session_data( old_path, generations ) ) continue;
 
-		generation_count = Core::Max( generation_count, 
-			*( std::max_element( generations.begin(), generations.end() ) ) );
+		if ( !generations.empty() )
+		{
+			generation_count = Core::Max( generation_count, 
+				*( std::max_element( generations.begin(), generations.end() ) ) );
+		}
 
 		SessionID session_id = this->insert_session_into_database( session_info_strs[ 1 ], session_info_strs[ 2 ], ss.str() );
 		if ( session_id < 0 )
@@ -1257,13 +1260,13 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 			this->private_->initialize_session_database();
 		}
 
-		boost::filesystem::path provenance_db_file = full_filename.parent_path() /
-			PROVENANCE_DIR_C / PROVENANCE_DATABASE_C;
-		if ( !boost::filesystem::exists( provenance_db_file ) ||
-			!this->private_->provenance_database_.load_database( provenance_db_file, error ) )
-		{
-			this->private_->initialize_provenance_database();
-		}
+		//boost::filesystem::path provenance_db_file = full_filename.parent_path() /
+		//	PROVENANCE_DIR_C / PROVENANCE_DATABASE_C;
+		//if ( !boost::filesystem::exists( provenance_db_file ) ||
+		//	!this->private_->provenance_database_.load_database( provenance_db_file, error ) )
+		//{
+		//	this->private_->initialize_provenance_database();
+		//}
 	}
 
 	// Delete session records from the database that don't have corresponding session files
@@ -1536,12 +1539,12 @@ bool Project::check_project_files()
 	}
 
 	// Check if provenance database file still exists
-	if ( !boost::filesystem::exists( project_path / PROVENANCE_DIR_C / PROVENANCE_DATABASE_C ) )
-	{
-		//this->project_files_generated_state_->set( false );
-		this->project_files_accessible_state_->set( false );
-		return false;		
-	}
+	//if ( !boost::filesystem::exists( project_path / PROVENANCE_DIR_C / PROVENANCE_DATABASE_C ) )
+	//{
+	//	//this->project_files_generated_state_->set( false );
+	//	this->project_files_accessible_state_->set( false );
+	//	return false;		
+	//}
 
 	this->project_files_accessible_state_->set( true );
 	return true;
@@ -1574,15 +1577,12 @@ bool Project::load_session( SessionID session_id )
 		( Core::ExportToString( session_id ) + ".xml" );
 	if ( !boost::filesystem::exists( session_file ) )
 	{
-		ResultSet::value_type::iterator it = result_set[ 0 ].find( "session_file" );
-		if ( it != result_set[ 0 ].end() )
+		try
 		{
-			std::string session_file_str = boost::any_cast< std::string >( ( *it ).second );
-			if ( !session_file_str.empty() )
-			{
-				session_file = project_path / SESSION_DIR_C / session_file_str;
-			}
+			std::string session_file_str = boost::any_cast< std::string >( result_set[ 0 ][ "session_file" ] );
+			session_file = project_path / SESSION_DIR_C / session_file_str;
 		}
+		catch ( ... ) {}
 	}
 
 	if ( !boost::filesystem::exists( session_file ) )
@@ -1628,7 +1628,9 @@ bool Project::load_last_session()
 			return true;
 		}
 		// Remove the session record since it can't be loaded
+		CORE_LOG_ERROR( "Session '" + sessions[ i ].session_name() + "' is invalid." );
 		this->private_->delete_session_from_database( sessions[ i ].session_id() );
+		Core::Application::Reset();
 	}
 
 	// We could not load the file, hence send a message to the user
@@ -1751,23 +1753,25 @@ bool Project::delete_session( SessionID session_id )
 	else
 	{
 		// Otherwise, if there is 'session_file' explicitly stored in the database, try it also
-		ResultSet::value_type::iterator it = result_set[ 0 ].find( "session_file" );
-		if ( it != result_set[ 0 ].end() )
+		std::string session_file_str;
+		try
 		{
-			std::string session_file_str = boost::any_cast< std::string >( ( *it ).second );
-			if ( !session_file_str.empty() )
+			session_file_str = boost::any_cast< std::string >( result_set[ 0 ][ "session_file" ] );
+		}
+		catch ( ... ) {}
+
+		if ( !session_file_str.empty() )
+		{
+			session_file = project_path / SESSION_DIR_C / session_file_str;
+			if ( boost::filesystem::exists( session_file ) ) 
 			{
-				session_file = project_path / SESSION_DIR_C / session_file_str;
-				if ( boost::filesystem::exists( session_file ) ) 
+				try
 				{
-					try
-					{
-						boost::filesystem::remove( session_file );
-					}
-					catch ( ... ) 
-					{
-						CORE_LOG_ERROR( "Couldn't delete file '" + session_file.string() + "'." );
-					}
+					boost::filesystem::remove( session_file );
+				}
+				catch ( ... ) 
+				{
+					CORE_LOG_ERROR( "Couldn't delete file '" + session_file.string() + "'." );
 				}
 			}
 		}
@@ -1790,6 +1794,30 @@ bool Project::delete_session( SessionID session_id )
 
 	return true;
 }	
+
+bool Project::get_session_info( SessionID session_id, SessionInfo& session_info )
+{
+	std::string error;
+	ResultSet result_set;
+	std::string sql_str = "SELECT * FROM sessions WHERE session_id = " +
+		Core::ExportToString( session_id ) + ";";
+	if( !this->private_->session_database_.run_sql_statement( sql_str, result_set, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	if ( result_set.size() == 0 )
+	{
+		return false;
+	}
+
+	std::vector< SessionInfo > sessions;
+	this->private_->extract_session_info( result_set, sessions );
+	session_info = sessions[ 0 ];
+
+	return true;
+}
 
 void Project::reset_project_changed()
 {
@@ -1901,6 +1929,7 @@ ProvenanceStepID Project::add_provenance_record( const ProvenanceStepHandle& ste
 {
 	// Print diagnostics
 	//step->print();
+	return -1;
 	
 	std::string action_desc = step->get_action();
 	std::string user_name = step->get_username();
@@ -1980,6 +2009,8 @@ ProvenanceStepID Project::add_provenance_record( const ProvenanceStepHandle& ste
 
 bool Project::delete_provenance_record( ProvenanceStepID record_id )
 {
+	return true;
+
 	std::string sql_str = "DELETE FROM provenance_step WHERE prov_step_id = " +
 		Core::ExportToString( record_id ) + ";";
 	std::string error;
@@ -1993,6 +2024,8 @@ bool Project::delete_provenance_record( ProvenanceStepID record_id )
 
 void Project::update_provenance_record( ProvenanceStepID record_id, const ProvenanceStepHandle& prov_step )
 {
+	return;
+
 	// Separate out action name and parameter strings
 	std::string action_desc = prov_step->get_action();
 	std::string action_params;
@@ -2031,6 +2064,8 @@ boost::posix_time::ptime Project::get_last_saved_session_time_stamp() const
 
 void Project::request_provenance_record( ProvenanceID prov_id )
 {
+	return;
+
 	// Run SQL queries in application thread
 	if ( !Core::Application::IsApplicationThread() )
 	{

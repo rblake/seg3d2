@@ -220,7 +220,7 @@ bool ActionPaint::run( Core::ActionContextHandle& context, Core::ActionResultHan
 	provenance_step->set_action( this->export_to_provenance_string() );
 	ProvenanceStepID prov_step_id = ProjectManager::Instance()->get_current_project()->
 		add_provenance_record( provenance_step );
-	assert( prov_step_id > 0 );
+	//assert( prov_step_id > 0 );
 
 	// Create a new undo item
 	LayerUndoBufferItemHandle item( new LayerUndoBufferItem( "Paint Stroke" ) );

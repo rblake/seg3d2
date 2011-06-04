@@ -384,8 +384,9 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 		QtUtils::QtBridge::Show( this->private_->ui_.opacity_bar_,
 			layer->show_opacity_state_ );
 
-		QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
-			boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
+		//QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
+		//	boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
+		this->private_->ui_.provenance_button_->hide();
 
 		// Compute isosurface button is enabled when the layer is not locked and is available
 		QtUtils::QtBridge::Enable( this->private_->ui_.compute_iso_surface_button_, enable_states,
