@@ -112,6 +112,20 @@ INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
 ADD_SUBDIRECTORY(itk)
 
 ##################################################
+# ADDING HDF5
+##################################################
+
+MESSAGE(STATUS "Configuring HDF5")
+ADD_SUBDIRECTORY(hdf5)
+
+##################################################
+# ADDING MRC2000
+##################################################
+
+MESSAGE(STATUS "Configuring MRC2000")
+ADD_SUBDIRECTORY(MRC2000IO)
+
+##################################################
 # ADDING PYTHON
 ##################################################
 
