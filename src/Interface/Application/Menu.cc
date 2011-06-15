@@ -501,11 +501,11 @@ void Menu::create_window_menu( QMenuBar* menubar )
 		InterfaceManager::Instance()->rendering_dockwidget_visibility_state_ );
 
 	// Provenance Widget
-	qaction = qmenu->addAction( "Provenance Window" );
-	qaction->setShortcut( tr( "Ctrl+Shift+H" ) );
-	qaction->setCheckable( true );
-	QtUtils::QtBridge::Connect( qaction, 
-		InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
+	//qaction = qmenu->addAction( "Provenance Window" );
+	//qaction->setShortcut( tr( "Ctrl+Shift+H" ) );
+	//qaction->setCheckable( true );
+	//QtUtils::QtBridge::Connect( qaction, 
+	//	InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
 
 	qmenu->addSeparator();
 
