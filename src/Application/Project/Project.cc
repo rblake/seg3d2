@@ -2400,7 +2400,7 @@ bool Project::is_session( SessionID session_id )
 // create a Provenance Object and then add it to the db.
 ProvenanceStepID Project::add_provenance_record( const ProvenanceStepHandle& step )
 {
-	return 0;
+	return 1;
 	// Print diagnostics
 	//step->print();
 	
