@@ -229,7 +229,7 @@ void LayerGroupPrivate::handle_layers_iso_visible_state_changed( std::string sta
 		return;
 	}
 
-	bool visible = state ==  "all";
+	bool visible = ( state ==  "all" );
 
 	Core::ScopedCounter signal_block( this->signal_block_count_ );
 
@@ -557,17 +557,18 @@ bool LayerGroup::post_save_states( Core::StateIO& state_io )
 	state_io.push_current_element();
 	state_io.set_current_element( layers_element );
  	
+	bool succeeded = true;
 	layer_list_type::reverse_iterator it = this->layer_list_.rbegin();
 	for ( ; it != this->layer_list_.rend(); it++ )
 	{
 		if ( ( *it )->has_valid_data() )
 		{
-			( *it )->save_states( state_io );
+			succeeded = succeeded && ( *it )->save_states( state_io );
 		}
 	}
  	
  	state_io.pop_current_element();
- 	return true;
+ 	return succeeded;
 }
 	
 bool LayerGroup::has_a_valid_layer() const
@@ -643,7 +644,7 @@ bool LayerGroup::post_load_states( const Core::StateIO& state_io )
 			
 			// Here we do any post loading processing that requires both the group and layer info
 			
-			// Now, if the mask had its ISO surface generated we dispatch an action to do it again
+			// Now, if the mask had its isosurface generated we dispatch an action to do it again
 			if( layer_type == "mask" ) 
 			{
 				MaskLayerHandle temp_mask_handle = boost::dynamic_pointer_cast< MaskLayer >( layer );

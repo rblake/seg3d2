@@ -384,9 +384,8 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 		QtUtils::QtBridge::Show( this->private_->ui_.opacity_bar_,
 			layer->show_opacity_state_ );
 
-		//QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
-		//	boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
-		this->private_->ui_.provenance_button_->hide();
+		QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
+			boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
 
 		// Compute isosurface button is enabled when the layer is not locked and is available
 		QtUtils::QtBridge::Enable( this->private_->ui_.compute_iso_surface_button_, enable_states,
@@ -504,8 +503,13 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 				this->private_->ui_.bright_contrast_->hide();
 				this->private_->ui_.datainfo_widget_->hide();
 				
-				this->connect( this->private_->color_widget_, SIGNAL( color_changed( int ) ), 
+				this->connect( this->private_->color_widget_, SIGNAL( color_index_changed( int ) ), 
 					this, SLOT( set_mask_background_color( int ) ) );
+
+				// Color changes only come from preferences and we only want to change the mask
+				// background color if the color was changed for the current index 
+				this->connect( this->private_->color_widget_, SIGNAL( color_changed( int ) ), 
+					this, SLOT( set_mask_background_color_from_preference_change( int ) ) );
 					
 				MaskLayer* mask_layer = dynamic_cast< MaskLayer* >( layer.get() );	
 				if ( mask_layer )
@@ -591,7 +595,7 @@ void LayerWidget::compute_isosurface()
 	// Dispatch action to compute isosurface
 	MaskLayerHandle mask_layer = boost::dynamic_pointer_cast< MaskLayer >( this->private_->layer_ );
 	ActionComputeIsosurface::Dispatch( Core::Interface::GetWidgetActionContext(), mask_layer, 
-		quality, capping_enabled );
+		quality, capping_enabled, true );
 }
 
 void LayerWidget::delete_isosurface()
@@ -708,21 +712,25 @@ void LayerWidget::update_widget_state( bool initialize )
 	{
 		// Change the color of the widget
 		this->update_appearance( visual_lock,  active_layer, false, initialize );
+		this->private_->ui_.selection_checkbox_->setVisible( true );
 	}
 	else if ( data_state == Layer::CREATING_C )
 	{
 		// Change the color of the widget
 		update_appearance( true,  false, false, initialize );	
+		this->private_->ui_.selection_checkbox_->setVisible( false );
 	}
 	else if ( data_state == Layer::PROCESSING_C )
 	{
 		// Change the color of the widget
 		update_appearance( visual_lock,  active_layer, true, initialize );	
+		this->private_->ui_.selection_checkbox_->setVisible( false );
 	}
 	else if ( data_state == Layer::IN_USE_C )
 	{
 		// Change the color of the widget
 		update_appearance( visual_lock,  active_layer, true, initialize );		
+		this->private_->ui_.selection_checkbox_->setVisible( true );
 	}
 }
 
@@ -760,25 +768,13 @@ void LayerWidget::set_mask_background_color( int color_index )
 
 void LayerWidget::set_mask_background_color_from_preference_change( int color_index )
 {
-	if( dynamic_cast< MaskLayer* >( this->private_->layer_.get()  )->color_state_->get() != 
+	// We only want to change the mask background color if the color was changed for the 
+	// selected index 
+	if( dynamic_cast< MaskLayer* >( this->private_->layer_.get()  )->color_state_->get() == 
 		color_index )
 	{
-		return;
+		this->set_mask_background_color( color_index );
 	}
-	
-	Core::Color color = PreferencesManager::Instance()->color_states_[ color_index ]->get();
-
-	int r = static_cast< int >( color.r() );
-	int g = static_cast< int >( color.g() );
-	int b = static_cast< int >( color.b() );
-	
-	QString style_sheet = QString::fromUtf8( 
-	"background-color: rgb(" ) + QString::number( r ) +
-	QString::fromUtf8( ", " ) + QString::number( g ) +
-	QString::fromUtf8( ", " ) + QString::number( b ) +
-	QString::fromUtf8( ");" );
-
-	this->private_->ui_.type_->setStyleSheet( style_sheet );
 }
 
 void LayerWidget::trigger_abort()
@@ -1188,7 +1184,8 @@ void LayerWidget::UpdateProgress( qpointer_type qpointer, double progress )
 
 bool LayerWidget::get_selected() const
 {
-	return this->private_->ui_.selection_checkbox_->isChecked();
+	return this->private_->ui_.selection_checkbox_->isChecked() &&
+		this->private_->ui_.selection_checkbox_->isVisible();
 }
 
 void LayerWidget::activate_from_lineedit_focus()
@@ -1199,6 +1196,18 @@ void LayerWidget::activate_from_lineedit_focus()
 
 void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 {
+	std::string data_state;
+	{
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+		data_state = this->private_->layer_->data_state_->get();
+	}
+	
+	if ( data_state == Layer::PROCESSING_C || data_state == Layer::CREATING_C )
+	{
+		event->accept();
+		return;
+	}
+	
 	QMenu menu( this );
 	QAction* qaction;
 	qaction = menu.addAction( tr( "Duplicate Layer" ) );
@@ -1206,8 +1215,11 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 		boost::bind( &ActionDuplicateLayer::Dispatch, Core::Interface::GetWidgetActionContext(), 
 		this->private_->layer_->get_layer_id() ) );
 	
-	qaction = menu.addAction( tr( "Delete Layer" ) );
-	connect( qaction, SIGNAL( triggered() ), this, SLOT( delete_layer_from_context_menu() ) );
+	if ( data_state != Layer::IN_USE_C  )
+	{
+		qaction = menu.addAction( tr( "Delete Layer" ) );
+		connect( qaction, SIGNAL( triggered() ), this, SLOT( delete_layer_from_context_menu() ) );
+	}
 	
 	qaction = menu.addAction( tr( "Show Provenance" ) );
 	connect( qaction, SIGNAL( triggered() ), this, SLOT( request_provenance() ) );
@@ -1328,19 +1340,6 @@ void LayerWidget::export_bitmap()
 void LayerWidget::export_png()
 {
 	this->export_layer( ".png" );
-}
-
-void LayerWidget::set_iso_surface_visibility( bool visibility )
-{
-	if( this->private_->layer_->get_type() == Core::VolumeType::MASK_E )
-	{	
-		MaskLayerHandle mask_layer = boost::dynamic_pointer_cast< MaskLayer >( 
-			this->private_->layer_ );
-		if( mask_layer->iso_generated_state_->get() )
-		{
-			this->private_->ui_.show_iso_surface_button_->setChecked( visibility );
-		}
-	}
 }
 
 void LayerWidget::request_provenance()

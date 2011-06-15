@@ -195,13 +195,16 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	QtUtils::QtBridge::Enable( this->private_->ui_.cp6_params_widget_,
 		ViewerManager::Instance()->enable_clip_plane_state_[ 5 ] );
 
-	for ( int i = 0; i < 6; ++i )
 	{
-		this->add_connection( ViewerManager::Instance()->enable_clip_plane_state_[ i ]->
-			value_changed_signal_.connect( boost::bind( 
-			&RenderingDockWidget::HandleClippingPlanesStateChanged, qpointer, _1, i ) ) );
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+		for ( int i = 0; i < 6; ++i )
+		{
+			this->add_connection( ViewerManager::Instance()->enable_clip_plane_state_[ i ]->
+				value_changed_signal_.connect( boost::bind( 
+				&RenderingDockWidget::HandleClippingPlanesStateChanged, qpointer, _1, i ) ) );
+			update_tab_appearance( ViewerManager::Instance()->enable_clip_plane_state_[ i ]->get(), i );	
+		}
 	}
-	
 	// Volume rendering widgets
 	Core::TransferFunctionHandle tf = ViewerManager::Instance()->get_transfer_function();
 	QtUtils::QtBridge::Show( this->private_->ui_.vr_content_,
@@ -219,15 +222,15 @@ RenderingDockWidget::RenderingDockWidget( QWidget *parent ) :
 	QtUtils::QtBridge::Show( this->private_->ui_.occlusion_widget_,
 		ViewerManager::Instance()->volume_renderer_state_,
 		boost::lambda::bind( &Core::StateLabeledOption::index, 
-		ViewerManager::Instance()->volume_renderer_state_.get() ) == 1 );
+		ViewerManager::Instance()->volume_renderer_state_.get() ) == 2 );
 	QtUtils::QtBridge::Connect( this->private_->ui_.tf_view_->get_scene(), tf );
 	QtUtils::QtBridge::Connect( this->private_->ui_.add_feature_button_, boost::bind(
 		ActionNewFeature::Dispatch, Core::Interface::GetWidgetActionContext() ) );
-	QtUtils::QtBridge::Connect( this->private_->ui_.faux_checkbox_, tf->faux_shading_state_ );
 	this->connect( this->private_->ui_.delete_feature_button_, SIGNAL( clicked() ),
 		SLOT( delete_active_curve() ) );
 	this->connect( this->private_->ui_.histogram_scale_combobox_, 
 		SIGNAL( currentIndexChanged( int ) ), SLOT( set_histogram_mode( int ) ) );
+	this->set_histogram_mode( 1 );
 
 	this->add_connection( tf->feature_added_signal_.connect( boost::bind( 
 		&RenderingDockWidget::HandleFeatureAdded, qpointer, _1 ) ) );
@@ -325,12 +328,12 @@ void RenderingDockWidget::update_tab_appearance( bool enabled, int index )
 	if( enabled )
 	{
 		this->private_->ui_.clipping_tabwidget_->
-			setTabText( index, ( "=" + QString::number( index + 1 ) + "=" ) );
+			setTabText( index, "+" );
 	}
 	else
 	{
 		this->private_->ui_.clipping_tabwidget_->
-			setTabText( index, QString::number( index + 1 ) );
+			setTabText( index, "-" );
 	}
 }
 
@@ -404,7 +407,7 @@ void RenderingDockWidget::handle_feature_deleted( Core::TransferFunctionFeatureH
 
 void RenderingDockWidget::handle_volume_rendering_target_changed( std::string target_id )
 {
-	if ( target_id != Core::StateLabeledOption::EMPTY_OPTION_C )
+	if ( target_id != "<none>" && target_id != Core::StateLabeledOption::EMPTY_OPTION_C )
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		DataLayerHandle target_layer = LayerManager::Instance()->get_data_layer_by_id( target_id );

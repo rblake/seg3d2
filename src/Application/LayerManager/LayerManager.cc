@@ -229,6 +229,12 @@ bool LayerManager::insert_layer( LayerHandle layer )
 		// NOTE: LayerManager will always out-live layers, so it's safe to not disconnect.
 		layer->name_state_->value_changed_signal_.connect( boost::bind(
 			&LayerManager::handle_layer_name_changed, this, layer->get_layer_id(), _2 ) );
+			
+		// NOTE: Add a connection here to check when layer data state changes
+		// This is need to switch on/off menu options in the interface
+		layer->data_state_->state_changed_signal_.connect( boost::bind(
+			&LayerManager::handle_layer_data_changed, this, layer ) );
+				
 	} // unlocked from here
 
 	CORE_LOG_DEBUG( std::string( "Signalling that new layer was inserted" ) );
@@ -881,22 +887,28 @@ bool LayerManager::post_save_states( Core::StateIO& state_io )
 	state_io.push_current_element();
 	state_io.set_current_element( groups_element );
 	
+	bool succeeded = true;
 	for( LayerManagerPrivate::group_list_type::reverse_iterator i = 
 		this->private_->group_list_.rbegin(); i != this->private_->group_list_.rend(); ++i )
 	{
 		if( ( *i )->has_a_valid_layer() )
 		{
-			( *i )->save_states( state_io );
+			succeeded = succeeded && ( *i )->save_states( state_io );
 		}
 	}
 
 	state_io.pop_current_element();
 
-	// TODO: Need to check this logic, this most liky saves too much data
-	return Core::MaskDataBlockManager::Instance()->save_data_blocks( 
-		ProjectManager::Instance()->get_current_project()->get_project_data_path(),
-		PreferencesManager::Instance()->compression_state_->get(),
-		PreferencesManager::Instance()->compression_level_state_->get() );
+	// TODO: Need to check this logic, this most likely saves too much data
+	if ( succeeded )
+	{
+		succeeded = Core::MaskDataBlockManager::Instance()->save_data_blocks( 
+			ProjectManager::Instance()->get_current_project()->get_project_data_path(),
+			PreferencesManager::Instance()->compression_state_->get(),
+			PreferencesManager::Instance()->compression_level_state_->get() );
+	}
+	
+	return succeeded;
 }	
 	
 bool LayerManager::pre_load_states( const Core::StateIO& state_io )
@@ -916,6 +928,7 @@ bool LayerManager::pre_load_states( const Core::StateIO& state_io )
 	state_io.push_current_element();
 	state_io.set_current_element( groups_element );
 
+	bool succeeded = true;
 	const TiXmlElement* group_element = groups_element->FirstChildElement();
 	while ( group_element != 0 )
 	{
@@ -934,8 +947,18 @@ bool LayerManager::pre_load_states( const Core::StateIO& state_io )
 				// NOTE: LayerManager will always out-live layers, so it's safe to not disconnect.
 				( *it )->name_state_->value_changed_signal_.connect( boost::bind(
 					&LayerManager::handle_layer_name_changed, this, ( *it )->get_layer_id(), _2 ) );
+					
+				// NOTE: Add a connection here to check when layer data state changes
+				// This is need to switch on/off menu options in the interface
+				( *it )->data_state_->state_changed_signal_.connect( boost::bind(
+					&LayerManager::handle_layer_data_changed, this, ( *it ) ) );
+
 				this->layer_inserted_signal_( ( *it ) );
 			}
+		}
+		else
+		{
+			succeeded = false;
 		}
 
 		group_element = group_element->NextSiblingElement();
@@ -946,7 +969,7 @@ bool LayerManager::pre_load_states( const Core::StateIO& state_io )
 	this->groups_changed_signal_();
 	this->layers_changed_signal_();
 
-	return true;
+	return succeeded;
 }
 
 bool LayerManager::post_load_states( const Core::StateIO& state_io )
@@ -1273,7 +1296,7 @@ bool LayerManager::LockForUse( LayerHandle layer, filter_key_type key )
 		 layer->data_state_->get() != Layer::IN_USE_C ) return false;
 
 	// If it is available set it to processing and list the key used by the filter
-	if ( layer->data_state_->get() != Layer::AVAILABLE_C )
+	if ( layer->data_state_->get() == Layer::AVAILABLE_C )
 	{
 		layer->data_state_->set( Layer::IN_USE_C );
 	}
@@ -1703,6 +1726,11 @@ void LayerManager::SetLayerIdCount( id_count_type id_count )
 void LayerManager::handle_layer_name_changed( std::string layer_id, std::string name )
 {
 	this->layer_name_changed_signal_( layer_id, name );
+}
+
+void LayerManager::handle_layer_data_changed( LayerHandle layer )
+{
+	this->layer_data_changed_signal_( layer );
 }
 
 int LayerManager::find_free_color()

@@ -32,12 +32,15 @@
 ##################################################
 
 SET(APPLICATION_PROJECT_SRCS
+  DataManager.h
+  DataManager.cc
+  InputFilesImporter.h
+  InputFilesImporter.cc
   Project.h
   Project.cc
   SessionInfo.h
   SessionInfo.cc
-  DataManager.h
-  DataManager.cc
+  ProjectNote.h
 )
 
 SET(APPLICATION_PROJECT_ACTIONS_SRCS

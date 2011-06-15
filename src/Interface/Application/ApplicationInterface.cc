@@ -74,6 +74,7 @@
 #include <Interface/Application/ToolsDockWidget.h>
 #include <Interface/Application/ProvenanceDockWidget.h>
 #include <Interface/Application/ViewerInterface.h>
+#include <Interface/Application/SaveProjectAsWizard.h>
 
 #ifdef BUILD_WITH_PYTHON
 #include <Interface/Application/PythonConsoleWidget.h>
@@ -106,7 +107,7 @@ public:
 	QPointer< ToolsDockWidget > tools_dock_window_;
 	QPointer< LayerManagerDockWidget > layer_manager_dock_window_;
 	QPointer< RenderingDockWidget > rendering_dock_window_;
-	//QPointer< ProvenanceDockWidget > provenance_dock_window_;
+	QPointer< ProvenanceDockWidget > provenance_dock_window_;
 	QPointer< ProgressWidget > progress_;
 	
 	// Pointer to the new project wizard
@@ -177,20 +178,20 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	this->private_->rendering_dock_window_ = new RenderingDockWidget( this );
 	this->addDockWidget( Qt::RightDockWidgetArea, this->private_->rendering_dock_window_ );
 
-	this->private_->layer_manager_dock_window_ = new LayerManagerDockWidget( this );
-	this->addDockWidget( Qt::RightDockWidgetArea, this->private_->layer_manager_dock_window_ );
-
 	this->private_->project_dock_window_ = new ProjectDockWidget( this );
-	this->addDockWidget( Qt::LeftDockWidgetArea, this->private_->project_dock_window_ );
-	
+	this->addDockWidget( Qt::LeftDockWidgetArea, this->private_->project_dock_window_ );	
+
 // 	this->private_->history_dock_window_ = new HistoryDockWidget( this );
 // 	this->addDockWidget( Qt::LeftDockWidgetArea, this->private_->history_dock_window_ );
 	
 	this->private_->tools_dock_window_ = new ToolsDockWidget( this );
 	this->addDockWidget( Qt::LeftDockWidgetArea, this->private_->tools_dock_window_ );
 
-	//this->private_->provenance_dock_window_ = new ProvenanceDockWidget( this );
-	//this->addDockWidget( Qt::RightDockWidgetArea, this->private_->provenance_dock_window_ );
+	this->private_->provenance_dock_window_ = new ProvenanceDockWidget( this );
+	this->addDockWidget( Qt::RightDockWidgetArea, this->private_->provenance_dock_window_ );
+
+	this->private_->layer_manager_dock_window_ = new LayerManagerDockWidget( this );
+	this->addDockWidget( Qt::RightDockWidgetArea, this->private_->layer_manager_dock_window_ );
 	
 	
 	// Connect the windows and widgets to their visibility states
@@ -206,8 +207,8 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	QtUtils::QtBridge::Show( this->private_->project_dock_window_, 
 		InterfaceManager::Instance()->project_dockwidget_visibility_state_ );
 
-	//QtUtils::QtBridge::Show( this->private_->provenance_dock_window_, 
-	//	InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
+	QtUtils::QtBridge::Show( this->private_->provenance_dock_window_, 
+		InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
 
 // 	QtUtils::QtBridge::Show( this->private_->history_dock_window_, 
 // 		InterfaceManager::Instance()->history_dockwidget_visibility_state_ );
@@ -264,6 +265,10 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 		this->add_connection( ProjectManager::Instance()->get_current_project()->project_name_state_->
 			value_changed_signal_.connect( boost::bind( &ApplicationInterface::SetProjectName, 
 			qpointer_type( this ), _1, _2 ) ) ); 
+			
+		this->add_connection( ProjectManager::Instance()->current_project_changed_signal_.connect(
+			boost::bind( &ApplicationInterface::UpdateProjectConnections, 
+			qpointer_type( this ) ) ) );	
 	}
 
 	if( PreferencesManager::Instance()->full_screen_on_startup_state_->get() )
@@ -332,8 +337,19 @@ void ApplicationInterface::closeEvent( QCloseEvent* event )
 		{
 			this->disconnect_all();
 
+			ProjectHandle current_project = ProjectManager::Instance()->get_current_project();
 			Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );		
+			if ( current_project->project_files_generated_state_->get() == false ||
+				current_project->project_files_accessible_state_->get() == false )
+			{
+				// We actually need to do a save as. Hence call that function
+				SaveProjectAsWizard* save_project_as_wizard_ = new SaveProjectAsWizard( this );
+				save_project_as_wizard_->exec();
+			}
+			else
+			{
+				ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" ); 
+			}
 		}
 	}
 	this->disconnect_all();
@@ -447,6 +463,13 @@ void ApplicationInterface::set_project_name( std::string project_name )
 {
 	setWindowTitle( QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ) +
 		" - " + QString::fromStdString( project_name ) );
+}
+
+void ApplicationInterface::update_project_connections()
+{
+	this->add_connection( ProjectManager::Instance()->get_current_project()->project_name_state_->
+		value_changed_signal_.connect( boost::bind( &ApplicationInterface::SetProjectName, 
+		qpointer_type( this ), _1, _2 ) ) ); 
 }
 
 void ApplicationInterface::begin_progress( Core::ActionProgressHandle handle )
@@ -577,6 +600,21 @@ void ApplicationInterface::SetProjectName( qpointer_type qpointer, std::string p
 {
 	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
 		&ApplicationInterface::set_project_name, qpointer.data(), project_name ) ) );
+}
+
+void ApplicationInterface::UpdateProjectConnections( qpointer_type qpointer )
+{
+	// We should be on the application thread here
+	ProjectHandle project = ProjectManager::Instance()->get_current_project();
+	if ( project )
+	{
+		std::string project_name = project->project_name_state_->get();
+		Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+			&ApplicationInterface::set_project_name, qpointer.data(), project_name ) ) );
+	}
+	
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+		&ApplicationInterface::update_project_connections, qpointer.data() ) ) );
 }
 
 void ApplicationInterface::raise_error_messagebox( int msg_type, std::string message )

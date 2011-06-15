@@ -36,6 +36,7 @@
 #include <Application/LayerManager/LayerManager.h>
 #include <Application/LayerManager/LayerUndoBufferItem.h>
 #include <Application/ProjectManager/ProjectManager.h>
+#include <Application/PreferencesManager/PreferencesManager.h>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
@@ -55,6 +56,8 @@ bool ActionImportSeries::validate( Core::ActionContextHandle& context )
 		return false;
 	}
 	
+		
+	
 	// For each filename in the list check whether it exists and gegt absolute paths, so that when
 	// we replay the action, it will actually do the same thing
 	for ( size_t j = 0; j < this->filenames_.size(); j++ )
@@ -63,6 +66,25 @@ bool ActionImportSeries::validate( Core::ActionContextHandle& context )
 		
 		// Convert the file to a boost filename
 		boost::filesystem::path full_filename( this->filenames_[ j ] );
+
+		// NOTE: Check cache first. If the file is in cache use the cache directory
+		if ( this->inputfiles_id_ > -1 )
+		{
+			ProjectHandle project = ProjectManager::Instance()->get_current_project();
+			boost::filesystem::path cached_filename;
+			// Find the file in the cache directory
+			if ( project->find_cached_file( full_filename, this->inputfiles_id_, cached_filename ) )
+			{
+				full_filename = cached_filename;
+			}
+			else
+			{
+				// Reset the input cache id and try again
+				this->inputfiles_id_ = -1;
+				j = 0;
+			}
+		}
+		
 		
 		// Check whether the file exists
 		if ( !( boost::filesystem::exists( full_filename ) ) )
@@ -179,6 +201,16 @@ bool ActionImportSeries::run( Core::ActionContextHandle& context, Core::ActionRe
 		LayerManager::Instance()->insert_layer( layers[ j ] );
 	}
 	
+	if ( PreferencesManager::Instance()->embed_input_files_state_->get() )
+	{
+		InputFilesImporterHandle inputfilesimporter = this->layer_importer_->get_inputfiles_importer();
+		ProjectHandle project = ProjectManager::Instance()->get_current_project();
+		if ( project )
+		{
+			project->execute_or_add_inputfiles_importer( inputfilesimporter );
+		}
+	}
+	
 	{
 		// Create a provenance record
 		ProvenanceStepHandle provenance_step( new ProvenanceStep );
@@ -192,6 +224,13 @@ bool ActionImportSeries::run( Core::ActionContextHandle& context, Core::ActionRe
 		// Get the action and turn it into provenance	
 		provenance_step->set_action( this->export_to_provenance_string() );		
 		
+		// Set the inputfiles cache id
+		if ( this->inputfiles_id_ > -1 )
+		{
+			// If this option is enabled record it in the provenance database
+			provenance_step->set_inputfiles_id( this->inputfiles_id_ );
+		}
+
 		// Add step to provenance record
 		ProvenanceStepID step_id = ProjectManager::Instance()->get_current_project()->
 			add_provenance_record( provenance_step );	
@@ -245,7 +284,7 @@ void ActionImportSeries::Dispatch( Core::ActionContextHandle context,
 	action->filenames_= filenames;
 	action->importer_ = importer;
 	action->mode_ = mode;
-	action->cache_ = -1;
+	action->inputfiles_id_ = -1;
 		
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
@@ -263,7 +302,7 @@ void ActionImportSeries::Dispatch( Core::ActionContextHandle context,
 	action->filenames_ = importer->get_filenames();
 	action->importer_ = importer->get_name();
 	action->mode_ = mode;
-	action->cache_ = -1;
+	action->inputfiles_id_ = -1;
 	
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

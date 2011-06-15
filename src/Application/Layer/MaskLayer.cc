@@ -55,10 +55,6 @@ public:
 	void handle_isosurface_update_progress( double progress );
 	void update_mask_info();
 
-	// bool to enable a different behavior when the iso surface is being generated after a session
-	// load.
-	bool loading_;
-
 	// Extra private state information
 	// NOTE: This used for saving the bit that is used in a mask to a session file. As the state
 	// variables are read first, this will allow for reconstructing which data block and which bit
@@ -104,7 +100,7 @@ void MaskLayerPrivate::initialize_states()
 	// == Internal information for keeping track of which bit we are using ==
 	this->layer_->add_state( "bit", this->bit_state_, 0 );
 
-	// == Keep track of whether the iso surface has been generated
+	// == Keep track of whether the isosurface has been generated
 	this->layer_->add_state( "iso_generated", this->layer_->iso_generated_state_, false );
 
 	// == Keep track of the calculated volume and put it in the UI
@@ -141,7 +137,6 @@ MaskLayer::MaskLayer( const std::string& name, const Core::MaskVolumeHandle& vol
 	this->private_->mask_volume_ = volume;
 	this->private_->mask_volume_->register_data();
 	this->private_->layer_ = this;
-	this->private_->loading_ = false;
 	
 	this->private_->initialize_states();
 	
@@ -158,7 +153,6 @@ MaskLayer::MaskLayer( const std::string& state_id ) :
 	private_( new MaskLayerPrivate )
 {
 	this->private_->layer_ = this;
-	this->private_->loading_ = false;
 	this->private_->initialize_states();
 }
 
@@ -268,8 +262,12 @@ bool MaskLayer::set_mask_volume( Core::MaskVolumeHandle volume )
 
 bool MaskLayer::pre_save_states( Core::StateIO& state_io )
 {
-	this->generation_state_->set( static_cast< int >( this->get_mask_volume()->get_generation() ) );
+	long long generation_number = this->get_mask_volume()->get_generation();
+	this->generation_state_->set( generation_number );
 	std::string data_file_name = this->generation_state_->export_to_string() + ".nrrd";
+
+	// Add the number to the project so it can be recorded into the session database
+	ProjectManager::Instance()->get_current_project()->add_generation_number( generation_number );
 
 	return true;
 }
@@ -382,10 +380,6 @@ void MaskLayer::compute_isosurface( double quality_factor, bool capping_enabled 
 	
 	// now that we are done, we are going to set the proper 
 	this->iso_generated_state_->set( true );
-	if( !this->private_->loading_ )
-	{
-		this->show_isosurface_state_->set( true );
-	}
 }
 
 void MaskLayer::delete_isosurface()

@@ -164,16 +164,22 @@ Transform NrrdData::get_transform() const
 
 	if( space_dim > 0 ) // We have the space direction info already
 	{
-		// For each axis
+		
+		// For space direction for each axis
 		for( size_t axis_lookup = 0; axis_lookup < axis_idx_num; axis_lookup++ )
 		{
-			// Find the space direction
 			for( size_t space_dir_idx = 0; space_dir_idx < space_dim; space_dir_idx++ )
 			{
 				size_t axis_idx = axis_idx_array[ axis_lookup ];
 				space_directions[ axis_lookup ][ space_dir_idx ] = 
 					this->private_->nrrd_->axis[ axis_idx ].spaceDirection[ space_dir_idx ];
 			}
+		}
+		
+		if( axis_idx_num == 2 && space_dim == 3 ) // Special case: 2D nrrd with 3D space dimensions
+		{
+			// Calculate third space direction as the cross product of the first two
+			space_directions[ 2 ] = Cross( space_directions[ 0 ], space_directions[ 1 ] );
 		}
 	}
 	else // If possible, calculate spacing from mins, maxs, spacing
@@ -498,12 +504,56 @@ bool NrrdData::LoadNrrd( const std::string& filename, NrrdDataHandle& nrrddata, 
 		return false;
 	}
 
-	if ( nrrd->dim < 3 )
+	if ( nrrd->dim < 2 )
 	{
-		error = "Currently only 3D nrrd files are supported.";
+		error = "Currently only 2D or 3D nrrd files are supported.";
 		nrrdNuke( nrrd );
 		nrrddata.reset();
 		return false;
+	}
+
+	if ( nrrd->dim == 2 )
+	{
+		nrrd->dim = 3;
+		nrrd->axis[ 2 ].size = 1;
+		nrrd->axis[ 2 ].spacing = 1.0;
+		nrrd->axis[ 2 ].min = 0.0;
+		nrrd->axis[ 2 ].max = 1.0;
+		nrrd->axis[ 2 ].center = nrrd->axis[ 1].center;
+		nrrd->axis[ 2 ].kind = nrrd->axis[ 1].kind;
+		nrrd->axis[ 2 ].label = 0;
+		nrrd->axis[ 2 ].units = 0;
+		
+		if ( nrrd->spaceDim == 2 )
+		{
+			nrrd->spaceDim = 3;
+			nrrd->axis[ 0 ].spaceDirection[ 2 ] = 0.0;
+			nrrd->axis[ 1 ].spaceDirection[ 2 ] = 0.0;
+			nrrd->axis[ 2 ].spaceDirection[ 0 ] = 0.0;
+			nrrd->axis[ 2 ].spaceDirection[ 1 ] = 0.0;
+			nrrd->axis[ 2 ].spaceDirection[ 2 ] = 1.0;
+			 
+			nrrd->spaceUnits[ 2 ] = 0;
+			nrrd->spaceOrigin[ 2 ] = 0.0;
+			nrrd->measurementFrame[ 0 ][ 2 ] = 0.0;
+			nrrd->measurementFrame[ 1 ][ 2 ] = 0.0;
+			nrrd->measurementFrame[ 2 ][ 2 ] = 0.0;
+			nrrd->measurementFrame[ 2 ][ 1 ] = 0.0;
+			nrrd->measurementFrame[ 2 ][ 0 ] = 0.0;
+		}
+		else if ( nrrd->spaceDim == 3 )
+		{
+			// Build two vectors, take cross product to find third space direction
+			Vector space_dir_0( nrrd->axis[ 0 ].spaceDirection[ 0 ], 
+				nrrd->axis[ 0 ].spaceDirection[ 1 ], nrrd->axis[ 0 ].spaceDirection[ 2 ] );
+			Vector space_dir_1( nrrd->axis[ 1 ].spaceDirection[ 0 ], 
+				nrrd->axis[ 1 ].spaceDirection[ 1 ], nrrd->axis[ 1 ].spaceDirection[ 2 ] );
+			Vector space_dir_2 = Cross( space_dir_0, space_dir_1 );
+
+			nrrd->axis[ 2 ].spaceDirection[ 0 ] = space_dir_2.x();
+			nrrd->axis[ 2 ].spaceDirection[ 1 ] = space_dir_2.y();
+			nrrd->axis[ 2 ].spaceDirection[ 2 ] = space_dir_2.z();		
+		}
 	}
 
 	// Fix a problem with nrrds with stub axes

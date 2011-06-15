@@ -123,24 +123,25 @@ SaveAsInfoPage::SaveAsInfoPage( QWidget *parent )
 	this->project_name_lineedit_ = new QLineEdit();
 	std::string project_name = ProjectManager::Instance()->
 		get_current_project()->project_name_state_->get();
-	
-	if( project_name == "untitled_project" )
-	{
-		project_name = "";
-	}
+		
+	std::string current_project_dir = ProjectManager::Instance()->
+		get_current_project_folder().string();
 		
 	this->project_name_lineedit_->setText(  QString::fromStdString( project_name ) );
 
     this->project_path_label_ = new QLabel( "Project Path:" );
     this->project_path_lineedit_ = new QLineEdit;
     
+
+	this->project_path_lineedit_->setText(  QString::fromStdString( current_project_dir ) );
+
     this->project_path_change_button_ = new QPushButton( "Choose Alternative Location" );
     connect( this->project_path_change_button_, SIGNAL( clicked() ), this, SLOT( set_path() ) );
 	this->project_path_change_button_->setFocusPolicy( Qt::NoFocus );
 
     registerField( "projectName", this->project_name_lineedit_ );
     
-	this->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please chose a valid location." ) );
+	this->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please choose a valid location." ) );
 	this->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
 	this->warning_message_->setWordWrap( true );
 	this->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
@@ -233,7 +234,7 @@ bool SaveAsInfoPage::validatePage()
 	if( !boost::filesystem::exists( project_path.parent_path() ) )
 	{
 		this->warning_message_->setText( QString::fromUtf8( 
-			"This location does not exist, please chose a valid location." ) );
+			"This location does not exist, please choose a valid location." ) );
 		this->warning_message_->show();
 		return false;
 	}
@@ -246,7 +247,7 @@ bool SaveAsInfoPage::validatePage()
 	catch ( ... ) // any errors that we might get thrown would indicate that we cant write here
 	{
 		this->warning_message_->setText( QString::fromUtf8( 
-			"This location is not writable, please chose a valid location." ) );
+			"This location is not writable, please choose a valid location." ) );
 		this->warning_message_->show();
 		return false;
 	}

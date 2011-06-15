@@ -31,6 +31,7 @@
 
 #include <Application/InterfaceManager/InterfaceManager.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
+#include <Application/Project/Project.h>
 
 namespace Seg3D
 {
@@ -63,12 +64,8 @@ void InterfaceManager::initialize_states()
 		PreferencesManager::Instance()->show_layermanager_bar_state_->get() );
 	this->add_state( "rendering_dockwidget_visible", this->rendering_dockwidget_visibility_state_, 
 		PreferencesManager::Instance()->show_rendering_bar_state_->get() );
-	//this->add_state( "history_dockwidget_visibility", this->history_dockwidget_visibility_state_, 
-//		PreferencesManager::Instance()->show_history_bar_state_->get() );
 	this->add_state( "provenance_dockwidget_visibility", this->provenance_dockwidget_visibility_state_, 
 		PreferencesManager::Instance()->show_provenance_bar_state_->get() );
-	
-	
 	
 	this->add_state( "preferences_manager_visibility", this->preferences_manager_visibility_state_, false );
 	this->add_state( "controller_visibility", this->controller_visibility_state_, false );
@@ -78,10 +75,20 @@ void InterfaceManager::initialize_states()
 	this->add_state( "python_console_visibility", this->python_console_visibility_state_, false );
 
 	this->add_state( "enable_project_creation", enable_project_creation_state_, true );
+	this->enable_project_creation_state_->set_locked( true );
 	this->add_state( "enable_file_import", enable_file_import_state_, true );
+	this->enable_file_import_state_->set_locked( true );
 
 	this->add_state( "enable_controller", this->enable_controller_state_, true );
+	this->enable_controller_state_->set_locked( true );
 	this->add_state( "enable_tool_help", this->enable_tool_help_state_, true );
+	this->enable_tool_help_state_->set_locked( true );
+
+}
+
+int InterfaceManager::get_session_priority()
+{
+	return SessionPriority::DEFAULT_PRIORITY_E;
 }
 
 } // end namespace Seg3D

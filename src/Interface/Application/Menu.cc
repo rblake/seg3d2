@@ -106,23 +106,51 @@ Menu::Menu( QMainWindow* parent ) :
 		// Update to the most recent list
 		this->set_recent_file_list();	
 
+
+		// Ensure we have the right state
+		bool mask_layer_found = false;
+		bool active_data_layer_found = false;
+		std::vector< LayerHandle > layer_list;
+		LayerManager::Instance()->get_layers( layer_list );
+		for( size_t i = 0; i < layer_list.size(); ++i )
+		{
+			if( layer_list[ i ]->get_type() == Core::VolumeType::MASK_E &&
+				layer_list[ i ]->data_state_->get() != Layer::CREATING_C &&
+				layer_list[ i ]->data_state_->get() != Layer::PROCESSING_C )
+			{
+				mask_layer_found = true;
+			}
+		}
+
+		LayerHandle layer = LayerManager::Instance()->get_active_layer();
+		if ( layer )
+		{
+			if ( layer->get_type() == Core::VolumeType::DATA_E  &&
+				layer->data_state_->get() != Layer::CREATING_C &&
+				layer->data_state_->get() != Layer::PROCESSING_C ) active_data_layer_found = true;
+		}
+
 		// Check what type of layer is active
-		this->enable_disable_mask_actions();
-		this->enable_disable_data_layer_actions(); 
+		this->enable_disable_mask_actions( mask_layer_found );
+		this->enable_disable_data_layer_actions( active_data_layer_found ); 
 
 		// Automatically update the recent file list in the menu
 		this->add_connection( ProjectManager::Instance()->recent_projects_changed_signal_.connect( 
 			boost::bind( &Menu::SetRecentFileList, qpointer_type( this ) ) ) );
 			
 		// Automatically switch on exporting segmentations, depending on the choice of 
-		// active layer.	
-		this->add_connection( LayerManager::Instance()->layers_changed_signal_.connect( 
-			boost::bind( &Menu::EnableDisableMaskActions, qpointer_type( this ) ) ) );
+		// project or active layer.	
+		this->add_connection( ProjectManager::Instance()->current_project_changed_signal_.connect( 
+			boost::bind( &Menu::EnableDisableLayerActions, qpointer_type( this ) ) ) );	
 		
-		// Automatically switch on exporting data volumes, depending on the choice of 
-		// active layer.	
+		this->add_connection( LayerManager::Instance()->layers_changed_signal_.connect( 
+			boost::bind( &Menu::EnableDisableLayerActions, qpointer_type( this ) ) ) );
+	
 		this->add_connection( LayerManager::Instance()->active_layer_changed_signal_.connect( 
-			boost::bind( &Menu::EnableDisableDataLayerActions, qpointer_type( this ) ) ) );
+			boost::bind( &Menu::EnableDisableLayerActions, qpointer_type( this ) ) ) );
+
+		this->add_connection( LayerManager::Instance()->layer_data_changed_signal_.connect( 
+			boost::bind( &Menu::EnableDisableLayerActions, qpointer_type( this ) ) ) );
 
 		// Automatically update the tag in the undo menu		
 		this->add_connection( UndoBuffer::Instance()->update_undo_tag_signal_.connect(
@@ -473,11 +501,11 @@ void Menu::create_window_menu( QMenuBar* menubar )
 		InterfaceManager::Instance()->rendering_dockwidget_visibility_state_ );
 
 	// Provenance Widget
-	//qaction = qmenu->addAction( "Provenance Window" );
-	//qaction->setShortcut( tr( "Ctrl+Shift+P" ) );
-	//qaction->setCheckable( true );
-	//QtUtils::QtBridge::Connect( qaction, 
-	//	InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
+	qaction = qmenu->addAction( "Provenance Window" );
+	qaction->setShortcut( tr( "Ctrl+Shift+H" ) );
+	qaction->setCheckable( true );
+	QtUtils::QtBridge::Connect( qaction, 
+		InterfaceManager::Instance()->provenance_dockwidget_visibility_state_ );
 
 	qmenu->addSeparator();
 
@@ -565,9 +593,17 @@ void Menu::new_project()
 		// The user selected to save the current session
 		if ( ret == QMessageBox::Save )
 		{
-			// Dispatch a save, the new session will be named after what ever is set in the
-			// state variable for the next session name
-			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );		
+			Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+			if ( current_project->project_files_generated_state_->get() == false ||
+				current_project->project_files_accessible_state_->get() == false )
+			{
+				// We actually need to do a save as. Hence call that function
+				this->save_project_as();
+			}
+			else
+			{
+				ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" ); 
+			}
 		}
 
 		if ( ret == QMessageBox::Cancel ) return;
@@ -597,9 +633,17 @@ void Menu::open_project()
 		// The user selected to save the current session
 		if ( ret == QMessageBox::Save )
 		{
-			// Dispatch a save, the new session will be named after what ever is set in the
-			// state variable for the next session name
-			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );		
+			Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+			if ( current_project->project_files_generated_state_->get() == false ||
+				current_project->project_files_accessible_state_->get() == false )
+			{
+				// We actually need to do a save as. Hence call that function
+				this->save_project_as();
+			}
+			else
+			{
+				ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" ); 
+			}
 		}
 
 		if ( ret == QMessageBox::Cancel ) return;
@@ -845,9 +889,17 @@ void Menu::ConfirmRecentFileLoad( qpointer_type qpointer, const std::string& pat
 		// The user selected to save the current session
 		if ( ret == QMessageBox::Save )
 		{
-			// Dispatch a save, the new session will be named after what ever is set in the
-			// state variable for the next session name
-			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );		
+			Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+			if ( current_project->project_files_generated_state_->get() == false ||
+				current_project->project_files_accessible_state_->get() == false )
+			{
+				// We actually need to do a save as. Hence call that function
+				qpointer->save_project_as();
+			}
+			else
+			{
+				ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" ); 
+			}
 		}
 
 		if ( ret == QMessageBox::Cancel ) return;
@@ -856,40 +908,17 @@ void Menu::ConfirmRecentFileLoad( qpointer_type qpointer, const std::string& pat
 	ActionLoadProject::Dispatch( Core::Interface::GetWidgetActionContext(), path );
 }
 
-void Menu::enable_disable_mask_actions()
+void Menu::enable_disable_mask_actions( bool mask_layer_found )
 {
-	bool mask_layer_found = false;
-	std::vector< LayerHandle > layer_list;
-	LayerManager::Instance()->get_layers( layer_list );
-	for( size_t i = 0; i < layer_list.size(); ++i )
-	{
-		if( layer_list[ i ]->get_type() == Core::VolumeType::MASK_E )
-		{
-			mask_layer_found = true;
-		}
-	}
-	
 	this->export_segmentation_qaction_->setEnabled( mask_layer_found );
-	
 	this->copy_qaction_->setEnabled( mask_layer_found );
 	this->paste_qaction_->setEnabled( mask_layer_found );
 	this->punch_qaction_->setEnabled( mask_layer_found );
 }
 
-void Menu::enable_disable_data_layer_actions()
+void Menu::enable_disable_data_layer_actions( bool active_data_layer_found )
 {
-	bool data_layer_found = false;
-	std::vector< LayerHandle > layer_list;
-	LayerManager::Instance()->get_layers( layer_list );
-	for( size_t i = 0; i < layer_list.size(); ++i )
-	{
-		if( ( layer_list[ i ]->get_type() == Core::VolumeType::DATA_E ) &&
-			(  layer_list[ i ] == LayerManager::Instance()->get_active_layer() ) )
-		{
-			data_layer_found = true;
-		}
-	}
-	this->export_active_data_layer_qaction_->setEnabled( data_layer_found );
+	this->export_active_data_layer_qaction_->setEnabled( active_data_layer_found );
 }
 
 void Menu::save_project()
@@ -943,16 +972,42 @@ void Menu::SetRecentFileList( qpointer_type qpointer )
 		&Menu::set_recent_file_list, qpointer.data() ) ) );
 }
 
-void Menu::EnableDisableMaskActions( qpointer_type qpointer )
+void Menu::EnableDisableLayerActions( qpointer_type qpointer )
 {
-	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
-		&Menu::enable_disable_mask_actions, qpointer.data() ) ) );
-}
+	// This function should be called from the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+	
+	
+	bool mask_layer_found = false;
+	bool active_data_layer_found = false;
+	std::vector< LayerHandle > layer_list;
+	LayerManager::Instance()->get_layers( layer_list );
+	for( size_t i = 0; i < layer_list.size(); ++i )
+	{
+		if( layer_list[ i ]->get_type() == Core::VolumeType::MASK_E &&
+			layer_list[ i ]->data_state_->get() != Layer::CREATING_C &&
+			layer_list[ i ]->data_state_->get() != Layer::PROCESSING_C )
+		{
+			mask_layer_found = true;
+		}
+	}
 
-void Menu::EnableDisableDataLayerActions( qpointer_type qpointer )
-{
+	LayerHandle layer = LayerManager::Instance()->get_active_layer();
+	if ( layer )
+	{
+		if ( layer->get_type() == Core::VolumeType::DATA_E &&
+			layer->data_state_->get() != Layer::CREATING_C &&
+			layer->data_state_->get() != Layer::PROCESSING_C ) 
+		{
+			active_data_layer_found = true;
+		}
+	}
+	
 	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
-		&Menu::enable_disable_data_layer_actions, qpointer.data() ) ) );
+		&Menu::enable_disable_mask_actions, qpointer.data(), mask_layer_found ) ) );
+
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+		&Menu::enable_disable_data_layer_actions, qpointer.data(), active_data_layer_found ) ) );
 }
 
 

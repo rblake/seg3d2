@@ -35,13 +35,21 @@
 
 // STL includes
 #include <string>
+#include <vector>
 
+// boost includes
+#include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 
 namespace Seg3D
 {
 
+// Forward declaration
 typedef long long SessionID;
+
+class SessionInfo;
+typedef std::vector< SessionInfo > SessionInfoList;
+typedef boost::shared_ptr< SessionInfoList > SessionInfoListHandle;
 
 // CLASS SessionInfo
 // This helper class is for storing sessions in the database
@@ -76,8 +84,6 @@ public:
 	}
 	
 private:
-	friend class Project;
-
 	// ID of the session
 	SessionID session_id_;
 	// Name of the session

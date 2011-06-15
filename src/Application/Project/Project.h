@@ -50,7 +50,9 @@
 #include <Core/State/State.h>
 
 // Application includes
+#include <Application/Project/ProjectNote.h>
 #include <Application/Project/SessionInfo.h>
+#include <Application/Project/InputFilesImporter.h>
 #include <Application/Provenance/Provenance.h>
 #include <Application/Provenance/ProvenanceStep.h>
 
@@ -58,6 +60,8 @@
 namespace Seg3D
 {
 
+// TODO: Move it to its own file
+// Application/Prtoject/SessionPriority.h
 CORE_ENUM_CLASS
 (
 	SessionPriority,
@@ -68,6 +72,7 @@ CORE_ENUM_CLASS
 	TOOL_MANAGER_PRIORITY_E = 100
 )
 
+// TODO: Will change this in the near future, current it is for displaying provenance
 typedef std::vector< std::pair< std::string, std::string > > ProvenanceTrail;
 typedef boost::shared_ptr< ProvenanceTrail > ProvenanceTrailHandle;
 
@@ -105,6 +110,7 @@ public:
 	// Whether the project has been generated on disk
 	Core::StateBoolHandle project_files_generated_state_;
 				
+	// TODO: Need to work on this variable			
 	// Keep track of whether files on disk accessible
 	Core::StateBoolHandle project_files_accessible_state_;
 		
@@ -121,11 +127,13 @@ public:
 	// The colors for the project
 	std::vector< Core::StateColorHandle > color_states_;
 	
-	// This state variable keeps track of the unique ids for each session
-	Core::StateIntHandle session_count_state_;
-
 	// TODO: Should be moved in the database
 	Core::StateStringVectorHandle project_notes_state_;
+
+	// This state variable keeps track of the unique ids for each input file
+	// NOTE: We need to save this one, to ensure that new additions to the project
+	// will have unique inputfiles number.
+	Core::StateLongLongHandle inputfiles_count_state_;
 
 	// Generation counter state, this one is filled out when the project is saved
 	// NOTE: We need to save this one, to ensure that new additions to the project
@@ -142,14 +150,22 @@ public:
 	Core::StateStringVectorHandle sessions_state_;
 	
 public:
-	// SESSION_CHANGED_SIGNAL
+	// SESSION_LIST_CHANGED_SIGNAL
 	// When a session is saved or deleted this signal is triggered
 	// NOTE: This one is used by the User Interface
-	typedef boost::signals2::signal< void() > sessions_changed_signal_type;
-	sessions_changed_signal_type sessions_changed_signal_;
+	typedef boost::signals2::signal< void( SessionInfoListHandle ) > session_list_signal_type;
+	session_list_signal_type session_list_changed_signal_;
+
+	// NOTE_LIST_CHANGED_SIGNAL:
+	// Signals the current list of notes.
+	typedef boost::signals2::signal< void ( ProjectNoteListHandle ) > note_list_signal_type;
+	note_list_signal_type note_list_changed_signal_;
 	
+	// PROVENANCE_RECORDS_SIGNAL
+	// This signal is triggered when a new provenance record is added
 	typedef boost::signals2::signal< void( ProvenanceTrailHandle ) > provenance_records_signal_type;
 	provenance_records_signal_type provenance_record_signal_;
+
 public:
 	// SAVE_PROJECT:
 	// This function will save the current project in the designated path
@@ -160,10 +176,6 @@ public:
 	// SAVE_STATE:
 	// Save the current state into the xml file
 	bool save_state();
-
-	// GET_ALL_SESSIONS:
-	// Get the names of all the sessions in this project
-	bool get_all_sessions( std::vector< SessionInfo >& sessions );
 
 	// LOAD_SESSION:
 	// This function will be called to load a specific session
@@ -194,6 +206,11 @@ public:
 	// Returns true on success, otherwise false.
 	bool get_session_info( SessionID session_id, SessionInfo& session_info );
 
+	// REQUEST_SESSION_LIST:
+	// Request a list of all the sessions.
+	// This would trigger the session_list_changed_signal_ in the application thread.
+	void request_session_list();
+
 	// EXPORT_PROJECT:
 	// This function will export the current project and the passed vector of session names to file
 	// NOTE: This function can only can called from the application thread.
@@ -217,6 +234,23 @@ public:
 	// GET_PROJECT_INPUTFILES_PATH:
 	// Get the input files path of this project
 	boost::filesystem::path get_project_inputfiles_path() const;
+
+	// -- Notes --
+public:
+	// ADD_NOTE:
+	// Add a new note to project.
+	bool add_note( const std::string& note );
+
+	// REQUEST_NOTE_LIST:
+	// Request a list of all the notes.
+	// This would trigger the note_list_changed_signal_ in the application thread.
+	void request_note_list();
+	
+	// FIND_CACHED_FILE
+	// Find a cached file in the project
+	bool find_cached_file( const boost::filesystem::path& filename, InputFilesID inputfiles_id,
+		boost::filesystem::path& cached_filename ) const;
+	
 	
 protected:
 	// PRE_SAVE_STATES:
@@ -270,11 +304,24 @@ public:
 	// GET_PROVENANCE_RECORD:
 	// returns a vector that is the provenance record for a particular ProvenanceID
 	void request_provenance_record( ProvenanceID prov_id );
-			
+	
+	// -- function called by layers --
+public:
+	// ADD_GENERATION_NUMBER:
+	// Tell the project which generation numbers are part of the project
+	void add_generation_number( const long long generation_number );
+
+	//-- input file directory handling --
+public:
+	// Add a file list of files to import to the project and execute if it already resides on
+	// disk. If the project is not saved yet, copying will be delayed until the project will be
+	// saved to disk.
+	bool execute_or_add_inputfiles_importer( const InputFilesImporterHandle& importer );
+
 private:
 	// INITIALIZE_STATES:
 	// Called by constructors to initialize state variables
-	void initialize_states();
+	void initialize();
 
 	// LOAD_PROJECT:
 	// This function is called by the constructor to load the project into memory.

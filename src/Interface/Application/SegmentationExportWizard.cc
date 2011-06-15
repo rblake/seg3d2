@@ -216,7 +216,7 @@ SegmentationSelectionPage::SegmentationSelectionPage( SegmentationPrivateHandle 
 	connect( this->private_->export_selector_, SIGNAL( currentIndexChanged( int ) ), this,
 		SLOT( change_type_text( int ) ) );
 	
-	this->private_->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please chose a valid location." ) );
+	this->private_->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please choose a valid location." ) );
 	this->private_->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
 	this->private_->warning_message_->setWordWrap( true );
 	this->private_->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
@@ -255,6 +255,8 @@ void SegmentationSelectionPage::change_type_text( int index )
 	
 void SegmentationSelectionPage::initializePage()
 {
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	
 	std::vector< LayerGroupHandle > groups;
 	LayerManager::Instance()->get_groups( groups );
 
@@ -308,9 +310,11 @@ void SegmentationSelectionPage::initializePage()
 		}
 	}
 	
-	this->private_->group_with_masks_tree_->topLevelItem( group_with_active_layer )->
-		setCheckState( 0, Qt::Checked );
-	
+	if ( group_with_active_layer >= 0 )
+	{ 
+		this->private_->group_with_masks_tree_->topLevelItem( group_with_active_layer )->
+			setCheckState( 0, Qt::Checked );
+	}
 }
 
 bool SegmentationSelectionPage::validatePage()
@@ -349,7 +353,7 @@ bool SegmentationSelectionPage::validatePage()
 		if( !QFileInfo( filename ).exists() )
 		{
 			this->private_->warning_message_->setText( QString::fromUtf8( 
-				"This location does not exist, please chose a valid location." ) );
+				"This location does not exist, please choose a valid location." ) );
 			this->private_->warning_message_->show();
 			return false;
 		}
@@ -361,7 +365,7 @@ bool SegmentationSelectionPage::validatePage()
 		catch( ... ) // if the create fails then we are not in a writable directory
 		{
 			this->private_->warning_message_->setText( QString::fromUtf8( 
-				"This location is not writable, please chose a valid location." ) );
+				"This location is not writable, please choose a valid location." ) );
 			this->private_->warning_message_->show();
 			return false;
 		}
