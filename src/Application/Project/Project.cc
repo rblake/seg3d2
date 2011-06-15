@@ -464,13 +464,13 @@ bool ProjectPrivate::save_state( const boost::filesystem::path& project_director
 	}
 
 	// Save the provenance database to disk
-	boost::filesystem::path provenance_database = project_directory /
-		DATABASE_DIR_C / PROVENANCE_DATABASE_C;
-	if ( !this->provenance_database_.save_database( provenance_database, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
+	//boost::filesystem::path provenance_database = project_directory /
+	//	DATABASE_DIR_C / PROVENANCE_DATABASE_C;
+	//if ( !this->provenance_database_.save_database( provenance_database, error ) )
+	//{
+	//	CORE_LOG_ERROR( error );
+	//	return false;
+	//}
 
 	// Save the note database to disk
 	boost::filesystem::path note_database = project_directory /
@@ -827,7 +827,7 @@ long long ProjectPrivate::insert_note_into_database( const std::string& note,
 void ProjectPrivate::convert_version1_project()
 {
 	this->initialize_session_database();
-	this->initialize_provenance_database();
+	//this->initialize_provenance_database();
 	this->initialize_note_database();
 
 	// ==== Convert sessions ====
@@ -1361,7 +1361,7 @@ Project::Project( const std::string& project_name ) :
 	this->project_name_state_->set( project_name );
 	this->project_file_state_->set( project_name + Project::GetDefaultProjectFileExtension() );
 	this->private_->initialize_session_database();
-	this->private_->initialize_provenance_database();
+	//this->private_->initialize_provenance_database();
 	this->private_->initialize_note_database();
 	this->set_initializing( false );
 }
@@ -1603,13 +1603,13 @@ bool Project::load_project( const boost::filesystem::path& project_file )
 			this->private_->initialize_session_database();
 		}
 
-		boost::filesystem::path provenance_db_file = full_filename.parent_path() /
-			DATABASE_DIR_C / PROVENANCE_DATABASE_C;
-		if ( !boost::filesystem::exists( provenance_db_file ) ||
-			!this->private_->provenance_database_.load_database( provenance_db_file, error ) )
-		{
-			this->private_->initialize_provenance_database();
-		}
+		//boost::filesystem::path provenance_db_file = full_filename.parent_path() /
+		//	DATABASE_DIR_C / PROVENANCE_DATABASE_C;
+		//if ( !boost::filesystem::exists( provenance_db_file ) ||
+		//	!this->private_->provenance_database_.load_database( provenance_db_file, error ) )
+		//{
+		//	this->private_->initialize_provenance_database();
+		//}
 
 		boost::filesystem::path note_db_file = full_filename.parent_path() / 
 			DATABASE_DIR_C / NOTE_DATABASE_C;
@@ -1746,8 +1746,7 @@ bool Project::save_project( const boost::filesystem::path& project_path,
 				Project::GetDefaultProjectFileExtension() );
 			this->project_path_state_->set( project_path.string() );
 			
-			// This will save a session and update the project file and 
-			// provenance database
+			// This will save a session and update the project file and databases
 			return this->save_session( AUTO_SESSION_NAME_C );
 		}
 	}
@@ -1831,7 +1830,7 @@ bool Project::export_project( const boost::filesystem::path& export_path,
 
 	// Make copies of the session and provenance databases
 	DatabaseManager export_session_db( this->private_->session_database_ );
-	DatabaseManager export_prov_db( this->private_->provenance_database_ );
+	//DatabaseManager export_prov_db( this->private_->provenance_database_ );
 
 	// Delete all the session entries except the one to be exported
 	std::string sql_str = "DELETE FROM session WHERE session_id != " +
@@ -1909,66 +1908,73 @@ bool Project::export_project( const boost::filesystem::path& export_path,
 		}
 	}
 
-	// Parse out the provenance IDs referenced by the session
-	std::vector< ProvenanceID > prov_ids;
-	this->private_->parse_session_provenance_ids( session_file, prov_ids );
+	//// Parse out the provenance IDs referenced by the session
+	//std::vector< ProvenanceID > prov_ids;
+	//this->private_->parse_session_provenance_ids( session_file, prov_ids );
 
-	// Get all the provenance steps relevant to prov_ids
-	std::set< ProvenanceStepID > prov_steps;
-	BOOST_FOREACH( ProvenanceID prov_id, prov_ids )
-	{
-		this->private_->get_provenance_steps( prov_id, prov_steps );
-	}
+	//// Get all the provenance steps relevant to prov_ids
+	//std::set< ProvenanceStepID > prov_steps;
+	//BOOST_FOREACH( ProvenanceID prov_id, prov_ids )
+	//{
+	//	this->private_->get_provenance_steps( prov_id, prov_steps );
+	//}
 
-	// Delete irrelevant provenance records from the provenance database
-	if ( !prov_steps.empty() )
-	{
-		sql_str = "DELETE FROM provenance_step WHERE prov_step_id NOT IN (";
-		BOOST_FOREACH( ProvenanceStepID step_id, prov_steps )
-		{
-			sql_str += ( Core::ExportToString( step_id ) + "," );
-		}
-		sql_str[ sql_str.size() - 1 ] = ')';
-		sql_str += ";";
-	}
-	else
-	{
-		sql_str = "DELETE FROM provenance_step;";
-	}
-	if ( !export_prov_db.run_sql_statement( sql_str, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
-	
-	// Save out the provenance database
-	boost::filesystem::path export_provenance_db_path = 
-		export_path / DATABASE_DIR_C / PROVENANCE_DATABASE_C;
-	if ( !export_prov_db.save_database( export_provenance_db_path, error ) )
-	{
-		CORE_LOG_ERROR( error );
-		return false;
-	}
+	//// Delete irrelevant provenance records from the provenance database
+	//if ( !prov_steps.empty() )
+	//{
+	//	sql_str = "DELETE FROM provenance_step WHERE prov_step_id NOT IN (";
+	//	BOOST_FOREACH( ProvenanceStepID step_id, prov_steps )
+	//	{
+	//		sql_str += ( Core::ExportToString( step_id ) + "," );
+	//	}
+	//	sql_str[ sql_str.size() - 1 ] = ')';
+	//	sql_str += ";";
+	//}
+	//else
+	//{
+	//	sql_str = "DELETE FROM provenance_step;";
+	//}
+	//if ( !export_prov_db.run_sql_statement( sql_str, error ) )
+	//{
+	//	CORE_LOG_ERROR( error );
+	//	return false;
+	//}
+	//
+	//// Save out the provenance database
+	//boost::filesystem::path export_provenance_db_path = 
+	//	export_path / DATABASE_DIR_C / PROVENANCE_DATABASE_C;
+	//if ( !export_prov_db.save_database( export_provenance_db_path, error ) )
+	//{
+	//	CORE_LOG_ERROR( error );
+	//	return false;
+	//}
 
 	// Copy inputfiles
-	sql_str = "SELECT inputfiles_cache_id FROM provenance_inputfiles_cache;";
-	if ( !export_prov_db.run_sql_statement( sql_str, result_set, error ) )
+	//sql_str = "SELECT inputfiles_cache_id FROM provenance_inputfiles_cache;";
+	//if ( !export_prov_db.run_sql_statement( sql_str, result_set, error ) )
+	//{
+	//	CORE_LOG_ERROR( error );
+	//	return false;
+	//}
+	//BOOST_FOREACH( ResultSet::value_type result, result_set )
+	//{
+	//	long long inputfiles_cache_id = boost::any_cast< long long >( result[ "inputfiles_cache_id" ] );
+	//	boost::filesystem::path src_dir = project_path / INPUTFILES_DIR_C / 
+	//		Core::ExportToString( inputfiles_cache_id );
+	//	boost::filesystem::path dst_dir = export_path / INPUTFILES_DIR_C /
+	//		Core::ExportToString( inputfiles_cache_id );
+	//	if ( !Core::RecursiveCopyDirectory( src_dir, dst_dir ) )
+	//	{
+	//		CORE_LOG_ERROR( "Failed to copy directory '" + src_dir.string() + "'." );
+	//		return false;
+	//	}
+	//}
+	boost::filesystem::path src_dir = project_path / INPUTFILES_DIR_C;
+	boost::filesystem::path dst_dir = export_path / INPUTFILES_DIR_C;
+	if ( !Core::RecursiveCopyDirectory( src_dir, dst_dir ) )
 	{
-		CORE_LOG_ERROR( error );
+		CORE_LOG_ERROR( "Failed to copy the 'inputfiles' directory." );
 		return false;
-	}
-	BOOST_FOREACH( ResultSet::value_type result, result_set )
-	{
-		long long inputfiles_cache_id = boost::any_cast< long long >( result[ "inputfiles_cache_id" ] );
-		boost::filesystem::path src_dir = project_path / INPUTFILES_DIR_C / 
-			Core::ExportToString( inputfiles_cache_id );
-		boost::filesystem::path dst_dir = export_path / INPUTFILES_DIR_C /
-			Core::ExportToString( inputfiles_cache_id );
-		if ( !Core::RecursiveCopyDirectory( src_dir, dst_dir ) )
-		{
-			CORE_LOG_ERROR( "Failed to copy directory '" + src_dir.string() + "'." );
-			return false;
-		}
 	}
 
 	// Save out the notes database
@@ -2394,6 +2400,7 @@ bool Project::is_session( SessionID session_id )
 // create a Provenance Object and then add it to the db.
 ProvenanceStepID Project::add_provenance_record( const ProvenanceStepHandle& step )
 {
+	return 0;
 	// Print diagnostics
 	//step->print();
 	
@@ -2489,6 +2496,8 @@ ProvenanceStepID Project::add_provenance_record( const ProvenanceStepHandle& ste
 
 bool Project::delete_provenance_record( ProvenanceStepID record_id )
 {
+	return true;
+
 	std::string sql_str = "DELETE FROM provenance_step WHERE prov_step_id = " +
 		Core::ExportToString( record_id ) + ";";
 	std::string error;
@@ -2502,6 +2511,8 @@ bool Project::delete_provenance_record( ProvenanceStepID record_id )
 
 void Project::update_provenance_record( ProvenanceStepID record_id, const ProvenanceStepHandle& prov_step )
 {
+	return;
+
 	// Separate out action name and parameter strings
 	std::string action_desc = prov_step->get_action();
 	std::string action_params;
@@ -2535,6 +2546,8 @@ boost::posix_time::ptime Project::get_last_saved_session_time_stamp() const
 
 void Project::request_provenance_record( ProvenanceID prov_id )
 {
+	return;
+
 	// Run SQL queries in application thread
 	if ( !Core::Application::IsApplicationThread() )
 	{

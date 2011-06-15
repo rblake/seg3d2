@@ -308,8 +308,9 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 			layer_group->spacing_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.centering_label_,
 			layer->centering_state_ );
-		QtUtils::QtBridge::Connect( this->private_->ui_.provenance_id_,
-			layer->provenance_id_state_ );
+		//QtUtils::QtBridge::Connect( this->private_->ui_.provenance_id_,
+		//	layer->provenance_id_state_ );
+		this->private_->ui_.widget_10->hide();
 			
 		QtUtils::QtBridge::Connect( this->private_->ui_.info_button_, 
 			layer->show_information_state_ );
@@ -384,8 +385,9 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 		QtUtils::QtBridge::Show( this->private_->ui_.opacity_bar_,
 			layer->show_opacity_state_ );
 
-		QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
-			boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
+		this->private_->ui_.provenance_button_->hide();
+		//QtUtils::QtBridge::Connect( this->private_->ui_.provenance_button_,
+		//	boost::bind( &LayerWidget::RequestProvenance, qpointer_type( this ) )	);
 
 		// Compute isosurface button is enabled when the layer is not locked and is available
 		QtUtils::QtBridge::Enable( this->private_->ui_.compute_iso_surface_button_, enable_states,
@@ -1221,8 +1223,8 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 		connect( qaction, SIGNAL( triggered() ), this, SLOT( delete_layer_from_context_menu() ) );
 	}
 	
-	qaction = menu.addAction( tr( "Show Provenance" ) );
-	connect( qaction, SIGNAL( triggered() ), this, SLOT( request_provenance() ) );
+	//qaction = menu.addAction( tr( "Show Provenance" ) );
+	//connect( qaction, SIGNAL( triggered() ), this, SLOT( request_provenance() ) );
 
 	QMenu* export_menu;
 	export_menu = new QMenu( this );
@@ -1257,7 +1259,7 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 void LayerWidget::delete_layer_from_context_menu()
 {	
 	// Check whether the users wants to save and whether the user wants to quit
-	int ret = QMessageBox::warning( this, "Delete Warning",
+	int ret = QMessageBox::warning( this->parentWidget(), "Delete Warning",
 		"Are you sure you want to delete this layer?",
 		QMessageBox::Yes | QMessageBox::No, QMessageBox::No  );
 

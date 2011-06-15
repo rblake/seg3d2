@@ -117,8 +117,8 @@ SET(APPLICATION_TOOLS_SRCS
   ClipboardTool.cc
   PointSetFilter.h
   PointSetFilter.cc
-  SpeedlineTool.h
-  SpeedlineTool.cc
+#  SpeedlineTool.h
+#  SpeedlineTool.cc
   )
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS
@@ -139,8 +139,8 @@ SET(APPLICATION_TOOLS_ACTIONS_SRCS
   Actions/ActionPaste.cc
   Actions/ActionFloodFill.h
   Actions/ActionFloodFill.cc
-  Actions/ActionSpeedline.h
-  Actions/ActionSpeedline.cc
+#  Actions/ActionSpeedline.h
+#  Actions/ActionSpeedline.cc
   )
   
 IF(BUILD_WITH_PYTHON)
