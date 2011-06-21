@@ -26,47 +26,22 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_UTILS_INTRUSIVEBASE_H
-#define CORE_UTILS_INTRUSIVEBASE_H
+#ifndef CORE_EVENTHANDLER_EVENTHANDLERCONTEXT_FWD_H
+#define CORE_EVENTHANDLER_EVENTHANDLERCONTEXT_FWD_H
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif 
 
 // Boost includes
-#include <boost/smart_ptr/detail/atomic_count.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace Core
 {
 
-// Forward declaration
-class IntrusiveBase;
+class EventHandlerContext;
+typedef boost::shared_ptr< EventHandlerContext > EventHandlerContextHandle;
 
-// Class definition
-class IntrusiveBase : public boost::noncopyable
-{
-
-public:
-	IntrusiveBase() :
-		count_( 0 )
-	{
-	}
-	virtual ~IntrusiveBase()
-	{
-	}
-
-private:
-	friend void intrusive_ptr_add_ref( IntrusiveBase* );
-	friend void intrusive_ptr_release( IntrusiveBase* );
-
-	boost::detail::atomic_count count_;
-};
-
-void intrusive_ptr_add_ref( IntrusiveBase* object );
-void intrusive_ptr_release( IntrusiveBase* object );
-
-}
+} // end namespace Core
 
 #endif
