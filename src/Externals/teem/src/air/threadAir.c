@@ -166,7 +166,14 @@ airThreadCondNix(airThreadCond *cond) {
 
 #if defined(_WIN32)
    /* SignalObjectAndWait supported by NT4.0 and greater only */
+#if defined(_WIN32_WINNT)
+#if _WIN32_WINNT < 0x400
+#error _WIN32_WINNT setting must be at least 0x400
+#endif
+#else
 #  define _WIN32_WINNT 0x400
+#endif
+
 #  include <windows.h>
 #endif
 
