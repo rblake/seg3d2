@@ -28,6 +28,7 @@
 
 /*
  * MRC file format reader: http://www2.mrc-lmb.cam.ac.uk/image2000.html
+ * Also helpful: http://www.ccp4.ac.uk/html/maplib.html
  * Implementation follows EMAN2 and Chimera.
  */
 
@@ -44,6 +45,7 @@
 #define MRC_NUM_TEXT_LABELS 10
 #define MRC_SIZE_TEXT_LABELS 80
 #define MRC_LONG_WORD 4
+#define MRC_SIZE_EXTRA 25
 
 namespace MRC2000IO {
 
@@ -90,13 +92,13 @@ struct MRCHeader {
   
   int nsymbt;		  	/* 24 Number of chars used for storing symmetry operators. */
   
-  int extra[25];    /* 25-49 Extra space used for anything (0 by default). */
+  int extra[MRC_SIZE_EXTRA];    /* 25-49 Extra space used for anything (0 by default). */
   
   float xorigin;	/* 50 Origin in X, Y, Z used for transformations. */
   float yorigin;	/* 51 Origin in X, Y, Z used for transformations. */
   float zorigin;	/* 52 Origin in X, Y, Z used for transformations. */
   
-  char map[MRC_LONG_WORD];		  /* 53 Character string "MAP " used to identify file type. */
+  char map[MRC_LONG_WORD];		  /* 53 Character string "MAP " used to distinguish file type from older formats. */
   
   int machinestamp;	/* 54 Machine stamp in CCP4 convention:
                          big endian=0x00001111

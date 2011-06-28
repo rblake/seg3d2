@@ -44,6 +44,8 @@ public:
   std::string get_error() { return error_; }
   bool use_new_origin() { return use_new_origin_; }
   bool swap_endian() { return swap_endian_; }
+  std::string export_header(const MRCHeader& header);
+  
 
 private:
   bool process_header(void* buffer, int buffer_len);

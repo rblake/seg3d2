@@ -83,10 +83,8 @@ bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
 
     in.seekg(0, std::ios::end);
     size = in.tellg();
-    std::cout << "File is " << size << " bytes long." << std::endl;
     in.seekg(0, std::ios::beg);
     std::ifstream::pos_type data_block_size = size - static_cast<std::ifstream::pos_type>(MRC_HEADER_LENGTH);
-    std::cout << "Data block is " << data_block_size << " bytes long." << std::endl;
 
     in.read(reinterpret_cast<char*>(&header), MRC_HEADER_LENGTH);
     process_header(&header, MRC_HEADER_LENGTH);
@@ -97,11 +95,6 @@ bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
       return false;
     }
 
-    // test
-    std::cout << "new origin: [" << header.xorigin << " " << header.yorigin << " " << header.zorigin << "]" << std::endl;
-    std::cout << "old origin: [" << header.nxstart << " " << header.nystart << " " << header.nzstart << "]" << std::endl;
-    std::cout << "cell dims in angstroms: [" << header.xlen << " " << header.ylen << " " << header.zlen << "]" << std::endl;
-    // test
     if ((0 == header.xorigin || 0 == header.yorigin || 0 == header.zorigin) &&
         (0 != header.nxstart || 0 != header.nystart || 0 != header.nzstart))
     {
@@ -109,13 +102,6 @@ bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
       this->use_new_origin_ = false;
     }
     in.close();
-
-    // test
-    std::hex(std::cout);
-    std::cout << "header machinestamp=" << header.machinestamp << std::endl;
-    std::dec(std::cout);
-    std::cout << header.map << std::endl;
-    // test
   }
   // TODO: ios specific exceptions
   catch (...)
@@ -153,9 +139,7 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
       char* char_buffer = reinterpret_cast<char*>(buffer);
       swap_endian_ = true;
       for (size_t j = MRC_LONG_WORD / 2; j < MRC_LONG_WORD; ++j) {
-        // test
-        //std::cout << static_cast<int>(char_buffer[j]) << std::endl;
-        // test
+
         if (char_buffer[j] != 0) {
           swap_endian_ = false;
           break;
@@ -182,9 +166,6 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
       char* char_buffer = reinterpret_cast<char*>(buffer);
       swap_endian_ = true;
       for (size_t j = 0; j < MRC_LONG_WORD / 2; ++j) {
-        // test
-        //std::cout << static_cast<int>(char_buffer[j]) << std::endl;
-        // test
         if (char_buffer[j] != 0) {
           swap_endian_ = false;
           break;
@@ -200,10 +181,7 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
     unsigned char* ubuffer = reinterpret_cast<unsigned char*>(long_word_buffer);
     unsigned char tmp;
     const size_t SIZE8 = MRC_HEADER_LENGTH_LWORDS & ~(0x7);
-    // test
-    //std::hex(std::cout);
-    //std::cout << "SIZE8=" << SIZE8 << std::endl;
-    // test
+
     size_t i = 0;
     // swap word bytes in blocks of 32 bytes in place
     for(; i < SIZE8; ++i)
@@ -234,8 +212,6 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
       tmp = ubuffer[ 1 ]; ubuffer[ 1 ] = ubuffer[ 2 ]; ubuffer[ 2 ] = tmp;
       ubuffer += 4;
     }
-    //std::dec(std::cout);
-    //std::cout << "i=" << i << std::endl;
 
     for(; i < MRC_HEADER_LENGTH_LWORDS; ++i)
     {
@@ -285,7 +261,43 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
   temp = long_word_buffer[54];
   h->rms = static_cast<float>(temp);
 
+  for (int j = 0; j < MRC_NUM_TEXT_LABELS; ++j)
+  {
+    // Also terminate labels with null char
+    h->labels[j][MRC_SIZE_TEXT_LABELS-1] = '\0';
+  }
+  
   return true;
 }
 
+std::string MRCReader::export_header(const MRCHeader& header)
+{
+  const char DELIM = ' ';
+  std::ostringstream oss;
+  oss << header.nx << DELIM << header.ny << DELIM << header.nz << DELIM
+      << header.mode << DELIM
+      << header.nxstart << DELIM << header.nystart << DELIM << header.nzstart << DELIM
+      << header.mx << DELIM << header.my << DELIM << header.mz << DELIM
+      << header.xlen << DELIM << header.ylen << DELIM << header.zlen << DELIM
+      << header.alpha << DELIM << header.beta << DELIM << header.gamma << DELIM
+      << header.mapc << DELIM << header.mapr << DELIM << header.maps << DELIM
+      << header.dmin << DELIM << header.dmax << DELIM<< header.dmean << DELIM
+      << header.ispg << DELIM
+      << header.nsymbt << DELIM;
+  for (int i = 0; i < MRC_SIZE_EXTRA; ++i)
+  {
+    oss << header.extra[i] << DELIM;
+  }
+  oss << header.xorigin << DELIM << header.yorigin << DELIM << header.zorigin << DELIM
+      << header.map << DELIM;
+  oss << std::hex << std::showbase << header.machinestamp;
+  oss << std::dec << DELIM << header.rms << DELIM
+      << header.nlabels;
+  for (int i = 0; i < MRC_NUM_TEXT_LABELS; ++i)
+  {
+    oss << header.labels[i];
+  }
+  return oss.str();
+}
+  
 }
