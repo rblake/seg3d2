@@ -102,9 +102,8 @@ struct MRCHeader {
   
   int machinestamp;	/* 54 Machine stamp in CCP4 convention:
                          big endian=0x00001111
-                         little endian=0x44440000
-                         There is an ambiguity in the specification, using 0x11111111 & 4 instead (EMAN2).
-                         Not reliably implemented. */
+                         little endian=0x44440000 or 0x00004444 or 0x00004144 or 0x11111111 & 4
+                         There is an ambiguity in the specification - not reliably implemented. */
   
   float rms;			/* 55 Rms deviation of map from mean density. */
   
@@ -121,6 +120,9 @@ enum MRC_mode {
   MRC_FLOAT_COMPLEX,
 };
 
+const int LITTLE_ENDIAN_STAMP = 0x00004444;
+const int BIG_ENDIAN_STAMP = 0x00001111;
+  
 }
 
 #endif // CORE_ALGORITHMS_DATAIO_MRCHEADER_H

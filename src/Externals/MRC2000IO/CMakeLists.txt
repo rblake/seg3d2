@@ -34,8 +34,8 @@ PROJECT(MRC2000IO)
 
 SET(MRC2000IO_SRCS
   mrcheader.h
-  MRCReader.h
-  MRCReader.cc
+  MRCUtil.h
+  MRCUtil.cc
 )
 
 ADD_LIBRARY(MRC2000IO STATIC ${MRC2000IO_SRCS})

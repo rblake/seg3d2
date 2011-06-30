@@ -26,8 +26,8 @@
    DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef MRC2000IO_MRCREADER_H
-#define MRC2000IO_MRCREADER_H 1
+#ifndef MRC2000IO_MRCUTIL_H
+#define MRC2000IO_MRCUTIL_H 1
 
 #include <string>
 
@@ -35,16 +35,17 @@
 
 namespace MRC2000IO {
 
-class MRCReader {
+class MRCUtil {
 public:
-  MRCReader();
-  ~MRCReader();
+  MRCUtil();
+  ~MRCUtil();
 
   bool read_header(const std::string& filename, MRCHeader& header);
   std::string get_error() { return error_; }
   bool use_new_origin() { return use_new_origin_; }
   bool swap_endian() { return swap_endian_; }
   std::string export_header(const MRCHeader& header);
+  bool import_header(const std::string& header_string, MRCHeader& header);
   
 
 private:
@@ -57,6 +58,8 @@ private:
 
   const int MASK_UPPER_;
   const int MASK_LOWER_;
+  const std::string DELIM;
+  const std::string DELIM2;
 };
 
 }

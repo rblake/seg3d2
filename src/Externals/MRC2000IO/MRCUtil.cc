@@ -32,11 +32,16 @@
  */
 
 
-#include "MRCReader.h"
+#include "MRCUtil.h"
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <vector>
+
+#include <cstring>
 
 namespace MRC2000IO {
 
@@ -53,19 +58,21 @@ bool isBigEndian()
   }
 }
   
-MRCReader::MRCReader()
+MRCUtil::MRCUtil()
   : host_is_big_endian_(isBigEndian()),
     swap_endian_(false),
     use_new_origin_(true),
     MASK_UPPER_(0xFF000000),
-    MASK_LOWER_(0x000000FF)
+    MASK_LOWER_(0x000000FF),
+    DELIM(" "),
+    DELIM2("-**-")
 {
 }
 
-MRCReader::~MRCReader() {}
+MRCUtil::~MRCUtil() {}
 
 
-bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
+bool MRCUtil::read_header(const std::string& filename, MRCHeader& header)
 {
   try
   {
@@ -75,7 +82,7 @@ bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
     std::ifstream::pos_type size = 0;
 
     std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
-    if (! in)
+    if (! in )
     {
       error_ = std::string("Failed to open file ") + filename;
       return false;
@@ -113,7 +120,7 @@ bool MRCReader::read_header(const std::string& filename, MRCHeader& header)
   return true;
 }
 
-bool MRCReader::process_header(void* buffer, int buffer_len)
+bool MRCUtil::process_header(void* buffer, int buffer_len)
 {
   int* long_word_buffer = reinterpret_cast<int*>(buffer);
   const int machine_stamp = long_word_buffer[53];
@@ -266,13 +273,17 @@ bool MRCReader::process_header(void* buffer, int buffer_len)
     // Also terminate labels with null char
     h->labels[j][MRC_SIZE_TEXT_LABELS-1] = '\0';
   }
-  
+
+  // minor correction
+  if (h->nlabels > MRC_NUM_TEXT_LABELS)
+  {
+    h->nlabels = MRC_NUM_TEXT_LABELS;
+  }
   return true;
 }
 
-std::string MRCReader::export_header(const MRCHeader& header)
+std::string MRCUtil::export_header(const MRCHeader& header)
 {
-  const char DELIM = ' ';
   std::ostringstream oss;
   oss << header.nx << DELIM << header.ny << DELIM << header.nz << DELIM
       << header.mode << DELIM
@@ -292,12 +303,120 @@ std::string MRCReader::export_header(const MRCHeader& header)
       << header.map << DELIM;
   oss << std::hex << std::showbase << header.machinestamp;
   oss << std::dec << DELIM << header.rms << DELIM
-      << header.nlabels;
+      << header.nlabels << DELIM;
   for (int i = 0; i < MRC_NUM_TEXT_LABELS; ++i)
   {
-    oss << header.labels[i];
+    oss << DELIM2 << header.labels[i];
   }
+
   return oss.str();
 }
-  
+
+bool MRCUtil::import_header(const std::string& header_string, MRCHeader& header)
+{
+  if (header_string.size() == 0)
+    return false;
+
+  std::istringstream iss(header_string);
+	iss.exceptions( std::ifstream::eofbit | std::ifstream::failbit | std::ifstream::badbit );
+	try
+	{
+		iss >> header.nx;
+    iss >> header.ny;
+    iss >> header.nz;
+    iss >> header.mode;
+    iss >> header.nxstart;
+    iss >> header.nystart;
+    iss >> header.nzstart;
+    iss >> header.mx;
+    iss >> header.my;
+    iss >> header.mz;
+    iss >> header.xlen;
+    iss >> header.ylen;
+    iss >> header.zlen;
+    iss >> header.alpha;
+    iss >> header.beta;
+    iss >> header.gamma;
+    iss >> header.mapc;
+    iss >> header.mapr;
+    iss >> header.maps;
+    iss >> header.dmin;
+    iss >> header.dmax;
+    iss >> header.dmean;
+    iss >> header.ispg;
+    iss >> header.nsymbt;
+    for (int i = 0; i < MRC_SIZE_EXTRA; ++i)
+    {
+      iss >> header.extra[i];
+    }
+    iss >> header.xorigin;
+    iss >> header.yorigin;
+    iss >> header.zorigin;
+    iss >> header.map;
+    iss >> std::hex >> header.machinestamp;
+    iss >> std::dec >> header.rms;
+    iss >> header.nlabels;
+
+    for (int i = 0; i < MRC_NUM_TEXT_LABELS; ++i)
+    {
+      char* begin = &(header.labels[i][0]);
+      char* end = &(header.labels[i][0]) +
+                   (sizeof(header.labels[i][0])/sizeof(char)) * MRC_SIZE_TEXT_LABELS;
+      std::fill(begin, end, 0);
+    }
+
+    std::string h = header_string;
+    std::vector<std::string> labels_list;
+
+    while ( true )
+    {
+      std::string::size_type pos = h.find( DELIM2 );
+      if ( pos >= h.size() )
+      {
+        labels_list.push_back( h );
+        break;
+      }
+      labels_list.push_back( h.substr( 0, pos ) );
+      h = h.substr( pos + DELIM2.size() );
+    }
+    if (labels_list.size() > MRC_NUM_TEXT_LABELS)
+    {
+      std::ostringstream oss;
+      oss << "Number of parsed labels (" << labels_list.size()
+          << ") is greater than the allowed number of labels (" << MRC_NUM_TEXT_LABELS << ").";
+      error_ = oss.str(); 
+    }
+
+    // test
+    for (int i = 0; i < labels_list.size(); ++i)
+    {
+      std::cout << "label " << i+1 << ": [" << labels_list[i] << "]" << std::endl;
+    }
+    // test
+
+    // discard first string, since it is the first part of the header
+    for (int i = 1; i < labels_list.size(); ++i)
+    {
+      if (labels_list[i].size() == 0)
+        continue;
+
+      int index = i-1;
+      strncpy(header.labels[index], labels_list[i].c_str(), MRC_SIZE_TEXT_LABELS);
+      header.labels[index][MRC_SIZE_TEXT_LABELS-1] = '\0';
+    }
+
+    return true;
+  }
+  catch ( std::istringstream::failure e )
+	{
+		error_ = e.what();
+		return false;
+	}
+  catch (...)
+  {
+    error_ = "Could not parse header";
+    return false;
+  }
+}
+
 }
