@@ -94,8 +94,20 @@ public:
 	// The default implementation returns false.
 	virtual bool has_2d_visual();
 
-	// When slice changes, recompute the path
-	virtual void handle_slice_changed( );
+	// ACTIVATE:
+	// Activate a tool: this tool is set as the active tool and hence it should
+	// setup the right mouse tools in the viewers.
+	virtual void activate();
+
+	// DEACTIVATE:
+	// Deactivate a tool. A tool is always deactivate before the next one is
+	// activated.
+	virtual void deactivate();
+
+	// POST_LOAD_STATES:
+	// This virtual function can be implemented in the StateHandlers and will be called after its
+	// states are loaded.  If it doesn't succeed it needs to return false.
+	virtual bool post_load_states( const Core::StateIO& state_io );
 
 	// -- dispatch functions --
 public:
@@ -103,30 +115,42 @@ public:
 	void erase( Core::ActionContextHandle context );
 	void reset( Core::ActionContextHandle context );
 
-	void execute_gradient( Core::ActionContextHandle context );
-	void handle_gradient_layer_changed( std::string layer_id );
-	void handle_target_mask_layer_changed( std::string layer_id );
+	void calculate_speedimage( Core::ActionContextHandle context );
+	bool get_update_paths() { return this->update_all_paths_; }
+	void set_update_paths( bool update_all_paths ) { this->update_all_paths_ = update_all_paths; }
 
 	// -- State Variables --
 public:
 	Core::StatePointVectorHandle vertices_state_;
 	Core::StateRangedDoubleHandle termination_state_;
+
 	// Number of iterations the filter needs to run
 	Core::StateRangedIntHandle iterations_state_;
 
 	Core::StateLabeledOptionHandle gradient_state_;
-	//Core::StatePointVectorHandle path_state_;
+	Core::StateBoolHandle gradient_created_state_; // user created, true; loaded false;
+
+	Core::StateSpeedlinePathHandle itk_path_state_;
 	Core::StateSpeedlinePathHandle path_state_;
 
 	Core::StateBoolHandle valid_gradient_state_;
 
 	Core::StateIntHandle current_vertex_index_state_;
 
-	Core::StateLabeledOptionHandle mask_state_;
-	Core::StateBoolHandle valid_target_mask_state_;
+	Core::StateLabeledOptionHandle target_data_layer_state_;
+
+	Core::StateBoolHandle valid_target_data_layer_state_;
+	Core::StateBoolHandle use_smoothing_state_;
+	Core::StateBoolHandle use_rescale_state_;
 
 private:
 	SpeedlineToolPrivateHandle private_;
+
+	boost::signals2::connection viewer_connection_[ 6 ];
+
+	size_t slice_no_[ 6 ];
+	bool initialized_;
+    bool update_all_paths_;
 };
 
 } // end namespace

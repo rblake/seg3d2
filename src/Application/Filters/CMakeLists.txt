@@ -125,6 +125,8 @@ SET(APPLICATION_FILTERS_ACTIONS_SRCS
   Actions/ActionPointSetRegisterFilter.cc
   Actions/ActionPointSetTransformFilter.h
   Actions/ActionPointSetTransformFilter.cc
+  Actions/ActionSpeedlineImageFilter.h
+  Actions/ActionSpeedlineImageFilter.cc
   )
 
 IF(BUILD_WITH_PYTHON)

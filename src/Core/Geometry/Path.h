@@ -32,9 +32,11 @@
 // System includes
 #include <string>
 #include <vector>
+#include <set>
 
 // Core includes
 #include <Core/Geometry/Point.h>
+#include <Core/Geometry/SinglePath.h>
 
 namespace Core
 {
@@ -42,6 +44,7 @@ namespace Core
 //=============================================================================
 // Class: Path
 //=============================================================================
+class SinglePath;
 
 class Path 
 {
@@ -56,23 +59,42 @@ public:
 
 	// GET_ONE_PATH:
 	// Get the corresponding path
-	std::vector< Point >& get_one_path( int index ) ;
+	SinglePath& get_one_path( int index ) ;
+	bool find_one_path( Point& p1, Point& p2, SinglePath& spath ) ;
 
-	std::vector< std::vector< Core::Point > >& get_all_paths( ) ;
+	const std::vector< SinglePath >& get_all_paths( )  const;
+	void set_all_paths(  std::vector< SinglePath >& paths );
 
 	// SET_ONE_PATH:
 	// Set the corresponding path
-	void set_one_path( int index, const std::vector< Point >& pt ) ;
+	// void set_one_path( int index, const std::vector< Point >& pt ) ;
+	void set_one_path( int index, const SinglePath& pt ) ;
 
 	// ADD_ONE_PATH:
 	// Add one path to paths
-	void add_one_path( const std::vector< Point >& pt );
+	// void add_one_path( const std::vector< Point >& pt );
+	void add_one_path( const SinglePath& pt );
+
+	bool delete_one_path( Point& p1, Point& p2 ) ;
+
+	void delete_all_paths( ) ;
+
+	void set_start_point( const Point& pt );
+	const Point& get_start_point () const; 
+
+	void set_end_point( const Point& pt );
+	const Point& get_end_point () const;
+
 
 	inline bool operator==( const Path& ) const;
 	inline bool operator!=( const Path& ) const;
 
 private:
-	std::vector< std::vector< Core::Point > > paths_; 
+	const static size_t PATHS_SIZE_C = 100;
+	std::vector< SinglePath > paths_;
+
+	Point start_point_;
+	Point end_point_;
 
 public:
 
@@ -90,7 +112,9 @@ inline bool Path::operator!=( const Path& m ) const
 
 
 std::string ExportToString( const Path& value );
+std::string ExportToString( const SinglePath& value );
 bool ImportFromString( const std::string& str, Path& value );
+bool ImportFromString( const std::string& str, SinglePath& value );
 
 } // end namespace Core
 
