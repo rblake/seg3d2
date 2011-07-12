@@ -63,6 +63,11 @@ public:
 private:
 	// The ID of the sandbox.
 	SandboxID sandbox_;
+
+public:
+	// DISPATCH:
+	// Create and dispatch an ActionDeleteSandbox.
+	static void Dispatch( Core::ActionContextHandle context, SandboxID sandbox );	
 };
 	
 } // end namespace Seg3D

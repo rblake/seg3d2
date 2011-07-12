@@ -26,33 +26,46 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYER_ACTIONS_ACTIONCREATESANDBOX_H
-#define APPLICATION_LAYER_ACTIONS_ACTIONCREATESANDBOX_H
+#ifndef APPLICATION_LAYER_ACTIONS_ACTIONREPORTSCRIPTSTATUS_H
+#define APPLICATION_LAYER_ACTIONS_ACTIONREPORTSCRIPTSTATUS_H
 
 // Core includes
-#include <Core/Action/Actions.h>
+#include <Core/Action/Action.h>
+
+// Application includes
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionCreateSandbox : public Core::Action
+class ActionReportScriptStatus : public Core::Action
 {
 
 CORE_ACTION
 ( 
-	CORE_ACTION_TYPE( "CreateSandbox", "Create a sandbox." )
+	 CORE_ACTION_TYPE( "ReportScriptStatus", "Report the progress of a script." )
+	 CORE_ACTION_ARGUMENT( "sandbox", "The sandbox in which the script is running." )
+	 CORE_ACTION_ARGUMENT( "current_step", "The name of the current running step." )
+	 CORE_ACTION_ARGUMENT( "steps_done", "The number of steps that have finished." )
+	 CORE_ACTION_ARGUMENT( "total_steps", "The number of total steps." )
 )
 	
 	// -- Constructor/Destructor --
 public:
-	ActionCreateSandbox() {}
-	virtual ~ActionCreateSandbox() {}
+	ActionReportScriptStatus();
+	virtual ~ActionReportScriptStatus() {}
 
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, 
 		Core::ActionResultHandle& result );
+
+private:
+	SandboxID sandbox_;
+	std::string current_step_;
+	size_t steps_done_;
+	size_t total_steps_;
 };
 	
 } // end namespace Seg3D

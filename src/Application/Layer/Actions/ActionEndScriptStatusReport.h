@@ -26,33 +26,40 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYER_ACTIONS_ACTIONCREATESANDBOX_H
-#define APPLICATION_LAYER_ACTIONS_ACTIONCREATESANDBOX_H
+#ifndef APPLICATION_LAYER_ACTIONS_ACTIONENDSCRIPTSTATUSREPORT_H
+#define APPLICATION_LAYER_ACTIONS_ACTIONENDSCRIPTSTATUSREPORT_H
 
 // Core includes
-#include <Core/Action/Actions.h>
+#include <Core/Action/Action.h>
+
+// Application includes
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionCreateSandbox : public Core::Action
+class ActionEndScriptStatusReport : public Core::Action
 {
 
 CORE_ACTION
 ( 
-	CORE_ACTION_TYPE( "CreateSandbox", "Create a sandbox." )
+	 CORE_ACTION_TYPE( "EndScriptStatusReport", "Signal the end of a script." )
+	 CORE_ACTION_ARGUMENT( "sandbox", "The sandbox in which the script is running." )
 )
 	
 	// -- Constructor/Destructor --
 public:
-	ActionCreateSandbox() {}
-	virtual ~ActionCreateSandbox() {}
+	ActionEndScriptStatusReport();
+	virtual ~ActionEndScriptStatusReport() {}
 
 // -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
 	virtual bool run( Core::ActionContextHandle& context, 
 		Core::ActionResultHandle& result );
+
+private:
+	SandboxID sandbox_;
 };
 	
 } // end namespace Seg3D
