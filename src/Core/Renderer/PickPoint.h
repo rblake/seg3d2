@@ -26,48 +26,26 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_GRAPHICS_FRAMEBUFFEROBJECT_H
-#define CORE_GRAPHICS_FRAMEBUFFEROBJECT_H
+#ifndef CORE_RENDERER_PICKPOINT_H
+#define CORE_RENDERER_PICKPOINT_H
 
-#include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include <GL/glew.h>
-
-#include <Core/Graphics/Texture.h>
-#include <Core/Graphics/Renderbuffer.h>
+#if defined (_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif
 
 namespace Core
 {
 
-class FramebufferObject;
-typedef boost::shared_ptr< FramebufferObject > FramebufferObjectHandle;
+// Forward declaration
+class PickPoint;
+typedef boost::shared_ptr< PickPoint > PickPointHandle;
 
-class FramebufferObject : public boost::noncopyable
+class PickPoint
 {
-
 public:
-
-	FramebufferObject();
-	~FramebufferObject();
-
-	void enable();
-	void disable();
-	void safe_bind();
-	void safe_unbind();
-
-	void attach_texture( TextureHandle texture, unsigned int attachment = 
-		GL_COLOR_ATTACHMENT0_EXT, int level = 0, int layer = 0 );
-	void detach_texture( TextureHandle texture, unsigned int attachment = GL_COLOR_ATTACHMENT0_EXT );
-	void attach_renderbuffer( RenderbufferHandle renderbuffer, unsigned int attachment );
-	void detach_renderbuffer( RenderbufferHandle renderbuffer, unsigned int attachment );
-	bool check_status( GLenum* status = NULL );
-
-private:
-	unsigned int id_;
-	int saved_id_;
-
-	const static unsigned int TARGET_C;
+	PickPoint( int window_x, int window_y ) { this->window_x_ = window_x; this->window_y_ = window_y; }
+	int window_x_;
+	int window_y_;
 };
 
 } // end namespace Core

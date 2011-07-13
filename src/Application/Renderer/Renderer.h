@@ -58,7 +58,7 @@ public:
 protected:
 	virtual void post_initialize();
 	virtual void post_resize();
-	virtual bool render();
+	virtual bool render_scene();
 	virtual bool render_overlay();
 
 private:
