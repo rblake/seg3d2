@@ -1091,7 +1091,7 @@
 #cmakedefine VA_LIST_IS_ARRAY 1
 
 /* Define if you want SIGFPE handled (see Include/pyfpe.h). */
-#undef WANT_SIGFPE_HANDLER 1
+/* #undef WANT_SIGFPE_HANDLER 1 */
 
 /* Define if WINDOW in curses.h offers a field _flags. */
 #cmakedefine WINDOW_HAS_FLAGS 1
@@ -1102,7 +1102,7 @@
 /* Define if you want to use the new-style (Openstep, Rhapsody, MacOS) dynamic
    linker (dyld) instead of the old-style (NextStep) dynamic linker (rld).
    Dyld is necessary to support frameworks. */
-#define WITH_DYLD 1
+#cmakedefine WITH_DYLD 1
 
 /* Define to 1 if libintl is needed for locale functions. */
 #undef WITH_LIBINTL
