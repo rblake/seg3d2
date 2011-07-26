@@ -138,6 +138,9 @@ SingleImageCostFunction<TImage>
 
   // Convert the image function output to the cost function derivative
   const DerivativeType::ValueType DerivativeThreshold = 15.0;
+
+  	// To make sure every two points have path between each other
+	// See Insight-users email
   for (int i=0; i<ImageDimension; i++)
     {
     derivative[i] = static_cast<DerivativeType::ValueType>( output[i] );
@@ -146,6 +149,8 @@ SingleImageCostFunction<TImage>
     //		 (indicated by very large values) which may skew the gradient.
     //		 To avoid this skewing effect, we reset gradient values larger
     //		 than a given threshold.
+
+
     if ( vnl_math_abs(derivative[i]) > DerivativeThreshold )
       {
       derivative[i] = 0.0;

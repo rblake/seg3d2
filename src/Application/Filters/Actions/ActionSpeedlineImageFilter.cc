@@ -206,7 +206,7 @@ public:
 		
 		if ( this->is_rescale_ )
 		{
-			double min_value = 1.0e-2;
+			double min_value = 1.0e-7;
 			double max_value = 1.0;
 			typedef itk::RescaleIntensityImageFilter < FLOAT_IMAGE_TYPE, FLOAT_IMAGE_TYPE > rescale_filter_type;
 
