@@ -76,6 +76,8 @@ public:
 
 	Core::StateDoubleVectorHandle transform_matrix_;
 
+	Core::StateDoubleHandle translation_state_[ 3 ];
+	Core::StateDoubleHandle rotation_state_[ 3 ];
 
 	// -- execute --
 public:

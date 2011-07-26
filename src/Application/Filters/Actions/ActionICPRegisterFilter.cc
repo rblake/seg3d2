@@ -595,6 +595,17 @@
 				matrix_entries.push_back( final_parameters[i] );
 			}
 
+			double  rotation[3];
+			double  translation[3];
+
+			rotation[0] = final_parameters[0]; 
+			rotation[1] = final_parameters[1]; 
+			rotation[2] = final_parameters[2]; 
+
+			translation[0] = final_parameters[3]; 
+			translation[1] = final_parameters[4]; 
+			translation[2] = final_parameters[5]; 
+
 			//itk::Matrix matrix = transform->GetMatrix();
 			//itk::OutputVectorType  translation = transform->GetTranslation();
 			//for ( unsigned row = 0; row < Dimension; ++row )
@@ -648,6 +659,24 @@
 
 				Core::Application::PostEvent( boost::bind( &Core::StateDoubleVector::set,
 					icp_tool->transform_matrix_, matrix_entries, Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->translation_state_[0], translation[0] , Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->translation_state_[1], translation[1] , Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->translation_state_[2], translation[2] , Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->rotation_state_[0], rotation[0] , Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->rotation_state_[1], rotation[1] , Core::ActionSource::NONE_E ) );
+
+				Core::Application::PostEvent( boost::bind( &Core::StateDouble::set,
+					icp_tool->rotation_state_[2], rotation[2] , Core::ActionSource::NONE_E ) );
 			}
 
 		}

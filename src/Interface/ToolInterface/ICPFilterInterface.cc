@@ -77,7 +77,6 @@ bool ICPFilterInterface::build_widget( QFrame* frame )
 		tool->use_active_layer_state_ );
 
 	QtUtils::QtBridge::Connect( this->private_->ui_.mask_layer_, tool->mask_state_ );
-	//QtUtils::QtBridge::Connect( this->private_->ui_.replaceCheckBox, tool->replace_state_ );
 	
 	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton,tool->valid_target_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
@@ -96,6 +95,24 @@ bool ICPFilterInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton_2, boost::bind(
 		&ICPFilter::apply, tool, Core::Interface::GetWidgetActionContext() ) );
 	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton_2, tool->registration_ready_state_ );
+
+	std::vector<double> matrix_params;
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_rx_, tool->rotation_state_[ 0 ] );
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_ry_, tool->rotation_state_[ 1 ] );
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_rz_, tool->rotation_state_[ 2 ] );
+
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_rx_, tool->registration_ready_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_ry_, tool->registration_ready_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_rz_, tool->registration_ready_state_ );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_tx_, tool->translation_state_[ 0 ] );
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_ty_, tool->translation_state_[ 1 ] );
+	QtUtils::QtBridge::Connect( this->private_->ui_.label_tz_, tool->translation_state_[ 2 ] );
+
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_tx_, tool->registration_ready_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_ty_, tool->registration_ready_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.label_tz_, tool->registration_ready_state_ );
 
 	return true;			
 }

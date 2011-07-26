@@ -81,6 +81,14 @@ ICPFilter::ICPFilter( const std::string& toolid ) :
 	this->add_connection( LayerManager::Instance()->layers_changed_signal_.connect(
 		boost::bind( &ICPFilter::handle_layers_changed, this ) ) );
 
+	this->add_state( "translation_x", this->translation_state_[ 0 ], 0 );
+	this->add_state( "translation_y", this->translation_state_[ 1 ], 0 );
+	this->add_state( "translation_z", this->translation_state_[ 2 ], 0 );
+
+	this->add_state( "rotation_x", this->rotation_state_[ 0 ], 0 );
+	this->add_state( "rotation_y", this->rotation_state_[ 1 ], 0 );
+	this->add_state( "rotation_z", this->rotation_state_[ 2 ], 0 );
+
 }
 	
 ICPFilter::~ICPFilter()
