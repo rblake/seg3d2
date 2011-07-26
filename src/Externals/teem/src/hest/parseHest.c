@@ -29,6 +29,8 @@ twice with differen values
 #include "hest.h"
 #include "privateHest.h"
 
+#include <string.h>
+
 #define ME ((parm && parm->verbosity) ? me : "")
 
 /*
@@ -990,7 +992,7 @@ _hestSetValues(char **prms, int *udflt, unsigned int *nprm, int *appr,
             opt[op].alloc = 3;
             if (nprm[op] != 
                 airParseStrS((char **)(*((void**)vP)), prms[op], " ", nprm[op],
-                             AIR_FALSE)) {
+                             parm->greedySingleString)) {
               sprintf(err, "%scouldn't parse %s\"%s\" as %d %s%s for %s",
                       ME, udflt[op] ? "(default) " : "", prms[op],
                       nprm[op], airTypeStr[type], 
@@ -1035,11 +1037,13 @@ int
 hestParse(hestOpt *opt, int _argc, char **_argv,
           char **_errP, hestParm *_parm) {
   char me[]="hestParse: ";
+  char *param, *param_copy;
   char **argv, **prms, *err;
-  int a, argc, argr, *appr, *udflt, nrf, numOpts, big, ret;
+  int a, argc, argr, *appr, *udflt, nrf, numOpts, big, ret, i;
   unsigned int *nprm;
   airArray *mop;
   hestParm *parm;
+  size_t start_index, end_index;
 
   numOpts = _hestNumOpts(opt);
 
@@ -1164,6 +1168,32 @@ hestParse(hestOpt *opt, int _argc, char **_argv,
   }
   if (parm->verbosity) printf("%s: #### hestDefaults done!\n", me);
   
+  /* remove quotes from strings
+	 if greedy wasn't turned on for strings, then we have no hope of
+	 capturing filenames with spaces. */
+	if ( parm->greedySingleString )
+	{
+		for (i=0; i<numOpts; i++)
+		{
+			param = prms[i];
+			param_copy = 0;
+			if (param && strstr(param, " ")) {
+				start_index = 0;
+				end_index = strlen(param)-1;
+				if (param[start_index] == '\"')
+					start_index++;
+				if (param[end_index] == '\"')
+					end_index--;
+				param_copy = malloc(end_index-start_index+2);
+				strncpy(param_copy,&param[start_index],end_index-start_index+1);
+				param_copy[end_index-start_index+1] = '\0';
+				strcpy(param,param_copy);
+				free(param_copy);
+			}
+		}
+	}
+
+	
   /* -------- now, the actual parsing of values */
   /* hammerhead problems in _hestSetValues */
   if (parm->verbosity) printf("%s: #### calling hestSetValues\n", me);
