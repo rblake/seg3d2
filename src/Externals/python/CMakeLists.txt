@@ -360,9 +360,9 @@ ELSE(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					Modules/getpath.c)
 #	set_source_files_properties(Modules/getpath.c PROPERTIES COMPILE_FLAGS  -DVERSION=\\\"${PY_MAJOR}.${PY_MINOR}\\\")
+	set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\\\"${PY_PLATFORM}\\\\\"")
 ENDIF(WIN32)				
 
-#set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM=\\"${PY_PLATFORM}\\")
 
 include_directories(Include ${Python_BINARY_DIR} ${SCI_ZLIB_INCLUDE})
 if(WIN32)
