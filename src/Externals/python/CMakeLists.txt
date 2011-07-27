@@ -221,6 +221,10 @@ if(BUILD_UNTESTED_MODULES)
   add_python_module(grp           MOD_SRCS Modules/grpmodule.c )
 endif(BUILD_UNTESTED_MODULES)
 
+if(Py_USING_UNICODE)
+	add_python_module(_string MOD_SRCS Objects/unicodeobject.c)
+	set(MOD_SRCS ${MOD_SRCS} Objects/unicodectype.c)
+endif(Py_USING_UNICODE)
 
 file(MAKE_DIRECTORY ${Python_BINARY_DIR}/Modules)
 if(WIN32)
@@ -288,12 +292,6 @@ set(OBJECT_SRCS Objects/abstract.c
                 Objects/typeobject.c
                 Objects/weakrefobject.c
    )
-
-if(Py_USING_UNICODE)
-   set(OBJECT_SRCS ${OBJECT_SRCS} 
-                   Objects/unicodeobject.c 
-                   Objects/unicodectype.c)
-endif(Py_USING_UNICODE)
 
 set(PYTHON_SRCS Python/Python-ast.c 
 				Python/_warnings.c
