@@ -360,7 +360,11 @@ ELSE(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					Modules/getpath.c)
 #	set_source_files_properties(Modules/getpath.c PROPERTIES COMPILE_FLAGS  -DVERSION=\\\"${PY_MAJOR}.${PY_MINOR}\\\")
-	set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\\\"${PY_PLATFORM}\\\\\"")
+    IF(APPLE)
+        set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\\\"${PY_PLATFORM}\\\\\"")
+    ELSE(APPLE)
+        set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\"${PY_PLATFORM}\\\"")
+    ENDIF(APPLE)
 ENDIF(WIN32)				
 
 
