@@ -413,7 +413,12 @@ std::vector<double> ImageHelper::GetOriginValue(File const & f)
 
   // else
   const Tag timagepositionpatient(0x0020, 0x0032);
-  if( ms != MediaStorage::SecondaryCaptureImageStorage && ds.FindDataElement( timagepositionpatient ) )
+
+////////////////////////////////////////////////////  
+// FIX For CARMA
+//  if( ms != MediaStorage::SecondaryCaptureImageStorage && ds.FindDataElement( timagepositionpatient ) )
+	if( ds.FindDataElement( timagepositionpatient ) )
+////////////////////////////////////////////////////  
     {
     const DataElement& de = ds.GetDataElement( timagepositionpatient );
     Attribute<0x0020,0x0032> at = {{0,0,0}}; // default value if empty
@@ -835,6 +840,16 @@ std::vector<double> ImageHelper::GetSpacingValue(File const & f)
     }
 
   Tag spacingtag = GetSpacingTagFromMediaStorage(ms);
+  
+  /////////////////////////////////////////////////////////
+  // FIX FOR CARMA
+  // The CARMA Data seems to have MediaStorage tags that do not match elements in the file
+  if ( spacingtag != Tag(0xffff,0xffff) && ! ds.FindDataElement( spacingtag ) )
+  {
+	 spacingtag = Tag(0x0028,0x0030);
+  }
+  /////////////////////////////////////////////////////////
+  
   if( spacingtag != Tag(0xffff,0xffff) && ds.FindDataElement( spacingtag ) && !ds.GetDataElement( spacingtag ).IsEmpty() )
     {
     const DataElement& de = ds.GetDataElement( spacingtag );

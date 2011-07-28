@@ -26,8 +26,11 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Qt includes
+#include <QtGui/QPainter>
+
+// QtUtils includes
 #include <QtUtils/Widgets/QtDropableComboBox.h>
-#include <Application/LayerManager/LayerManager.h>
 
 namespace QtUtils
 {
@@ -74,10 +77,14 @@ void QtDropableComboBox::dragLeaveEvent( QDragLeaveEvent* event )
 	this->clearFocus();
 }
 
-
-
-
-
-
+void QtDropableComboBox::add_color_icon( Core::Color button_color, int index )
+{
+	QPixmap pixmap( 20, 20 );
+	QPainter painter( &pixmap );
+	painter.setPen( Qt::NoPen );
+	painter.fillRect( QRect( 0, 0, 20, 20 ), 
+		QColor( button_color.r(), button_color.g(), button_color.b() ) );
+	this->setItemIcon( index, QIcon( pixmap ) );
+}
 	
 } // end namespace QtUtils

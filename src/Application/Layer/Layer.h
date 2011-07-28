@@ -39,18 +39,16 @@
 
 // Boost includes 
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/mutex.hpp>
 
 // Core includes
-#include <Core/Action/Action.h>
-#include <Core/Application/Application.h>
-#include <Core/Interface/Interface.h>
 #include <Core/State/State.h>
+#include <Core/State/StateHandler.h>
 #include <Core/State/BooleanStateGroup.h>
 #include <Core/Volume/Volume.h>
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
+#include <Application/Layer/LayerMetaData.h>
 #include <Application/Layer/LayerAbstractFilter.h>
 
 namespace Seg3D
@@ -93,7 +91,13 @@ public:
 
 	// GET_GRID_TRANSFORM:
 	// Get the transform of the layer
+	// Locks: StateEngine
 	virtual Core::GridTransform get_grid_transform() const = 0;
+
+	// SET_GRID_TRANSFORM:
+	// Set the transform of the layer
+	virtual void set_grid_transform( const Core::GridTransform& grid_transform, 
+		bool preserve_centering ) = 0;
 
 	// GET_DATA_TYPE:
 	// Get the data type of the underlying data
@@ -138,7 +142,12 @@ public:
 	// Trigger an abort signal for the current filter
 	typedef boost::signals2::signal< void() > abort_signal_type;
 	abort_signal_type abort_signal_;
-	
+
+	// STOP_SIGNAL:
+	// Trigger a stop filtering signal for the current filter
+	typedef boost::signals2::signal< void() > stop_signal_type;
+	stop_signal_type stop_signal_;
+
 	// -- State variables --
 public:
 	
@@ -156,9 +165,6 @@ public:
 
 	// State that describes the opacity with which the layer is displayed
 	Core::StateRangedDoubleHandle opacity_state_;
-
-	// State indicating whether the layer is selected for further processing
-	Core::StateBoolHandle selected_state_;
 
 	// State that stores the current layer state
 	Core::StateOptionHandle data_state_;
@@ -182,15 +188,30 @@ public:
 	// Whether to show the abort message
 	Core::StateBoolHandle show_abort_message_state_;
 	
+	// Whether to show the stop button
+	Core::StateBoolHandle show_stop_button_state_;
+	
 	// An exclusive group of boolean states that control the visibility of different parts
 	Core::BooleanStateGroupHandle gui_state_group_;
 
+	// Information needed to keep track of where the data came from
+	// and how to handle provenance
+
+	// State that keeps track of the provenance number
+	Core::StateLongLongHandle provenance_id_state_;
+	
+	// State of the MetaData associated with this layer
+	Core::StateStringHandle meta_data_state_;
+
+	// State variable that keeps track of what type of meta data was provided by the importer
+	Core::StateStringHandle meta_data_info_state_;
+
+	// Centering (node vs. cell) is stored per layer for all layers (mask and data)
+	Core::StateStringHandle centering_state_;
+
 protected:
 	// State that stores the generation of its datablock
-	Core::StateLongLongHandle generation_state_;
-	
-	// State that stores the last action that was played
-	Core::StateStringHandle last_action_state_;
+	Core::StateLongLongHandle generation_state_;	
 
 	// -- Accessors --
 public:
@@ -215,24 +236,54 @@ public:
 	// Get the generation of the current data block
 	Core::DataBlock::generation_type get_generation() const;
 
-	// -- abort handling --
-private:
-	void handle_abort();
+	// GET_METADATA:
+	// Retrieve all the meta data that was part of this layer in one convenient structure
+	LayerMetaData get_meta_data() const;
 
+	// SET_METADATA:
+	// Set all the metadata state variables
+	void set_meta_data( const LayerMetaData& meta_data );
+
+	// -- abort/stop processing handling --
 public:
+	// CHECK_ABORT:
+	// Check whether the abort flag was set.
+	// NOTE: By default the default flag is set to false. However when the abort signal of the
+	// layer is triggered the abort flag is set. It can only be unset by calling reset_abort().
 	bool check_abort();
-
+	
+	// RESET_ABORT:
+	// Reset the abort flag to false.
+	// NOTE: Call this function before running the filter that will trigger the abort_signal
 	void reset_abort();
 
+	// CHECK_STOP:
+	// Check whether the stop flag was set.
+	// NOTE: By default the default flag is set to false. However when the stop signal of the
+	// layer is triggered the stop flag is set. It can only be unset by calling reset_stop().
+	bool check_stop();
+	
+	// RESET_STOP:
+	// Reset the stop flag to false.
+	// NOTE: Call this function before running the filter that will trigger the stop_signal
+	void reset_stop();
+
 protected:
+	// POST_SAVE_STATES:
+	// This virtual function can be implemented in the StateHandlers and will be called after its
+	// states are saved.  If it doesn't succeed it needs to return false.
 	virtual bool post_save_states( Core::StateIO& state_io );
+
+	// GET_VERSION:
+	// Get the version number of the project file.
+	virtual int get_version();
 
 	// -- Filter keys --
 public:	
 	// FILTER_KEY:
 	// This is a unique key that is inserted when an asynchronous filter is running. 
 	// The asynchronous calls back to the layer are compared with the key, if they don't
-	// match the layer is not modified, at it is assumed that the filtering was aborted.
+	// match the layer is not modified, and it is assumed that the filtering was aborted.
 	typedef long long filter_key_type;
 
 	// CHECK_FILTER_KEY:
@@ -263,14 +314,22 @@ public:
 	// Reset the filter handle, indicating no filter it working on the data
 	void reset_filter_handle();
 
-	// GET_FITLER_HANDLE
+	// GET_FITLER_HANDLE:
 	// Get the current filter associated with the layer
 	LayerAbstractFilterHandle get_filter_handle();
 
+	// -- filter termination --
+public:	
+	// SET_ALLOW_STOP:
+	// Allow stopping the filter on the next iteration
+	void set_allow_stop();
+
+	// RESET_ALLOW_STOP:
+	// Reset the flag that allows stopping the filter
+	void reset_allow_stop();	
 
 	// -- internals of class --
 private:	
-
 	LayerPrivateHandle private_;
 
 	// -- Locking system --
@@ -287,14 +346,13 @@ public:
 public:
 	static filter_key_type GenerateFilterKey();
 
+	// -- states a layer can be in --
 public:
-
 	// Options for the state of the data inside of the layer
 	const static std::string CREATING_C;
 	const static std::string PROCESSING_C;
 	const static std::string AVAILABLE_C;
 	const static std::string IN_USE_C;
-
 };
 
 } // end namespace Seg3D

@@ -40,13 +40,15 @@
 #include <Core/Graphics/UnitCube.h>
 #include <Core/TextRenderer/TextRenderer.h>
 #include <Core/Graphics/ColorMap.h>
+#include <Core/VolumeRenderer/VolumeRendererSimple.h>
+#include <Core/VolumeRenderer/VolumeRendererOcclusion.h>
 
 // Application includes
 #include <Application/Layer/DataLayer.h>
 #include <Application/Layer/MaskLayer.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/LayerScene.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerScene.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/Renderer/Renderer.h>
 #include <Application/Tool/Tool.h>
@@ -92,16 +94,14 @@ typedef std::vector< IsosurfaceRecordHandle > IsosurfaceArray;
 // Implementation of class RendererPrivate
 //////////////////////////////////////////////////////////////////////////
 
-static const unsigned int PATTERN_SIZE_C = 6;
-static const unsigned char MAX_PATTERN_VAL_C = 150;
+static const unsigned int PATTERN_SIZE_C = 4;
+static const unsigned char MAX_PATTERN_VAL_C = 200;
 static const unsigned char MASK_PATTERNS_C[ PATTERN_SIZE_C ][ PATTERN_SIZE_C ] =
 {
-	{ MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0, 0 }, 
-	{ 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0 }, 
-	{ 0, 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C }, 
-	{ MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0, 0 },
-	{ 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C, 0 }, 
-	{ 0, 0, MAX_PATTERN_VAL_C, 0, 0, MAX_PATTERN_VAL_C }
+	{ MAX_PATTERN_VAL_C, 0, 0, 0 }, 
+	{ 0, MAX_PATTERN_VAL_C, 0, 0 }, 
+	{ 0, 0, MAX_PATTERN_VAL_C, 0 }, 
+	{ 0, 0, 0, MAX_PATTERN_VAL_C }
 };
 
 class RendererPrivate
@@ -112,12 +112,11 @@ public:
 	void draw_slices_3d( const Core::BBox& bbox, 
 		const std::vector< LayerSceneHandle >& layer_scenes, 
 		const std::vector< double >& depths,
-		const std::vector< std::string >& view_modes,
-		bool with_lighting );
+		const std::vector< std::string >& view_modes );
 	void draw_slice( LayerSceneItemHandle layer_item, const Core::Matrix& proj_mat,
 		ProxyRectangleHandle rect = ProxyRectangleHandle() );
 	void process_isosurfaces( IsosurfaceArray& isosurfaces );
-	void draw_isosurfaces( const IsosurfaceArray& isosurfaces, bool with_lighting );
+	void draw_isosurfaces( const IsosurfaceArray& isosurfaces );
 	void draw_orientation_arrows( const Core::View3D& view_3d );
 
 	// -- Signals handling --
@@ -135,6 +134,7 @@ public:
 	Core::Texture2DHandle pattern_texture_;
 	Core::TextRendererHandle text_renderer_;
 	Core::Texture2DHandle text_texture_;
+	Core::VolumeRendererBaseHandle volume_renderers_[ 3 ];
 
 	size_t viewer_id_;
 	bool rendering_enabled_;
@@ -231,11 +231,8 @@ void RendererPrivate::picking_target_changed( size_t viewer_id )
 void RendererPrivate::draw_slices_3d( const Core::BBox& bbox, 
 							  const std::vector< LayerSceneHandle >& layer_scenes, 
 							  const std::vector< double >& depths,
-							  const std::vector< std::string >& view_modes,
-							  bool with_lighting )
+							  const std::vector< std::string >& view_modes )
 {
-	this->slice_shader_->enable();
-	this->slice_shader_->set_lighting( with_lighting );
 	size_t num_of_viewers = layer_scenes.size();
 	
 	// for each visible 2D viewer
@@ -319,7 +316,6 @@ void RendererPrivate::draw_slices_3d( const Core::BBox& bbox,
 		} // end for
 
 	} // end for each viewer
-	this->slice_shader_->disable();
 }
 
 void RendererPrivate::draw_slice( LayerSceneItemHandle layer_item, 
@@ -335,23 +331,12 @@ void RendererPrivate::draw_slice( LayerSceneItemHandle layer_item,
 		{
 			DataLayerSceneItem* data_layer_item = 
 				dynamic_cast< DataLayerSceneItem* >( layer_item.get() );
-
-			// Convert contrast to range ( 0, 1 ] and brightness to [ -1, 1 ]
-			double contrast = ( 1 - data_layer_item->contrast_ / 101 );
-			double brightness = data_layer_item->brightness_ / 50 - 1.0;
-
-			// NOTE: The equations for computing scale and bias are as follows:
-			//
-			// double scale = numeric_range / ( contrast * value_range );
-			// double window_max = -brightness * ( value_max - value_min ) + value_max;
-			// double bias = ( numeric_max - window_max * scale ) / numeric_max;
-			//
-			// However, since we always rescale the data to unsigned short when uploading
-			// textures, numeric_range and value_range are the same, 
-			// and thus the computation can be simplified.
-
-			double scale = 1.0 / contrast;
-			double bias = 1.0 - ( 1.0 - brightness ) * scale;
+			double data_range = data_layer_item->data_max_ - data_layer_item->data_min_;
+			double window_size = data_layer_item->display_max_ - data_layer_item->display_min_;
+			window_size = Core::Max( 0.01 * data_range, window_size );
+			double scale = data_range > 0 ? data_range / window_size : 1.0;
+			double bias = data_range > 0 ? 1.0 - ( scale * data_layer_item->display_max_ 
+				- data_layer_item->data_min_ ) / data_range : 0.0;
 			this->slice_shader_->set_scale_bias( static_cast< float >( scale ), 
 				static_cast< float >( bias ) );
 		}
@@ -397,12 +382,19 @@ void RendererPrivate::draw_slice( LayerSceneItemHandle layer_item,
 	Core::Texture::lock_type slice_tex_lock( slice_tex->get_mutex() );
 	slice_tex->bind();
 
+	double texel_width = slice_width / ( volume_slice->nx() - 1 );
+	double texel_height = slice_height / ( volume_slice->ny() - 1 );
+
 	if ( rect )
 	{
-		double tex_left = ( rect->left - volume_slice->left() ) / slice_width;
-		double tex_right = ( rect->right - volume_slice->right() ) / slice_width + 1.0;
-		double tex_bottom = ( rect->bottom - volume_slice->bottom() ) / slice_height;
-		double tex_top = ( rect->top - volume_slice->top() ) / slice_height + 1.0;
+		double tex_left = ( rect->left - volume_slice->left() + texel_width * 0.5 ) / 
+			( slice_width + texel_width );
+		double tex_right = ( rect->right - volume_slice->right() - texel_width * 0.5 ) / 
+			( slice_width + texel_width ) + 1.0;
+		double tex_bottom = ( rect->bottom - volume_slice->bottom() + texel_height * 0.5 ) / 
+			( slice_height + texel_height );
+		double tex_top = ( rect->top - volume_slice->top() - texel_height * 0.5 ) / 
+			( slice_height + texel_height ) + 1.0;
 		glBegin( GL_QUADS );
 		glNormal3dv( &rect->normal[ 0 ] );
 		glMultiTexCoord2d( GL_TEXTURE0, tex_left, tex_bottom );
@@ -420,21 +412,17 @@ void RendererPrivate::draw_slice( LayerSceneItemHandle layer_item,
 		// NOTE: Extend the size of the slice by half voxel size in each direction. 
 		// This is to compensate the difference between node centering and cell centering.
 		// The volume data uses node centering, but OpenGL texture uses cell centering.
-		double voxel_width = ( volume_slice->right() - volume_slice->left() ) 
-			/ ( volume_slice->nx() - 1 );
-		double voxel_height = ( volume_slice->top() - volume_slice->bottom() )
-			/ ( volume_slice->ny() - 1 );
-		double left = volume_slice->left() - 0.5 * voxel_width;
-		double right = volume_slice->right() + 0.5 * voxel_width;
-		double bottom = volume_slice->bottom() - 0.5 * voxel_height;
-		double top = volume_slice->top() + 0.5 * voxel_height;
+		double left = volume_slice->left() - 0.5 * texel_width;
+		double right = volume_slice->right() + 0.5 * texel_width;
+		double bottom = volume_slice->bottom() - 0.5 * texel_height;
+		double top = volume_slice->top() + 0.5 * texel_height;
 		slice_width = right - left;
 		slice_height = top - bottom;
 
 		// Compute the size of the slice on screen
 		Core::Vector slice_x( slice_width, 0.0, 0.0 );
 		slice_x = proj_mat * slice_x;
-		double slice_screen_width = slice_x.x() / 2.0 * this->renderer_->width_;
+		double slice_screen_width = Core::Abs( slice_x.x() ) / 2.0 * this->renderer_->width_;
 		double slice_screen_height = slice_height / slice_width * slice_screen_width;
 		float pattern_repeats_x = static_cast< float >( slice_screen_width / PATTERN_SIZE_C );
 		float pattern_repeats_y = static_cast< float >( slice_screen_height / PATTERN_SIZE_C );
@@ -490,7 +478,7 @@ void RendererPrivate::process_isosurfaces( IsosurfaceArray& isosurfaces )
 	for ( size_t i = 0; i < num_of_layers; ++i )
 	{
 		if ( layers[ i ]->get_type() == Core::VolumeType::MASK_E 
-			&& layers[ i ]->is_visible( this->viewer_id_ )  )
+			&& layers[ i ]->visible_state_[ this->viewer_id_ ]->get() )
 		{
 			MaskLayer* mask_layer = static_cast< MaskLayer* >( layers[ i ].get() );
 			if ( mask_layer->show_isosurface_state_->get() )
@@ -505,15 +493,14 @@ void RendererPrivate::process_isosurfaces( IsosurfaceArray& isosurfaces )
 	}
 }
 
-void RendererPrivate::draw_isosurfaces( const IsosurfaceArray& isosurfaces, bool with_lighting )
+void RendererPrivate::draw_isosurfaces( const IsosurfaceArray& isosurfaces )
 {
 	bool use_colormap = false;
 
-	size_t num_of_isosurfaces = isosurfaces.size();
-//	glEnable( GL_CULL_FACE );
-	this->isosurface_shader_->enable();
-	this->isosurface_shader_->set_lighting( with_lighting );
 	this->isosurface_shader_->set_use_colormap( use_colormap  );
+//	glEnable( GL_CULL_FACE );
+
+	size_t num_of_isosurfaces = isosurfaces.size();
 	for ( size_t i = 0; i < num_of_isosurfaces; ++i )
 	{
 		Core::IsosurfaceHandle iso = isosurfaces[ i ]->isosurface_;
@@ -556,9 +543,6 @@ void RendererPrivate::draw_orientation_arrows( const Core::View3D& view_3d )
 	glViewport( this->renderer_->width_ - dimension, 
 		this->renderer_->height_ - dimension, dimension, dimension );
 
-	// NOTE: Clear the depth buffer so the axes will not be occluded.
-	glClear( GL_DEPTH_BUFFER_BIT );
-
 	// Compute the orientation of the axes
 	Core::Vector eye_dir = view_3d.eyep() - view_3d.lookat();
 	eye_dir.normalize();
@@ -599,6 +583,9 @@ Renderer::Renderer( size_t viewer_id ) :
 	this->private_->slice_shader_.reset( new SliceShader );
 	this->private_->isosurface_shader_.reset( new IsosurfaceShader );
 	this->private_->text_renderer_.reset( new Core::TextRenderer );
+	this->private_->volume_renderers_[ 0 ].reset( new Core::VolumeRendererSimple );
+	this->private_->volume_renderers_[ 1 ] = this->private_->volume_renderers_[ 0 ];
+	this->private_->volume_renderers_[ 2 ].reset( new Core::VolumeRendererOcclusion );
 	this->private_->viewer_id_ = viewer_id;
 }
 
@@ -631,6 +618,8 @@ void Renderer::post_initialize()
 
 		this->private_->slice_shader_->initialize();
 		this->private_->isosurface_shader_->initialize();
+		this->private_->volume_renderers_[ 0 ]->initialize();
+		this->private_->volume_renderers_[ 2 ]->initialize();
 		this->private_->pattern_texture_.reset( new Core::Texture2D );
 		this->private_->pattern_texture_->set_image( PATTERN_SIZE_C, PATTERN_SIZE_C, 
 			GL_ALPHA, MASK_PATTERNS_C, GL_ALPHA, GL_UNSIGNED_BYTE );
@@ -642,6 +631,7 @@ void Renderer::post_initialize()
 	this->private_->slice_shader_->set_slice_texture( 0 );
 	this->private_->slice_shader_->set_pattern_texture( 1 );
 	this->private_->slice_shader_->set_lighting( false );
+	this->private_->slice_shader_->set_fog( false );
 	this->private_->slice_shader_->disable();
 
 	this->private_->isosurface_shader_->enable();
@@ -658,8 +648,12 @@ void Renderer::post_initialize()
 
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( this->private_->viewer_id_ );
 
+	// Redraw without picking
 	this->add_connection( viewer->redraw_scene_signal_.connect( 
 		boost::bind( &Renderer::redraw_scene, this ) ) );
+	// Redraw with picking
+	this->add_connection( viewer->redraw_scene_pick_signal_.connect( 
+		boost::bind( &Renderer::redraw_scene, this, _1 ) ) );
 	this->add_connection( viewer->redraw_overlay_signal_.connect( 
 		boost::bind( &Renderer::redraw_overlay, this ) ) );
 	this->add_connection( viewer->redraw_all_signal_.connect( 
@@ -687,7 +681,7 @@ void Renderer::post_initialize()
 		boost::bind( &RendererPrivate::enable_rendering, this->private_, true ) ) );
 }
 
-bool Renderer::render()
+bool Renderer::render_scene()
 {
 	if ( !this->private_->rendering_enabled_ )
 	{
@@ -699,7 +693,7 @@ bool Renderer::render()
 
 	Core::Color bkg_color = PreferencesManager::Instance()->get_background_color();
 
-	glClearColor( bkg_color.r(), bkg_color.g(), bkg_color.b(), 1.0f );
+	glClearColor( bkg_color.r(), bkg_color.g(), bkg_color.b(), 0.0f );
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
@@ -717,10 +711,23 @@ bool Renderer::render()
 		std::vector< double > depths;
 		std::vector< std::string > view_modes;
 		bool with_lighting = viewer->volume_light_visible_state_->get();
+		bool with_fog = viewer->volume_enable_fog_state_->get();
+		bool enable_clipping = viewer->volume_enable_clipping_state_->get();
 		bool draw_slices = viewer->volume_slices_visible_state_->get();
 		bool draw_isosurfaces = viewer->volume_isosurfaces_visible_state_->get();
+		bool render_volume = viewer->volume_volume_rendering_visible_state_->get();
+		int volume_renderer_index = ViewerManager::Instance()->volume_renderer_state_->index();
+		double sample_rate = ViewerManager::Instance()->volume_sample_rate_state_->get();
+		double occlusion_angle = ViewerManager::Instance()->vr_occlusion_angle_state_->get();
+		int occlusion_grid_resolution = ViewerManager::Instance()->vr_occlusion_grid_resolution_state_->get();
+		bool draw_bbox = viewer->volume_show_bounding_box_state_->get();
 		bool show_invisible_slices = viewer->volume_show_invisible_slices_state_->get();
 		size_t num_of_viewers = ViewerManager::Instance()->number_of_viewers();
+		std::string vr_layer = ViewerManager::Instance()->volume_rendering_target_state_->get();
+		
+		// Clipping does not seem to work properly on OSX 10.5
+		if ( Core::Application::Instance()->is_osx_10_5_or_less() ) enable_clipping = false;
+		
 		for ( size_t i = 0; i < num_of_viewers && draw_slices; i++ )
 		{
 			ViewerHandle other_viewer = ViewerManager::Instance()->get_viewer( i );
@@ -751,35 +758,175 @@ bool Renderer::render()
 		if ( draw_isosurfaces )
 		{
 			this->private_->process_isosurfaces( isosurfaces );
-		}		
+		}
 
+		double fog_density = ViewerManager::Instance()->fog_density_state_->get() * 1.8;
+		bool clip_plane_enable[ 6 ];
+		Core::Vector clip_plane_normal[ 6 ];
+		double clip_plane_distance[ 6 ];
+		bool clip_plane_reverse_normal[ 6 ];
+		if ( enable_clipping )
+		{
+			for ( size_t i = 0; i < 6; ++i )
+			{
+				clip_plane_enable[ i ] = ViewerManager::Instance()->enable_clip_plane_state_[ i ]->get();
+				clip_plane_normal[ i ].x( ViewerManager::Instance()->clip_plane_x_state_[ i ]->get() );
+				clip_plane_normal[ i ].y( ViewerManager::Instance()->clip_plane_y_state_[ i ]->get() );
+				clip_plane_normal[ i ].z( ViewerManager::Instance()->clip_plane_z_state_[ i ]->get() );
+				clip_plane_distance[ i ] = ViewerManager::Instance()->clip_plane_distance_state_[ i ]->get();
+				clip_plane_reverse_normal[ i ] = 
+					ViewerManager::Instance()->clip_plane_reverse_norm_state_[ i ]->get();
+			}
+		}
+		
 		// We have got everything we want from the state engine, unlock before we do any rendering
 		state_lock.unlock();
+		
+		double znear, zfar;
+		view3d.compute_clipping_planes( bbox, znear, zfar );
+		// If the scene is completely behind the camera, no need to render
+		if ( zfar < 0 )
+		{
+			return true;
+		}
 
 		glEnable( GL_DEPTH_TEST );
 		glEnable( GL_BLEND );
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-		double znear, zfar;
-		view3d.compute_clipping_planes( bbox, znear, zfar );
-		
 		gluPerspective( view3d.fov(), this->width_ / ( 1.0 * this->height_ ), znear, zfar );
 		glMatrixMode( GL_MODELVIEW );
 		glLoadIdentity();
 		gluLookAt( view3d.eyep().x(), view3d.eyep().y(), view3d.eyep().z(), view3d.lookat().x(),
 		    view3d.lookat().y(), view3d.lookat().z(), view3d.up().x(), view3d.up().y(), view3d.up().z() );
 
+		GLfloat fog_color[] = { bkg_color.r(), bkg_color.g(), bkg_color.b(), 1.0f };
+		glFogfv( GL_FOG_COLOR, fog_color );
+		glFogf( GL_FOG_DENSITY, static_cast< float >( fog_density ) );
+
+		if ( enable_clipping )
+		{
+			glPushAttrib( GL_ENABLE_BIT );
+
+			// NOTE: clipping planes are defined relative to the center of the bounding box,
+			// so we need to add an offset to the distance in order to get their positions
+			// in world space.
+
+			Core::Vector clip_plane_offset( bbox.center() );
+			for ( int i = 0; i < 6; ++i )
+			{
+				if ( !clip_plane_enable[ i ] || clip_plane_normal[ i ].normalize() == 0.0 )
+				{
+					continue;
+				}
+				int sign = clip_plane_reverse_normal[ i ] ? -1 : 1;
+				clip_plane_normal[ i ] = clip_plane_normal[ i ] * sign;
+				clip_plane_distance[ i ] = -sign * clip_plane_distance[ i ] - 
+					Core::Dot( clip_plane_offset, clip_plane_normal[ i ] );
+				GLdouble eqn[ 4 ] = { clip_plane_normal[ i ].x(), clip_plane_normal[ i ].y(),
+					clip_plane_normal[ i ].z(), clip_plane_distance[ i ] };
+				glClipPlane( GL_CLIP_PLANE0 + i, eqn );
+				glEnable( GL_CLIP_PLANE0 + i );
+			}
+		}
+		
+		CORE_CHECK_OPENGL_ERROR();
+		
 		if ( draw_slices )
 		{
-			this->private_->draw_slices_3d( bbox, layer_scenes, depths, view_modes, with_lighting );
-		}
-		if ( draw_isosurfaces)
-		{
-			this->private_->draw_isosurfaces( isosurfaces, with_lighting );
+			this->private_->slice_shader_->enable();
+			this->private_->slice_shader_->set_lighting( with_lighting );
+			this->private_->slice_shader_->set_fog( with_fog );
+			this->private_->slice_shader_->set_fog_range( static_cast< float >( znear ), 
+				static_cast< float >( zfar ) );
+			this->private_->draw_slices_3d( bbox, layer_scenes, depths, view_modes );
+			this->private_->slice_shader_->disable();
+			CORE_CHECK_OPENGL_ERROR();
 		}
 
-		// NOTE: The orientation axes should be drawn the last, because it clears the depth buffer.
-		this->private_->draw_orientation_arrows( view3d );
+		if ( draw_isosurfaces )
+		{
+			this->private_->isosurface_shader_->enable();
+			this->private_->isosurface_shader_->set_lighting( with_lighting );
+			this->private_->isosurface_shader_->set_fog( with_fog );
+			this->private_->isosurface_shader_->set_fog_range( static_cast< float >( znear ), 
+				static_cast< float >( zfar ) );
+			this->private_->draw_isosurfaces( isosurfaces );
+			this->private_->isosurface_shader_->disable();
+			CORE_CHECK_OPENGL_ERROR();
+		}
+
+		if ( draw_bbox )
+		{
+			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+			glColor4f( 1.0, 1.0, 1.0, 1.0 );
+			Core::Point corner1 = bbox.min();
+			Core::Point corner2 = bbox.max();
+			glBegin( GL_QUAD_STRIP );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glEnd();
+			glBegin( GL_QUADS );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner1[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner1[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner2[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glVertex3d( corner1[ 0 ], corner2[ 1 ], corner2[ 2 ] );
+			glEnd();
+			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+		}
+
+		// NOTE: Volume rendering should happen the last
+		if ( render_volume && vr_layer != "<none>" && 
+			vr_layer != Core::StateLabeledOption::EMPTY_OPTION_C )
+		{
+			DataLayerHandle data_layer = LayerManager::Instance()->find_data_layer_by_id( vr_layer );
+			if ( data_layer && data_layer->has_valid_data() )
+			{
+				Core::VolumeRenderingParam vr_param;
+				vr_param.view_ = view3d;
+				vr_param.znear_ = znear;
+				vr_param.zfar_ = zfar;
+				vr_param.sampling_rate_ = sample_rate;
+				vr_param.enable_lighting_ = with_lighting;
+				vr_param.enable_fog_ = with_fog;
+				vr_param.orthographic_ = false;
+				vr_param.transfer_function_ = ViewerManager::Instance()->get_transfer_function();
+				vr_param.enable_clipping_ = enable_clipping;
+				if ( enable_clipping )
+				{
+					for ( int i = 0; i < 6; ++i )
+					{
+						vr_param.enable_clip_plane_[ i ] = clip_plane_enable[ i ];
+						vr_param.clip_plane_[ i ][ 0 ] = static_cast< float >( clip_plane_normal[ i ].x() );
+						vr_param.clip_plane_[ i ][ 1 ] = static_cast< float >( clip_plane_normal[ i ].y() );
+						vr_param.clip_plane_[ i ][ 2 ] = static_cast< float >( clip_plane_normal[ i ].z() );
+						vr_param.clip_plane_[ i ][ 3 ] = static_cast< float >( clip_plane_distance[ i ] );
+					}
+				}
+				vr_param.occlusion_angle_ = occlusion_angle;
+				vr_param.grid_resolution_ = occlusion_grid_resolution;
+				this->private_->volume_renderers_[ volume_renderer_index ]->render( 
+					data_layer->get_data_volume(), vr_param );
+				CORE_CHECK_OPENGL_ERROR();
+			}
+		}
+	
+		if ( enable_clipping )
+		{
+			glPopAttrib();
+		}
 		
 		glDisable( GL_BLEND );
 	}
@@ -810,14 +957,17 @@ bool Renderer::render()
 		glMultMatrixd( proj_mat.data() );
 		glMatrixMode( GL_MODELVIEW );
 		glLoadIdentity();
+		CORE_CHECK_OPENGL_ERROR();
 
 		this->private_->slice_shader_->enable();
 		this->private_->slice_shader_->set_lighting( false );
+		this->private_->slice_shader_->set_fog( false );
 
 		for ( size_t layer_num = 0; layer_num < layer_scene->size(); layer_num++ )
 		{
 			this->private_->draw_slice( ( *layer_scene )[ layer_num ], proj_mat );
-		} 
+		}
+		CORE_CHECK_OPENGL_ERROR();
 
 		this->private_->slice_shader_->disable();
 		glDisable( GL_BLEND );
@@ -842,23 +992,54 @@ bool Renderer::render_overlay()
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
 		this->private_->viewer_id_ ) + ": starting redraw overlay" );
 
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity();
+	// Enable blending
+	glEnable( GL_BLEND );
+	// NOTE: The result of the following blend function is that, color channels contains
+	// colors modulated by alpha, alpha channel stores the value of "1-alpha"
+	glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA , 
+		GL_ZERO, GL_ONE_MINUS_SRC_ALPHA  );
 
 	// Lock the state engine
 	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( this->private_->viewer_id_ );
+	// NOTE: If the viewer layout changes, viewer attributes could be changed by the interface thread 	
+	// underneath us.  Since there is no way to force Qt to lock the viewer before making these 	
+	// changes, we grab the width and height up front and check for validity so that we at least	
+	// don't crash later due to a width or height of 0.  The width and height are passed to the	
+	// tools and should be used instead of querying the viewer directly.	
+	int viewer_width = viewer->get_width();	
+	int viewer_height = viewer->get_height();	
+	if( viewer_width <= 0 || viewer_height <= 0 ) 	
+	{		
+		return false;	
+	}	
+	
+	bool show_overlay = viewer->overlay_visible_state_->get();
 
 	if ( viewer->is_volume_view() )
 	{
+		// NOTE: Make sure that the following objects are not modified so that 3D picking will work:
+		// - Scene depth buffer
+		// - Modelview matrix
+		// - Projection matrix
+		// - Viewport matrix
+		Core::View3D view3d( viewer->volume_view_state_->get() );
 		state_lock.unlock();
+
+		if ( show_overlay )
+		{
+			glEnable( GL_DEPTH_TEST );
+			this->private_->draw_orientation_arrows( view3d );	
+		}
 	}
 	else
 	{
+		glMatrixMode( GL_PROJECTION );
+		glLoadIdentity();
+
 		bool show_grid = viewer->slice_grid_state_->get();
 		bool show_picking_lines = viewer->slice_picking_visible_state_->get();
-		bool show_overlay = viewer->overlay_visible_state_->get();
 		bool show_slice_num = PreferencesManager::Instance()->show_slice_number_state_->get();
 		bool zero_based_slice_numbers = PreferencesManager::Instance()->
 			zero_based_slice_numbers_state_->get();
@@ -904,22 +1085,19 @@ bool Renderer::render_overlay()
 		Core::Transform::BuildOrtho2DMatrix( proj_mat, left, right, bottom, top );
 
 		glDisable( GL_DEPTH_TEST );
-		// Enable blending
-		glEnable( GL_BLEND );
-		// NOTE: The result of the following blend function is that, color channels contains
-		// colors modulated by alpha, alpha channel stores the value of "1-alpha"
-		glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA , 
-			GL_ZERO, GL_ONE_MINUS_SRC_ALPHA  );
 
 		gluOrtho2D( 0, this->width_ - 1, 0, this->height_ - 1 );
 		glMatrixMode( GL_MODELVIEW );
 		glLoadIdentity();
 
+		CORE_CHECK_OPENGL_ERROR();
+
 		// Render the active tool
 		ToolHandle tool = ToolManager::Instance()->get_active_tool();
 		if ( tool )
 		{
-			tool->redraw( this->private_->viewer_id_, proj_mat );
+			tool->redraw( this->private_->viewer_id_, proj_mat, viewer_width, viewer_height );
+			CORE_CHECK_OPENGL_ERROR();
 		}
 
 		// Render the grid
@@ -950,6 +1128,7 @@ bool Renderer::render_overlay()
 				glVertex2i( this->width_, center_y + grid_spacing * i );
 			}
 			glEnd();
+			CORE_CHECK_OPENGL_ERROR();
 		} // end if ( show_grid )
 		
 		// Render the positions of slices in other viewers
@@ -1023,6 +1202,7 @@ bool Renderer::render_overlay()
 				glEnd();
 			}
 			glDisable( GL_LINE_STIPPLE );
+			CORE_CHECK_OPENGL_ERROR();
 		} // end if ( show_picking_lines )
 
 		// Render the slice number text
@@ -1051,10 +1231,11 @@ bool Renderer::render_overlay()
 			glVertex2i( 0, this->height_ - 1 );
 			glEnd();
 			this->private_->text_texture_->disable();
+			CORE_CHECK_OPENGL_ERROR();
 		} // end rendering text
-
-		glDisable( GL_BLEND );
 	}
+
+	glDisable( GL_BLEND );
 
 	CORE_LOG_DEBUG( std::string("Renderer ") + Core::ExportToString( 
 		this->private_->viewer_id_ ) + ": done redraw overlay" );

@@ -2,7 +2,7 @@
 
 Implements the Distutils 'check' command.
 """
-__revision__ = "$Id: check.py 76236 2009-11-13 02:29:35Z benjamin.peterson $"
+__revision__ = "$Id: check.py 85197 2010-10-03 14:18:09Z tarek.ziade $"
 
 from distutils.core import Command
 from distutils.errors import DistutilsSetupError
@@ -13,7 +13,7 @@ try:
     from docutils.parsers.rst import Parser
     from docutils import frontend
     from docutils import nodes
-    from StringIO import StringIO
+    from io import StringIO
 
     class SilentReporter(Reporter):
 

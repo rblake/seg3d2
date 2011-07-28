@@ -30,6 +30,9 @@
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/lambda.hpp>
 
+// Core includes
+#include <Core/Interface/Interface.h>
+
 //QtUtils Includes
 #include <QtUtils/Bridge/QtBridge.h>
 
@@ -118,6 +121,9 @@ bool BinarySmoothDilateErodeFilterInterface::build_widget( QFrame* frame )
 		&BinarySmoothDilateErodeFilter::execute_dilate, tool, Core::Interface::GetWidgetActionContext() ) );
 	QtUtils::QtBridge::Connect( this->private_->ui_.erodeButton, boost::bind( 
 		&BinarySmoothDilateErodeFilter::execute_erode, tool, Core::Interface::GetWidgetActionContext() ) );
+	
+	this->private_->ui_.erode_->set_description( "Erode" );
+	this->private_->ui_.dilate_->set_description( "Dilate" );
 	
 	return true;
 

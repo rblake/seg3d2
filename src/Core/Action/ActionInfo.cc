@@ -42,56 +42,56 @@ namespace Core
 
 class ActionInfoPrivate 
 {
-	public:
-		// Definition of the action in XML
-		std::string definition_;
-	
-		// The type of the action, i.e. the name with which it should be called
-		std::string type_;
+public:
+	ActionInfoPrivate();
+	// Definition of the action in XML
+	std::string definition_;
 
-		// Description of the action, i.e. what does it do
-		std::string description_;
-		
-		// Vector of arguments that need to be passed in
-		std::vector<std::string> argument_;
-		// Vector of descriptions per argument
-		std::vector<std::string> argument_description_;
-		
-		// Vector of keys that can be added
-		std::vector<std::string> key_;		
-		// Vector of default values for each key
-		std::vector<std::string> key_default_value_;
-		// Vector of descriptions for each key
-		std::vector<std::string> key_description_;
-		
-		// Description of how to use the action
-		std::string usage_;
-		
-		// Test whether the action described was valid or not
-		// NOTE: If not valid the program will not register the action
-		bool valid_;
-		
-		// Whether the action will change the data of the program
-		bool changes_project_data_;
-		
-		// Whether an action is undoable
-		bool undoable_;
+	// The type of the action, i.e. the name with which it should be called
+	std::string type_;
+
+	// Description of the action, i.e. what does it do
+	std::string description_;
+
+	// Properties of the action
+	std::vector<std::string> properties_;
+	
+	// Vector of keys that can be added
+	std::vector<std::string> key_;		
+	// Vector of default values for each key
+	std::vector<std::string> key_default_value_;
+	// Vector of descriptions for each key
+	std::vector<std::string> key_description_;
+	// Vector of properties per argument
+	std::vector<std::vector<std::string> > key_properties_;
+			
+	// Description of how to use the action
+	std::string usage_;
+	
+	// Test whether the action described was valid or not
+	// NOTE: If not valid the program will not register the action
+	bool valid_;
+	
+	// Default properties
+	bool is_undoable_;
+	bool changes_project_data_;
 };
+
+ActionInfoPrivate::ActionInfoPrivate() :
+	valid_( false ),
+	is_undoable_( false ),
+	changes_project_data_( false )
+{
+}
 
 
 ActionInfo::ActionInfo( const std::string& definition ) :
 	private_( new ActionInfoPrivate )
 {
-	this->private_->valid_ = false;
-
 	CORE_LOG_MESSAGE( std::string( "Registering action: " ) + definition );
 
 	// NOTE: We need to add an end line, otherwise tinyXML does not accept the xml string
 	this->private_->definition_ = definition + "\n";
-	
-	// This is the default value
-	this->private_->changes_project_data_ = false;
-	this->private_->undoable_ = false;
 
 	// Define a document
 	TiXmlDocument doc;
@@ -122,30 +122,33 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 			type = parameter_element->Value();
 		}
 		
-		if ( type == "argument" )
-		{
-			std::string name;
-			if ( parameter_element->Attribute( "name" ) ) 
-			{
-				name = parameter_element->Attribute( "name" );
-			}
-			std::string description;
-			if ( parameter_element->GetText() )
-			{
-				description = parameter_element->GetText();
-			}
-			
-			if ( name.empty() )
-			{
-				CORE_LOG_ERROR( "Action Registration: Action argument needs to have name." );
-				CORE_LOG_ERROR( "Action Registration: Skipping registration of this action" );
-				return;
-			}
-			
-			this->private_->argument_.push_back( name );
-			this->private_->argument_description_.push_back( description );
-		}
-		else if ( type == "action" )
+		//if ( type == "argument" )
+		//{
+		//	std::string name;
+		//	if ( parameter_element->Attribute( "name" ) ) 
+		//	{
+		//		name = parameter_element->Attribute( "name" );
+		//	}
+		//	std::string description;
+		//	if ( parameter_element->GetText() )
+		//	{
+		//		description = parameter_element->GetText();
+		//	}
+		//	
+		//	if ( name.empty() )
+		//	{
+		//		CORE_LOG_ERROR( "Action Registration: Action argument needs to have name." );
+		//		CORE_LOG_ERROR( "Action Registration: Skipping registration of this action" );
+		//		return;
+		//	}
+		//	
+		//	this->private_->argument_.push_back( name );
+		//	this->private_->argument_description_.push_back( description );
+		//	std::vector< std::string > empty_properties;
+		//	this->private_->argument_properties_.push_back( empty_properties );
+		//}
+		//else if ( type == "action" )
+		if ( type == "action" )
 		{
 			std::string name;
 			if ( parameter_element->Attribute( "name" ) )
@@ -199,15 +202,35 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 			this->private_->key_.push_back( name );
 			this->private_->key_default_value_.push_back( default_value );
 			this->private_->key_description_.push_back( description );		
+			std::vector< std::string > empty_properties;
+			this->private_->key_properties_.push_back( empty_properties );
 		}
-		else if ( type == "changes_project_data" )
+		else if ( type == "property" )
 		{
-			this->private_->changes_project_data_ = true;
+			std::string property;
+			if ( parameter_element->GetText() )
+			{
+				property = parameter_element->GetText();
+			}	
+
+			std::string name;
+			if ( parameter_element->Attribute( "name" ) )
+			{
+				name = parameter_element->Attribute( "name" );
+				for ( size_t k = 0; k < this->private_->key_.size(); k++ )
+				{
+					if ( this->private_->key_[ k ] == name )
+					{
+						this->private_->key_properties_[ k ].push_back( property );
+					}
+				}
+			}
+			else
+			{		
+				this->private_->properties_.push_back( property );
+			}
 		}
-		else if ( type == "undoable" )
-		{
-			this->private_->undoable_ = true;
-		}	}
+	}
 
 	if ( found_action == false )
 	{
@@ -217,21 +240,36 @@ ActionInfo::ActionInfo( const std::string& definition ) :
 	}
 	
 	std::string usage = this->private_->type_;
-	for ( size_t j = 0; j < this->private_->argument_.size(); j++ )
-	{
-		usage += std::string( " " ) + Core::StringToUpper( this->private_->argument_[ j ] );
-	}
 	
-	for ( size_t j = 0; j> this->private_->key_.size(); j++ )
+	for ( size_t j = 0; j < this->private_->key_.size(); j++ )
 	{
-		usage += std::string( " [" ) + this->private_->key_[ j ] + "=" +
-			this->private_->key_default_value_[ j ] + "]";
+		if ( this->private_->key_default_value_[ j ].empty() )
+		{
+			usage += ( " " + this->private_->key_[ j ] + "=<" + this->private_->key_[ j ] + ">" );
+		}
+		else
+		{
+			usage += std::string( " [" ) + this->private_->key_[ j ] + "=" +
+				this->private_->key_default_value_[ j ] + "]";
+		}
 	}
 
 	this->private_->usage_ = usage;
 	
 	// We parsed everything, so action info is now valid
 	this->private_->valid_ = true;
+	
+	if ( std::find( this->private_->properties_.begin(), this->private_->properties_.end(), 
+		"changes_project_data" ) !=  this->private_->properties_.end() )
+	{
+		this->private_->changes_project_data_ = true;
+	}
+
+	if ( std::find( this->private_->properties_.begin(), this->private_->properties_.end(), 
+		"is_undoable" ) !=  this->private_->properties_.end() )
+	{
+		this->private_->is_undoable_ = true;
+	}
 }
 
 std::string ActionInfo::get_definition() const
@@ -249,36 +287,20 @@ std::string ActionInfo::get_description() const
 	return this->private_->description_;
 }
 
+std::vector<std::string> ActionInfo::get_properties() const
+{
+	return this->private_->properties_;
+}
+
+
 std::string ActionInfo::get_usage() const
 {	
 	return this->private_->usage_;
 }
 	
-size_t ActionInfo::get_num_arguments() const
-{
-	return this->private_->argument_.size();
-}
-	
 size_t ActionInfo::get_num_key_value_pairs() const
 {
 	return this->private_->key_.size();
-}
-
-bool ActionInfo::get_changes_project_data() const
-{
-	return this->private_->changes_project_data_;
-}
-	
-std::string ActionInfo::get_argument( size_t index ) const
-{
-	if ( index >= this->private_->argument_.size() ) return "";
-	return this->private_->argument_[ index ];
-}
-
-std::string ActionInfo::get_argument_description( size_t index ) const
-{
-	if ( index >= this->private_->argument_.size() ) return "";
-	return this->private_->argument_description_[ index ];
 }
 	
 std::string ActionInfo::get_key( size_t index ) const
@@ -308,14 +330,28 @@ std::string ActionInfo::get_key_description( size_t index ) const
 	return this->private_->key_description_[ index ];
 }
 
+std::vector<std::string> ActionInfo::get_key_properties( size_t index ) const
+{
+	if ( index >= this->private_->key_properties_.size() )
+	{
+		return std::vector<std::string>();
+	}	
+	return this->private_->key_properties_[ index ];
+}
+	
 bool ActionInfo::is_valid() const
 {
 	return this->private_->valid_;
 }
 
+bool ActionInfo::changes_project_data() const
+{
+	return this->private_->changes_project_data_;
+}
+
 bool ActionInfo::is_undoable() const
 {
-	return this->private_->undoable_;
+	return this->private_->is_undoable_;
 }
 
 // Define a mutex that protects all of the ActionInfo classes

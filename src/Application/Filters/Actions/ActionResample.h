@@ -29,8 +29,12 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONRESAMPLE_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONRESAMPLE_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/GridTransform.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -38,7 +42,7 @@ namespace Seg3D
 class ActionResamplePrivate;
 typedef boost::shared_ptr< ActionResamplePrivate > ActionResamplePrivateHandle;
 
-class ActionResample : public Core::Action
+class ActionResample : public LayerAction
 {
 
 CORE_ACTION( 
@@ -47,10 +51,16 @@ CORE_ACTION(
 	CORE_ACTION_ARGUMENT( "x", "Number of samples along X-axis" )
 	CORE_ACTION_ARGUMENT( "y",  "Number of samples along Y-axis" )
 	CORE_ACTION_ARGUMENT( "z",  "Number of samples along Z-axis" )
-	CORE_ACTION_KEY( "kernel", "box", "Name of the interpolation kernel to use")
-	CORE_ACTION_KEY( "param1", "1.0", "The first parameter for the kernel" )
-	CORE_ACTION_KEY( "param2", "1.0", "The second parameter for the kernel" )
-	CORE_ACTION_KEY( "replace", "false", "Whether to delete the input layers when done" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "crop", "false", "Whether to crop/pad the dataset." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "range_min", "[0,0,0]", "The minimum value of resample range in index space." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "range_max", "[0,0,0]", "The maximum value of resample range in index space." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "padding", "0", "The value used to pad data outside the existing boundary." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "kernel", "box", "Name of the interpolation kernel to use")
+	CORE_ACTION_OPTIONAL_ARGUMENT( "param1", "1.0", "The first parameter for the kernel" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "param2", "1.0", "The second parameter for the kernel" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "false", "Whether to delete the input layers when done" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -58,9 +68,7 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionResample();
-	
-	virtual ~ActionResample() {}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );

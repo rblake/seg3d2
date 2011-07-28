@@ -40,6 +40,7 @@
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QRadioButton>
+#include <QtGui/QComboBox>
 #include <QtGui/QButtonGroup>
 #include <QtGui/QTreeWidget>
 #include <QtGui/QScrollArea>
@@ -50,9 +51,9 @@
 // Application includes
 #include <Application/LayerIO/LayerIO.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/Actions/ActionExportSegmentation.h>
-#include <Application/PreferencesManager/PreferencesManager.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/LayerIO/Actions/ActionExportSegmentation.h>
+#include <Application/ProjectManager/ProjectManager.h>
 
 // Interface includes
 #include <Interface/Application/SegmentationExportWizard.h>
@@ -60,43 +61,46 @@
 namespace Seg3D
 {
 	
-	class SegmentationPrivate{
-	public:
-		QVector< QtLayerListWidget* > masks_;
-		QWidget* bitmap_widget_;
-		QCheckBox* bitmap_checkbox_;
-		QHBoxLayout* bitmap_layout_;
-		
-		
-		// SegmentationSelectionPage
-		QVBoxLayout *selection_main_layout_;
-		QWidget *segmentation_top_widget_;
-		QVBoxLayout *verticalLayout;
-		QWidget *segmentation_name_widget_;
-		QHBoxLayout *horizontalLayout;
-		QLabel *segmentation_name_label_;
-		QTreeWidget *group_with_masks_tree_;
+class SegmentationPrivate
+{
+public:
+	QVector< QtLayerListWidget* > masks_;
+	QWidget* bitmap_widget_;
+	QLabel* export_label_;
+	QComboBox* export_selector_;
+	QHBoxLayout* bitmap_layout_;
+	
+	
+	// SegmentationSelectionPage
+	QVBoxLayout *selection_main_layout_;
+	QWidget *segmentation_top_widget_;
+	QVBoxLayout *verticalLayout;
+	QWidget *segmentation_name_widget_;
+	QHBoxLayout *horizontalLayout;
+	QLabel *segmentation_name_label_;
+	QTreeWidget *group_with_masks_tree_;
+	QLabel *warning_message_;
 
-		std::string file_name_;
-		
-		QWidget *single_or_multiple_files_widget_;
-		QHBoxLayout *horizontalLayout_1;
-		QWidget *single_file_widget_;
-		QHBoxLayout *horizontalLayout_4;
-		QRadioButton *single_file_radio_button_;
-		QWidget *multiple_files_widget_;
-		QHBoxLayout *horizontalLayout_5;
-		QRadioButton *individual_files_radio_button_;
-		QButtonGroup *radio_button_group_;
-		
-		//SegmentationSummaryPage
-		QLabel *description_;
-		QVBoxLayout *summary_main_layout_;
-		QScrollArea *mask_scroll_area_;
-		QWidget *layers_;
-		QVBoxLayout *masks_layout_;
-		
-	};
+	std::string file_name_;
+	
+	QWidget *single_or_multiple_files_widget_;
+	QHBoxLayout *horizontalLayout_1;
+	QWidget *single_file_widget_;
+	QHBoxLayout *horizontalLayout_4;
+	QRadioButton *single_file_radio_button_;
+	QWidget *multiple_files_widget_;
+	QHBoxLayout *horizontalLayout_5;
+	QRadioButton *individual_files_radio_button_;
+	QButtonGroup *radio_button_group_;
+	
+	//SegmentationSummaryPage
+	QLabel *description_;
+	QVBoxLayout *summary_main_layout_;
+	QScrollArea *mask_scroll_area_;
+	QWidget *layers_;
+	QVBoxLayout *masks_layout_;
+	
+};
 	
 
 SegmentationExportWizard::SegmentationExportWizard( QWidget *parent ) :
@@ -194,15 +198,33 @@ SegmentationSelectionPage::SegmentationSelectionPage( SegmentationPrivateHandle 
 	this->private_->bitmap_widget_->setMinimumSize( QSize( 0, 24) );
 	this->private_->bitmap_widget_->setMaximumSize( QSize( 16777215, 24 ) );
 	this->private_->bitmap_layout_ = new QHBoxLayout( this->private_->bitmap_widget_ );
-	this->private_->bitmap_layout_->setSpacing( 0 );
+	this->private_->bitmap_layout_->setSpacing( 6 );
 	this->private_->bitmap_layout_->setContentsMargins( 4, 4, 4, 4 );
 	
-	this->private_->bitmap_checkbox_ = new QCheckBox( this->private_->bitmap_widget_ );
-	this->private_->bitmap_checkbox_->setText( QString::fromUtf8( "Export slices as a bitmap series instead of a single NRRD" ) );
-	this->private_->bitmap_checkbox_->setEnabled( false );
-	this->private_->bitmap_layout_->addWidget( this->private_->bitmap_checkbox_ );
+	this->private_->export_label_ = new QLabel( QString::fromUtf8( "Export masks as: " ), 
+		this->private_->bitmap_widget_ );
+	this->private_->bitmap_layout_->addWidget( this->private_->export_label_ );
+	
+	this->private_->export_selector_ = new QComboBox( this->private_->bitmap_widget_ );
+	this->private_->export_selector_->addItem( QString::fromUtf8( ".nrrd" ) );
+	this->private_->export_selector_->addItem( QString::fromUtf8( ".tiff" ) );
+	this->private_->export_selector_->addItem( QString::fromUtf8( ".bmp" ) );
+	this->private_->export_selector_->addItem( QString::fromUtf8( ".png" ) );
+	this->private_->export_selector_->setCurrentIndex( 0 );
+	this->private_->export_selector_->setEnabled( false );
+	this->private_->bitmap_layout_->addWidget( this->private_->export_selector_ );
+	
+	connect( this->private_->export_selector_, SIGNAL( currentIndexChanged( int ) ), this,
+		SLOT( change_type_text( int ) ) );
+	
+	this->private_->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please choose a valid location." ) );
+	this->private_->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
+	this->private_->warning_message_->setWordWrap( true );
+	this->private_->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
+	this->private_->warning_message_->hide();
 	
 	this->private_->selection_main_layout_->addWidget( this->private_->single_or_multiple_files_widget_ );
+	this->private_->selection_main_layout_->addWidget( this->private_->warning_message_ );
 	this->private_->selection_main_layout_->addWidget( this->private_->bitmap_widget_ );
 
 	this->private_->single_file_radio_button_->setChecked( true );
@@ -212,23 +234,37 @@ void SegmentationSelectionPage::enable_disable_bitmap_button( int button_id )
 {
 	if( button_id == 0 )
 	{
-		this->private_->bitmap_checkbox_->setChecked( false );
-		this->private_->bitmap_checkbox_->setEnabled( false );
+		this->private_->export_selector_->setEnabled( false );
 	}
 	else
 	{
-		this->private_->bitmap_checkbox_->setEnabled( true );
+		this->private_->export_selector_->setEnabled( true );
+	}
+}
+	
+void SegmentationSelectionPage::change_type_text( int index )
+{
+	if( index == 0 ) 
+	{
+		this->private_->export_label_->setText( QString::fromUtf8( "Export masks as: " ) );
+	}
+	else
+	{
+		this->private_->export_label_->setText( QString::fromUtf8( "Export masks as a series of: " ) );
 	}
 }
 	
 void SegmentationSelectionPage::initializePage()
 {
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	
 	std::vector< LayerGroupHandle > groups;
 	LayerManager::Instance()->get_groups( groups );
 
 	QStringList masks;
 	
 	int group_with_active_layer = -1;
+	LayerHandle active_layer = LayerManager::Instance()->get_active_layer();
 	
 	for( int i = 0; i < static_cast< int >( groups.size() ); ++i )
 	{
@@ -247,11 +283,12 @@ void SegmentationSelectionPage::initializePage()
 			QString::fromStdString( group_name ) );
 		group->setExpanded( true );
 
-		layer_list_type layers = groups[ i ]->get_layer_list();
-		layer_list_type::iterator it = layers.begin();
+		LayerVector layers;
+		groups[ i ]->get_layers( layers );
+		LayerVector::iterator it = layers.begin();
 		while( it != layers.end() )
 		{
-			if( ( *it ) == LayerManager::Instance()->get_active_layer() )
+			if( ( *it ) == active_layer )
 			{
 				group_with_active_layer = i;
 			}
@@ -276,13 +313,16 @@ void SegmentationSelectionPage::initializePage()
 		}
 	}
 	
-	this->private_->group_with_masks_tree_->topLevelItem( group_with_active_layer )->
-		setCheckState( 0, Qt::Checked );
-	
+	if ( group_with_active_layer >= 0 )
+	{ 
+		this->private_->group_with_masks_tree_->topLevelItem( group_with_active_layer )->
+			setCheckState( 0, Qt::Checked );
+	}
 }
 
 bool SegmentationSelectionPage::validatePage()
 {
+	this->private_->warning_message_->hide();
 	this->private_->masks_.clear();
 	for( int i = 0; i < this->private_->group_with_masks_tree_->topLevelItemCount(); ++i )
 	{
@@ -301,33 +341,49 @@ bool SegmentationSelectionPage::validatePage()
 	}
 	
 	QString filename;
+	boost::filesystem::path current_folder = ProjectManager::Instance()->get_current_file_folder();
 	
 	if( this->private_->single_file_radio_button_->isChecked() )
 	{
 		filename = QFileDialog::getSaveFileName( this, "Export Segmentation As... ",
-			QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-			"NRRD File (*.nrrd)" );
-
-		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-			PreferencesManager::Instance()->export_path_state_, 
-			boost::filesystem::path( filename.toStdString() ).parent_path().string() );
+			current_folder.string().c_str(), "NRRD File (*.nrrd)" );
 	}
 	else
 	{
 		filename = QFileDialog::getExistingDirectory( this, tr( "Choose Directory for Export..." ),
-			QString::fromStdString( PreferencesManager::Instance()->export_path_state_->get() ),
-			QFileDialog::ShowDirsOnly
-			| QFileDialog::DontResolveSymlinks );
-
-		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-			PreferencesManager::Instance()->export_path_state_, 
-			boost::filesystem::path( filename.toStdString() ).string() );
+			current_folder.string().c_str(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks );
+			
+		if( !QFileInfo( filename ).exists() )
+		{
+			this->private_->warning_message_->setText( QString::fromUtf8( 
+				"This location does not exist, please choose a valid location." ) );
+			this->private_->warning_message_->show();
+			return false;
+		}
+		try
+		{
+			boost::filesystem::create_directory( boost::filesystem::path( filename.toStdString() ) 
+				/ "delete_me" );
+		}
+		catch( ... ) // if the create fails then we are not in a writable directory
+		{
+			this->private_->warning_message_->setText( QString::fromUtf8( 
+				"This location is not writable, please choose a valid location." ) );
+			this->private_->warning_message_->show();
+			return false;
+		}
+		// if we've made it here then we need to remove the folder we created
+		boost::filesystem::remove( boost::filesystem::path( filename.toStdString() ) 
+			/ "delete_me" );
 	}
+	
+	QDir file_path = QDir( filename );
 	
 	if( !boost::filesystem::exists( boost::filesystem::path( filename.toStdString() ).parent_path() ) )
 	{
 		return false;
 	}
+
 	
 	this->private_->file_name_ = filename.toStdString();
 
@@ -434,20 +490,25 @@ bool SegmentationSummaryPage::validatePage()
 	std::vector< double > values;
 	for( int i = 0; i < this->private_->masks_.size(); ++i )
 	{
-		layers.push_back( LayerManager::Instance()->get_layer_by_name( 
+		layers.push_back( LayerManager::Instance()->find_layer_by_name( 
 			this->private_->masks_[ i ]->get_label().toStdString() ) );
 		values.push_back( this->private_->masks_[ i ]->get_value() );
 	}
 	
 	LayerExporterHandle exporter;
 	bool result = false;
-	if( !this->private_->bitmap_checkbox_->isChecked() )
+	std::string extension = this->private_->export_selector_->currentText().toStdString();
+	if( this->private_->single_file_radio_button_->isChecked() )
 	{
 		result = LayerIO::Instance()->create_exporter( exporter, layers, "NRRD Exporter", ".nrrd" );
 	}
+	else if( extension == ".nrrd" )
+	{
+		result = LayerIO::Instance()->create_exporter( exporter, layers, "NRRD Exporter", extension );
+	}
 	else
 	{
-		result = LayerIO::Instance()->create_exporter( exporter, layers, "ITK Exporter", ".bmp" );
+		result = LayerIO::Instance()->create_exporter( exporter, layers, "ITK Mask Exporter", extension );
 	}
 	
 	if( !result )
@@ -469,12 +530,12 @@ bool SegmentationSummaryPage::validatePage()
 	{	
 		exporter->set_label_layer_values( values );
 		ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), exporter,
-			LayerExporterMode::LABEL_MASK_E, this->private_->file_name_ );
+			"label_mask", this->private_->file_name_, extension );
 	}
 	else
 	{
 		ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(), exporter,
-			LayerExporterMode::SINGLE_MASK_E, this->private_->file_name_ );
+			"single_mask", this->private_->file_name_, extension );
 	}
 		
 	return true;

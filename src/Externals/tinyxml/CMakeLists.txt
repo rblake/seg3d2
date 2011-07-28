@@ -14,13 +14,13 @@ INCLUDE (CMakeBackwardCompatibilityC)
 # Source files for zlib
 
 SET(TINYXML_SRCS
-      tinystr.cpp
-	  tinystr.h
-	  tinyxml.cpp
-	  tinyxml.h
-	  tinyxmlerror.cpp
-	  tinyxmlparser.cpp
-    )
+  tinystr.cpp
+  tinystr.h
+  tinyxml.cpp
+  tinyxml.h
+  tinyxmlerror.cpp
+  tinyxmlparser.cpp
+)
 
 ###########################################
 # Set the name of the library

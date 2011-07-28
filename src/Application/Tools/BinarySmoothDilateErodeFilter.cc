@@ -26,11 +26,14 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Utils/Exception.h>
+
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Tools/BinarySmoothDilateErodeFilter.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionSmoothDilateFilter.h>
 #include <Application/Filters/Actions/ActionSmoothErodeFilter.h>
 #include <Application/Filters/Actions/ActionSmoothDilateErodeFilter.h>
@@ -56,7 +59,7 @@ BinarySmoothDilateErodeFilter::BinarySmoothDilateErodeFilter( const std::string&
 
 	// Whether we use a mask to find which components to use
 	this->add_state( "mask", this->mask_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_dependent_layer_input( this->mask_state_, Core::VolumeType::MASK_E );
+	this->add_extra_layer_input( this->mask_state_, Core::VolumeType::MASK_E );
 
 	// Whether that mask should be inverted
 	this->add_state( "invert_mask", this->mask_invert_state_, false );
@@ -84,7 +87,9 @@ int BinarySmoothDilateErodeFilter::get_slice_type()
 
 void BinarySmoothDilateErodeFilter::execute_dilateerode( Core::ActionContextHandle context )
 {
+	// NOTE: Need to lock state engine as this function is run from the interface thread
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
 	ActionSmoothDilateErodeFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->replace_state_->get(),
@@ -98,7 +103,9 @@ void BinarySmoothDilateErodeFilter::execute_dilateerode( Core::ActionContextHand
 
 void BinarySmoothDilateErodeFilter::execute_dilate( Core::ActionContextHandle context )
 {
+	// NOTE: Need to lock state engine as this function is run from the interface thread
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
 	ActionSmoothDilateFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->replace_state_->get(),
@@ -111,7 +118,9 @@ void BinarySmoothDilateErodeFilter::execute_dilate( Core::ActionContextHandle co
 
 void BinarySmoothDilateErodeFilter::execute_erode( Core::ActionContextHandle context )
 {
+	// NOTE: Need to lock state engine as this function is run from the interface thread
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
 	ActionSmoothErodeFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->replace_state_->get(),

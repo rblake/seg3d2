@@ -38,11 +38,11 @@
 //Qt includes
 #include <QWidget>
 
-// QtUtils includes
-#include <QtUtils/Widgets/QtSliderDoubleCombo.h>
-
 // Core includes
 #include <Core/DataBlock/Histogram.h>
+
+// QtUtils includes
+#include <QtUtils/Widgets/QtSliderDoubleCombo.h>
 
 namespace QtUtils
 {
@@ -62,7 +62,7 @@ Q_SIGNALS:
 
 public:
     QtHistogramWidget( QWidget *parent, QtSliderDoubleCombo* upper_threshold = 0, 
-		QtSliderDoubleCombo* lower_threshold = 0 );
+		QtSliderDoubleCombo* lower_threshold = 0, bool show_threshold_brackets = false );
     virtual ~QtHistogramWidget();
     
 public Q_SLOTS:
@@ -75,6 +75,9 @@ public Q_SLOTS:
 	
 	double get_histogram_min();
 	double get_histogram_max();
+	
+	void hide_threshold_bars();
+	void show_threshold_bars();
 
 	// RESET_HISTOGRAM:
 	// Invalidate the current histogram
@@ -85,6 +88,8 @@ public:
 
 	virtual void mouseMoveEvent( QMouseEvent* e );
 
+	virtual void resizeEvent( QResizeEvent* e );
+
 	void set_thresholds( QtSliderDoubleCombo* upper_threshold, 
 		QtSliderDoubleCombo* lower_threshold );
 	
@@ -93,13 +98,11 @@ private Q_SLOTS:
 	void handle_right_button_click( int );
 	void handle_left_button_click( int );
 	void set_histogram_view( int );
+	void set_bar_visibility();
 
 private:
 	QtHistogramWidgetPrivateHandle private_;
-	QtUtils::QtSliderDoubleCombo *upper_threshold_;
-	QtUtils::QtSliderDoubleCombo *lower_threshold_;
-	QWidget* min_bar_;
-	QWidget* max_bar_;
+	
 };
 
 } // end namespace Seg3D

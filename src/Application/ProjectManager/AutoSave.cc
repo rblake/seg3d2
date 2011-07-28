@@ -31,7 +31,7 @@
 // Application includes
 #include <Application/ProjectManager/AutoSave.h>
 #include <Application/ProjectManager/ProjectManager.h>
-#include <Application/ProjectManager/Actions/ActionSaveSession.h>
+#include <Application/ProjectManager/Actions/ActionAutoSave.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
 
@@ -41,7 +41,8 @@ namespace Seg3D
 
 CORE_SINGLETON_IMPLEMENTATION( AutoSave );
 
-AutoSave::AutoSave()
+AutoSave::AutoSave() :
+	auto_save_smart_save_timer_( 5 )
 {
 }
 
@@ -59,7 +60,6 @@ void AutoSave::start()
 		connect( boost::bind( &AutoSave::recompute_auto_save, this ) ) );
 
 	this->auto_save_thread_ = boost::thread( boost::bind( &AutoSave::run, this ) );
-
 }
 
 void AutoSave::run()
@@ -93,12 +93,13 @@ void AutoSave::run()
 						double time_since_last_action = static_cast< double >
 							( duration.total_milliseconds() ) * 0.001;
 
-						if( time_since_last_action > 5  )
+						if( time_since_last_action > this->get_smart_auto_save_timeout() )
 						{
 							break;
 						}
 					}
-					boost::posix_time::milliseconds action_wait_time( static_cast< int >( 5000.0 ) );
+					boost::posix_time::milliseconds action_wait_time( 
+						static_cast< int >( 1000.0 * this->get_smart_auto_save_timeout() ) );
 					recompute_auto_save_.timed_wait( lock, action_wait_time );
 				}
 			}
@@ -125,10 +126,20 @@ void AutoSave::recompute_auto_save()
 double AutoSave::compute_timeout()
 {
 	Core::StateEngine::lock_type state_engine_lock( Core::StateEngine::GetMutex() );
-	double time_remaining = PreferencesManager::Instance()->auto_save_time_state_->get() * 60;
+	if(	PreferencesManager::Instance()->auto_save_state_->get() == false ) 
+	{
+		return 60.0;
+	}
+	
+	// Compute how long we need to wait for the next save
+	boost::posix_time::ptime time_last_save = 
+		ProjectManager::Instance()->get_current_project()->get_last_saved_session_time_stamp();
+	
+	boost::posix_time::ptime current_time = boost::posix_time::second_clock::local_time();
+	boost::posix_time::time_duration duration = current_time - time_last_save;
 
-	time_remaining = time_remaining - ProjectManager::Instance()->
-		get_time_since_last_saved_session();
+	double time_remaining = PreferencesManager::Instance()->auto_save_time_state_->get() * 60;
+	time_remaining -= static_cast< double >( duration.total_milliseconds() ) * 0.001;
 
 	return time_remaining;
 }
@@ -142,7 +153,15 @@ bool AutoSave::needs_auto_save()
 	}
 
 	double timeout = PreferencesManager::Instance()->auto_save_time_state_->get() * 60;
-	double time_duration = ProjectManager::Instance()->get_time_since_last_saved_session();
+
+	// Compute how long we need to wait for the next save
+	boost::posix_time::ptime time_last_save = 
+		ProjectManager::Instance()->get_current_project()->get_last_saved_session_time_stamp();
+	
+	boost::posix_time::ptime current_time = boost::posix_time::second_clock::local_time();
+	boost::posix_time::time_duration duration = current_time - time_last_save;
+
+	double time_duration = static_cast< double >( duration.total_milliseconds() ) * 0.001;
 
 	if( time_duration < timeout )
 	{
@@ -154,11 +173,25 @@ bool AutoSave::needs_auto_save()
 
 void AutoSave::do_auto_save()
 {
+	// NOTE: This function is thread safe, hence we do not need to lock the state engine
 	if ( ProjectManager::Instance()->get_current_project()->check_project_changed() )
 	{
-		ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), true, "" );
+		ActionAutoSave::Dispatch( Core::Interface::GetWidgetActionContext() );
 	}
 }
-
+	
+int AutoSave::get_smart_auto_save_timeout() const
+{
+	// This function is not called from the application thread, hence we need a lock here
+	Core::StateEngine::lock_type state_engine_lock( Core::StateEngine::GetMutex() );	
+	if( ProjectManager::Instance()->get_current_project()->project_files_generated_state_->get() )
+	{
+		return 5;
+	}
+	else
+	{
+		return 30;
+	}
+}
 
 } // end namespace Seg3D

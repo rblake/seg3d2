@@ -14,13 +14,15 @@ vec4 compute_lighting()
 	vec4 color = ambient_global;
 	
 	n = normalize( normal );
-	if ( !gl_FrontFacing )
+	vec3 light_dir_norm = normalize( light_dir );
+	n_dot_l = dot ( n, light_dir_norm );
+	
+	if ( n_dot_l < 0.0 )
 	{
+		n_dot_l = -n_dot_l;
 		n = -n;
 	}
 	
-	n_dot_l = max( dot ( n, normalize( light_dir ) ), 0.0 );
-
 	if ( n_dot_l > 0.0 ) 
 	{
 		color += ( diffuse * n_dot_l + ambient );

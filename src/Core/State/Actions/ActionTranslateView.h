@@ -29,10 +29,11 @@
 #ifndef CORE_STATE_ACTIONS_ACTIONTRANSLATEVIEW_H
 #define CORE_STATE_ACTIONS_ACTIONTRANSLATEVIEW_H
 
+// Core Includes
 #include <Core/Action/Action.h>
+#include <Core/Action/ActionDispatcher.h>
 #include <Core/Interface/Interface.h>
 #include <Core/State/StateViewBase.h>
-
 #include <Core/Geometry/Vector.h>
 
 namespace Core
@@ -48,9 +49,10 @@ CORE_ACTION_ARGUMENT( "offset", "The offset that needs to be added." )
 )
 
 public:
-	ActionTranslateView();
-	virtual ~ActionTranslateView()
+	ActionTranslateView()
 	{
+		this->add_parameter( this->stateid_ );
+		this->add_parameter( this->offset_ );
 	}
 
 	// -- Functions that describe action --
@@ -61,28 +63,25 @@ public:
 	virtual bool changes_project_data();
 
 private:
-	ActionParameter< std::string > stateid_;
-	ActionParameter< Core::Vector > offset_;
+	std::string stateid_;
+	Core::Vector offset_;
 
 	StateViewBaseWeakHandle state_weak_handle_;
 
 public:
+
+	// DISPATCH:
+	// Dispatch the action from the interface
 	template< class VIEWSTATEHANDLE >
-	static ActionHandle Create( VIEWSTATEHANDLE& view_state, const Core::Vector& offset )
+	static void Dispatch( ActionContextHandle context, VIEWSTATEHANDLE& view_state, 
+		const Core::Vector& offset )
 	{
 		ActionTranslateView* action = new ActionTranslateView;
 		action->stateid_ = view_state->get_stateid();
 		action->offset_ = offset;
 		action->state_weak_handle_ = view_state;
 
-		return ActionHandle( action );
-	}
-
-	template< class VIEWSTATEHANDLE >
-	static void Dispatch( ActionContextHandle context, VIEWSTATEHANDLE& view_state, 
-		const Core::Vector& offset )
-	{
-		ActionDispatcher::PostAction( Create( view_state, offset ), context );
+		ActionDispatcher::PostAction( ActionHandle( action ), context );
 	}
 };
 

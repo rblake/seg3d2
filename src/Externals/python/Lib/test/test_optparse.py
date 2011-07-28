@@ -1,11 +1,9 @@
-#!/usr/bin/python
-
 #
 # Test suite for Optik.  Supplied by Johannes Gijsbers
 # (taradino@softhome.net) -- translated from the original Optik
 # test suite to this PyUnit-based version.
 #
-# $Id: test_optparse.py 74384 2009-08-13 08:51:18Z georg.brandl $
+# $Id: test_optparse.py 86596 2010-11-20 19:04:17Z ezio.melotti $
 #
 
 import sys
@@ -18,9 +16,9 @@ from io import StringIO
 from test import support
 
 
-from optparse import make_option, Option, IndentedHelpFormatter, \
-     TitledHelpFormatter, OptionParser, OptionContainer, OptionGroup, \
-     SUPPRESS_HELP, SUPPRESS_USAGE, OptionError, OptionConflictError, \
+from optparse import make_option, Option, \
+     TitledHelpFormatter, OptionParser, OptionGroup, \
+     SUPPRESS_USAGE, OptionError, OptionConflictError, \
      BadOptionError, OptionValueError, Values
 from optparse import _match_abbrev
 from optparse import _parse_num
@@ -338,7 +336,7 @@ class TestOptionParser(BaseTest):
 
     def test_get_option(self):
         opt1 = self.parser.get_option("-v")
-        self.assertTrue(isinstance(opt1, Option))
+        self.assertIsInstance(opt1, Option)
         self.assertEqual(opt1._short_opts, ["-v", "-n"])
         self.assertEqual(opt1._long_opts, ["--verbose", "--noisy"])
         self.assertEqual(opt1.action, "store_true")
@@ -425,13 +423,13 @@ class TestTypeAliases(BaseTest):
 
     def test_str_aliases_string(self):
         self.parser.add_option("-s", type="str")
-        self.assertEquals(self.parser.get_option("-s").type, "string")
+        self.assertEqual(self.parser.get_option("-s").type, "string")
 
     def test_type_object(self):
         self.parser.add_option("-s", type=str)
-        self.assertEquals(self.parser.get_option("-s").type, "string")
+        self.assertEqual(self.parser.get_option("-s").type, "string")
         self.parser.add_option("-x", type=int)
-        self.assertEquals(self.parser.get_option("-x").type, "int")
+        self.assertEqual(self.parser.get_option("-x").type, "int")
 
 
 # Custom type for testing processing of default values.
@@ -443,7 +441,7 @@ def _check_duration(option, opt, value):
             return int(value)
         else:
             return int(value[:-1]) * _time_units[value[-1]]
-    except ValueError as IndexError:
+    except (ValueError, IndexError):
         raise OptionValueError(
             'option %s: invalid duration: %r' % (opt, value))
 
@@ -756,6 +754,11 @@ class TestStandard(BaseTest):
                            {'a': "-b3", 'boo': None, 'foo': None},
                            [])
 
+    def test_combined_single_invalid_option(self):
+        self.parser.add_option("-t", action="store_true")
+        self.assertParseFail(["-test"],
+                             "no such option: -e")
+
 class TestBool(BaseTest):
     def setUp(self):
         options = [make_option("-v",
@@ -778,15 +781,13 @@ class TestBool(BaseTest):
         (options, args) = self.assertParseOK(["-q"],
                                              {'verbose': 0},
                                              [])
-        if hasattr(__builtins__, 'False'):
-            self.assertTrue(options.verbose is False)
+        self.assertTrue(options.verbose is False)
 
     def test_bool_true(self):
         (options, args) = self.assertParseOK(["-v"],
                                              {'verbose': 1},
                                              [])
-        if hasattr(__builtins__, 'True'):
-            self.assertTrue(options.verbose is True)
+        self.assertTrue(options.verbose is True)
 
     def test_bool_flicker_on_and_off(self):
         self.assertParseOK(["-qvq", "-q", "-v"],
@@ -1226,7 +1227,6 @@ class TestCallbackVarArgs(BaseTest):
 
     def variable_args(self, option, opt, value, parser):
         self.assertTrue(value is None)
-        done = 0
         value = []
         rargs = parser.rargs
         while rargs:

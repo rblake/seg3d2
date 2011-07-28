@@ -29,20 +29,27 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONOTSUTHRESHOLDFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONOTSUTHRESHOLDFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionOtsuThresholdFilter : public Core::Action
+class ActionOtsuThresholdFilter : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "OtsuThresholdFilter", "Divide the image in different sections based on the histogram." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
-	CORE_ACTION_KEY( "amount", "2", "The amount of divisions to divide the image into" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "amount", "2", "The amount of divisions to divide the image into" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -52,14 +59,9 @@ public:
 	ActionOtsuThresholdFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->amount_ );
-	}
-	
-	virtual ~ActionOtsuThresholdFilter()
-	{
+		this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->amount_ );
+		this->add_parameter( this->sandbox_ );
 	}
 	
 	// -- Functions that describe action --
@@ -70,12 +72,12 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< int > amount_;
+	std::string target_layer_;
+	int amount_;
+	SandboxID sandbox_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 

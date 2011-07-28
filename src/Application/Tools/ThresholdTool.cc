@@ -26,11 +26,13 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Utils/Exception.h>
 #include <Core/Utils/ScopedCounter.h>
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/RenderResources/RenderResources.h>
-
 #include <Core/State/Actions/ActionToggle.h>
+#include <Core/Interface/Interface.h>
 
 // Application includes
 #include <Application/Tool/ToolFactory.h>
@@ -38,8 +40,16 @@
 #include <Application/Filters/Actions/ActionThreshold.h>
 #include <Application/Tools/detail/MaskShader.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
 
 // Register the tool into the tool factory
 SCI_REGISTER_TOOL( Seg3D, ThresholdTool )
@@ -53,6 +63,7 @@ public:
 	void handle_threshold_changed();
 	void handle_target_layer_changed();
 	void handle_preview_visibility_changed( bool visible );
+	void handle_preview_opacity_changed();
 
 	void update_viewers();
 	void initialize_gl();
@@ -84,9 +95,15 @@ void ThresholdToolPrivate::handle_target_layer_changed()
 		Core::ScopedCounter signal_block( this->signal_block_count_ );
 
 		DataLayerHandle data_layer = boost::dynamic_pointer_cast< DataLayer >(
-			LayerManager::Instance()->get_layer_by_id( target_layer_id ) );
+			LayerManager::Instance()->find_layer_by_id( target_layer_id ) );
 		double min_val = data_layer->get_data_volume()->get_data_block()->get_min();
 		double max_val = data_layer->get_data_volume()->get_data_block()->get_max();
+
+		//TODO: We need to fix this.  This causes an inconsistency in the threshold tool between 
+		// the histogram and the sliders 
+// 		double epsilon = ( max_val - min_val ) * 0.005;
+// 		min_val -= epsilon;
+// 		max_val += epsilon;
 		this->tool_->lower_threshold_state_->set_range( min_val, max_val );
 		this->tool_->upper_threshold_state_->set_range( min_val, max_val );
 
@@ -126,7 +143,6 @@ void ThresholdToolPrivate::initialize_gl()
 	this->shader_->enable();
 	this->shader_->set_border_width( 0 );
 	this->shader_->set_texture( 0 );
-	this->shader_->set_opacity( 0.5f );
 	this->shader_->disable();
 
 	this->initialized_ = true;
@@ -135,6 +151,15 @@ void ThresholdToolPrivate::initialize_gl()
 void ThresholdToolPrivate::handle_preview_visibility_changed( bool visible )
 {
 	if ( this->tool_->valid_target_state_->get() )
+	{
+		this->update_viewers();
+	}
+}
+
+void ThresholdToolPrivate::handle_preview_opacity_changed()
+{
+	if ( this->tool_->valid_target_state_->get() &&
+		this->tool_->show_preview_state_->get() )
 	{
 		this->update_viewers();
 	}
@@ -157,6 +182,7 @@ ThresholdTool::ThresholdTool( const std::string& toolid ) :
 	this->add_state( "upper_threshold", this->upper_threshold_state_, inf, -inf, inf, .01 );
 	this->add_state( "lower_threshold", this->lower_threshold_state_, -inf, -inf, inf, .01 );
 	this->add_state( "show_preview", this->show_preview_state_, true );
+	this->add_state( "preview_opacity", this->preview_opacity_state_, 0.5, 0.0, 1.0, 0.1 );
 
 	this->private_->handle_target_layer_changed();
 
@@ -169,6 +195,8 @@ ThresholdTool::ThresholdTool( const std::string& toolid ) :
 	this->add_connection( this->show_preview_state_->value_changed_signal_.connect( 
 		boost::bind( &ThresholdToolPrivate::handle_preview_visibility_changed, 
 		this->private_, _1 ) ) );
+	this->add_connection( this->preview_opacity_state_->state_changed_signal_.connect(
+		boost::bind( &ThresholdToolPrivate::handle_preview_opacity_changed, this->private_ ) ) );
 }
 
 ThresholdTool::~ThresholdTool()
@@ -176,18 +204,21 @@ ThresholdTool::~ThresholdTool()
 	this->disconnect_all();
 }
 
-void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
+void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+	int viewer_width, int viewer_height )
 {
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( viewer_id );
 	std::string target_layer_id;
 	double min_val, max_val;
 	bool show_preview;
+	double opacity;
 	{
 		Core::StateEngine::lock_type se_lock( Core::StateEngine::GetMutex() );
 		target_layer_id = this->target_layer_state_->get();
 		min_val = this->lower_threshold_state_->get();
 		max_val = this->upper_threshold_state_->get();
 		show_preview = this->show_preview_state_->get();
+		opacity = this->preview_opacity_state_->get();
 	}
 
 	if ( target_layer_id == Tool::NONE_OPTION_C )
@@ -196,7 +227,7 @@ void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 	}
 	
 	DataLayerHandle target_layer = boost::dynamic_pointer_cast< DataLayer >(
-		LayerManager::Instance()->get_layer_by_id( target_layer_id ) );
+		LayerManager::Instance()->find_layer_by_id( target_layer_id ) );
 	if ( !target_layer )
 	{
 		CORE_THROW_LOGICERROR( "Target layer '" + target_layer_id + "' doesn't exist" );
@@ -210,7 +241,7 @@ void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 	}
 	
 	// Only show the preview if the target layer is visible in the viewer
-	if ( show_preview && target_layer->is_visible( viewer_id ) )
+	if ( show_preview && target_layer->is_visible( viewer_id ) && opacity > 0 )
 	{
 		this->private_->initialize_gl();
 
@@ -248,7 +279,7 @@ void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		double slice_height = top - bottom;
 		Core::Vector slice_x( slice_width, 0.0, 0.0 );
 		slice_x = proj_mat * slice_x;
-		double slice_screen_width = slice_x.x() / 2.0 * viewer->get_width();
+		double slice_screen_width = slice_x.x() / 2.0 * viewer_width;
 		double slice_screen_height = slice_height / slice_width * slice_screen_width;
 
 		MaskShader::lock_type shader_lock( this->private_->shader_->get_mutex() );
@@ -256,6 +287,7 @@ void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		this->private_->shader_->set_pixel_size( static_cast< float >( 1.0 / slice_screen_width ), 
 			static_cast< float >( 1.0 /slice_screen_height ) );
 		this->private_->shader_->set_color( 1.0f, 1.0f, 0.0f );
+		this->private_->shader_->set_opacity( static_cast< float >( opacity ) );
 		glBegin( GL_QUADS );
 		glTexCoord2f( 0.0f, 0.0f );
 		glVertex2d( left, bottom );
@@ -277,7 +309,7 @@ void ThresholdTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		glPopAttrib();
 	}
 
-	SeedPointsTool::redraw( viewer_id, proj_mat );
+	SeedPointsTool::redraw( viewer_id, proj_mat, viewer_width, viewer_height );
 }
 
 void ThresholdTool::execute( Core::ActionContextHandle context )
@@ -314,7 +346,7 @@ void ThresholdTool::handle_seed_points_changed()
 	}
 
 	DataLayerHandle data_layer = boost::dynamic_pointer_cast< DataLayer >(
-		LayerManager::Instance()->get_layer_by_id( target_layer_id ) );
+		LayerManager::Instance()->find_layer_by_id( target_layer_id ) );
 	Core::DataVolumeHandle data_volume = data_layer->get_data_volume();
 	Core::DataBlockHandle data_block = data_volume->get_data_block();
 	double min_val = std::numeric_limits< double >::max(); 

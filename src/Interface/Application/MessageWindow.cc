@@ -89,18 +89,12 @@ void MessageWindow::AddMessage( QPointer< MessageWindow > qpointer, int msg_type
 void MessageWindow::add_message( int msg_type, std::string message )
 {
 	QColor color_ = QColor( 255, 255, 255 );
-	std::string status_message = message;
-	boost::char_separator< char > separater( " " );
-	boost::tokenizer< boost::char_separator< char > > tok( message, separater );
-	
-	for ( boost::tokenizer< boost::char_separator< char > >::iterator beg = ++tok.begin(); beg
-		 != tok.end(); ++beg )
-	{
-		status_message = status_message + " " + *beg;
-	}
-	
+
 	switch( msg_type )
 	{
+		case Core::LogMessageType::CRITICAL_ERROR_E:
+			color_ = QColor(200, 0, 0);
+			break;
 		case Core::LogMessageType::ERROR_E:
 			color_ = QColor(121, 0, 0);
 			break;
@@ -108,6 +102,9 @@ void MessageWindow::add_message( int msg_type, std::string message )
 			color_ = QColor(165, 161, 34);
 			break;
 		case Core::LogMessageType::MESSAGE_E:
+			color_ = QColor(3, 86, 2);
+			break;
+		case Core::LogMessageType::SUCCESS_E:
 			color_ = QColor(3, 86, 2);
 			break;
 		case Core::LogMessageType::DEBUG_E:

@@ -33,13 +33,14 @@
 #include <Core/State/Actions/ActionClear.h>
 #include <Core/State/Actions/ActionSetAt.h>
 #include <Core/State/Actions/ActionRemove.h>
+#include <Core/Interface/Interface.h>
 
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Tools/PolylineTool.h>
 #include <Application/Tools/Actions/ActionPolyline.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Viewer/Viewer.h>
 #include <Application/ViewerManager/ViewerManager.h>
 
@@ -58,6 +59,7 @@ class PolylineToolPrivate
 public:
 	void handle_vertices_changed();
 	bool find_vertex( ViewerHandle viewer, int x, int y, int& index );
+	bool find_closest_vertex( ViewerHandle viewer, int x, int y, int& index );
 	void execute( Core::ActionContextHandle context, bool erase, 
 		ViewerHandle viewer = ViewerHandle() );
 
@@ -114,6 +116,49 @@ bool PolylineToolPrivate::find_vertex( ViewerHandle viewer, int x, int y, int& i
 	return false;
 }
 
+bool PolylineToolPrivate::find_closest_vertex( ViewerHandle viewer, int x, int y, int& index )
+{
+	// Step 1. Compute the mouse position in world space
+	double world_x, world_y;
+	viewer->window_to_world( x, y, world_x, world_y );
+	
+	// Step 2. Search for the closest vertex to the current mouse position
+	std::vector< Core::Point > vertices = this->tool_->vertices_state_->get();
+	Core::VolumeSliceType slice_type( Core::VolumeSliceType::AXIAL_E );
+	if ( viewer->view_mode_state_->get() == Viewer::CORONAL_C )
+	{
+		slice_type = Core::VolumeSliceType::CORONAL_E;
+	}
+	else if ( viewer->view_mode_state_->get() == Viewer::SAGITTAL_C )
+	{
+		slice_type = Core::VolumeSliceType::SAGITTAL_E;
+	}
+	
+	int closest_index = -1;
+	double min_dist;
+	for ( size_t i = 0; i < vertices.size(); ++i )
+	{
+		double pt_x, pt_y;
+		Core::VolumeSlice::ProjectOntoSlice( slice_type, vertices[ i ], pt_x, pt_y );
+		double dist_x = pt_x - world_x;
+		double dist_y = pt_y - world_y;
+		double distance = dist_x * dist_x + dist_y * dist_y;
+		if ( i == 0 )
+		{
+			closest_index = 0;
+			min_dist = distance;
+		}
+		else if ( distance < min_dist )
+		{
+			closest_index = static_cast< int >( i );
+			min_dist = distance;
+		}
+	}
+	
+	index = closest_index;
+	return index >= 0;
+}
+	
 void PolylineToolPrivate::execute( Core::ActionContextHandle context, 
 								  bool erase, ViewerHandle viewer )
 {
@@ -148,7 +193,7 @@ void PolylineToolPrivate::execute( Core::ActionContextHandle context,
 		return;
 	}
 
-	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( 
+	LayerHandle layer = LayerManager::Instance()->find_layer_by_id( 
 		this->tool_->target_layer_state_->get() );
 	if ( !layer->is_visible( viewer->get_viewer_id() ) || layer->locked_state_->get() )
 	{
@@ -247,7 +292,20 @@ bool PolylineTool::handle_mouse_press( ViewerHandle viewer,
 		this->private_->vertex_index_ != -1 )
 	{
 		this->private_->moving_vertex_ = true;
+		viewer->set_cursor( Core::CursorShape::CLOSED_HAND_E );
 		return true;
+	}
+	else if ( button == Core::MouseButton::MID_BUTTON_E &&
+			 ( modifiers == Core::KeyModifier::NO_MODIFIER_E ||
+			  modifiers == Core::KeyModifier::SHIFT_MODIFIER_E ) )
+	{
+		if ( this->private_->find_closest_vertex( viewer, mouse_history.current_.x_, 
+			mouse_history.current_.y_, this->private_->vertex_index_ ) )
+		{
+			this->private_->moving_vertex_ = true;
+			viewer->set_cursor( Core::CursorShape::CLOSED_HAND_E );
+			return true;			
+		}
 	}
 	else if ( !( modifiers & Core::KeyModifier::SHIFT_MODIFIER_E ) &&
 		button == Core::MouseButton::LEFT_BUTTON_E )
@@ -262,6 +320,7 @@ bool PolylineTool::handle_mouse_press( ViewerHandle viewer,
 			active_slice->get_world_coord( world_x, world_y,  pt );
 			
 			double dmin = DBL_MAX;
+			double proj_min = DBL_MAX;
 			std::vector<Core::Point> points = this->vertices_state_->get();
 			
 			size_t idx = 0;
@@ -270,17 +329,35 @@ bool PolylineTool::handle_mouse_press( ViewerHandle viewer,
 				size_t k = j + 1;
 				if ( k ==  points.size() ) k = 0;
 				
+				Core::Vector edge_dir = points[ j ] - points[ k ];
+				double edge_length = edge_dir.normalize();
 				double alpha = Dot( points[ j ] - pt, points[ j ] - points[ k ] )/
-					Dot( points[ j ] - points[ k ], points[ j ] - points[ k ] );
+					( edge_length * edge_length );
 					
 				double dist = 0.0;
-				if ( alpha < 0.0 ) dist = ( points[ j ] - pt ).length2();
-				else if ( alpha > 1.0 ) dist = ( points[ k ] - pt ).length2();
-				else dist = ( ( points[ j ] - pt ) - alpha * ( points[ j ] - points[ k ] ) ).length2();
+				double proj_len = 0.0;
+				if ( alpha < 0.0 ) 
+				{
+					Core::Vector dir = points[ j ] - pt;
+					dist = dir.length2();
+					proj_len = Core::Abs( Dot( edge_dir, dir ) );
+				}
+				else if ( alpha > 1.0 )
+				{
+					Core::Vector dir = points[ k ] - pt;
+					dist = dir.length2();
+					proj_len = Core::Abs( Dot( edge_dir, dir ) );
+				}
+				else 
+				{
+					dist = ( ( points[ j ] - pt ) - alpha * ( points[ j ] - points[ k ] ) ).length2();
+				}
 				
-				if ( dist < dmin )
+				if ( dist < dmin ||
+					( dist == dmin && proj_len < proj_min ) )
 				{
 					dmin = dist;
+					proj_min = proj_len;
 					idx = k;
 				}
 			}
@@ -290,7 +367,7 @@ bool PolylineTool::handle_mouse_press( ViewerHandle viewer,
 				this->vertices_state_, points );
 
 			// Set to "hovered over" state since the mouse is hovering over the new point
-			viewer->set_cursor( Core::CursorShape::SIZE_ALL_E );
+			viewer->set_cursor( Core::CursorShape::OPEN_HAND_E );
 			this->private_->vertex_index_ = static_cast< int >( idx );
 
 			return true;
@@ -341,9 +418,15 @@ bool PolylineTool::handle_mouse_release( ViewerHandle viewer,
 		return false;
 	}
 
-	if ( this->private_->moving_vertex_ && button == Core::MouseButton::LEFT_BUTTON_E )
+	if ( this->private_->moving_vertex_ && 
+		( button == Core::MouseButton::LEFT_BUTTON_E ||
+		button == Core::MouseButton::MID_BUTTON_E ) )
 	{
 		this->private_->moving_vertex_ = false;
+		this->private_->find_vertex( viewer, mouse_history.current_.x_, 
+			mouse_history.current_.y_, this->private_->vertex_index_ );
+		viewer->set_cursor( this->private_->vertex_index_ != -1 ? 
+			Core::CursorShape::OPEN_HAND_E : Core::CursorShape::CROSS_E );
 		return true;
 	}
 	
@@ -364,7 +447,7 @@ bool PolylineTool::handle_mouse_move( ViewerHandle viewer,
 		this->private_->find_vertex( viewer, mouse_history.current_.x_, 
 			mouse_history.current_.y_, this->private_->vertex_index_ );
 		viewer->set_cursor( this->private_->vertex_index_ != -1 ? 
-			Core::CursorShape::SIZE_ALL_E : Core::CursorShape::CROSS_E );
+			Core::CursorShape::OPEN_HAND_E : Core::CursorShape::CROSS_E );
 	}
 
 	if ( this->private_->moving_vertex_ )
@@ -412,20 +495,27 @@ bool PolylineTool::handle_mouse_move( ViewerHandle viewer,
 			Core::ActionSet::Dispatch( Core::Interface::GetMouseActionContext(),
 				this->vertices_state_, vertices );
 		}
-		else
+		else if ( this->private_->vertex_index_ >= 0 )
 		{
 			Core::Point pt = vertices[ this->private_->vertex_index_ ];
 			pt += pt_offset;
 			Core::ActionSetAt::Dispatch( Core::Interface::GetMouseActionContext(),
 				this->vertices_state_, this->private_->vertex_index_, pt );
 		}
+		else 
+		{
+			this->private_->moving_vertex_ = false;
+			return false;
+		}
+
 		return true;
 	}
 	
 	return false;
 }
 
-void PolylineTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
+void PolylineTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+	int viewer_width, int viewer_height )
 {
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( viewer_id );
 	if ( viewer->is_volume_view() )

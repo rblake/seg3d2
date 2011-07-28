@@ -4,7 +4,7 @@ Miscellaneous utility functions -- anything that doesn't fit into
 one of the other *util.py modules.
 """
 
-__revision__ = "$Id: util.py 77029 2009-12-24 13:16:53Z ronald.oussoren $"
+__revision__ = "$Id: util.py 86248 2010-11-06 06:00:54Z eric.araujo $"
 
 import sys, os, string, re
 from distutils.errors import DistutilsPlatformError
@@ -115,13 +115,15 @@ def get_platform ():
                 # behaviour.
                 pass
             else:
-                m = re.search(
-                        r'<key>ProductUserVisibleVersion</key>\s*' +
-                        r'<string>(.*?)</string>', f.read())
-                f.close()
-                if m is not None:
-                    macrelease = '.'.join(m.group(1).split('.')[:2])
-                # else: fall back to the default behaviour
+                try:
+                    m = re.search(
+                            r'<key>ProductUserVisibleVersion</key>\s*' +
+                            r'<string>(.*?)</string>', f.read())
+                    if m is not None:
+                        macrelease = '.'.join(m.group(1).split('.')[:2])
+                    # else: fall back to the default behaviour
+                finally:
+                    f.close()
 
         if not macver:
             macver = macrelease
@@ -143,8 +145,7 @@ def get_platform ():
                 cflags = get_config_vars().get('CFLAGS')
 
                 archs = re.findall('-arch\s+(\S+)', cflags)
-                archs.sort()
-                archs = tuple(archs)
+                archs = tuple(sorted(set(archs)))
 
                 if len(archs) == 1:
                     machine = archs[0]
@@ -233,15 +234,6 @@ def change_root (new_root, pathname):
         if path[0] == os.sep:
             path = path[1:]
         return os.path.join(new_root, path)
-
-    elif os.name == 'mac':
-        if not os.path.isabs(pathname):
-            return os.path.join(new_root, pathname)
-        else:
-            # Chop off volume name from start of path
-            elements = pathname.split(":", 1)
-            pathname = ":" + elements[1]
-            return os.path.join(new_root, pathname)
 
     else:
         raise DistutilsPlatformError("nothing known about platform '%s'" % os.name)

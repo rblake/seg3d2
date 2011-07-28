@@ -52,7 +52,7 @@ DataBlock::~DataBlock()
 	}
 }
 
-double DataBlock::get_data_at( size_t index ) const
+double DataBlock::get_data_at( index_type index ) const
 {
 	switch( this->data_type_ )
 	{
@@ -101,7 +101,7 @@ double DataBlock::get_data_at( size_t index ) const
 	return 0.0;
 }
 
-void DataBlock::set_data_at( size_t index, double value )
+void DataBlock::set_data_at( index_type index, double value )
 {
 	switch( this->data_type_ )
 	{
@@ -792,9 +792,9 @@ bool DataBlock::PermuteData( const DataBlockHandle& src_data_block,
 	}
 	
 	size_t dn[3];
-	dn[ 0 ] = 0;
-	dn[ 1 ] = 0;
-	dn[ 2 ] = 0;
+	dn[ 0 ] = 1;
+	dn[ 1 ] = 1;
+	dn[ 2 ] = 1;
 	
 	for ( size_t j = 0; j < 3; j++)
 	{

@@ -26,6 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Interface/Interface.h>
+
 // QtGui includes
 #include "ui_MedianFilterInterface.h"
 
@@ -95,6 +98,7 @@ bool MedianFilterInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
 		&Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
 
+	this->private_->ui_.radius_->set_description( "Radius" );
 	return true;
 
 } // end build_widget

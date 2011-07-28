@@ -67,8 +67,14 @@ public:
 
 	// GET_GRID_TRANSFORM:
 	// this function returns the grid transform of the data volume
+	// Locks: StateEngine
 	virtual Core::GridTransform get_grid_transform() const;
 	
+	// SET_GRID_TRANSFORM:
+	// Set the grid transform of the data volume
+	virtual void set_grid_transform( const Core::GridTransform& grid_transform, 
+		bool preserve_centering );
+
 	// HAS_VALID_DATA:
 	// Check whether the layer has valid data.
 	virtual bool has_valid_data() const;	

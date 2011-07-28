@@ -29,6 +29,11 @@
 // Boost includes
 #include <boost/filesystem.hpp>
 
+// Core includes
+#include <Core/Action/ActionFactory.h>
+#include <Core/Action/ActionDispatcher.h>
+#include <Core/Action/ActionProgress.h>
+
 // Application includes
 #include <Application/UndoBuffer/UndoBuffer.h>
 #include <Application/ProjectManager/ProjectManager.h>
@@ -45,58 +50,136 @@ namespace Seg3D
 
 bool ActionLoadProject::validate( Core::ActionContextHandle& context )
 {
-	boost::filesystem::path full_filename( project_path_.value() );
-	full_filename = full_filename / ( full_filename.leaf() + ".s3d" );
-	if ( !( boost::filesystem::exists ( full_filename ) ) )
+	// Get the full filename of the project
+	boost::filesystem::path full_filename( this->project_file_ );
+
+	// Complete the file name
+	try 
 	{
-		context->report_error( std::string( "File '" ) + this->project_path_.value() +
+		full_filename = boost::filesystem::absolute( full_filename );
+	}
+	catch( ... )
+	{
+		std::string error = std::string( "File '" ) + full_filename.string() +
+			"' does not exist.";
+		context->report_error( error );
+		return false;
+	}
+	
+	// Check whether file exists
+	if ( !boost::filesystem::exists( full_filename ) )
+	{
+		context->report_error( std::string( "File '" ) + full_filename.string() +
 			"' does not exist." );
 		return false;
 	}
-	return true;
 
+	// Check if it is a .s3d file, if not we look inside the directory to find one.
+	bool is_s3d_file = false;
+	
+	std::vector<std::string> file_extensions = Project::GetProjectFileExtensions();
+	for ( size_t j = 0; j < file_extensions.size(); j++ ) 
+	{
+		if ( boost::filesystem::extension( full_filename ) == file_extensions[ j ] )
+		{
+			is_s3d_file = true;
+			break;
+		} 
+	}
+	
+
+	
+	if ( is_s3d_file == false )
+	{
+		bool found_s3d_file = false;
+		
+		if ( boost::filesystem::is_directory( full_filename ) )
+		{
+			boost::filesystem::directory_iterator dir_end;
+			
+			for( boost::filesystem::directory_iterator dir_itr( full_filename ); 
+				dir_itr != dir_end; ++dir_itr )
+			{
+				std::string filename = dir_itr->path().filename().string();
+				boost::filesystem::path dir_file = full_filename / filename;
+				for ( size_t j = 0; j < file_extensions.size(); j++ ) 
+				{
+					if ( boost::filesystem::extension( dir_file ) == file_extensions[ j ] )
+					{
+						full_filename = dir_file;
+						found_s3d_file = true;
+						break;
+					}
+				}
+				if ( found_s3d_file ) break;
+			}
+		}
+		
+		if ( !found_s3d_file )
+		{
+			context->report_error( std::string( "File '" ) + full_filename.string() +
+				"' is not a project file." );
+			return false;			
+		}
+	}
+	
+	// validated	
+	return true;
 }
+
 
 bool ActionLoadProject::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
 {
-	boost::filesystem::path full_filename( project_path_.value() );
+	boost::filesystem::path full_filename( this->project_file_ );
+	
 	std::string message = std::string("Please wait, while loading project '") + 
-		full_filename.leaf() + std::string("' ...");
+		full_filename.stem().string() + std::string("' ...");
 
 	Core::ActionProgressHandle progress = 
 		Core::ActionProgressHandle( new Core::ActionProgress( message ) );
 
+	// NOTE: This will block input from the GUI.
+	// NOTE: Currently it sends a message to the GUI to block the GUI, so it is not yet completely
+	// thread-safe.
 	progress->begin_progress_reporting();
 
-	ProjectManager::Instance()->open_project( this->project_path_.value() );
+	// Open the project
+	bool success = ProjectManager::Instance()->open_project( this->project_file_ );
 	
+	if ( success )
+	{
+		// TODO: This works around a problem in the current code, that makes a change because a session
+		// is loaded. This adds a reset on the current stack so only changes after this point will count.
+		// At some point in the near future we should check this logic.
+		if ( ProjectManager::Instance()->get_current_project() )
+		{
+			ActionResetChangesMade::Dispatch( Core::Interface::GetWidgetActionContext() );
+		}
+
+		CORE_LOG_SUCCESS( "Successfully loaded project '" + this->project_file_ + "'." );
+	}
+	else
+	{
+		std::string error = std::string( "Failed to load project '" ) + this->project_file_ + "'.";
+		context->report_error( error );
+	}
+	
+	// Release the GUI, again using message passing
 	progress->end_progress_reporting();
 
-	if ( ProjectManager::Instance()->get_current_project() )
-	{
-		ActionResetChangesMade::Dispatch( Core::Interface::GetWidgetActionContext() );
-	}
+	// Let the user know that everything went OK.
 
-	// Clear undo buffer
-	UndoBuffer::Instance()->reset_undo_buffer();
-
-	return true;
-}
-
-Core::ActionHandle ActionLoadProject::Create( const std::string& project_path )
-{
-	ActionLoadProject* action = new ActionLoadProject;
-	
-	action->project_path_.value() = project_path;
-	
-	return Core::ActionHandle( action );
+	return success;
 }
 
 void ActionLoadProject::Dispatch( Core::ActionContextHandle context, 
-	const std::string& project_path )
+	const std::string& project_file )
 {
-	Core::ActionDispatcher::PostAction( Create( project_path ), context );
+	ActionLoadProject* action = new ActionLoadProject;	
+	action->project_file_ = project_file;
+
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

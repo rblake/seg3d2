@@ -29,15 +29,14 @@
 // STL includes
 #include <string>
 #include <queue>
-
-// Boost includes
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
+#include <map>
 
 // Application includes
 #include <Core/State/StateEngine.h>
 #include <Core/State/StateHandler.h>
 #include <Core/Utils/AtomicCounter.h>
+#include <Core/Utils/Exception.h>
+#include <Core/Utils/Log.h>
 
 namespace Core
 {
@@ -116,7 +115,13 @@ bool  StateEngine::load_states( const StateIO& state_io )
 		if ( it != this->private_->state_handler_map_.end() )
 		{
 			lock.unlock();
-			success &= ( *it ).second->load_states( state_io );
+			if ( ! ( *it ).second->load_states( state_io  ) )
+			{
+				success = false;
+				std::string error = std::string( "Could not load states for '" ) + statehandler_id +
+					"'.";
+				CORE_LOG_ERROR( error );
+			}
 		}
 	}
 
@@ -144,6 +149,7 @@ bool StateEngine::save_states( StateIO& state_io )
 		}
 	}
 
+	bool success = true;
 	while ( !state_handlers.empty() )
 	{
 		std::string statehandler_id = state_handlers.top().second;
@@ -155,11 +161,11 @@ bool StateEngine::save_states( StateIO& state_io )
 		if ( it != this->private_->state_handler_map_.end() )
 		{
 			lock.unlock();
-			( *it ).second->save_states( state_io );
+			if( !( *it ).second->save_states( state_io ) ) success = false;
 		}
 	}
 
-	return true;
+	return success;
 }
 
 bool StateEngine::get_state( const std::string& state_id, StateBaseHandle& state )

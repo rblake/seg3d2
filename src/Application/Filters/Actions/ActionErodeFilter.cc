@@ -28,9 +28,10 @@
 
 // Core includes
 #include <Core/DataBlock/StdDataBlock.h>
+#include <Core/DataBlock/MaskDataBlockManager.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/LayerFilter.h>
 #include <Application/Filters/Actions/ActionErodeFilter.h>
@@ -46,66 +47,47 @@ namespace Seg3D
 
 bool ActionErodeFilter::validate( Core::ActionContextHandle& context )
 {
-	// Check for layer existance and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::MASK_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
+	// Check for layer existence and type information
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::MASK_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
-		this->replace_.value(), notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
+		this->replace_, context, this->sandbox_ ) ) return false;
 		
-	// Check for layer existance and type information
-	if ( ( this->mask_layer_.value() != "" ) && ( this->mask_layer_.value() != "<none>" ) )
+	// Check for layer existence and type information
+	if ( ( this->mask_layer_ != "" ) && ( this->mask_layer_ != "<none>" ) )
 	{
-		std::string error;
-		if ( ! LayerManager::CheckLayerExistanceAndType( this->mask_layer_.value(), 
-			Core::VolumeType::MASK_E, error ) )
-		{
-			context->report_error( error );
-			return false;
-		}
+		if ( ! LayerManager::CheckLayerExistenceAndType( this->mask_layer_, 
+			Core::VolumeType::MASK_E, context, this->sandbox_ ) ) return false;
 		
-		if ( ! LayerManager::CheckLayerSize( this->mask_layer_.value(), this->target_layer_.value(),
-			error ) )
-		{
-			context->report_error( error );
-			return false;		
-		}
+		if ( ! LayerManager::CheckLayerSize( this->mask_layer_, this->target_layer_,
+			context, this->sandbox_ ) ) return false;
 		
 		// Check for layer availability 
-		if ( ! LayerManager::CheckLayerAvailability( this->mask_layer_.value(), false, notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+		if ( ! LayerManager::CheckLayerAvailability( this->mask_layer_, false, 
+			context, this->sandbox_ ) ) return false;
 	}
 
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->radius_.value() < 1 )
+	if( this->radius_ < 1 )
 	{
 		context->report_error( "The radius needs to be larger than or equal to one." );
 		return false;
 	}
 
-	if( this->radius_.value() > 254 )
+	if( this->radius_ > 254 )
 	{
 		context->report_error( "The radius is too large." );
 		return false;
 	}
 	
-	if ( this->slice_type_.value() != Core::SliceType::AXIAL_E &&
-		this->slice_type_.value() != Core::SliceType::CORONAL_E &&
-		this->slice_type_.value() != Core::SliceType::SAGITTAL_E )
+	if ( this->slice_type_ != Core::SliceType::AXIAL_E &&
+		this->slice_type_ != Core::SliceType::CORONAL_E &&
+		this->slice_type_ != Core::SliceType::SAGITTAL_E )
 	{
 		context->report_error( "Invalid slice type" );
 		return false;
@@ -136,7 +118,7 @@ public:
 	
 public:
 	// RUN_FILTER:
-	// Implemtation of run of the Runnable base class, this function is called when the thread
+	// Implementation of run of the Runnable base class, this function is called when the thread
 	// is launched.
 
 	virtual void run_filter()
@@ -224,7 +206,6 @@ public:
 				}
 			}
 		}
-			
 			
 		// Detect Edge
 		float current_progress = 0.0f;
@@ -419,28 +400,29 @@ bool ActionErodeFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<ErodeFilterAlgo> algo( new ErodeFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->radius_ = this->radius_.value();
-	algo->only2d_ = this->only2d_.value();
-	algo->slice_type_ = this->slice_type_.value();
+	algo->set_sandbox( this->sandbox_ );
+	algo->radius_ = this->radius_;
+	algo->only2d_ = this->only2d_;
+	algo->slice_type_ = this->slice_type_;
 	
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;		
 	}
 
-	if ( this->mask_layer_.value().size() > 0 && this->mask_layer_.value() != "<none>" )
+	if ( this->mask_layer_.size() > 0 && this->mask_layer_ != "<none>" )
 	{
-		if ( !( algo->find_layer( this->mask_layer_.value(), algo->mask_layer_ ) ) )
+		if ( !( algo->find_layer( this->mask_layer_, algo->mask_layer_ ) ) )
 		{
 			return false;
 		}		
 		algo->lock_for_use( algo->mask_layer_ );
 	}
 	
-	algo->invert_mask_ = this->mask_invert_.value();	
+	algo->invert_mask_ = this->mask_invert_;	
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -458,10 +440,17 @@ bool ActionErodeFilter::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter.
 	Core::Runnable::Start( algo );
 
@@ -476,13 +465,13 @@ void ActionErodeFilter::Dispatch( Core::ActionContextHandle context,
 	ActionErodeFilter* action = new ActionErodeFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->replace_.value() = replace;
-	action->radius_.value() = radius;
-	action->mask_layer_.value() = mask_layer;
-	action->mask_invert_.value() = mask_invert;
-	action->only2d_.value() = only2d;
-	action->slice_type_.value() = slice_type;
+	action->target_layer_ = target_layer;
+	action->replace_ = replace;
+	action->radius_ = radius;
+	action->mask_layer_ = mask_layer;
+	action->mask_invert_ = mask_invert;
+	action->only2d_ = only2d;
+	action->slice_type_ = slice_type;
 		
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

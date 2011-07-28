@@ -36,9 +36,14 @@ SET(APPLICATION_PROJECTMANAGER_SRCS
     AutoSave.cc
     ProjectManager.h
     ProjectManager.cc
+	ProjectInfo.h
 )
 
 SET(APPLICATION_PROJECTMANAGER_ACTIONS_SRCS
+	Actions/ActionAddNote.h
+	Actions/ActionAddNote.cc
+    Actions/ActionAutoSave.h
+    Actions/ActionAutoSave.cc
     Actions/ActionDeleteSession.h
     Actions/ActionDeleteSession.cc
     Actions/ActionExportProject.h
@@ -49,8 +54,6 @@ SET(APPLICATION_PROJECTMANAGER_ACTIONS_SRCS
     Actions/ActionLoadSession.cc
     Actions/ActionNewProject.h
     Actions/ActionNewProject.cc
-	Actions/ActionQuickOpen.h
-	Actions/ActionQuickOpen.cc
     Actions/ActionResetChangesMade.h
     Actions/ActionResetChangesMade.cc
     Actions/ActionSaveProjectAs.h
@@ -59,6 +62,10 @@ SET(APPLICATION_PROJECTMANAGER_ACTIONS_SRCS
     Actions/ActionSaveSession.cc
 )
 
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_ProjectManager ${APPLICATION_PROJECTMANAGER_ACTIONS_SRCS})
+  SET(APPLICATION_PROJECTMANAGER_SRCS ${APPLICATION_PROJECTMANAGER_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(Application_ProjectManager ${APPLICATION_PROJECTMANAGER_SRCS}
             ${APPLICATION_PROJECTMANAGER_ACTIONS_SRCS} )
@@ -71,7 +78,9 @@ TARGET_LINK_LIBRARIES(Application_ProjectManager
                       Core_Action
                       Core_State
                       Application_Project
-                      ${SCI_BOOST_LIBRARY})
+                      Application_DatabaseManager
+                      ${SCI_BOOST_LIBRARY}
+                      ${SCI_SQLITE_LIBRARY})
 
 # Register action classes
 REGISTER_LIBRARY_AND_CLASSES(Application_ProjectManager

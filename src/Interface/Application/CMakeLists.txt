@@ -50,7 +50,6 @@ SET(INTERFACE_APPLICATION_SRCS
   LayerManagerWidget.cc
   LayerResamplerDialog.cc
   LayerWidget.cc
-  MeasurementDockWidget.cc
   Menu.cc
   MessageWindow.cc
   OverlayWidget.cc
@@ -59,6 +58,7 @@ SET(INTERFACE_APPLICATION_SRCS
   ProjectDockWidget.cc
   ProjectExportWizard.cc
   ProjectWizard.cc
+  ProvenanceDockWidget.cc
   PushDragButton.cc
   QtLayerListWidget.cc
   SaveProjectAsWizard.cc
@@ -72,6 +72,10 @@ SET(INTERFACE_APPLICATION_SRCS
   ViewAction.cc
   ViewerInterface.cc
   ViewerWidget.cc
+  RenderingDockWidget.cc
+  TransferFunctionFeatureWidget.cc
+  ProvenanceTreeModel.cc
+  ProvenanceTreeView.cc
 )
 
 SET(INTERFACE_APPLICATION_MOC_SRCS
@@ -92,7 +96,6 @@ SET(INTERFACE_APPLICATION_MOC_SRCS
   LayerManagerWidget.h
   LayerResamplerDialog.h
   LayerWidget.h
-  MeasurementDockWidget.h
   Menu.h
   MessageWindow.h
   OverlayWidget.h
@@ -101,6 +104,7 @@ SET(INTERFACE_APPLICATION_MOC_SRCS
   ProjectDockWidget.h
   ProjectExportWizard.h
   ProjectWizard.h
+  ProvenanceDockWidget.h
   PushDragButton.h
   QtLayerListWidget.h
   SaveProjectAsWizard.h
@@ -114,8 +118,16 @@ SET(INTERFACE_APPLICATION_MOC_SRCS
   ViewAction.h
   ViewerInterface.h
   ViewerWidget.h
+  RenderingDockWidget.h
+  TransferFunctionFeatureWidget.h
+  ProvenanceTreeModel.h
+  ProvenanceTreeView.h
 )
 
+IF(BUILD_WITH_PYTHON)
+  SET(INTERFACE_APPLICATION_SRCS ${INTERFACE_APPLICATION_SRCS} PythonConsoleWidget.cc)
+  SET(INTERFACE_APPLICATION_MOC_SRCS ${INTERFACE_APPLICATION_MOC_SRCS} PythonConsoleWidget.h)
+ENDIF(BUILD_WITH_PYTHON)
 
 SET(INTERFACE_APPLICATION_NO_MOC_SRCS
   ControllerContext.h
@@ -132,14 +144,14 @@ SET(INTERFACE_APPLICATION_UI_SRCS
   HistoryDockWidget.ui
   LayerGroupWidget.ui
   LayerImporterWidget.ui
-  LayerManagerDockWidget.ui
+  LayerManagerWidget.ui
   LayerResamplerDialog.ui
   LayerWidget.ui
-  MeasurementDockWidget.ui
   MessageWindow.ui
   PreferencesInterface.ui
   ProjectDockWidget.ui
   ProgressWidget.ui
+  ProvenanceDockWidget.ui
   QtLayerListWidget.ui
   StatusBarWidget.ui
   ShortcutsInterface.ui
@@ -147,6 +159,8 @@ SET(INTERFACE_APPLICATION_UI_SRCS
   ToolBoxPageWidget.ui
   ViewerInterface.ui
   ViewerWidget.ui
+  RenderingDockWidget.ui
+  TransferFunctionFeatureWidget.ui
 )
 
 SET(INTERFACE_APPLICATION_RCC_SRCS
@@ -191,6 +205,7 @@ CORE_ADD_LIBRARY(Interface_Application
             ${INTERFACE_APPLICATION_MOC_SRCS}
             ${INTERFACE_APPLICATION_QT_RCC_SRCS})
 
+IF(APPLE)
 TARGET_LINK_LIBRARIES(Interface_Application
                       Core_Utils
                       Core_EventHandler
@@ -207,6 +222,30 @@ TARGET_LINK_LIBRARIES(Interface_Application
                       QtUtils_Utils
                       QtUtils_Widgets
 					  QtUtils_Bridge
-					  Resources_QtResources
+                      ${QT_LIBRARIES} 
+                      ${SCI_BOOST_LIBRARY}
+					  /System/Library/Frameworks/CoreServices.framework)
+ELSE(APPLE)
+TARGET_LINK_LIBRARIES(Interface_Application
+                      Core_Utils
+                      Core_EventHandler
+                      Core_Action
+                      Core_Interface
+                      Core_State
+					  Application_Project
+					  Application_ProjectManager
+          			  Application_Renderer
+                      Application_Tool
+                      Application_ToolManager
+                      Application_Tools
+                      Application_LayerIO
+                      QtUtils_Utils
+                      QtUtils_Widgets
+					  QtUtils_Bridge
                       ${QT_LIBRARIES} 
                       ${SCI_BOOST_LIBRARY})
+ENDIF(APPLE)
+
+IF(BUILD_WITH_PYTHON)
+  TARGET_LINK_LIBRARIES(Interface_Application Core_Python)
+ENDIF(BUILD_WITH_PYTHON)

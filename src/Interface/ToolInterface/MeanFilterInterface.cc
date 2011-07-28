@@ -26,6 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Interface/Interface.h>
+
 // QtGui includes
 #include "ui_MeanFilterInterface.h"
 
@@ -92,6 +95,8 @@ bool MeanFilterInterface::build_widget( QFrame* frame )
 		tool->use_active_layer_state_, true );
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
 		&Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
+	
+	this->private_->ui_.radius_->set_description( "Radius" );
 
 	return true;
 

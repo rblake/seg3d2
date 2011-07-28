@@ -29,9 +29,12 @@
 #ifndef APPLICATION_TOOLS_ACTIONS_ACTIOINPOLYLINE_H
 #define APPLICATION_TOOLS_ACTIONS_ACTIOINPOLYLINE_H
 
+// Core includes
 #include <Core/Volume/VolumeSlice.h>
 
-#include <Application/LayerManager/LayerManager.h>
+// Application includes
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -39,7 +42,7 @@ namespace Seg3D
 class ActionPolylinePrivate;
 typedef boost::shared_ptr< ActionPolylinePrivate > ActionPolylinePrivateHandle;
 
-class ActionPolyline : public Core::Action
+class ActionPolyline : public LayerAction
 {
 
 CORE_ACTION
@@ -51,6 +54,8 @@ CORE_ACTION
 	CORE_ACTION_ARGUMENT( "slice_number", "The slice number to be painted on." )
 	CORE_ACTION_ARGUMENT( "erase", "Whether to erase." )
 	CORE_ACTION_ARGUMENT( "vertices", "The 2D coordinates of polyline vertices." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -59,7 +64,6 @@ typedef Core::PointF VertexCoord;
 
 public:
 	ActionPolyline();
-	virtual ~ActionPolyline();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

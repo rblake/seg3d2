@@ -26,6 +26,9 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#include <Core/Action/ActionDispatcher.h>
+#include <Core/Action/ActionFactory.h>
+
 // Application Includes
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/PreferencesManager/Actions/ActionSavePreferences.h>
@@ -62,15 +65,10 @@ bool ActionSavePreferences::run( Core::ActionContextHandle& context,
 	return true;
 }
 
-Core::ActionHandle ActionSavePreferences::Create()
-{
-	ActionSavePreferences* action = new ActionSavePreferences;
-	return Core::ActionHandle( action );
-}
-
 void ActionSavePreferences::Dispatch( Core::ActionContextHandle context )
 {
-	Core::ActionDispatcher::PostAction( Create(), context );
+	ActionSavePreferences* action = new ActionSavePreferences;
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
 } // end namespace Seg3D

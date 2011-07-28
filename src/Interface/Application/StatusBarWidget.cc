@@ -43,7 +43,7 @@
 //  Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/ToolManager/ToolManager.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/InterfaceManager/InterfaceManager.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 
@@ -69,24 +69,30 @@ public:
 	QIcon normal_message_icon_;
 	QIcon error_message_icon_;
 	
+	QStatusBar* statusbar_;
+	QWidget *statusbar_widget_;
+	
+	bool show_world_coord_;
+	DataPointInfoHandle data_point_info_;
+	
 };
 
 StatusBarWidget::StatusBarWidget( QMainWindow* parent ) :
 	QObject( parent ), 
-	show_world_coord_( false ), 
 	private_( new StatusBarWidgetPrivate )
 {
-	this->statusbar_ = parent->statusBar();
-	this->statusbar_widget_ = new QWidget( this->statusbar_ );
+	this->private_->show_world_coord_ = false;
+	this->private_->statusbar_ = parent->statusBar();
+	this->private_->statusbar_widget_ = new QWidget( this->private_->statusbar_ );
 	
-	this->private_->ui_.setupUi( this->statusbar_widget_ );
+	this->private_->ui_.setupUi( this->private_->statusbar_widget_ );
 	this->private_->ui_.actives_->hide();
 
-	this->statusbar_->setContentsMargins( 0, 0, 0, 0 );
+	this->private_->statusbar_->setContentsMargins( 0, 0, 0, 0 );
 
-	this->statusbar_->addWidget( this->statusbar_widget_, 1 );
+	this->private_->statusbar_->addWidget( this->private_->statusbar_widget_, 1 );
 	
-	this->statusbar_->setStyleSheet( StyleSheet::STATUSBAR_C );
+//	this->private_->statusbar_->setStyleSheet( StyleSheet::STATUSBAR_C );
 	
 	connect( this->private_->ui_.swap_visibility_button_, 
 		SIGNAL( clicked() ), this, SLOT( swap_bars() ) );
@@ -114,12 +120,12 @@ StatusBarWidget::StatusBarWidget( QMainWindow* parent ) :
 	this->add_connection( Core::ActionDispatcher::Instance()->post_action_signal_.connect( 
 		boost::bind( &StatusBarWidget::HandleActionEvent, qpointer_type( this ) ) ) );
 	
-	this->private_->ui_.status_report_label_->setGeometry( QRect( 0, 
-		-this->private_->ui_.status_report_label_->height(), 
-		this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
+	this->private_->ui_.status_report_widget_->setGeometry( QRect( 0, 
+		-this->private_->ui_.status_report_widget_->height(), 
+		this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
 	
-	this->private_->ui_.status_report_label_->hide();
+	this->private_->ui_.status_report_widget_->hide();
 	
 	this->private_->last_message_time_ = boost::posix_time::second_clock::local_time();
 	
@@ -165,15 +171,15 @@ void StatusBarWidget::set_coordinates_mode( bool is_world )
 	if( !is_world )
 	{
 		this->private_->ui_.world_button_->setToolTip( QString::fromUtf8(
-		    "Coordinate mode is set to Local, click to toggle to Global" ) );
+		    "Coordinate mode is set to pixel, click to toggle to actual" ) );
 	}
 	else
 	{
 		this->private_->ui_.world_button_->setToolTip( QString::fromUtf8(
-		    "Coordinate mode is set to Global, click to toggle to Local" ) );
+		    "Coordinate mode is set to actual, click to toggle to pixel" ) );
 	}
 
-	this->show_world_coord_ = is_world;
+	this->private_->show_world_coord_ = is_world;
 	this->update_data_point_label();
 }
 
@@ -181,12 +187,6 @@ void StatusBarWidget::set_status_report_label( std::string& status )
 {
 	QString report = QString::fromStdString( status );
 	this->private_->ui_.status_report_label_->setText( QString::fromUtf8( "Status: " ) + report );
-}
-
-void StatusBarWidget::fix_icon_status()
-{
-	this->private_->ui_.status_report_label_->setText( 
-		QString::fromUtf8( "Status = true " ) );
 }
 
 void StatusBarWidget::update_data_point_info( DataPointInfoHandle data_point )
@@ -198,7 +198,15 @@ void StatusBarWidget::update_data_point_info( DataPointInfoHandle data_point )
 		return;
 	}
 
-	this->data_point_info_ = *data_point;
+	if ( data_point )
+	{
+		this->private_->data_point_info_.reset( new DataPointInfo( *data_point ) );
+	}
+	else
+	{
+		this->private_->data_point_info_.reset();
+	}
+	
 	this->update_data_point_label();
 }
 	
@@ -211,15 +219,24 @@ void StatusBarWidget::update_data_point_label()
 			zero_based_slice_numbers_state_->get();
 	}
 	
+	// If there is no data to display
+	if ( !this->private_->data_point_info_ )
+	{
+		this->private_->ui_.x_->setText( "---" );
+		this->private_->ui_.y_->setText( "---" );
+		this->private_->ui_.z_->setText( "---" );
+		this->private_->ui_.value_->setText( "---" );
+		return;
+	}
 	
 	// get some local copies of the data
-	double world_x = this->data_point_info_.world_coord().x();
-	double world_y = this->data_point_info_.world_coord().y();
-	double world_z = this->data_point_info_.world_coord().z();
+	double world_x = this->private_->data_point_info_->world_coord().x();
+	double world_y = this->private_->data_point_info_->world_coord().y();
+	double world_z = this->private_->data_point_info_->world_coord().z();
 	
-	double index_x = this->data_point_info_.index_coord().x();
-	double index_y = this->data_point_info_.index_coord().y();
-	double index_z = this->data_point_info_.index_coord().z();
+	double index_x = this->private_->data_point_info_->index_coord().x();
+	double index_y = this->private_->data_point_info_->index_coord().y();
+	double index_z = this->private_->data_point_info_->index_coord().z();
 	
 	if ( !zero_based_slice_numbers )
 	{
@@ -231,7 +248,7 @@ void StatusBarWidget::update_data_point_label()
 	
 	// In the case that all the coordinates are 0 then show nice 0's.
 	if( ( world_x == 0 ) && ( world_y == 0 ) && ( world_z == 0 ) && 
-		( this->data_point_info_.value() == 0 ) )
+		( this->private_->data_point_info_->value() == 0 ) )
 	{	
 		this->private_->ui_.x_->setText( QString::fromUtf8("0.000") );
 		this->private_->ui_.y_->setText( QString::fromUtf8("0.000") );
@@ -241,38 +258,38 @@ void StatusBarWidget::update_data_point_label()
 
 	// In the case that the coordinates are outside of .0001-1000.00,
 	// format them with scientific notation.
-	if( this->show_world_coord_ ) // World coordinates
+	if( this->private_->show_world_coord_ ) // World coordinates
 	{
-		if( ( 0.0 < world_x && world_x < 0.0001 ) || 1000 < world_x ) // Use scientific notation
+		if( Core::Abs( world_x ) < 0.0001 || Core::Abs( world_x ) > 1000 ) // Use scientific notation
 		{
-			this->private_->ui_.x_->setText( QString( "%1" ).arg( world_x, 0, 'e', 3 ) );
+			this->private_->ui_.x_->setText( QString( "%1" ).arg( world_x, 0, 'e', 2 ) );
 		}
 		else // Format normally
 		{
-			this->private_->ui_.x_->setText( QString( "%1" ).arg( world_x, 0, 'f', 0 ) );
+			this->private_->ui_.x_->setText( QString( "%1" ).arg( world_x, 0, 'f', 2 ) );
 		}
-		if( ( 0.0 < world_y && world_y < 0.0001 ) || 1000 < world_y ) // Use scientific notation
+		if( Core::Abs( world_y ) < 0.0001 || Core::Abs( world_y ) > 1000 ) // Use scientific notation
 		{
-			this->private_->ui_.y_->setText( QString( "%1" ).arg( world_y, 0, 'e', 3 ) );
-		}
-		else // Format normally
-		{
-			this->private_->ui_.y_->setText( QString( "%1" ).arg( world_y, 0, 'f', 0 ) );
-		}
-		if( ( 0.0 < world_z && world_z < 0.0001 ) || 1000 < world_z ) // Use scientific notation
-		{
-			this->private_->ui_.z_->setText( QString( "%1" ).arg( world_z, 0, 'e', 3 ) );
+			this->private_->ui_.y_->setText( QString( "%1" ).arg( world_y, 0, 'e', 2 ) );
 		}
 		else // Format normally
 		{
-			this->private_->ui_.z_->setText( QString( "%1" ).arg( world_z, 0, 'f', 0 ) );
+			this->private_->ui_.y_->setText( QString( "%1" ).arg( world_y, 0, 'f', 2 ) );
+		}
+		if( Core::Abs( world_z ) < 0.0001 || Core::Abs( world_z ) > 1000  ) // Use scientific notation
+		{
+			this->private_->ui_.z_->setText( QString( "%1" ).arg( world_z, 0, 'e', 2 ) );
+		}
+		else // Format normally
+		{
+			this->private_->ui_.z_->setText( QString( "%1" ).arg( world_z, 0, 'f', 2 ) );
 		}
 	}
 	else // Index coordinates
 	{
 		if( 10000 < index_x ) // Use scientific notation
 		{
-			this->private_->ui_.x_->setText( QString( "%1" ).arg( index_x, 0, 'e', 3 ) );
+			this->private_->ui_.x_->setText( QString( "%1" ).arg( index_x, 0, 'e', 2 ) );
 		}
 		else // Format normally
 		{
@@ -280,7 +297,7 @@ void StatusBarWidget::update_data_point_label()
 		}
 		if( 10000 < index_y ) // Use scientific notation
 		{
-			this->private_->ui_.y_->setText( QString( "%1" ).arg( index_y, 0, 'e', 3 ) );
+			this->private_->ui_.y_->setText( QString( "%1" ).arg( index_y, 0, 'e', 2 ) );
 		}
 		else // Format normally
 		{
@@ -288,7 +305,7 @@ void StatusBarWidget::update_data_point_label()
 		}
 		if( 10000 < index_z ) // Use scientific notation
 		{
-			this->private_->ui_.z_->setText( QString( "%1" ).arg( index_z, 0, 'e', 3 ) );
+			this->private_->ui_.z_->setText( QString( "%1" ).arg( index_z, 0, 'e', 2 ) );
 		}
 		else // Format normally
 		{
@@ -297,10 +314,10 @@ void StatusBarWidget::update_data_point_label()
 	}
 
 	// Value 
-	double val = this->data_point_info_.value();
+	double val = this->private_->data_point_info_->value();
 	if( ( 0.0 < val && val < 0.0001 ) || 1000 < val ) // Use scientific notation
 	{
-		this->private_->ui_.value_->setText( QString( "%1" ).arg( val, 0, 'e', 3 ) );
+		this->private_->ui_.value_->setText( QString( "%1" ).arg( val, 0, 'e', 2 ) );
 	}
 	else // Format normally
 	{
@@ -313,7 +330,8 @@ void StatusBarWidget::set_message( int msg_type, std::string message )
 	this->private_->message_type_ = msg_type;
 	this->private_->current_message_ = QString::fromStdString( message );
 	
-	if( this->private_->message_type_ == Core::LogMessageType::ERROR_E )
+	if( this->private_->message_type_ == Core::LogMessageType::ERROR_E ||
+		this->private_->message_type_ == Core::LogMessageType::CRITICAL_ERROR_E )
 	{
 		this->private_->ui_.info_button_->setIcon( this->private_->error_message_icon_ );
 		this->private_->error_icon_set_ = true;
@@ -370,23 +388,30 @@ void StatusBarWidget::check_time()
 void StatusBarWidget::slide_in()
 {
 	
-	if( this->private_->ui_.status_report_label_->isVisible() )
+	if( this->private_->ui_.status_report_widget_->isVisible() )
 	{
-		this->private_->ui_.status_report_label_->hide();
+		this->private_->ui_.status_report_widget_->hide();
 	}
 	
-	this->private_->ui_.status_report_label_->setGeometry( QRect( 0, 
-		 -this->private_->ui_.status_report_label_->height(), 
-		 this->private_->ui_.status_report_label_->width(), 
-		 this->private_->ui_.status_report_label_->height() ) );
+	this->private_->ui_.status_report_widget_->setGeometry( QRect( 0, 
+		 -this->private_->ui_.status_report_widget_->height(), 
+		 this->private_->ui_.status_report_widget_->width(), 
+		 this->private_->ui_.status_report_widget_->height() ) );
 	
 	// Here we create the animation that will slide the message into the task bar
-	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_label_, "geometry" );
+	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_widget_, "geometry" );
 	
 	// Here we change the color of the text if we are reporting an error.
-	if( this->private_->message_type_ == Core::LogMessageType::ERROR_E )
+	if( ( this->private_->message_type_ == Core::LogMessageType::ERROR_E ) ||
+		( this->private_->message_type_ == Core::LogMessageType::CRITICAL_ERROR_E ) )
 	{
 		this->private_->ui_.status_report_label_->setStyleSheet( StyleSheet::STATUSBAR_ERROR_C );
+		animation->setDuration( 2000 );
+		animation->setEasingCurve( QEasingCurve::OutBounce );
+	}
+	else if ( this->private_->message_type_ == Core::LogMessageType::WARNING_E )
+	{
+		this->private_->ui_.status_report_label_->setStyleSheet( StyleSheet::STATUSBAR_WARNING_C );
 		animation->setDuration( 2000 );
 		animation->setEasingCurve( QEasingCurve::OutBounce );
 	}
@@ -399,13 +424,13 @@ void StatusBarWidget::slide_in()
 	
 	this->private_->ui_.status_report_label_->setText( this->private_->current_message_ );
 	
-	this->private_->ui_.status_report_label_->show();
+	this->private_->ui_.status_report_widget_->show();
 	
-	animation->setStartValue( QRect( 0, -this->private_->ui_.status_report_label_->height(), 
-		this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
-	animation->setEndValue( QRect( 0, 0, this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
+	animation->setStartValue( QRect( 0, -this->private_->ui_.status_report_widget_->height(), 
+		this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
+	animation->setEndValue( QRect( 0, 0, this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
 	connect( animation, SIGNAL( finished() ), this, SLOT( set_finished_animating() ) );
 	animation->start();
 	this->private_->animating_ = true;
@@ -415,13 +440,13 @@ void StatusBarWidget::slide_out_then_in()
 {
 	if( this->private_->animating_ ) return;
 	
-	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_label_, "geometry" );
+	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_widget_, "geometry" );
 	animation->setDuration( 1000 );
-	animation->setStartValue( QRect( 0, 0, this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
-	animation->setEndValue( QRect( 0, this->private_->ui_.status_report_label_->height(), 
-		this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
+	animation->setStartValue( QRect( 0, 0, this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
+	animation->setEndValue( QRect( 0, this->private_->ui_.status_report_widget_->height(), 
+		this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
 	connect( animation, SIGNAL( finished() ), this, SLOT( slide_in() ) );
 	animation->setEasingCurve( QEasingCurve::OutQuad );
 	animation->start();
@@ -431,13 +456,13 @@ void StatusBarWidget::slide_out()
 {
 	if( this->private_->animating_ ) return;
 	
-	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_label_, "geometry" );
+	QPropertyAnimation *animation = new QPropertyAnimation( this->private_->ui_.status_report_widget_, "geometry" );
 	animation->setDuration( 1000 );
-	animation->setStartValue( QRect( 0, 0, this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
-	animation->setEndValue( QRect( 0, this->private_->ui_.status_report_label_->height(), 
-		this->private_->ui_.status_report_label_->width(), 
-		this->private_->ui_.status_report_label_->height() ) );
+	animation->setStartValue( QRect( 0, 0, this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
+	animation->setEndValue( QRect( 0, this->private_->ui_.status_report_widget_->height(), 
+		this->private_->ui_.status_report_widget_->width(), 
+		this->private_->ui_.status_report_widget_->height() ) );
 	connect( animation, SIGNAL( finished() ), this, SLOT( clear_label() ) );
 	animation->setEasingCurve( QEasingCurve::OutQuad );
 	animation->start();
@@ -447,7 +472,7 @@ void StatusBarWidget::slide_out()
 void StatusBarWidget::clear_label()
 {
 	this->private_->ui_.status_report_label_->setText( QString::fromUtf8( "" ) );
-	this->private_->ui_.status_report_label_->hide();
+	this->private_->ui_.status_report_widget_->hide();
 	this->private_->current_message_ = QString::fromUtf8( "" );
 	this->set_finished_animating();
 }

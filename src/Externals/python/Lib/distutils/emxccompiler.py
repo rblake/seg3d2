@@ -19,7 +19,7 @@ handles the EMX port of the GNU C compiler to OS/2.
 #
 # * EMX gcc 2.81/EMX 0.9d fix03
 
-__revision__ = "$Id: emxccompiler.py 65860 2008-08-19 17:56:33Z antoine.pitrou $"
+__revision__ = "$Id: emxccompiler.py 86223 2010-11-05 23:51:56Z eric.araujo $"
 
 import os,sys,copy
 from distutils.ccompiler import gen_preprocess_options, gen_lib_options
@@ -270,8 +270,10 @@ def check_config_h():
         # It would probably better to read single lines to search.
         # But we do this only once, and it is fast enough
         f = open(fn)
-        s = f.read()
-        f.close()
+        try:
+            s = f.read()
+        finally:
+            f.close()
 
     except IOError as exc:
         # if we can't read this file, we cannot say it is wrong
@@ -298,8 +300,10 @@ def get_versions():
     gcc_exe = find_executable('gcc')
     if gcc_exe:
         out = os.popen(gcc_exe + ' -dumpversion','r')
-        out_string = out.read()
-        out.close()
+        try:
+            out_string = out.read()
+        finally:
+            out.close()
         result = re.search('(\d+\.\d+\.\d+)', out_string, re.ASCII)
         if result:
             gcc_version = StrictVersion(result.group(1))

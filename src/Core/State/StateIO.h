@@ -30,9 +30,9 @@
 #define CORE_STATE_STATEIO_H
 
 // Boost includes
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/utility.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/noncopyable.hpp>
 
 // TinyXML includes
 #include <tinyxml.h>
@@ -53,7 +53,7 @@ public:
 
 public:
 
-	void initialize( const std::string& root_name );
+	void initialize();
 
 	const TiXmlElement* get_current_element() const;
 	TiXmlElement* get_current_element();
@@ -64,6 +64,10 @@ public:
 	void push_current_element() const;
 	void pop_current_element() const;
 	void set_current_element( const TiXmlElement* element ) const;
+
+	int get_major_version() const;
+	int get_minor_version() const;
+	int get_patch_version() const;
 
 private:
 	StateIOPrivateHandle private_;

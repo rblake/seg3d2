@@ -54,6 +54,13 @@ SET(CORE_GEOMETRY_SRCS
   Quaternion.cc
   Matrix.h
   Matrix.cc
+  Algorithm.h
+  Algorithm.cc
+  Measurement.h
+  Measurement.cc
+  SinglePath.h
+  Path.h
+  Path.cc
 )
 
 ##################################################

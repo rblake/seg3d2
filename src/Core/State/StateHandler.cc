@@ -26,18 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// STL includes
 #include <queue>
-
-// Boost includes
-#include <boost/lexical_cast.hpp>
 
 // TinyXML includes
 #include <Externals/tinyxml/tinyxml.h>
 
+// Core includes
 #include <Core/State/StateHandler.h>
 #include <Core/State/StateEngine.h>
 #include <Core/State/StateIO.h>
 #include <Core/Application/Application.h>
+#include <Core/Utils/Log.h>
 
 namespace Core
 {
@@ -50,6 +50,9 @@ class StateHandlerPrivate
 public:
 	// The id of this state handler
 	std::string statehandler_id_;
+
+	// The base of the state handler id
+	std::string statehandler_id_base_;
 
 	// The number at the end of the state handler id
 	size_t statehandler_id_number_;
@@ -68,6 +71,12 @@ public:
 
 	// Keep track whether mark as project data has been set
 	bool mark_as_project_data_;
+
+	// Do not save the id number in the xml files
+	bool do_not_save_id_number_;
+
+	// The version of the data that was loaded
+	int loaded_version_;
 };
 
 
@@ -81,21 +90,23 @@ StateHandler::StateHandler( const std::string& type_str, bool auto_id )
 		register_state_handler( type_str, this, auto_id );
 		
 	// Get the current instantiation number of the state handler
-	// TODO: need to split this into its own function
-	// --JS
 	this->private_->statehandler_id_number_ = 0;
 	std::string::size_type loc = this->private_->statehandler_id_.size();
+
 	while (  loc > 0 && this->private_->statehandler_id_[ loc - 1 ] >= '0' && 
 			this->private_->statehandler_id_[ loc - 1 ] <= '9' ) loc--;
 	
 	if ( loc >= this->private_->statehandler_id_.size() )
 	{
 		this->private_->statehandler_id_number_ = 0;
+		this->private_->statehandler_id_base_ = this->private_->statehandler_id_;
 	}
 	else
 	{
 		ImportFromString( this->private_->statehandler_id_.substr( loc ), 
 			this->private_->statehandler_id_number_ );
+		this->private_->statehandler_id_base_ = 
+			this->private_->statehandler_id_.substr( 0, loc - 1 );
 	}
 	
 	// Set defaults for all the other fields in the private class
@@ -103,6 +114,8 @@ StateHandler::StateHandler( const std::string& type_str, bool auto_id )
 	this->private_->signals_enabled_ = true;
 	this->private_->initializing_ = false;
 	this->private_->mark_as_project_data_ = false;
+	this->private_->do_not_save_id_number_ = false;
+	this->private_->loaded_version_ = -1;
 }
 
 StateHandler::~StateHandler()
@@ -148,6 +161,12 @@ const std::string& StateHandler::get_statehandler_id() const
 {
 	return ( this->private_->statehandler_id_ );
 }
+
+const std::string& StateHandler::get_statehandler_id_base() const
+{
+	return ( this->private_->statehandler_id_base_ );
+}
+
 
 size_t StateHandler::get_statehandler_id_number() const
 {
@@ -205,24 +224,48 @@ bool operator<( const StateEntry& left, const StateEntry& right )
 bool StateHandler::load_states( const StateIO& state_io )
 {
 	// Get the XML element corresponding to this state handler
-	const TiXmlElement* sh_element = state_io.get_current_element()->
-		FirstChildElement( this->get_statehandler_id().c_str() );
-	if ( sh_element == 0 )
+	
+	const TiXmlElement* sh_element = 0;
+	if ( this->private_->do_not_save_id_number_ )
 	{
-		return false;
+		sh_element = state_io.get_current_element()->
+			FirstChildElement( this->get_statehandler_id_base().c_str() );
+
+		if ( sh_element == 0 )
+		{
+			// Nothing to load, treat it as successful
+			return true;
+		}
 	}
+	else
+	{
+		sh_element = state_io.get_current_element()->
+			FirstChildElement( this->get_statehandler_id().c_str() );	
+		if ( sh_element == 0 )
+		{
+			// Nothing to load, treat it as successful
+			return true;
+		}
+
+	}
+	 
+	bool success;
 
 	state_io.push_current_element();
 	state_io.set_current_element( sh_element );
-	this->pre_load_states( state_io );
+	success = this->pre_load_states( state_io );
 	state_io.pop_current_element();
+
+	// Only continue if pre_load_states succeeded.
+	if ( !success ) return false;
 
 	// Query the version number in the loaded XML file.
 	// NOTE: If the call fails, loaded_verison will not be changed, and thus is the same
 	// as the current version number.
 	int loaded_version = static_cast< int >( this->get_version() );
 	sh_element->QueryIntAttribute( "version", &loaded_version );
-
+	this->set_loaded_version( loaded_version );
+	
 	// Build a priority queue of all the states sorted in the descending order of
 	// their session priority. Only  state variables with priority other than 
 	// StateBase::DO_NOT_LOAD_E will be loaded.
@@ -243,13 +286,12 @@ bool StateHandler::load_states( const StateIO& state_io )
 	const TiXmlElement* state_element = 
 		sh_element->FirstChildElement( STATE_ELEMENT_NAME.c_str() );
 
-	bool success = true;
 	while ( success && state_element != 0 )
 	{
 		const char* stateid = state_element->Attribute( "id" );
 		if ( stateid == 0 )
 		{
-			CORE_LOG_ERROR( "Invalid state record" );
+			CORE_LOG_ERROR( "Invalid state record with no id" );
 			success = false;
 		}
 		else
@@ -260,7 +302,7 @@ bool StateHandler::load_states( const StateIO& state_io )
 				state_value_str = "";
 			}
 			
-			state_value_str_map[ this->get_statehandler_id() + "::" + stateid ] = state_value_str;
+			state_value_str_map[ this->get_statehandler_id() + "::" + stateid ] = state_value_str;			
 		}
 
 		state_element = state_element->NextSiblingElement( STATE_ELEMENT_NAME );
@@ -285,7 +327,12 @@ bool StateHandler::load_states( const StateIO& state_io )
 			state_value_str_map.find( state_entry.first );
 		if ( state_it != state_value_str_map.end() )
 		{
-			success &= state_entry.second->import_from_string( ( *state_it ).second );
+			if ( !state_entry.second->import_from_string( ( *state_it ).second ) )
+			{
+				std::string error = std::string( "Failed to import '" ) + state_entry.first + "'.";
+				CORE_LOG_ERROR( error );
+				success = false;
+			}
 		}
 	}
 	
@@ -402,16 +449,32 @@ void StateHandler::clean_up()
 	// does nothing by default.
 }
 
-void StateHandler::save_states( StateIO& state_io )
+bool StateHandler::save_states( StateIO& state_io )
 {
-	TiXmlElement* sh_element = new TiXmlElement( this->get_statehandler_id() );
+	TiXmlElement* sh_element;
+	if ( this->private_->do_not_save_id_number_ )
+	{
+		sh_element = new TiXmlElement( this->get_statehandler_id_base() );
+	}
+	else
+	{
+		sh_element = new TiXmlElement( this->get_statehandler_id() );
+	}
+
 	state_io.get_current_element()->LinkEndChild( sh_element );
 	sh_element->SetAttribute( "version", this->get_version() );
 	
 	state_io.push_current_element();
 	state_io.set_current_element( sh_element );
-	this->pre_save_states( state_io );
-
+	bool success = true;
+	if( !this->pre_save_states( state_io ) )
+	{
+		std::string error = std::string( "Pre save states failed for " ) + 
+			this->get_statehandler_id();
+		CORE_LOG_ERROR( error );
+		success = false;
+	}
+	
 	state_map_type::iterator it = this->private_->state_map_.begin();
 	state_map_type::iterator it_end = this->private_->state_map_.end();
 	while ( it != it_end )
@@ -426,8 +489,16 @@ void StateHandler::save_states( StateIO& state_io )
 		++it;
 	}
 
-	this->post_save_states( state_io );
+	if( !this->post_save_states( state_io ) )
+	{
+		std::string error = std::string( "Post save states failed for " ) + 
+			this->get_statehandler_id();
+		CORE_LOG_ERROR( error );
+		success = false;
+	}
+	
 	state_io.pop_current_element();
+	return success;
 }
 
 void StateHandler::mark_as_project_data()
@@ -441,6 +512,21 @@ void StateHandler::mark_as_project_data()
 		( *it ).second->set_is_project_data( true );
 		it++;
 	}
+}
+
+void StateHandler::do_not_save_id_number()
+{
+	this->private_->do_not_save_id_number_ = true;
+}
+
+int StateHandler::get_loaded_version()
+{
+	return this->private_->loaded_version_;
+}
+
+void StateHandler::set_loaded_version( int loaded_version )
+{
+	this->private_->loaded_version_ = loaded_version;
 }
 
 } // end namespace Core

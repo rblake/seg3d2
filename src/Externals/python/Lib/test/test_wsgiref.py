@@ -47,7 +47,7 @@ def hello_app(environ,start_response):
         ('Content-Type','text/plain'),
         ('Date','Mon, 05 Jun 2006 18:49:54 GMT')
     ])
-    return ["Hello, world!"]
+    return [b"Hello, world!"]
 
 def run_amock(app=hello_app, data=b"GET / HTTP/1.0\n\n"):
     server = make_server("", 80, app, MockServer, MockHandler)
@@ -131,7 +131,7 @@ class IntegrationTests(TestCase):
     def check_hello(self, out, has_length=True):
         self.assertEqual(out,
             ("HTTP/1.0 200 OK\r\n"
-            "Server: WSGIServer/0.1 Python/"+sys.version.split()[0]+"\r\n"
+            "Server: WSGIServer/0.2 Python/"+sys.version.split()[0]+"\r\n"
             "Content-Type: text/plain\r\n"
             "Date: Mon, 05 Jun 2006 18:49:54 GMT\r\n" +
             (has_length and  "Content-Length: 13\r\n" or "") +
@@ -165,7 +165,7 @@ class IntegrationTests(TestCase):
     def test_wsgi_input(self):
         def bad_app(e,s):
             e["wsgi.input"].read()
-            s(b"200 OK", [(b"Content-Type", b"text/plain; charset=utf-8")])
+            s("200 OK", [("Content-Type", "text/plain; charset=utf-8")])
             return [b"data"]
         out, err = run_amock(validator(bad_app))
         self.assertTrue(out.endswith(
@@ -177,8 +177,8 @@ class IntegrationTests(TestCase):
 
     def test_bytes_validation(self):
         def app(e, s):
-            s(b"200 OK", [
-                (b"Content-Type", b"text/plain; charset=utf-8"),
+            s("200 OK", [
+                ("Content-Type", "text/plain; charset=utf-8"),
                 ("Date", "Wed, 24 Dec 2008 13:29:32 GMT"),
                 ])
             return [b"data"]
@@ -187,7 +187,7 @@ class IntegrationTests(TestCase):
         ver = sys.version.split()[0].encode('ascii')
         self.assertEqual(
                 b"HTTP/1.0 200 OK\r\n"
-                b"Server: WSGIServer/0.1 Python/" + ver + b"\r\n"
+                b"Server: WSGIServer/0.2 Python/" + ver + b"\r\n"
                 b"Content-Type: text/plain; charset=utf-8\r\n"
                 b"Date: Wed, 24 Dec 2008 13:29:32 GMT\r\n"
                 b"\r\n"
@@ -211,12 +211,12 @@ class UtilityTests(TestCase):
         # Check defaulting when empty
         env = {}
         util.setup_testing_defaults(env)
-        if isinstance(value,StringIO):
-            self.assertTrue(isinstance(env[key],StringIO))
+        if isinstance(value, StringIO):
+            self.assertIsInstance(env[key], StringIO)
         elif isinstance(value,BytesIO):
-            self.assertTrue(isinstance(env[key],BytesIO))
+            self.assertIsInstance(env[key],BytesIO)
         else:
-            self.assertEqual(env[key],value)
+            self.assertEqual(env[key], value)
 
         # Check existing value
         env = {key:alt}
@@ -342,6 +342,10 @@ class UtilityTests(TestCase):
         self.checkReqURI("http://127.0.0.1/sp%C3%A4m", SCRIPT_NAME="/späm")
         self.checkReqURI("http://127.0.0.1/spammity/spam",
             SCRIPT_NAME="/spammity", PATH_INFO="/spam")
+        self.checkReqURI("http://127.0.0.1/spammity/spam;ham",
+            SCRIPT_NAME="/spammity", PATH_INFO="/spam;ham")
+        self.checkReqURI("http://127.0.0.1/spammity/spam;cookie=1234,5678",
+            SCRIPT_NAME="/spammity", PATH_INFO="/spam;cookie=1234,5678")
         self.checkReqURI("http://127.0.0.1/spammity/spam?say=ni",
             SCRIPT_NAME="/spammity", PATH_INFO="/spam",QUERY_STRING="say=ni")
         self.checkReqURI("http://127.0.0.1/spammity/spam", 0,
@@ -420,29 +424,6 @@ class HeaderTests(TestCase):
             '\r\n'
         )
 
-    def testBytes(self):
-        h = Headers([
-            (b"Content-Type", b"text/plain; charset=utf-8"),
-            ])
-        self.assertEqual("text/plain; charset=utf-8", h.get("Content-Type"))
-
-        h[b"Foo"] = bytes(b"bar")
-        self.assertEqual("bar", h.get("Foo"))
-        self.assertEqual("bar", h.get(b"Foo"))
-
-        h.setdefault(b"Bar", b"foo")
-        self.assertEqual("foo", h.get("Bar"))
-        self.assertEqual("foo", h.get(b"Bar"))
-
-        h.add_header(b'content-disposition', b'attachment',
-            filename=b'bud.gif')
-        self.assertEqual('attachment; filename="bud.gif"',
-            h.get("content-disposition"))
-
-        del h['content-disposition']
-        self.assertTrue(b'content-disposition' not in h)
-
-
 class ErrorHandler(BaseCGIHandler):
     """Simple handler subclass for testing BaseHandler"""
 
@@ -493,7 +474,7 @@ class HandlerTests(TestCase):
             if k not in empty:
                 self.assertEqual(env[k],v)
         for k,v in empty.items():
-            self.assertTrue(k in env)
+            self.assertIn(k, env)
 
     def testEnviron(self):
         h = TestHandler(X="Y")
@@ -506,7 +487,7 @@ class HandlerTests(TestCase):
         h = BaseCGIHandler(None,None,None,{})
         h.setup_environ()
         for key in 'wsgi.url_scheme', 'wsgi.input', 'wsgi.errors':
-            self.assertTrue(key in h.environ)
+            self.assertIn(key, h.environ)
 
     def testScheme(self):
         h=TestHandler(HTTPS="on"); h.setup_environ()
@@ -529,15 +510,20 @@ class HandlerTests(TestCase):
 
         def trivial_app1(e,s):
             s('200 OK',[])
-            return [e['wsgi.url_scheme']]
+            return [e['wsgi.url_scheme'].encode('iso-8859-1')]
 
         def trivial_app2(e,s):
-            s('200 OK',[])(e['wsgi.url_scheme'])
+            s('200 OK',[])(e['wsgi.url_scheme'].encode('iso-8859-1'))
             return []
 
         def trivial_app3(e,s):
             s('200 OK',[])
             return ['\u0442\u0435\u0441\u0442'.encode("utf-8")]
+
+        def trivial_app4(e,s):
+            # Simulate a response to a HEAD request
+            s('200 OK',[('Content-Length', '12345')])
+            return []
 
         h = TestHandler()
         h.run(trivial_app1)
@@ -562,10 +548,12 @@ class HandlerTests(TestCase):
             b'\r\n'
             b'\xd1\x82\xd0\xb5\xd1\x81\xd1\x82')
 
-
-
-
-
+        h = TestHandler()
+        h.run(trivial_app4)
+        self.assertEqual(h.stdout.getvalue(),
+            b'Status: 200 OK\r\n'
+            b'Content-Length: 12345\r\n'
+            b'\r\n')
 
     def testBasicErrorOutput(self):
 
@@ -590,13 +578,13 @@ class HandlerTests(TestCase):
             ("Status: %s\r\n"
             "Content-Type: text/plain\r\n"
             "Content-Length: %d\r\n"
-            "\r\n%s" % (h.error_status,len(h.error_body),h.error_body)
-            ).encode("iso-8859-1"))
+            "\r\n" % (h.error_status,len(h.error_body))).encode('iso-8859-1')
+            + h.error_body)
 
-        self.assertTrue("AssertionError" in h.stderr.getvalue())
+        self.assertIn("AssertionError", h.stderr.getvalue())
 
     def testErrorAfterOutput(self):
-        MSG = "Some output has been sent"
+        MSG = b"Some output has been sent"
         def error_app(e,s):
             s("200 OK",[])(MSG)
             raise AssertionError("This should be caught by handler")
@@ -605,8 +593,8 @@ class HandlerTests(TestCase):
         h.run(error_app)
         self.assertEqual(h.stdout.getvalue(),
             ("Status: 200 OK\r\n"
-            "\r\n"+MSG).encode("iso-8859-1"))
-        self.assertTrue("AssertionError" in h.stderr.getvalue())
+            "\r\n".encode("iso-8859-1")+MSG))
+        self.assertIn("AssertionError", h.stderr.getvalue())
 
 
     def testHeaderFormats(self):
@@ -654,8 +642,8 @@ class HandlerTests(TestCase):
 
     def testBytesData(self):
         def app(e, s):
-            s(b"200 OK", [
-                (b"Content-Type", b"text/plain; charset=utf-8"),
+            s("200 OK", [
+                ("Content-Type", "text/plain; charset=utf-8"),
                 ])
             return [b"data"]
 

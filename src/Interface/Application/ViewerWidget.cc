@@ -32,9 +32,9 @@
 
 // Core includes
 #include <Core/Utils/Log.h>
+#include <Core/Utils/Exception.h>
 #include <Core/Interface/Interface.h>
 #include <Core/State/Actions/ActionAdd.h>
-#include <Core/State/Actions/ActionFlip.h>
 #include <Core/State/Actions/ActionSet.h>
 
 // Application includes
@@ -105,19 +105,7 @@ void ViewerWidgetPrivate::HandleViewModeChanged( ViewerWidgetQWeakHandle viewer_
 
 	QCoreApplication::postEvent( viewer_widget.data(), new QResizeEvent( 
 		viewer_widget->size(), viewer_widget->size() ) );
-
-	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-	bool is_volume_view = viewer_widget->private_->viewer_->is_volume_view();
-
-	if( !is_volume_view )
-	{
-		Core::StateView2D* view2d_state = static_cast< Core::StateView2D* >( 
-			viewer_widget->private_->viewer_->get_active_view_state().get() );
-		viewer_widget->private_->ui_.flip_horizontal_button_->setChecked( view2d_state->x_flipped() );
-		viewer_widget->private_->ui_.flip_vertical_button_->setChecked( view2d_state->y_flipped() );
-	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Class ViewerWidget
@@ -130,7 +118,7 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->viewer_ = viewer;
 	this->private_->ui_.setupUi( this );
 	
-	// IF YOU ADD ANOTHER BUTTON TO THE VIEWERWIDGET, PLEASE ADD IT TO THE buttons_ VECTOR.
+	// NOTE: IF YOU ADD ANOTHER BUTTON TO THE VIEWERWIDGET, PLEASE ADD IT TO THE buttons_ VECTOR.
 	// We make a vector of all the buttons this way we can calculate the minimum size that the 
 	// viewer bar can be
 	this->private_->buttons_.push_back( this->private_->ui_.auto_view_button_ );
@@ -138,12 +126,19 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->buttons_.push_back( this->private_->ui_.slice_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.snap_to_axis_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.light_visible_button_ );
+	this->private_->buttons_.push_back( this->private_->ui_.fog_button_ );
+	if ( !( Core::Application::Instance()->is_osx_10_5_or_less() ) )
+	{
+		// NOTE: No clipping on this platform as driver are inconsistent
+	this->private_->buttons_.push_back( this->private_->ui_.enable_clipping_button_ );
+	}
 	this->private_->buttons_.push_back( this->private_->ui_.grid_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.flip_horizontal_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.flip_vertical_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.isosurfaces_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.slices_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.show_invisible_slices_button_ );
+	this->private_->buttons_.push_back( this->private_->ui_.show_bounding_box_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.volume_rendering_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.overlay_visible_button_ );
 	this->private_->buttons_.push_back( this->private_->ui_.picking_lines_visible_button_ );
@@ -174,18 +169,14 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->render_widget_->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Expanding );
 	this->private_->ui_.viewer_layout_->addWidget( this->private_->render_widget_ );
 	
-	// Hide the buttons we don't use yet
-	this->private_->ui_.volume_rendering_visible_button_->hide();
-
 	// Update state of the widget to reflect current state
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		
-		this->connect( this->private_->ui_.flip_horizontal_button_, SIGNAL( clicked() ),
-			SLOT( flip_view_horiz() ) );
-
-		this->connect( this->private_->ui_.flip_vertical_button_, SIGNAL( clicked() ),
-			SLOT( flip_view_vert() ) );
+		QtUtils::QtBridge::Connect( this->private_->ui_.flip_horizontal_button_,
+			this->private_->viewer_->flip_horizontal_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.flip_vertical_button_,
+			this->private_->viewer_->flip_vertical_state_ );
 	
 		QtUtils::QtBridge::Connect( this->private_->ui_.viewer_mode_, 
 			this->private_->viewer_->view_mode_state_ );
@@ -201,12 +192,18 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			this->private_->viewer_->volume_slices_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.show_invisible_slices_button_,
 			this->private_->viewer_->volume_show_invisible_slices_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.show_bounding_box_button_,
+			this->private_->viewer_->volume_show_bounding_box_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.picking_lines_visible_button_,
 			this->private_->viewer_->slice_picking_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.overlay_visible_button_,
 			this->private_->viewer_->overlay_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.light_visible_button_,
 			this->private_->viewer_->volume_light_visible_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.fog_button_,
+			this->private_->viewer_->volume_enable_fog_state_ );
+		QtUtils::QtBridge::Connect( this->private_->ui_.enable_clipping_button_,
+			this->private_->viewer_->volume_enable_clipping_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.isosurfaces_visible_button_,
 			this->private_->viewer_->volume_isosurfaces_visible_state_ );
 		QtUtils::QtBridge::Connect( this->private_->ui_.volume_rendering_visible_button_,
@@ -238,8 +235,6 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.picking_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
-		QtUtils::QtBridge::Show( this->private_->ui_.overlay_visible_button_, 
-			viewer->view_mode_state_, show_buttons_condition );
 
 		// Show the following buttons when it's volume view
 		show_buttons_condition = boost::lambda::bind( 
@@ -249,11 +244,19 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.light_visible_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.fog_button_, 
+			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.enable_clipping_button_,
+			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.isosurfaces_visible_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.snap_to_axis_button_, 
 			viewer->view_mode_state_, show_buttons_condition );
 		QtUtils::QtBridge::Show( this->private_->ui_.show_invisible_slices_button_,
+			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.show_bounding_box_button_,
+			viewer->view_mode_state_, show_buttons_condition );
+		QtUtils::QtBridge::Show( this->private_->ui_.volume_rendering_visible_button_,
 			viewer->view_mode_state_, show_buttons_condition );
 
 		// When view mode changes, we need to rearrange the toolbar and update the flip buttons
@@ -267,6 +270,12 @@ ViewerWidget::ViewerWidget( ViewerHandle viewer, QWidget *parent ) :
 	this->private_->facade_widget_ = new QLabel( this->private_->ui_.border_ );
 	this->private_->ui_.border_layout_->insertWidget( 0, this->private_->facade_widget_ );
 	this->private_->facade_widget_->hide();
+	
+	if ( Core::Application::Instance()->is_osx_10_5_or_less() )
+	{
+		// NOTE: No clipping on this platform as driver are inconsistent
+		this->private_->ui_.enable_clipping_button_->hide();
+}
 }
 
 ViewerWidget::~ViewerWidget()
@@ -274,28 +283,28 @@ ViewerWidget::~ViewerWidget()
 	this->disconnect_all();
 }
 
-	void ViewerWidget::image_mode( bool picture )
+void ViewerWidget::image_mode( bool picture )
+{
+	if( picture )
 	{
-		if( picture )
-		{
-			this->private_->facade_widget_->setMinimumSize( this->private_->render_widget_->size() );
-			this->private_->facade_widget_->setPixmap( QPixmap::fromImage( this->private_->render_widget_->grabFrameBuffer() ) );
-			this->private_->render_widget_->hide();
-			this->private_->facade_widget_->show();
-		}
-		else
-		{
-			this->private_->facade_widget_->hide();
-			this->private_->render_widget_->show();
-		}		
+		this->private_->facade_widget_->setMinimumSize( this->private_->render_widget_->size() );
+		this->private_->facade_widget_->setPixmap( QPixmap::fromImage( this->private_->render_widget_->grabFrameBuffer() ) );
+		this->private_->render_widget_->hide();
+		this->private_->facade_widget_->show();
 	}
+	else
+	{
+		this->private_->facade_widget_->hide();
+		this->private_->render_widget_->show();
+	}		
+}
 	
 int ViewerWidget::get_minimum_size()
 {
 	// We start with padding the minimum width by 1 because of the 1px margin on the left-hand side
 	int minimum_width = 0;
 	if( !this->private_->ui_.line_->isHidden() ) minimum_width += 3;
-	if( !this->private_->ui_.sep_line_->isHidden() ) minimum_width += 3;
+//	if( !this->private_->ui_.sep_line_->isHidden() ) minimum_width += 3;
 	
 	
 	// Next we get the width of the viewer mode holder and we pad it by 2 for the left and right 
@@ -336,16 +345,20 @@ void ViewerWidget::resizeEvent( QResizeEvent * event )
 	
 	if ( new_width <= this->private_->minimum_toolbar_width_ )
 	{
-		this->private_->ui_.sep_line_->hide();		
+//		this->private_->ui_.sep_line_->hide();		
 		this->private_->ui_.button_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
+		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: 1px solid gray; }" ) );
+		this->private_->ui_.viewer_mode_holder_->setStyleSheet( QString::fromUtf8( "QWidget#viewer_mode_holder_{ border-bottom: 1px solid gray; }" ) );
 		this->private_->ui_.toolbar_layout_->addWidget( this->private_->ui_.less_common_tools_, 0 );
 		
 		this->update();
 	}
 	else if ( new_width > this->private_->minimum_toolbar_width_ )
 	{
-		this->private_->ui_.sep_line_->show();	
+//		this->private_->ui_.sep_line_->show();	
 		this->private_->ui_.toolbar_layout_->removeWidget( this->private_->ui_.less_common_tools_ );
+		this->private_->ui_.buttonbar_->setStyleSheet( QString::fromUtf8( "QWidget#buttonbar_{ border-bottom: none; }" ) );
+		this->private_->ui_.viewer_mode_holder_->setStyleSheet( QString::fromUtf8( "QWidget#viewer_mode_holder_{ border-bottom: none; }" ) );
 		this->private_->ui_.button_layout_->addWidget( this->private_->ui_.less_common_tools_, 1 );
 		
 		this->update();
@@ -366,26 +379,4 @@ void ViewerWidget::deselect()
 	this->private_->ui_.border_->setStyleSheet( StyleSheet::VIEWERNOTSELECTED_C );
 }
 	
-void ViewerWidget::flip_view_horiz()
-{
-	if( ! this->private_->viewer_->is_volume_view() )
-	{
-		Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast<Core::StateView2D>( 
-			this->private_->viewer_->get_active_view_state() );
-		Core::ActionFlip::Dispatch( Core::Interface::GetWidgetActionContext(),
-			view2d_state, Core::FlipDirectionType::HORIZONTAL_E );
-	}
-}
-
-void ViewerWidget::flip_view_vert()
-{
-	if( ! this->private_->viewer_->is_volume_view() )
-	{
-		Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast<Core::StateView2D>( 
-			this->private_->viewer_->get_active_view_state() );
-		Core::ActionFlip::Dispatch( Core::Interface::GetWidgetActionContext(),
-		view2d_state, Core::FlipDirectionType::VERTICAL_E );
-	}
-}
-
 } // end namespace Seg3D

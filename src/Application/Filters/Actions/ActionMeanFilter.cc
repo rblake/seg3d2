@@ -30,7 +30,7 @@
 #include <itkMeanImageFilter.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/ITKFilter.h>
 #include <Application/Filters/Actions/ActionMeanFilter.h>
@@ -46,26 +46,19 @@ namespace Seg3D
 
 bool ActionMeanFilter::validate( Core::ActionContextHandle& context )
 {
-	// Check for layer existance and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
+	// Check for layer existence and type information
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
-		this->replace_.value(), notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
+		this->replace_, context, this->sandbox_ ) ) return false;
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->radius_.value() < 1 )
+	if( this->radius_ < 1 )
 	{
 		context->report_error( "The radius needs to be larger than or equal to one." );
 		return false;
@@ -112,7 +105,8 @@ public:
 		typename filter_type::Pointer filter = filter_type::New();
 
 		// Relay abort and progress information to the layer that is executing the filter.
-		this->observe_itk_filter( filter, this->dst_layer_ );
+		this->forward_abort_to_filter( filter, this->dst_layer_ );
+		this->observe_itk_progress( filter, this->dst_layer_ );
 
 		// Setup the filter parameters that we do not want to change.
 		filter->SetInput( input_image->get_image() );
@@ -139,7 +133,7 @@ public:
 				return;
 			}
 
-			this->report_error( "Could not allocate enough memory." );
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 
@@ -186,13 +180,14 @@ bool ActionMeanFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<MeanFilterAlgo> algo( new MeanFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->preserve_data_format_ = this->preserve_data_format_.value();
-	algo->radius_ = this->radius_.value();
+	algo->set_sandbox( this->sandbox_ );
+	algo->preserve_data_format_ = this->preserve_data_format_;
+	algo->radius_ = this->radius_;
 
 	// Find the handle to the layer
-	algo->find_layer( this->target_layer_.value(), algo->src_layer_ );
+	algo->find_layer( this->target_layer_, algo->src_layer_ );
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -210,10 +205,17 @@ bool ActionMeanFilter::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-	
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+		
 	// Start the filter.
 	Core::Runnable::Start( algo );
 
@@ -227,10 +229,10 @@ void ActionMeanFilter::Dispatch( Core::ActionContextHandle context,
 	ActionMeanFilter* action = new ActionMeanFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->replace_.value() = replace;
-	action->preserve_data_format_.value() = preserve_data_format;
-	action->radius_.value() = radius;
+	action->target_layer_ = target_layer;
+	action->replace_ = replace;
+	action->preserve_data_format_ = preserve_data_format;
+	action->radius_ = radius;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

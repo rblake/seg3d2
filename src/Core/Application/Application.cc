@@ -48,8 +48,11 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #ifndef __APPLE__
+#include <unistd.h>
 #include <sys/sysinfo.h>
 #else
+#include <unistd.h>
+#include <sys/utsname.h>
 #include <sys/sysctl.h>
 #include <sys/param.h>
 #include <sys/mount.h>
@@ -67,6 +70,10 @@ class ApplicationPrivate
 public:
 	boost::filesystem::path app_filepath_;
 	boost::filesystem::path app_filename_;	
+	
+	// NOTE:
+	// OSX 10.5 or less has poor OpenGL support, hence we need to disable some features there
+	bool is_osx_10_5_or_less_;
 };
 
 CORE_SINGLETON_IMPLEMENTATION( Application );
@@ -75,12 +82,37 @@ Application::Application() :
 	private_( new ApplicationPrivate )
 {
 	this->private_->app_filepath_ = boost::filesystem::current_path();
+	this->private_->is_osx_10_5_or_less_ = false;
+	
+#if defined( __APPLE__ )
+	struct utsname os_name;
+	int res = uname( &os_name );
+	
+	if (  res == 0 )
+	{
+		std::string os_version = os_name.release;
+		int version;
+		if ( Core::ImportFromString( os_version, version ) )
+		{
+			if ( version < 10 )
+			{
+				this->private_->is_osx_10_5_or_less_ = true;
+}
+		}
+	}
+
+#endif
 }
 
 Application::~Application()
 {
 }
 
+
+bool Application::is_osx_10_5_or_less()
+{
+	return this->private_->is_osx_10_5_or_less_;
+}
 
 bool Application::is_command_line_parameter( const std::string &key )
 {
@@ -392,6 +424,11 @@ std::string Application::GetReleaseName()
 std::string Application::GetApplicationNameAndVersion()
 {
 	return GetApplicationName() + " " + GetReleaseName() + " " + GetVersion();
+}
+
+std::string Application::GetAbout()
+{
+	return CORE_APPLICATION_ABOUT;
 }
 
 

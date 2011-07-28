@@ -100,18 +100,6 @@ void View2D::dolly( double dz )
 	this->center_[ 2 ] += dz;
 }
 
-void View2D::flip(FlipDirectionType direction)
-{
-	if (direction == FlipDirectionType::HORIZONTAL_E)
-	{
-		this->scalex_ = -this->scalex_;
-	}
-	else
-	{
-		this->scaley_ = -this->scaley_;
-	}
-}
-
 void View2D::compute_clipping_planes( double aspect, double& left, double& right, 
 	double& bottom, double& top ) const
 {
@@ -125,8 +113,8 @@ void View2D::compute_clipping_planes( double aspect, double& left, double& right
 
 std::string ExportToString( const View2D& value )
 {
-	return ( std::string( 1, '[' ) + ExportToString( value.center() ) + ' ' + ExportToString(
-	    value.scalex() ) + ' ' + ExportToString( value.scaley() ) + ']' );
+	return ( std::string( 1, '[' ) + ExportToString( value.center() ) + ',' + ExportToString(
+	    value.scalex() ) + ',' + ExportToString( value.scaley() ) + ']' );
 }
 
 bool ImportFromString( const std::string& str, View2D& value )

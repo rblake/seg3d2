@@ -29,24 +29,25 @@
 #ifndef APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
 #define APPLICATION_PROJECTMANAGER_ACTIONS_ACTIONLOADSESSION_H
 
+// Core includes
 #include <Core/Action/Action.h> 
 #include <Core/Interface/Interface.h>
-
 
 namespace Seg3D
 {
 
 class ActionLoadSession : public Core::Action
 {
+
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "LoadSession", "Load a saved session.")
-	CORE_ACTION_ARGUMENT( "name", "Name of the session that needs to be loaded." )
+	CORE_ACTION_ARGUMENT( "sessionid", "ID of the session that needs to be loaded." )
 )
 	// -- Constructor/Destructor --
 public:
 	ActionLoadSession()
 	{
-		this->add_argument( this->session_name_ );
+		this->add_parameter( this->session_id_ );
 	}
 
 	virtual ~ActionLoadSession()
@@ -59,22 +60,20 @@ public:
 	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
 	
 private:
+	// This parameter contains the ID of the session to be loaded
+	long long session_id_;
 
-	// This parameter contains the name of the session to be loaded
-	Core::ActionParameter< std::string > session_name_;
+	// Internally cached session name. 
+	// NOTE: It's for displaying purpose only. NOT a action parameter.
+	std::string session_name_;
 	
 	// -- Dispatch this action from the interface --
 public:
-	
-	// CREATE:
-	// Create an action that loads a session
-	static Core::ActionHandle Create( const std::string& session_name );
-	
 	// DISPATCH:
 	// Dispatch an action loads a session
-	static void Dispatch( Core::ActionContextHandle context, const std::string& session_name );
+	static void Dispatch( Core::ActionContextHandle context, long long session_id );
 };
 
 } // end namespace Seg3D
 
-#endif  //ACTIONSAVESESSION_H
+#endif

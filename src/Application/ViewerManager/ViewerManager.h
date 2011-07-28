@@ -38,19 +38,16 @@
 #include <vector>
 
 // Boost includes 
-#include <boost/unordered_map.hpp>
 #include <boost/signals2.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
-#include <boost/thread/mutex.hpp>
-
-// Application includes
-#include <Application/Viewer/Viewer.h>
 
 // Core includes
 #include <Core/Utils/Singleton.h>
-#include <Core/State/State.h>
-#include <Core/State/StateSet.h>
+#include <Core/State/StateHandler.h>
+#include <Core/VolumeRenderer/TransferFunction.h>
+
+// Application includes
+#include <Application/Viewer/Viewer.h>
 
 namespace Seg3D
 {
@@ -94,12 +91,21 @@ public:
 		return 6;
 	}
 
+	// GET_VIEWER:
+	// Returns the specified viewer.
 	ViewerHandle get_viewer( size_t idx );
 	ViewerHandle get_viewer( const std::string viewer_name );
+
+	// GET_ACTIVE_VIEWER:
+	// Returns the active viewer.
 	ViewerHandle get_active_viewer();
 
+	// GET_2D_VIEWERS_INFO:
+	// Get a snapshot of all the 2D viewers.
 	void get_2d_viewers_info( ViewerInfoList viewers[ 3 ] );
-	void pick_point( size_t source_viewer, const Core::Point& pt );
+
+	// GET_LOCKED_VIEWERS:
+	// Returns the IDs of locked viewers in the specified view mode.
 	std::vector< size_t > get_locked_viewers( int mode_index );
 
 	// UPDATE_VIEWERS:
@@ -122,6 +128,33 @@ public:
 	// Returns true if the mouse is pressed in any viewer, otherwise false.
 	bool is_busy();
 
+	// GET_TRANSFER_FUNCTION:
+	// Returns a const handle to the transfer function.
+	Core::TransferFunctionHandle get_transfer_function();
+
+private:
+	friend class ActionPickPoint;
+	friend class ActionNewFeature;
+	friend class ActionDeleteFeature;
+
+	// PICK_POINT:
+	// Move the 2D viewers that are currently set as picking targets to 
+	// the specified position in world space.  Exclude the source viewer.
+	void pick_point( size_t source_viewer, const Core::Point& pt );
+
+	// PICK_POINT:
+	// Move the 2D viewers that are currently set as picking targets to 
+	// the specified position in world space.
+	void pick_point( const Core::Point& pt );
+
+	// ADD_NEW_FEATURE:
+	// Add a new transfer function feature.
+	void add_new_feature();
+
+	// DELETE_FEATURE:
+	// Delete the specified transfer function feature.
+	void delete_feature( const std::string& feature_id );
+
 	// -- State information --
 public:
 
@@ -131,17 +164,50 @@ public:
 	// Number of the viewer that is the active viewer
 	Core::StateIntHandle active_viewer_state_;
 	
-	// Size of the grid
-	Core::StateIntHandle grid_size_state_;
+	// The density of the fog in 3D view
+	Core::StateRangedDoubleHandle fog_density_state_;
 
-	// Background color in the viewer windows
-	Core::StateOptionHandle background_color_state_;
+	// The target data layer for volume rendering
+	Core::StateLabeledOptionHandle volume_rendering_target_state_;
 
-	// Whether slice number is shown
-	Core::StateBoolHandle show_slice_number_state_;
+	// Which volume renderer to use.
+	Core::StateLabeledOptionHandle volume_renderer_state_;
 
-	// Preferences of names for the axes
-	Core::StateOptionHandle naming_convention_state_;
+	// The sampling rate of volume rendering
+	Core::StateRangedDoubleHandle volume_sample_rate_state_;
+
+	// The aperture angle of the cone for occlusion volume rendering
+	Core::StateRangedDoubleHandle vr_occlusion_angle_state_;
+
+	// The grid resolution for sampling the cone base
+	Core::StateRangedIntHandle vr_occlusion_grid_resolution_state_;
+
+	// Clipping planes enabled state
+	Core::StateBoolHandle enable_clip_plane_state_[ 6 ];
+
+	// X component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_x_state_[ 6 ];
+
+	// Y component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_y_state_[ 6 ];
+
+	// Z component of clipping plane normals
+	Core::StateRangedDoubleHandle clip_plane_z_state_[ 6 ];
+
+	// Distance of the clipping planes
+	Core::StateRangedDoubleHandle clip_plane_distance_state_[ 6 ];
+
+	// Whether to reverse the normal of clipping planes
+	Core::StateBoolHandle clip_plane_reverse_norm_state_[ 6 ];
+
+	// Whether to show controls for fog
+	Core::StateBoolHandle show_fog_control_state_;
+
+	// Whether to show controls for clipping
+	Core::StateBoolHandle show_clipping_control_state_;
+
+	// Whether to show controls for volume rendering
+	Core::StateBoolHandle show_volume_rendering_control_state_;
 
 	// TODO: The next ones should not be state variables
 	// --JGS
@@ -182,13 +248,13 @@ private:
 
 	// -- Layout options --
 public:
-	static const std::string SINGLE_C;
-	static const std::string _1AND1_C;
-	static const std::string _1AND2_C;
-	static const std::string _1AND3_C;
-	static const std::string _2AND2_C;
-	static const std::string _2AND3_C;
-	static const std::string _3AND3_C;
+	static const std::string VIEW_SINGLE_C;
+	static const std::string VIEW_1AND1_C;
+	static const std::string VIEW_1AND2_C;
+	static const std::string VIEW_1AND3_C;
+	static const std::string VIEW_2AND2_C;
+	static const std::string VIEW_2AND3_C;
+	static const std::string VIEW_3AND3_C;
 
 }; // class ViewerManager
 

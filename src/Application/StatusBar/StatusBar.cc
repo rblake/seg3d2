@@ -93,15 +93,8 @@ StatusBar::StatusBar() :
 	this->private_->status_bar_ = this;
 	this->private_->signal_block_count_ = 0;
 
-	this->add_connection( Core::Interface::GetWidgetActionContext()->
-		action_message_signal_.connect( boost::bind( &StatusBar::set_message, this, _1, _2 ) ) );
-	this->add_connection( Core::Interface::GetMouseActionContext()->
-		action_message_signal_.connect( boost::bind( &StatusBar::set_message, this, _1, _2 ) ) );
-	this->add_connection( Core::Interface::GetKeyboardActionContext()->
-		action_message_signal_.connect( boost::bind( &StatusBar::set_message, this, _1, _2 ) ) );
-
-//	this->add_connection( Core::Log::Instance()->post_log_signal_.connect( 
-//		boost::bind( &StatusBar::set_message, this, _1, _2 ) ) );
+	this->add_connection( Core::Log::Instance()->post_status_signal_.connect( 
+		boost::bind( &StatusBar::set_message, this, _1, _2 ) ) );
 }
 
 StatusBar::~StatusBar()
@@ -116,15 +109,15 @@ void StatusBar::set_data_point_info( DataPointInfoHandle data_point )
 
 void StatusBar::set_message( int msg_type, std::string message )
 {
-	if ( msg_type != Core::LogMessageType::DEBUG_E )
+	size_t found;
+	found = message.find_last_not_of( " \t\f\v\n\r" );
+	if( found != std::string::npos )
+		message.erase( found + 1 );
+		
+	if ( msg_type & Core::LogMessageType::STATUS_BAR_E )
 	{
 		this->message_updated_signal_( msg_type, message );
 	}
-}
-
-void StatusBar::SetMessage( int msg_type, std::string message )
-{
-	StatusBar::Instance()->set_message( msg_type, message );
 }
 
 } // end namespace Seg3D

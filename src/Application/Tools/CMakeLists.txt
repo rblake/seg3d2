@@ -89,6 +89,8 @@ SET(APPLICATION_TOOLS_SRCS
   MedianFilter.cc
   MeanFilter.h
   MeanFilter.cc
+  MeasurementTool.h
+  MeasurementTool.cc
   NeighborhoodConnectedFilter.h
   NeighborhoodConnectedFilter.cc
   OtsuThresholdFilter.h
@@ -113,6 +115,10 @@ SET(APPLICATION_TOOLS_SRCS
   TransformTool.cc
   ClipboardTool.h
   ClipboardTool.cc
+  PointSetFilter.h
+  PointSetFilter.cc
+  SpeedlineTool.h
+  SpeedlineTool.cc
   )
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS
@@ -131,7 +137,14 @@ SET(APPLICATION_TOOLS_ACTIONS_SRCS
   Actions/ActionPaste.cc
   Actions/ActionFloodFill.h
   Actions/ActionFloodFill.cc
+  Actions/ActionSpeedline.h
+  Actions/ActionSpeedline.cc
   )
+  
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_Tools ${APPLICATION_TOOLS_ACTIONS_SRCS})
+  SET(APPLICATION_TOOLS_NOREGISTER_SRCS ${APPLICATION_TOOLS_NOREGISTER_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(Application_Tools 
                  ${APPLICATION_TOOLS_SRCS}
@@ -146,6 +159,7 @@ TARGET_LINK_LIBRARIES(Application_Tools
                       Core_Interface
                       Core_Action
                       Core_State
+					  Core_Geometry
 					  Application_Clipboard
 					  Application_Filters
                       Application_Tool
@@ -157,4 +171,5 @@ TARGET_LINK_LIBRARIES(Application_Tools
 REGISTER_LIBRARY_AND_CLASSES(Application_Tools
 							 ${APPLICATION_TOOLS_SRCS}
 							 ${APPLICATION_TOOLS_ACTIONS_SRCS})
+
                     

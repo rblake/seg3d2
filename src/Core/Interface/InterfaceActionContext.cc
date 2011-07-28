@@ -42,23 +42,23 @@ InterfaceActionContext::~InterfaceActionContext()
 
 void InterfaceActionContext::report_error( const std::string& error )
 {
-	action_message_signal_( Core::LogMessageType::ERROR_E, error );
+	CORE_LOG_ERROR( error );
 }
 
 void InterfaceActionContext::report_warning( const std::string& warning )
 {
-	action_message_signal_( Core::LogMessageType::WARNING_E, warning );
+	CORE_LOG_WARNING( warning );
 }
 
 void InterfaceActionContext::report_message( const std::string& message )
 {
-	action_message_signal_( Core::LogMessageType::MESSAGE_E, message );
+	CORE_LOG_MESSAGE( message );
 }
 
-void InterfaceActionContext::report_need_resource( NotifierHandle& notifier )
+void InterfaceActionContext::report_need_resource( NotifierHandle notifier )
 {
 	std::string error = std::string( "'" ) + notifier->get_name() + "' is currently not available.";
-	action_message_signal_( Core::LogMessageType::ERROR_E, error );
+	CORE_LOG_ERROR( error );
 }
 
 void InterfaceActionContext::report_done()

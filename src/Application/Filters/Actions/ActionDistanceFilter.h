@@ -29,23 +29,30 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONDISTANCEFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONDISTANCEFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
 	
-class ActionDistanceFilter : public Core::Action
+class ActionDistanceFilter : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "DistanceFilter", "Compute the signed distance to a mask." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
-	CORE_ACTION_KEY( "use_index_space", "false", "Whether to use index or world coordinates for"
+	CORE_ACTION_OPTIONAL_ARGUMENT( "use_index_space", "false", "Whether to use index or world coordinates for"
 		"computing the distance." )
-	CORE_ACTION_KEY( "inside_positive", "false", "Whether the sign of the inside is positive and the"
+	CORE_ACTION_OPTIONAL_ARGUMENT( "inside_positive", "false", "Whether the sign of the inside is positive and the"
 		" outside negative or vice versa.")
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -54,16 +61,10 @@ CORE_ACTION(
 public:
 	ActionDistanceFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->use_index_space_ );
-		this->add_key( this->inside_positive_ );
-	}
-	
-	virtual ~ActionDistanceFilter()
-	{
+		this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->use_index_space_ );
+		this->add_parameter( this->inside_positive_ );
+		this->add_parameter( this->sandbox_ );
 	}
 	
 	// -- Functions that describe action --
@@ -74,17 +75,13 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< bool > use_index_space_;
-	Core::ActionParameter< bool > inside_positive_;
+	std::string target_layer_;
+	bool use_index_space_;
+	bool inside_positive_;
+	SandboxID sandbox_;
 		
 	// -- Dispatch this action from the interface --
 public:
-
-	// CREATE:	
-	// Create the action, but do not dispatch it
-	static Core::ActionHandle Create( std::string layer_id, bool replace );
-		
 	// DISPATCH
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, std::string target_layer,

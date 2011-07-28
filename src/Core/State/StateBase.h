@@ -89,18 +89,18 @@ protected:
 
 	// EXPORT_TO_VARIANT
 	// Export the state data to a variant parameter
-	virtual void export_to_variant( Core::ActionParameterVariant& variant ) const = 0;
+	virtual void export_to_variant( Variant& variant ) const = 0;
 
 	// IMPORT_FROM_VARIANT:
 	// Import the state data from a variant parameter.
-	virtual bool import_from_variant( Core::ActionParameterVariant& variant, 
+	virtual bool import_from_variant( Variant& variant, 
 		Core::ActionSource source = Core::ActionSource::NONE_E ) = 0;
 
 	// VALIDATE_VARIANT:
 	// Validate a variant parameter
 	// This function returns false if the parameter is invalid or cannot be
 	// converted and in that case error will describe the error.
-	virtual bool validate_variant( Core::ActionParameterVariant& variant, std::string& error ) = 0;
+	virtual bool validate_variant( Variant& variant, std::string& error ) = 0;
 
 	// ENABLE_SIGNALS:
 	// Allow signals to be triggered from this state variable
@@ -117,16 +117,26 @@ protected:
 	// access to the state variable, and thread safety checking is not needed. 
 	// NOTE: This is mainly intended to be set in the constructor of the state handler of this
 	// variable, which may need to initialize the state variables to certain values. As that handlers
-	// are can be singletons they can be created from any thread. Hence strict thread checking
+	// can be singletons they can be created from any thread. Hence strict thread checking
 	// maybe an issue, however the creation of an instance normally is thread safe as no other
 	// thread has access to the state parameters and signals are still being blocked.
 	void set_initializing( bool initializing );
 	
 	// GET_INITIALIZING:
 	// Query whether the state variable and its parent are still being initialized.
-	bool get_initializing();
+	bool get_initializing() const;
 	
-
+public:	
+	// SET_LOCKED:
+	// Tell the program that this state variable cannot be changed by the action mechanism
+	// Only a direct set will work. This prevents any scripting system to override crucial
+	// variables.
+	void set_locked( bool locked );
+	
+	// GET_LOCKED:
+	// Query whether the variable has been designated as locked
+	bool get_locked() const; 
+	
 	// -- session handling -- 
 public:
 	enum 

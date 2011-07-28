@@ -26,17 +26,26 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef _MSC_VER
+#pragma warning( disable: 4244 4267 )
+#endif
+
 #ifdef BUILD_WITH_PYTHON
 #include <Python.h>
-#include <Application/PythonModule/PythonInterpreter.h>
+#include <Core/Python/PythonInterpreter.h>
+#include "ActionPythonWrapperRegistration.h"
 #endif
 
 // STL includes
 #include <iostream>
 #include <string>
 
+// boost includes
+#include <boost/preprocessor.hpp>
+
 // Core includes
 #include <Core/Utils/Log.h>
+#include <Core/Utils/LogStreamer.h>
 #include <Core/Utils/LogHistory.h>
 #include <Core/Application/Application.h>
 #include <Core/Interface/Interface.h>
@@ -93,10 +102,22 @@ int main( int argc, char **argv )
 	}
 
 	// -- Send message to revolving log file --	
+	// Logs messages in response to Log::Instance()->post_log_signal_
 	Core::RolloverLogFile event_log( Core::LogMessageType::ALL_E );
+
+#ifndef NDEBUG
+	// -- Stream errors to console window
+	new Core::LogStreamer( Core::LogMessageType::ALL_E, &std::cerr );
+#endif
 
 	// -- Log application information --
 	Core::Application::Instance()->log_start();
+
+	// -- Add plugins into the architecture  
+	Core::RegisterClasses();
+
+	// -- Start the application event handler --
+	Core::Application::Instance()->start_eventhandler();
 
 	// -- Checking for the socket parameter --
 	std::string port_number_string;
@@ -110,39 +131,60 @@ int main( int argc, char **argv )
 			Core::ActionSocket::Instance()->start( port_number );
 		}
 	}
-		
-	// -- Add plugins into the architecture  
-	Core::RegisterClasses();
-
-	// -- Start the application event handler --
-	Core::Application::Instance()->start_eventhandler();
 
 	// Initialize the startup tools list
 	ToolFactory::Instance()->initialize_states();
 	
+	// Trigger the application start signal
+	Core::Application::Instance()->application_start_signal_();
+	
 	// -- Setup the QT Interface Layer --
 	if ( !( QtUtils::QtApplication::Instance()->setup( argc, argv ) ) ) return ( -1 );
 
-	// -- Warn user about being an alpha version --
-	
+	// -- Warn user about being an alpha/beta version --
 	std::string file_to_view = "";
 	Core::Application::Instance()->check_command_line_parameter( "file_to_open_on_start", file_to_view );
 
-	std::string warning = std::string( "<h3>" ) +
-		Core::Application::GetApplicationNameAndVersion() + 
-		"</h3><p align=\"left\">NOTE: This version of Seg3D is for Testing and Evaluation"
-		" Only!</p>";
+	{
+		std::string warning = std::string( "<h3>" ) +
+			Core::Application::GetApplicationName() + " " + Core::Application::GetVersion() + 
+			"</h3><h6><p align=\"justify\">Please note: This version of " + Core::Application::GetApplicationName()
+			+ " is still under development. For daily use we recommend the released version, as" 
+			" stability of this version depends on on going development.</p></h6>";
+		
+		QMessageBox::information( 0, 
+			QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ), 
+			QString::fromStdString( warning )  );
+	}
 	
-	QMessageBox::information( 0, 
-		QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ), 
-		QString::fromStdString( warning )  );
 
+	if ( sizeof( void * ) == 4 )
+	{
+		std::string warning = std::string( "<h3>" ) +
+			Core::Application::GetApplicationName() + " " + Core::Application::GetVersion() + " 32BIT" 
+			"</h3><h6><p align=\"justify\">Please note: " + Core::Application::GetApplicationName()
+			+ " is meant to run in 64-bit mode. "
+			"In 32-bit mode the size of volumes that can be processed are limited, as "
+			+ Core::Application::GetApplicationName() +
+			" may run out of addressable memory. If you have a 64-bit machine,"
+			" we would recommend to download the 64-bit version</p></h6>";
+		
+		QMessageBox::information( 0, 
+			QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ), 
+			QString::fromStdString( warning )  );
+	}
 #ifdef BUILD_WITH_PYTHON
 	size_t name_len = strlen( argv[ 0 ] );
 	std::vector< wchar_t > program_name( name_len + 1 );
 	mbstowcs( &program_name[ 0 ], argv[ 0 ], name_len + 1 );
-	Seg3D::PythonInterpreter::Instance()->initialize( &program_name[ 0 ] );
-	Seg3D::PythonInterpreter::Instance()->start_terminal();
+
+	Core::PythonInterpreter::module_list_type python_modules;
+	std::string module_name = Core::StringToLower( BOOST_PP_STRINGIZE( APPLICATION_NAME ) );
+	python_modules.push_back( Core::PythonInterpreter::module_entry_type( module_name, 
+		BOOST_PP_CAT( PyInit_, APPLICATION_NAME ) ) );
+	Core::PythonInterpreter::Instance()->initialize( &program_name[ 0 ], python_modules );
+	Core::PythonInterpreter::Instance()->run_string( "import " + module_name + "\n" );
+	Core::PythonInterpreter::Instance()->run_string( "from " + module_name + " import *\n" );
 #endif
 
 	// -- Setup Application Interface Window --
@@ -163,6 +205,9 @@ int main( int argc, char **argv )
 
 	// -- Run QT event loop --
 	if ( !( QtUtils::QtApplication::Instance()->exec() ) ) return ( -1 );
+
+	// Trigger the application stop signal
+	Core::Application::Instance()->application_stop_signal_();
 
 	// Finish the remainder of the actions that are still on the application thread.
 	Core::Application::Instance()->finish();

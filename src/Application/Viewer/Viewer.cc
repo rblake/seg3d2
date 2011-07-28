@@ -31,21 +31,22 @@
 #include <Core/Interface/Interface.h>
 #include <Core/Utils/ScopedCounter.h>
 #include <Core/Utils/EnumClass.h>
+#include <Core/Utils/Exception.h>
 #include <Core/State/Actions/ActionOffset.h>
 #include <Core/State/Actions/ActionToggle.h>
 #include <Core/State/Actions/ActionSet.h>
 #include <Core/Utils/AtomicCounter.h>
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
+#include <Core/Renderer/RendererBase.h>
 
 // Application includes
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/Layer/DataLayer.h>
 #include <Application/Layer/MaskLayer.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/Actions/ActionActivateNextLayer.h>
-#include <Application/LayerManager/Actions/ActionActivatePreviousLayer.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/Actions/ActionShiftActiveLayer.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Viewer/Viewer.h>
 #include <Application/Viewer/ViewManipulator.h>
@@ -53,6 +54,7 @@
 #include <Application/Viewer/Actions/ActionAutoView.h>
 #include <Application/ViewerManager/Actions/ActionPickPoint.h>
 #include <Application/ViewerManager/ViewerManager.h>
+#include <Application/Layer/Actions/ActionComputeIsosurface.h>
 
 namespace Seg3D
 {
@@ -82,15 +84,20 @@ public:
 	void viewer_lock_state_changed( bool locked );
 	void layer_state_changed( int affected_view_modes );
 	void insert_layer( LayerHandle layer );
-	void delete_layers( std::vector< LayerHandle > layers );
+	void delete_layers( std::vector< std::string > layers );
 	void set_active_layer( LayerHandle layer );
 	void set_viewer_labels();
+	void handle_flip_horizontal_changed( bool flip );
+	void handle_flip_vertical_changed( bool flip );
+	// Called by pick_point() for volume view, or called with empty handle for normal redraw.
+	void redraw_scene( Core::PickPointHandle pick_point );
 	void reset();
 
 	// -- Helper functions --
 public:
 
 	void pick_point( int x, int y );
+	void pick_point( const Core::Point& world_pick_point );
 
 	void adjust_contrast_brightness( int dx, int dy );
 
@@ -145,12 +152,13 @@ public:
 	Viewer::leave_event_handler_type mouse_leave_handler_;
 	Viewer::wheel_event_handler_type wheel_event_handler_;
 	Viewer::key_press_event_handler_type key_press_event_handler_;
+	Viewer::key_release_event_handler_type key_release_event_handler_;
 	Viewer::cursor_handler_type cursor_handler_;
 
 	ViewManipulatorHandle view_manipulator_;
 
-	// We're treating this as a boolean.  We use AtomicCounter because it provides thread safety.
-	Core::AtomicCounter mouse_pressed_;
+	boost::mutex mouse_pressed_mutex_;
+	bool mouse_pressed_;
 
 	// This flag is set before loading states of the viewer.
 	bool loading_;
@@ -178,23 +186,32 @@ void ViewerPrivate::adjust_contrast_brightness( int dx, int dy )
 		data_layer->brightness_state_, dx * brightness_step );
 }
 
-void ViewerPrivate::pick_point( int x, int y )
+void ViewerPrivate::pick_point( int window_x, int window_y )
 {
 	if ( !Core::Application::IsApplicationThread() )
 	{
-		Core::Application::PostEvent( boost::bind( &ViewerPrivate::pick_point, this, x, y ) );
+		Core::Application::PostEvent( boost::bind( &ViewerPrivate::pick_point, this, window_x, window_y ) );
 		return;
 	}
 
-	if ( !this->viewer_->is_volume_view() && this->active_layer_slice_ )
+	if( this->viewer_->is_volume_view() )
+	{
+		// Trigger redraw to get 3D world pick point based on last render pass
+		// Only need to redraw scene (not overlay) since we don't want to pick on the overlay
+		Core::PickPointHandle pick_point( new Core::PickPoint( window_x, window_y ) );
+		this->redraw_scene( pick_point );
+
+		// ActionPickPoint will be dispatched when renderer signals with 3D pick point
+	}
+	else if ( this->active_layer_slice_ )
 	{
 		double width =  static_cast<double>( this->viewer_->get_width() );
 		double height = static_cast<double>( this->viewer_->get_height() );
 
 		Core::VolumeSlice* volume_slice = this->active_layer_slice_.get();
 		// Scale the mouse position to [-1, 1]
-		double xpos = x * 2.0 / ( width - 1.0 ) - 1.0;
-		double ypos = ( height - 1 - y ) * 2.0 / ( height - 1.0 ) - 1.0;
+		double xpos = window_x * 2.0 / ( width - 1.0 ) - 1.0;
+		double ypos = ( height - 1 - window_y ) * 2.0 / ( height - 1.0 ) - 1.0;
 		double left, right, bottom, top;
 		Core::StateView2D* view_2d = dynamic_cast<Core::StateView2D*>( 
 			this->viewer_->get_active_view_state().get() );
@@ -206,9 +223,14 @@ void ViewerPrivate::pick_point( int x, int y )
 		pos = inv_proj * pos;
 		volume_slice->get_world_coord( pos.x(), pos.y(), pos );
 
-		ActionPickPoint::Dispatch( Core::Interface::GetWidgetActionContext(), 
-			this->viewer_->get_viewer_id(), pos );
+		this->pick_point( pos );
 	}
+}
+
+void ViewerPrivate::pick_point( const Core::Point& world_pick_point )
+{
+	ActionPickPoint::Dispatch( Core::Interface::GetWidgetActionContext(), 
+		this->viewer_->get_viewer_id(), world_pick_point );
 }
 
 void ViewerPrivate::insert_layer( LayerHandle layer )
@@ -349,42 +371,47 @@ void ViewerPrivate::insert_layer( LayerHandle layer )
 	}
 }
 
-void ViewerPrivate::delete_layers( std::vector< LayerHandle > layers )
+void ViewerPrivate::delete_layers( std::vector< std::string > layers )
 {
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-
+	
+	bool layer_deleted = false;
 	for ( size_t i = 0; i < layers.size(); ++i )
 	{
-		LayerHandle layer = layers[ i ];
+		std::string layer_id = layers[ i ];
 
 		// Disconnect from the signals of the layer states
 		std::pair< connection_map_type::iterator, connection_map_type::iterator > range = 
-			this->layer_connection_map_.equal_range( layer->get_layer_id() );
+			this->layer_connection_map_.equal_range( layer_id );
 
 		for ( connection_map_type::iterator it = range.first; it != range.second; ++it )
 		{
 			( *it ).second.disconnect();
 		}
-		this->layer_connection_map_.erase( layer->get_layer_id() );
+		this->layer_connection_map_.erase( layer_id );
 
-		volume_slice_map_type::iterator it = this->volume_slices_.find( layer->get_layer_id() );
-		assert( it != this->volume_slices_.end() );
+		volume_slice_map_type::iterator it = this->volume_slices_.find( layer_id );
+		if ( it == this->volume_slices_.end() )	continue;
 		if ( this->active_layer_slice_ == ( *it ).second )
 		{
 			this->active_layer_slice_.reset();
 		}
-		this->volume_slices_.erase( it );		
+		this->volume_slices_.erase( it );
+		layer_deleted = true;
 	}
 
 	lock.unlock();
 
-	if ( !LayerManager::Instance()->get_active_layer() )
+	if ( layer_deleted )
 	{
-		this->viewer_->redraw_all();
-	}
-	else
-	{
-		this->viewer_->redraw_scene();
+		if ( !LayerManager::Instance()->get_active_layer() )
+		{
+			this->viewer_->redraw_all();
+		}
+		else
+		{
+			this->viewer_->redraw_scene();
+		}
 	}
 }
 
@@ -473,7 +500,6 @@ void ViewerPrivate::change_view_mode( std::string mode, Core::ActionSource sourc
 		this->viewer_->lock_state_->set( false );
 	}
 
-
 	if ( !this->cursor_handler_ || !this->cursor_handler_( this->viewer_->shared_from_this() ) )
 	{
 		this->viewer_->set_cursor( mode == Viewer::VOLUME_C ? Core::CursorShape::ARROW_E : 
@@ -486,13 +512,22 @@ void ViewerPrivate::change_view_mode( std::string mode, Core::ActionSource sourc
 	}
 
 	Core::VolumeSliceType slice_type( Core::VolumeSliceType::AXIAL_E );
+	Core::StateView2DHandle view2d = this->viewer_->axial_view_state_;
 	if ( mode == Viewer::CORONAL_C )
 	{
 		slice_type = Core::VolumeSliceType::CORONAL_E;
+		view2d = this->viewer_->coronal_view_state_;
 	}
 	else if ( mode == Viewer::SAGITTAL_C )
 	{
 		slice_type =  Core::VolumeSliceType::SAGITTAL_E;
+		view2d = this->viewer_->sagittal_view_state_;
+	}
+
+	{
+		Core::ScopedCounter block_counter( this->signals_block_count_ );
+		this->viewer_->flip_horizontal_state_->set( view2d->get().scalex() < 0.0 );
+		this->viewer_->flip_vertical_state_->set( view2d->get().scaley() < 0.0 );
 	}
 
 	volume_slice_map_type::iterator it = this->volume_slices_.begin();
@@ -664,43 +699,52 @@ void ViewerPrivate::adjust_view( Core::VolumeSliceHandle target_slice )
 	}
 	double scale, scalex, scaley;
 	Core::Point center;
+	double slice_width, slice_height;
 
 	volume_slice->set_slice_type( Core::VolumeSliceType::AXIAL_E );
+	slice_width = volume_slice->nx() > 1 ? ( volume_slice->right() - volume_slice->left() ) * 
+			volume_slice->nx() / ( volume_slice->nx() - 1 ) : 0;
+	slice_height = volume_slice->ny() > 1 ? ( volume_slice->top() - volume_slice->bottom() ) * 
+		volume_slice->ny() / ( volume_slice->ny() - 1 ) : 0;
 	center = Core::Point( ( volume_slice->left() + volume_slice->right() ) * 0.5, 
 		( volume_slice->bottom() + volume_slice->top() ) * 0.5, 
 		this->viewer_->axial_view_state_->get().center().z() );
-
-	scale = 1.0 / Core::Max( Core::Abs( volume_slice->top() - volume_slice->bottom() ),
-		Core::Abs( volume_slice->right() - volume_slice->left() ) / aspect );
+	scale = 1.0 / Core::Max( Core::Abs( slice_height ), Core::Abs( slice_width ) / aspect );
 	scalex = scale * Core::Sign( this->viewer_->axial_view_state_->get().scalex() );
 	scaley = scale * Core::Sign( this->viewer_->axial_view_state_->get().scaley() );
 	this->viewer_->axial_view_state_->set( Core::View2D( center, scalex, scaley ) );
 
 	volume_slice->set_slice_type( Core::VolumeSliceType::CORONAL_E );
+	slice_width = volume_slice->nx() > 1 ? ( volume_slice->right() - volume_slice->left() ) * 
+		volume_slice->nx() / ( volume_slice->nx() - 1 ) : 0;
+	slice_height = volume_slice->ny() > 1 ? ( volume_slice->top() - volume_slice->bottom() ) * 
+		volume_slice->ny() / ( volume_slice->ny() - 1 ) : 0;
 	center = Core::Point( ( volume_slice->left() + volume_slice->right() ) * 0.5, 
 		( volume_slice->bottom() + volume_slice->top() ) * 0.5, 
 		this->viewer_->coronal_view_state_->get().center().z() );
-	scale = 1.0 / Core::Max( Core::Abs( volume_slice->top() - volume_slice->bottom() ),
-		Core::Abs( volume_slice->right() - volume_slice->left() ) / aspect );
+	scale = 1.0 / Core::Max( Core::Abs( slice_height ), Core::Abs( slice_width ) / aspect );
 	scalex = scale * Core::Sign( this->viewer_->coronal_view_state_->get().scalex() );
 	scaley = scale * Core::Sign( this->viewer_->coronal_view_state_->get().scaley() );
 	this->viewer_->coronal_view_state_->set( Core::View2D( center, scalex, scaley ) );
 
 	volume_slice->set_slice_type( Core::VolumeSliceType::SAGITTAL_E );
+	slice_width = volume_slice->nx() > 1 ? ( volume_slice->right() - volume_slice->left() ) * 
+		volume_slice->nx() / ( volume_slice->nx() - 1 ) : 0;
+	slice_height = volume_slice->ny() > 1 ? ( volume_slice->top() - volume_slice->bottom() ) * 
+		volume_slice->ny() / ( volume_slice->ny() - 1 ) : 0;
 	center = Core::Point( ( volume_slice->left() + volume_slice->right() ) * 0.5, 
 		( volume_slice->bottom() + volume_slice->top() ) * 0.5, 
 		this->viewer_->sagittal_view_state_->get().center().z() );
-	scale = 1.0 / Core::Max( Core::Abs( volume_slice->top() - volume_slice->bottom() ),
-		Core::Abs( volume_slice->right() - volume_slice->left() ) / aspect );
+	scale = 1.0 / Core::Max( Core::Abs( slice_height ), Core::Abs( slice_width ) / aspect );
 	scalex = scale * Core::Sign( this->viewer_->sagittal_view_state_->get().scalex() );
 	scaley = scale * Core::Sign( this->viewer_->sagittal_view_state_->get().scaley() );
 	this->viewer_->sagittal_view_state_->set( Core::View2D( center, scalex, scaley ) );
 
 	Core::VolumeHandle volume = volume_slice->get_volume();
-	Core::Point corner1 = volume->apply_grid_transform( Core::Point( 0.0, 0.0, 0.0 ) );
+	Core::Point corner1 = volume->apply_grid_transform( Core::Point( -0.5, -0.5, -0.5 ) );
 	Core::Point corner2 = volume->apply_grid_transform(
-		Core::Point( static_cast< double >( volume->get_nx() - 1 ), 
-		static_cast< double >( volume->get_ny() - 1 ), static_cast< double >( volume->get_nz() - 1 ) ) );
+		Core::Point( static_cast< double >( volume->get_nx() - 0.5 ), 
+		static_cast< double >( volume->get_ny() - 0.5 ), static_cast< double >( volume->get_nz() - 0.5 ) ) );
 	Core::View3D view3d( this->viewer_->volume_view_state_->get() );
 	center = Core::Point( ( corner1 + corner2 ) * 0.5 );
 	view3d.translate( view3d.lookat() - center );
@@ -857,6 +901,27 @@ void ViewerPrivate::set_viewer_labels()
 	this->viewer_->view_mode_state_->set_option_list( label_options );
 }
 
+void ViewerPrivate::redraw_scene( Core::PickPointHandle pick_point )
+{
+	if ( !Core::Application::IsApplicationThread() )
+	{
+		Core::Application::PostEvent( boost::bind( &ViewerPrivate::redraw_scene, this, pick_point ) );
+		return;
+	}
+
+	if ( this->signals_block_count_ == 0 && this->viewer_->viewer_visible_state_->get() )
+	{
+		if( pick_point )
+		{
+			this->viewer_->redraw_scene_pick_signal_( pick_point );
+		}
+		else
+		{
+			this->viewer_->redraw_scene_signal_();
+		}
+	}
+}
+
 void ViewerPrivate::reset()
 {
 	ASSERT_IS_APPLICATION_THREAD();
@@ -865,6 +930,42 @@ void ViewerPrivate::reset()
 	this->layer_connection_map_.clear();
 	this->active_layer_slice_.reset();
 	this->viewer_->redraw_all();
+}
+
+void ViewerPrivate::handle_flip_horizontal_changed( bool flip )
+{
+	if ( this->signals_block_count_ > 0 || this->loading_ )
+	{
+		return;
+	}
+	
+	Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast< Core::StateView2D >(
+		this->viewer_->get_active_view_state() );
+	if ( view2d_state )
+	{
+		Core::View2D view2d = view2d_state->get();
+		double abs_scalex = Core::Abs( view2d.scalex() );
+		view2d.scalex( flip ? -abs_scalex : abs_scalex );
+		view2d_state->set( view2d );
+	}
+}
+
+void ViewerPrivate::handle_flip_vertical_changed( bool flip )
+{
+	if ( this->signals_block_count_ > 0 || this->loading_ )
+	{
+		return;
+	}
+
+	Core::StateView2DHandle view2d_state = boost::dynamic_pointer_cast< Core::StateView2D >(
+		this->viewer_->get_active_view_state() );
+	if ( view2d_state )
+	{
+		Core::View2D view2d = view2d_state->get();
+		double abs_scaley = Core::Abs( view2d.scaley() );
+		view2d.scaley( flip ? -abs_scaley : abs_scaley );
+		view2d_state->set( view2d );
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -886,6 +987,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->private_->adjusting_contrast_brightness_ = false;
 	this->private_->slice_lock_count_ = 0;
 	this->private_->view_manipulator_ = ViewManipulatorHandle( new ViewManipulator( this ) );
+	this->private_->mouse_pressed_ = false;
 
 	std::string sagittal = SAGITTAL_C + "=" + PreferencesManager::Instance()->x_axis_label_state_->get();
 	std::string coronal = CORONAL_C + "=" + PreferencesManager::Instance()->y_axis_label_state_->get();
@@ -896,6 +998,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 
 	this->add_state( "view_mode", view_mode_state_, mode, sagittal + "|" + coronal 
 		 + "|" + axial + "|" + VOLUME_C + "=Volume" );
+	this->view_mode_state_->set_session_priority( Core::StateBase::DEFAULT_LOAD_E + 1 );
 		 
 	this->add_connection( PreferencesManager::Instance()->x_axis_label_state_->state_changed_signal_.
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
@@ -903,9 +1006,9 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
 	this->add_connection( PreferencesManager::Instance()->z_axis_label_state_->state_changed_signal_.
 		connect( boost::bind( &ViewerPrivate::set_viewer_labels, this->private_ ) ) );
+
 	this->add_connection( PreferencesManager::Instance()->grid_size_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
-
 	this->add_connection( PreferencesManager::Instance()->show_slice_number_state_->
 		state_changed_signal_.connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
 	this->add_connection( PreferencesManager::Instance()->background_color_state_->
@@ -913,12 +1016,27 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_connection( PreferencesManager::Instance()->zero_based_slice_numbers_state_->
 		state_changed_signal_.connect( boost::bind( &Viewer::redraw_overlay, this ) ) );
 	
-	this->view_mode_state_->set_session_priority( Core::StateBase::DEFAULT_LOAD_E + 1 );
-
+	const std::vector< Core::StateColorHandle >& color_states = PreferencesManager::Instance()->color_states_;
+	for ( size_t i = 0; i < color_states.size(); ++i )
+	{
+		this->add_connection( color_states[ i ]->state_changed_signal_.connect( 
+			boost::bind( &Viewer::redraw_scene, this ) ) );
+	}
+	
 	this->add_state( "axial_view", axial_view_state_ );
 	this->add_state( "coronal_view", coronal_view_state_ );
 	this->add_state( "sagittal_view", sagittal_view_state_ );
 	this->add_state( "volume_view", volume_view_state_ );
+
+	this->add_state( "flip_horizontal", this->flip_horizontal_state_, false );
+	this->flip_horizontal_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
+	this->add_state( "flip_vertical", this->flip_vertical_state_, false );
+	this->flip_vertical_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
+
+	this->add_connection( this->flip_horizontal_state_->value_changed_signal_.connect( boost::bind(
+		&ViewerPrivate::handle_flip_horizontal_changed, this->private_, _1 ) ) );
+	this->add_connection( this->flip_vertical_state_->value_changed_signal_.connect( boost::bind(
+		&ViewerPrivate::handle_flip_vertical_changed, this->private_, _1 ) ) );
 
 	this->private_->view_states_[ 0 ] = this->sagittal_view_state_;
 	this->private_->view_states_[ 1 ] = this->coronal_view_state_;
@@ -936,7 +1054,10 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_state( "volume_volume_rendering_visible", 
 		this->volume_volume_rendering_visible_state_, false );
 	this->add_state( "volume_light_visible", this->volume_light_visible_state_, true );
+	this->add_state( "volume_enable_fog", this->volume_enable_fog_state_, false );
+	this->add_state( "volume_enable_clipping", this->volume_enable_clipping_state_, true );
 	this->add_state( "volume_show_invisible_slices", this->volume_show_invisible_slices_state_, true );
+	this->add_state( "volume_show_bounding_box", this->volume_show_bounding_box_state_, true );
 
 	this->add_state( "lock", this->lock_state_, false );
 	this->add_state( "overlay_visible", this->overlay_visible_state_, true );
@@ -952,6 +1073,8 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		boost::bind( &ViewerPrivate::set_active_layer, this->private_, _1 ) ) );
 	this->add_connection( LayerManager::Instance()->layers_reordered_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( LayerManager::Instance()->groups_reordered_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
 
 	this->add_connection( this->view_mode_state_->value_changed_signal_.connect(
 		boost::bind( &ViewerPrivate::change_view_mode, this->private_, _2, _3 ) ) );
@@ -964,9 +1087,7 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 	this->add_connection( this->lock_state_->value_changed_signal_.connect(
 		boost::bind( &ViewerPrivate::viewer_lock_state_changed, this->private_, _1 ) ) );
 
-	// Connect state variables that should trigger redraw.
-	// NOTE: For those state variables that will trigger both redraw and redraw_overlay, 
-	// "delay_update" is set to true for redraw.
+	// Connect state variables that should trigger redraw_all.
 	this->add_connection( this->view_mode_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_all, this ) ) );
 	this->add_connection( this->axial_view_state_->state_changed_signal_.connect(
@@ -977,18 +1098,26 @@ Viewer::Viewer( size_t viewer_id, bool visible, const std::string& mode ) :
 		boost::bind( &Viewer::redraw_all, this) ) );
 	this->add_connection( this->slice_number_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_all, this ) ) );
-		
-	// NOTE: This one is false as it is not updated by the next list
 	this->add_connection( this->volume_view_state_->state_changed_signal_.connect(
-		boost::bind( &Viewer::redraw_scene, this ) ) );
+		boost::bind( &Viewer::redraw_all, this ) ) );
+		
+	// Connect state variables that should trigger redraw_scene.
 	this->add_connection( this->volume_light_visible_state_->state_changed_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_enable_fog_state_->state_changed_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_enable_clipping_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_slices_visible_state_->state_changed_signal_.connect(
 		boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_isosurfaces_visible_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_volume_rendering_visible_state_->state_changed_signal_.
+		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
 	this->add_connection( this->volume_show_invisible_slices_state_->state_changed_signal_.
 		connect( boost::bind( &Viewer::redraw_scene, this ) ) );
+	this->add_connection( this->volume_show_bounding_box_state_->state_changed_signal_.connect(
+		boost::bind( &Viewer::redraw_scene, this ) ) );
 
 	// Connect state variables that should trigger redraw_overlay
 	this->add_connection( this->slice_grid_state_->state_changed_signal_.connect(
@@ -1012,6 +1141,19 @@ void Viewer::resize( int width, int height )
 {
 	AbstractViewer::resize( width, height );
 	this->private_->view_manipulator_->resize( width, height );
+}
+
+void Viewer::install_renderer( Core::AbstractRendererHandle renderer )
+{
+	AbstractViewer::install_renderer( renderer ); 
+
+	Core::RendererBaseHandle renderer_base = 
+		boost::dynamic_pointer_cast< Core::RendererBase >( renderer );
+	if( renderer_base )
+	{
+		this->add_connection( renderer_base->volume_pick_point_signal_.connect(
+			boost::bind( &ViewerPrivate::pick_point, this->private_, _1 ) ) );
+	}
 }
 
 void Viewer::mouse_move_event( const Core::MouseHistory& mouse_history, int button, int buttons,
@@ -1043,7 +1185,10 @@ void Viewer::mouse_move_event( const Core::MouseHistory& mouse_history, int butt
 void Viewer::mouse_press_event( const Core::MouseHistory& mouse_history, int button, int buttons,
     int modifiers )
 {
-	++this->private_->mouse_pressed_;
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = true;
+	}
 	
 	if ( !this->private_->mouse_press_handler_.empty() )
 	{
@@ -1057,8 +1202,7 @@ void Viewer::mouse_press_event( const Core::MouseHistory& mouse_history, int but
 
 	if ( button == Core::MouseButton::RIGHT_BUTTON_E && 
 		( modifiers == Core::KeyModifier::NO_MODIFIER_E || 
-		  modifiers & Core::KeyModifier::CONTROL_MODIFIER_E ) &&
-		!( this->is_volume_view() ) )
+		  modifiers & Core::KeyModifier::CONTROL_MODIFIER_E ) )
 	{
 		this->private_->pick_point( mouse_history.current_.x_, mouse_history.current_.y_ );
 		return;
@@ -1079,7 +1223,10 @@ void Viewer::mouse_press_event( const Core::MouseHistory& mouse_history, int but
 void Viewer::mouse_release_event( const Core::MouseHistory& mouse_history, int button, int buttons,
     int modifiers )
 {
-	--this->private_->mouse_pressed_;
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = false;
+	}
 	
 	if ( !this->private_->mouse_release_handler_.empty() )
 	{
@@ -1110,6 +1257,14 @@ void Viewer::mouse_enter_event( int x, int y )
 
 void Viewer::mouse_leave_event()
 {
+#ifdef __APPLE__
+	// Mac doesn't give matching mouse release event if I leave the window with the mouse pressed.  
+	{
+		boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );
+		this->private_->mouse_pressed_ = false;
+	}
+#endif
+
 	if ( this->private_->mouse_leave_handler_ )
 	{
 		this->private_->mouse_leave_handler_( this->shared_from_this() );
@@ -1215,14 +1370,20 @@ bool Viewer::key_press_event( int key, int modifiers, int x, int y )
 				
 			case Core::Key::KEY_LEFT_E:
 			{
-				ActionActivatePreviousLayer::Dispatch( Core::Interface::GetKeyboardActionContext() );
+				if ( PreferencesManager::Instance()->active_layer_navigation_state_->get() )
+				{
+				ActionShiftActiveLayer::Dispatch( Core::Interface::GetKeyboardActionContext(), false );
+				}
 				handled_successfully = true;
 				break;
 			}
 				
 			case Core::Key::KEY_RIGHT_E:
 			{
-				ActionActivateNextLayer::Dispatch( Core::Interface::GetKeyboardActionContext() );
+				if ( PreferencesManager::Instance()->active_layer_navigation_state_->get() )
+				{
+				ActionShiftActiveLayer::Dispatch( Core::Interface::GetKeyboardActionContext(), true );
+				}
 				handled_successfully = true;
 				break;
 			}
@@ -1348,7 +1509,7 @@ bool Viewer::key_press_event( int key, int modifiers, int x, int y )
 					this->view_mode_state_, Viewer::AXIAL_C );	
 				handled_successfully = true;
 				break;
-			}				
+			}	
 		}
 		
 		if( handled_successfully ) 
@@ -1358,8 +1519,29 @@ bool Viewer::key_press_event( int key, int modifiers, int x, int y )
 		}
 		
 	}
-			
+
+	if ( modifiers == Core::KeyModifier::NO_MODIFIER_E &&
+		key == Core::Key::KEY_O_E )
+	{
+		ActionComputeIsosurface::Dispatch( Core::Interface::GetKeyboardActionContext() );
+		return true;
+	}
+	
 	// function wasn't handled, hence return false.
+	return false;
+}
+
+bool Viewer::key_release_event( int key, int modifiers, int x, int y )
+{
+	if ( !this->private_->key_release_event_handler_.empty() )
+	{
+		if ( this->private_->key_release_event_handler_( this->shared_from_this(), key, modifiers ) )
+		{
+			return true;
+		}
+	}
+
+	// Not handled
 	return false;
 }
 
@@ -1398,6 +1580,11 @@ void Viewer::set_key_press_event_handler( key_press_event_handler_type func )
 	this->private_->key_press_event_handler_ = func;
 }
 
+void Viewer::set_key_release_event_handler( key_release_event_handler_type func )
+{
+	this->private_->key_release_event_handler_ = func;
+}
+
 void Viewer::set_cursor_handler( cursor_handler_type func )
 {
 	this->private_->cursor_handler_ = func;
@@ -1412,12 +1599,14 @@ void Viewer::reset_mouse_handlers()
 	this->private_->mouse_leave_handler_ = 0;
 	this->private_->wheel_event_handler_ = 0;
 	this->private_->key_press_event_handler_ = 0;
+	this->private_->key_release_event_handler_ = 0;
 	this->private_->cursor_handler_ = 0;
 }
 
 bool Viewer::is_busy()
 {
-	return this->private_->mouse_pressed_ > 0;
+	boost::mutex::scoped_lock lock( this->private_->mouse_pressed_mutex_ );	
+	return this->private_->mouse_pressed_;
 }
 
 void Viewer::update_status_bar( int x, int y, const std::string& layer_id )
@@ -1468,13 +1657,11 @@ void Viewer::update_status_bar( int x, int y, const std::string& layer_id )
 			}
 			DataPointInfoHandle data_point( new DataPointInfo( index, world_pos, value ) );
 			StatusBar::Instance()->set_data_point_info( data_point );
-		}
-		else
-		{
-			DataPointInfoHandle data_point( new DataPointInfo );
-			StatusBar::Instance()->set_data_point_info( data_point );
+			return;
 		}
 	}
+
+	StatusBar::Instance()->set_data_point_info( DataPointInfoHandle() );
 }
 
 bool Viewer::is_volume_view() const
@@ -1503,17 +1690,7 @@ Core::VolumeSliceHandle Viewer::get_volume_slice( const std::string& layer_id )
 
 void Viewer::redraw_scene()
 {
-	if ( !Core::Application::IsApplicationThread() )
-	{
-		Core::Application::PostEvent( boost::bind( &Viewer::redraw_scene, this ) );
-		return;
-	}
-	
-	if ( this->private_->signals_block_count_ == 0 &&
-		this->viewer_visible_state_->get() )
-	{
-		this->redraw_scene_signal_();
-	}
+	this->private_->redraw_scene( Core::PickPointHandle() );
 }
 
 void Viewer::redraw_overlay()
@@ -1605,7 +1782,9 @@ void Viewer::window_to_world( int x, int y, double& world_x, double& world_y ) c
 
 	if ( this->is_volume_view() )
 	{
-		CORE_THROW_LOGICERROR( "Viewer is in volume mode");
+		// NOTE: Log a warning instead of throwing an exception to avoid crash
+		CORE_LOG_WARNING( "Viewer::window_to_world called when viewer is in volume view." );
+		return;
 	}
 
 	// Scale the mouse position to [-1, 1]
@@ -1625,13 +1804,41 @@ void Viewer::window_to_world( int x, int y, double& world_x, double& world_y ) c
 	world_y = pos.y();
 }
 
+void Viewer::world_to_window( double world_x, double world_y, double& x, double& y ) const
+{
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
+	if ( this->is_volume_view() )
+	{
+		// NOTE: Log a warning instead of throwing an exception to avoid crash
+		CORE_LOG_WARNING( "Viewer::world_to_window called when viewer is in volume view." );
+		return;
+	}
+
+	Core::Matrix proj;
+	this->get_projection_matrix( proj );
+
+	Core::Point pos( world_x, world_y, 0 );
+	pos = proj * pos;
+
+	// Now have mouse position in range [-1, 1]
+	// Scale the mouse position to [0, nx|ny]
+	double width =  static_cast<double>( this->get_width() );
+	double height = static_cast<double>( this->get_height() );
+	
+	x = static_cast< int >( ( ( pos.x() + 1 ) * ( width - 1 ) ) / 2.0 ); 
+	y = static_cast< int >( height - 1 - ( ( ( pos.y() + 1 ) * ( height - 1.0 ) ) / 2.0 ) ); 
+}
+
 void Viewer::get_projection_matrix( Core::Matrix& proj_mat ) const
 {
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 
 	if ( this->is_volume_view() )
 	{
-		CORE_THROW_LOGICERROR( "Viewer is in volume mode");
+		// NOTE: Log a warning instead of throwing an exception to avoid crash
+		CORE_LOG_WARNING( "Viewer::get_projection_matrix called when viewer is in volume view." );
+		return;
 	}
 
 	double left, right, bottom, top;
@@ -1732,6 +1939,15 @@ bool Viewer::post_load_states( const Core::StateIO& state_io )
 			this->private_->active_layer_slice_->number_of_slices() ) - 1 );
 		this->slice_number_state_->set( static_cast< int >( 
 			this->private_->active_layer_slice_->get_slice_number() ) );
+	}
+
+	// Set the view flip states
+	Core::StateView2DHandle view2d = boost::dynamic_pointer_cast< Core::StateView2D >( 
+		this->get_active_view_state() );
+	if ( view2d )
+	{
+		this->flip_horizontal_state_->set( view2d->get().scalex() < 0.0 );
+		this->flip_vertical_state_->set( view2d->get().scaley() < 0.0 );
 	}
 
 	this->private_->loading_ = false;

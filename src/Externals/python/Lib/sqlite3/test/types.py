@@ -21,9 +21,14 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
-import zlib, datetime
+import datetime
 import unittest
 import sqlite3 as sqlite
+try:
+    import zlib
+except ImportError:
+    zlib = None
+
 
 class SqliteTypeTests(unittest.TestCase):
     def setUp(self):
@@ -286,7 +291,7 @@ class ColNamesTests(unittest.TestCase):
         no row returned.
         """
         self.cur.execute("select * from test where 0 = 1")
-        self.assert_(self.cur.description[0][0] == "x")
+        self.assertEqual(self.cur.description[0][0], "x")
 
 class ObjectAdaptationTests(unittest.TestCase):
     def cast(obj):
@@ -312,6 +317,7 @@ class ObjectAdaptationTests(unittest.TestCase):
         val = self.cur.fetchone()[0]
         self.assertEqual(type(val), float)
 
+@unittest.skipUnless(zlib, "requires zlib")
 class BinaryConverterTests(unittest.TestCase):
     def convert(s):
         return zlib.decompress(s)

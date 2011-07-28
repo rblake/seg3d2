@@ -59,7 +59,8 @@ public:
 	// REDRAW:
 	// Draw a preview of the threshold result in the specified viewer.
 	// The function should only be called by the renderer, which has a valid GL context.
-	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat );
+	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+		int viewer_width, int viewer_height );
 
 	// EXECUTE:
 	// Execute the tool and dispatch the action
@@ -84,6 +85,9 @@ public:
 
 	// Whether to show the preview
 	Core::StateBoolHandle show_preview_state_;
+
+	// The opacity of the preview
+	Core::StateRangedDoubleHandle preview_opacity_state_;
 
 private:
 	ThresholdToolPrivateHandle private_;

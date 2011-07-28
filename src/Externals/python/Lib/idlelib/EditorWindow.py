@@ -3,7 +3,6 @@ import os
 import re
 import string
 import imp
-from itertools import count
 from tkinter import *
 import tkinter.simpledialog as tkSimpleDialog
 import tkinter.messagebox as tkMessageBox
@@ -139,6 +138,14 @@ class EditorWindow(object):
         if macosxSupport.runningAsOSXApp():
             # Command-W on editorwindows doesn't work without this.
             text.bind('<<close-window>>', self.close_event)
+            # Some OS X systems have only one mouse button,
+            # so use control-click for pulldown menus there.
+            #  (Note, AquaTk defines <2> as the right button if
+            #   present and the Tk Text widget already binds <2>.)
+            text.bind("<Control-Button-1>",self.right_menu_event)
+        else:
+            # Elsewhere, use right-click for pulldown menus.
+            text.bind("<3>",self.right_menu_event)
         text.bind("<<cut>>", self.cut)
         text.bind("<<copy>>", self.copy)
         text.bind("<<paste>>", self.paste)
@@ -157,7 +164,6 @@ class EditorWindow(object):
         text.bind("<<find-selection>>", self.find_selection_event)
         text.bind("<<replace>>", self.replace_event)
         text.bind("<<goto-line>>", self.goto_line_event)
-        text.bind("<3>", self.right_menu_event)
         text.bind("<<smart-backspace>>",self.smart_backspace_event)
         text.bind("<<newline-and-indent>>",self.newline_and_indent_event)
         text.bind("<<smart-indent>>",self.smart_indent_event)
@@ -381,7 +387,7 @@ class EditorWindow(object):
             underline, label = prepstr(label)
             menudict[name] = menu = Menu(mbar, name=name)
             mbar.add_cascade(label=label, menu=menu, underline=underline)
-        if macosxSupport.runningAsOSXApp():
+        if macosxSupport.isCarbonAquaTk(self.root):
             # Insert the application menu
             menudict['application'] = menu = Menu(mbar, name='apple')
             mbar.add_cascade(label='IDLE', menu=menu)
@@ -444,7 +450,11 @@ class EditorWindow(object):
 
     def python_docs(self, event=None):
         if sys.platform[:3] == 'win':
-            os.startfile(self.help_url)
+            try:
+                os.startfile(self.help_url)
+            except WindowsError as why:
+                tkMessageBox.showerror(title='Document Start Failure',
+                    message=str(why), parent=self.text)
         else:
             webbrowser.open(self.help_url)
         return "break"
@@ -747,9 +757,13 @@ class EditorWindow(object):
         "Create a callback with the helpfile value frozen at definition time"
         def display_extra_help(helpfile=helpfile):
             if not helpfile.startswith(('www', 'http')):
-                url = os.path.normpath(helpfile)
+                helpfile = os.path.normpath(helpfile)
             if sys.platform[:3] == 'win':
-                os.startfile(helpfile)
+                try:
+                    os.startfile(helpfile)
+                except WindowsError as why:
+                    tkMessageBox.showerror(title='Document Start Failure',
+                        message=str(why), parent=self.text)
             else:
                 webbrowser.open(helpfile)
         return display_extra_help
@@ -758,7 +772,8 @@ class EditorWindow(object):
         "Load and update the recent files list and menus"
         rf_list = []
         if os.path.exists(self.recent_files_path):
-            rf_list_file = open(self.recent_files_path,'r')
+            rf_list_file = open(self.recent_files_path,'r',
+                                encoding='utf_8', errors='replace')
             try:
                 rf_list = rf_list_file.readlines()
             finally:
@@ -776,7 +791,8 @@ class EditorWindow(object):
         rf_list = [path for path in rf_list if path not in bad_paths]
         ulchars = "1234567890ABCDEFGHIJK"
         rf_list = rf_list[0:len(ulchars)]
-        rf_file = open(self.recent_files_path, 'w')
+        rf_file = open(self.recent_files_path, 'w',
+                        encoding='utf_8', errors='replace')
         try:
             rf_file.writelines(rf_list)
         finally:
@@ -785,8 +801,8 @@ class EditorWindow(object):
         for instance in self.top.instance_dict:
             menu = instance.recent_files_menu
             menu.delete(1, END)  # clear, and rebuild:
-            for i, file in zip(count(), rf_list):
-                file_name = file[0:-1]  # zap \n
+            for i, file_name in enumerate(rf_list):
+                file_name = file_name.rstrip()  # zap \n
                 # make unicode string to display non-ASCII chars correctly
                 ufile_name = self._filename_to_unicode(file_name)
                 callback = instance.__recent_file_callback(file_name)
@@ -1530,7 +1546,12 @@ keynames = {
 
 def get_accelerator(keydefs, eventname):
     keylist = keydefs.get(eventname)
-    if not keylist:
+    # issue10940: temporary workaround to prevent hang with OS X Cocoa Tk 8.5
+    # if not keylist:
+    if (not keylist) or (macosxSupport.runningAsOSXApp() and eventname in {
+                            "<<open-module>>",
+                            "<<goto-line>>",
+                            "<<change-indentwidth>>"}):
         return ""
     s = keylist[0]
     s = re.sub(r"-[a-z]\b", lambda m: m.group().upper(), s)

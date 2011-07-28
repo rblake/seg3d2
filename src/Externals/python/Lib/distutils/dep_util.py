@@ -4,7 +4,7 @@ Utility functions for simple, timestamp-based dependency of files
 and groups of files; also, function based entirely on such
 timestamp dependency analysis."""
 
-__revision__ = "$Id: dep_util.py 58054 2007-09-08 17:39:28Z thomas.wouters $"
+__revision__ = "$Id: dep_util.py 83053 2010-07-22 12:50:05Z tarek.ziade $"
 
 import os
 from distutils.errors import DistutilsFileError

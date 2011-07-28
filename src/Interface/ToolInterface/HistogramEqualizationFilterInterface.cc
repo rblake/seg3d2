@@ -29,11 +29,14 @@
 // Qt includes
 #include <QPointer>
 
+// Core includes
+#include <Core/Interface/Interface.h>
+
 // QtGui includes
 #include "ui_HistogramEqualizationFilterInterface.h"
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Tools/HistogramEqualizationFilter.h>
 
 // QtUtils includes
@@ -104,6 +107,11 @@ bool HistogramEqualizationFilterInterface::build_widget( QFrame* frame )
 		tool->use_active_layer_state_, true );
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
 		&Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
+	
+	this->private_->ui_.amount_->set_description( "Equalization" );
+	this->private_->ui_.bins_->set_description( "Histogram Bins" );
+	this->private_->ui_.ignore_bins_->set_description( "Bins to Ignore" );
+	
 			
 	return true;
 } // end build_widget
@@ -117,7 +125,7 @@ void HistogramEqualizationFilterInterface::refresh_histogram( QString layer_name
 	}
 
 	DataLayerHandle data_layer = boost::dynamic_pointer_cast< DataLayer >(
-		LayerManager::Instance()->get_layer_by_name( layer_name.toStdString() ) );
+		LayerManager::Instance()->find_layer_by_name( layer_name.toStdString() ) );
 	if ( !data_layer )
 	{
 		return;

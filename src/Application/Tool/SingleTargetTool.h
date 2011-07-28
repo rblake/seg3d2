@@ -29,6 +29,7 @@
 #ifndef APPLICATION_TOOL_SINGLETARGETTOOL_H
 #define APPLICATION_TOOL_SINGLETARGETTOOL_H
 
+// boost includes
 #include <boost/tuple/tuple.hpp>
 
 // Application includes
@@ -40,7 +41,6 @@ namespace Seg3D
 // Forward declaration
 class SingleTargetToolPrivate;
 typedef boost::shared_ptr< SingleTargetToolPrivate > SingleTargetToolPrivateHandle;
-typedef boost::tuple< Core::StateLabeledOptionHandle, int, bool > option_list_tuple_type_;
 
 // Class definition
 class SingleTargetTool : public Tool
@@ -54,7 +54,7 @@ public:
 
 	// -- state --
 public:
-	// Layerid of the target layer
+	// Layer ID of the target layer
 	Core::StateLabeledOptionHandle target_layer_state_;
 
 	// Whether to use the active of one from the list
@@ -64,9 +64,9 @@ public:
 	// Whether a valid layer has been selected
 	Core::StateBoolHandle valid_target_state_;
 
-	// Add a state whose input is linked to the target and needs to be of the same type
-	void add_dependent_layer_input( Core::StateLabeledOptionHandle dependent_layer_state, 
-		int dependent_layer_type, bool required = false );
+	// Add a state whose input is linked to the target.
+	void add_extra_layer_input( Core::StateLabeledOptionHandle input_layer_state,
+		Core::VolumeType type, bool required = false, bool dependent = true );
 
 private:
 	SingleTargetToolPrivateHandle private_;

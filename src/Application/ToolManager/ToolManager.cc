@@ -37,7 +37,7 @@
 #include <Core/State/StateIO.h>
 #include <Core/Utils/ScopedCounter.h>
 
-#include <Application/Session/Session.h>
+#include <Application/Project/Project.h>
 #include <Application/Tool/ToolFactory.h>
 #include <Application/ToolManager/ToolManager.h>
 
@@ -68,6 +68,7 @@ public:
 		int button, int buttons, int modifiers );
 	bool handle_wheel( ViewerHandle viewer, int delta, int x, int y, int buttons, int modifiers );
 	bool handle_key_press( ViewerHandle viewer, int key, int modifiers );
+	bool handle_key_release( ViewerHandle viewer, int key, int modifiers );
 	bool handle_update_cursor( ViewerHandle viewer );
 
 	void update_viewers( bool redraw_2d, bool redraw_3d );
@@ -218,6 +219,22 @@ bool ToolManagerPrivate::handle_key_press( ViewerHandle viewer, int key, int mod
 	return false;
 }
 
+bool ToolManagerPrivate::handle_key_release( ViewerHandle viewer, int key, int modifiers )
+{
+	this->focus_viewer_ = viewer;
+
+	ToolHandle active_tool;
+	{
+		ToolManager::lock_type lock( ToolManager::Instance()->get_mutex() );
+		active_tool = this->active_tool_;
+	}
+	if ( active_tool )
+	{
+		return active_tool->handle_key_release( viewer, key, modifiers );
+	}
+	return false;
+}
+
 bool ToolManagerPrivate::handle_update_cursor( ViewerHandle viewer )
 {
 	ToolHandle active_tool;
@@ -301,6 +318,8 @@ void ToolManagerPrivate::reset()
 	}
 	this->active_tool_.reset();
 	this->tool_list_.clear();
+	this->update_tool_list();
+	this->tool_manager_->disable_tools_state_->set( false );
 	ViewerManager::Instance()->reset_cursor();
 }
 
@@ -317,7 +336,7 @@ ToolManager::ToolManager() :
 	// Mask the data contained in this manager as session data.
 	this->mark_as_project_data();
 
-	this->add_state( "active_tool", this->active_tool_state_, "", "" );
+	this->add_state( "active_tool", this->active_tool_state_ );
 	
 	// this state variable is currently not being used.
 	this->add_state( "disable_tools", this->disable_tools_state_, false );
@@ -343,6 +362,8 @@ ToolManager::ToolManager() :
 		viewer->set_wheel_event_handler( boost::bind( &ToolManagerPrivate::handle_wheel,
 			this->private_, _1, _2, _3, _4, _5, _6 ) );
 		viewer->set_key_press_event_handler( boost::bind( &ToolManagerPrivate::handle_key_press,
+			this->private_, _1, _2, _3 ) );
+		viewer->set_key_release_event_handler( boost::bind( &ToolManagerPrivate::handle_key_release,
 			this->private_, _1, _2, _3 ) );
 		viewer->set_cursor_handler( boost::bind( &ToolManagerPrivate::handle_update_cursor,
 			this->private_, _1 ) );
@@ -575,6 +596,7 @@ bool ToolManager::pre_load_states( const Core::StateIO& state_io )
 		FirstChildElement( "tools" );
 	if ( tools_element == 0 )
 	{
+		CORE_LOG_ERROR( "Could not find tools element." );
 		return false;
 	}
 
@@ -589,7 +611,12 @@ bool ToolManager::pre_load_states( const Core::StateIO& state_io )
 		if ( this->open_tool( toolid, toolid ) )
 		{
 			ToolHandle tool = this->get_tool( toolid );
-			success &= tool->load_states( state_io );
+			if ( ! tool->load_states( state_io ) )
+			{
+				std::string error = std::string( "Could not load states for tool '" ) + toolid + "'.";
+				CORE_LOG_ERROR( error );
+				success = false;
+			} 
 		}
 		tool_element = tool_element->NextSiblingElement();
 	}

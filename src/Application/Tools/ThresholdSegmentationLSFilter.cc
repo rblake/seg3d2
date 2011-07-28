@@ -27,10 +27,11 @@
  */
 
 // Application includes
+#include <Application/Filters/Actions/ActionThresholdSegmentationLSFilter.h>
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Tools/ThresholdSegmentationLSFilter.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 // Register the tool into the tool factory
 SCI_REGISTER_TOOL( Seg3D, ThresholdSegmentationLSFilter )
@@ -38,87 +39,47 @@ SCI_REGISTER_TOOL( Seg3D, ThresholdSegmentationLSFilter )
 namespace Seg3D
 {
 
-
 ThresholdSegmentationLSFilter::ThresholdSegmentationLSFilter( const std::string& toolid ) :
-	Tool( toolid )
+	SingleTargetTool( Core::VolumeType::DATA_E, toolid )
 {
+	// Create an empty list of label options
+	std::vector< LayerIDNamePair > empty_list( 1, 
+		std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
+
 	// add default values for the the states
-	add_state( "target_layer", this->target_layer_state_, "<none>" );
-	add_state( "mask_layer", this->mask_layer_state_, "<none>" );
-	add_state( "iterations", this->iterations_state_, 1, 100, 1, 2 );
-    add_state( "upper_threshold", this->upper_threshold_state_, 1.0, 0.0, 1.0, 0.01 );
-	add_state( "lower_threshold", this->lower_threshold_state_, 0.0, 0.0, 1.0, 0.01 );
-	add_state( "curvature", this->curvature_state_, 0.0, 0.0, 1.0, 0.01 );
-	add_state( "propagation", this->propagation_state_, 0.0, 0.0, 1.0, 0.01 );
-	add_state( "edge", this->edge_state_, 0.0, 0.0, 1.0, 0.01 );
-	add_state( "replace", this->replace_state_, false );
-	
-	this->handle_layers_changed();
+	add_state( "seed_mask", this->seed_mask_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_extra_layer_input( this->seed_mask_state_, Core::VolumeType::MASK_E, true );
 
-	// Add constaints, so that when the state changes the right ranges of
-	// parameters are selected
-	this->add_connection ( this->target_layer_state_->value_changed_signal_.connect( boost::bind(
-	    &ThresholdSegmentationLSFilter::target_constraint, this, _1 ) ) );
-	this->add_connection ( this->mask_layer_state_->value_changed_signal_.connect( boost::bind(
-	    &ThresholdSegmentationLSFilter::target_constraint, this, _1 ) ) );
-	
-	this->add_connection ( LayerManager::Instance()->layers_changed_signal_.connect(
-		boost::bind( &ThresholdSegmentationLSFilter::handle_layers_changed, this ) ) );
+	// add number of iterations
+	add_state( "iterations", this->iterations_state_, 20, 1, 60000, 1 );
 
+	// thresholds for the data layer
+	add_state( "threshold_range", this->threshold_range_state_, 2.5, 0.0, 5.0, .1 );	
+
+	// propagation terms
+	add_state( "curvature", this->curvature_state_, 1.0, 0.0, 10.0, 0.1 );
+	add_state( "propagation", this->propagation_state_, 1.0, 0.0, 10.0, 0.1 );
+	add_state( "edge", this->edge_state_, 0.0, 0.0, 10.0, 0.1 );
 }
 
 ThresholdSegmentationLSFilter::~ThresholdSegmentationLSFilter()
 {
-	disconnect_all();
-}
-	
-void ThresholdSegmentationLSFilter::handle_layers_changed()
-{
-	std::vector< LayerHandle > target_layers;
-	LayerManager::Instance()->get_layers( target_layers );
-	bool target_found = false;
-	bool mask_found = false;
-	
-	for( int i = 0; i < static_cast< int >( target_layers.size() ); ++i )
-	{
-		if( ( this->target_layer_state_->get() == "<none>" ) && ( target_layers[i]->get_type() == 
-																 Core::VolumeType::DATA_E ) )
-		{
-			this->target_layer_state_->set( target_layers[i]->get_layer_name(), Core::ActionSource::NONE_E );
-		}
-		if( ( this->mask_layer_state_->get() == "<none>" ) && ( target_layers[i]->get_type() == 
-																 Core::VolumeType::MASK_E ) )
-		{
-			this->mask_layer_state_->set( target_layers[i]->get_layer_name(), Core::ActionSource::NONE_E );
-		}
-		
-		if( target_layers[i]->get_layer_name() == this->target_layer_state_->get() ) 
-			target_found = true;
-		
-		if( target_layers[i]->get_layer_name() == this->mask_layer_state_->get() )
-			mask_found = true;
-	}
-	
-	if( !target_found )
-		this->target_layer_state_->set( "", Core::ActionSource::NONE_E );
-	
-	if( !mask_found )
-		this->mask_layer_state_->set( "", Core::ActionSource::NONE_E );
-	
-}	
-
-void ThresholdSegmentationLSFilter::target_constraint( std::string layerid )
-{
-}	
-	
-void ThresholdSegmentationLSFilter::activate()
-{
+	this->disconnect_all();
 }
 
-void ThresholdSegmentationLSFilter::deactivate()
+void ThresholdSegmentationLSFilter::execute( Core::ActionContextHandle context )
 {
+	// NOTE: Need to lock state engine as this function is run from the interface thread
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
+	ActionThresholdSegmentationLSFilter::Dispatch( context,
+		this->target_layer_state_->get(),
+		this->seed_mask_state_->get(),
+		this->iterations_state_->get(),
+		this->threshold_range_state_->get(),
+		this->curvature_state_->get(),
+		this->propagation_state_->get(),
+		this->edge_state_->get() );
 }
 
 } // end namespace Seg3D
-
-

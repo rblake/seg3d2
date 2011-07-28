@@ -30,7 +30,7 @@
 #include <Core/DataBlock/StdDataBlock.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/LayerFilter.h>
 #include <Application/Filters/Actions/ActionThreshold.h>
@@ -46,44 +46,36 @@ namespace Seg3D
 
 ActionThreshold::ActionThreshold()
 {
-	this->add_argument( this->target_layer_ );
-	this->add_argument( this->upper_threshold_ );
-	this->add_argument( this->lower_threshold_ );
+	this->add_layer_id( this->target_layer_ );
+	this->add_parameter( this->upper_threshold_ );
+	this->add_parameter( this->lower_threshold_ );
+	this->add_parameter( this->sandbox_ );
 }
-
 
 bool ActionThreshold::validate( Core::ActionContextHandle& context )
 {
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
 	// Check for layer existence and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
-		notifier ) )
+	if ( ! LayerManager::CheckLayerAvailabilityForUse( this->target_layer_, 
+		context, this->sandbox_ ) ) return false;
+	
+	if ( this->lower_threshold_ > this->upper_threshold_ )
 	{
-		context->report_need_resource( notifier );
-		return false;
+		std::swap( this->lower_threshold_, this->upper_threshold_ );
 	}
 	
-	if ( this->lower_threshold_.value() > this->upper_threshold_.value() )
-	{
-		std::swap( this->lower_threshold_.value(), this->upper_threshold_.value() );
-	}
-	
-	DataLayerHandle data_layer = LayerManager::Instance()->
-		get_data_layer_by_id( this->target_layer_.value() );
+	DataLayerHandle data_layer = LayerManager::FindDataLayer( this->target_layer_, this->sandbox_ );
 	double min_val = data_layer->get_data_volume()->get_data_block()->get_min();
 	double max_val = data_layer->get_data_volume()->get_data_block()->get_max();
 
-	if( this->lower_threshold_.value() > max_val ||
-		this->upper_threshold_.value() < min_val )
+	if( this->lower_threshold_ > max_val ||
+		this->upper_threshold_ < min_val )
 	{
 		context->report_error( "The threshold is out of data range." );
 		return false;
@@ -232,12 +224,13 @@ bool ActionThreshold::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< ThresholdFilterAlgo > algo( new ThresholdFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->lower_threshold_ = this->lower_threshold_.value();
-	algo->upper_threshold_ = this->upper_threshold_.value();
+	algo->set_sandbox( this->sandbox_ );
+	algo->lower_threshold_ = this->lower_threshold_;
+	algo->upper_threshold_ = this->upper_threshold_;
 
 	// Find the handle to the layer
 	LayerHandle src_layer;
-	algo->find_layer( this->target_layer_.value(), src_layer );
+	algo->find_layer( this->target_layer_, src_layer );
 	algo->src_layer_ = boost::dynamic_pointer_cast< DataLayer >( src_layer );
 
 	// Lock the src layer, so it cannot be used else where
@@ -250,10 +243,17 @@ bool ActionThreshold::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter on a separate thread.
 	Core::Runnable::Start( algo );
 
@@ -269,13 +269,12 @@ void ActionThreshold::Dispatch( Core::ActionContextHandle context,
 	ActionThreshold* action = new ActionThreshold;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->lower_threshold_.value() = lower_threshold;
-	action->upper_threshold_.value() = upper_threshold;
+	action->target_layer_ = target_layer;
+	action->lower_threshold_ = lower_threshold;
+	action->upper_threshold_ = upper_threshold;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
-
 
 } // end namespace Seg3D

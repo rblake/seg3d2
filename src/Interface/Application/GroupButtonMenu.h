@@ -65,6 +65,8 @@ public:
 	void set_duplicate_enabled( bool );
 	void uncheck_delete_menu_button();
 	
+	LayerGroupHandle get_group() const;
+	
 protected:
 	// RESIZEEVENT:
 	// this is an overloaded function to keep the size of the overlay widget in sync with the 
@@ -83,8 +85,10 @@ protected:
 	// Overloaded function that is triggered when a drag even leaves the group
 	virtual void dragLeaveEvent( QDragLeaveEvent* event );
 	
-private:
+public:
 	void enable_drop_space( bool drop );
+	
+private:
 	void prep_for_animation( bool move_time );
 
 private Q_SLOTS:

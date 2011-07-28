@@ -92,7 +92,7 @@ public:
 
 	size_t to_index( size_t x, size_t y, size_t z )
 	{
-		assert( x < this->grid_nx_ && y < this->grid_ny_ && z < this->grid_nz_ );
+//		assert( x < this->grid_nx_ && y < this->grid_ny_ && z < this->grid_nz_ );
 		return z * this->grid_ny_ * this->grid_nx_ + y * this->grid_nx_ + x;
 	}
 
@@ -355,6 +355,11 @@ void VolumeSlice::get_world_coord( double i_pos, double j_pos, Point& world_coor
 void VolumeSlice::project_onto_slice( const Point& pt, double& i_pos, double& j_pos ) const
 {
 	VolumeSlice::ProjectOntoSlice( this->private_->slice_type_, pt, i_pos, j_pos );
+}
+
+void VolumeSlice::project_onto_slice( const Point& pt, double& i_pos, double& j_pos, double& depth ) const
+{
+	VolumeSlice::ProjectOntoSlice( this->private_->slice_type_, pt, i_pos, j_pos, depth );
 }
 
 void VolumeSlice::move_slice_to( const Point& pos, bool fail_safe )

@@ -29,13 +29,18 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONNEIGHBORHOODCONNECTEDFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONNEIGHBORHOODCONNECTEDFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionNeighborhoodConnectedFilter : public Core::Action
+class ActionNeighborhoodConnectedFilter : public LayerAction
 {
 
 CORE_ACTION( 
@@ -43,6 +48,8 @@ CORE_ACTION(
 		"out pixels that are connected to the seeds and have values within threshold." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
 	CORE_ACTION_ARGUMENT( "seeds", "The seed points in world space." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -52,12 +59,9 @@ public:
 	ActionNeighborhoodConnectedFilter()
 	{
 		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->seeds_ );
-	}
-	
-	virtual ~ActionNeighborhoodConnectedFilter()
-	{
+		this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
+		this->add_parameter( this->sandbox_ );
 	}
 	
 	// -- Functions that describe action --
@@ -68,9 +72,10 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::vector< Core::Point > > seeds_;
-	
+	std::string target_layer_;
+	std::vector< Core::Point > seeds_;
+	SandboxID sandbox_;
+
 	// -- Dispatch this action from the interface --
 public:
 	// DISPATCH:

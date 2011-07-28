@@ -29,7 +29,11 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONCROP_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONCROP_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -37,7 +41,7 @@ namespace Seg3D
 class ActionCropPrivate;
 typedef boost::shared_ptr< ActionCropPrivate > ActionCropPrivateHandle;
 
-class ActionCrop : public Core::Action
+class ActionCrop : public LayerAction
 {
 
 CORE_ACTION( 
@@ -45,7 +49,9 @@ CORE_ACTION(
 	CORE_ACTION_ARGUMENT( "layerids", "The layerids on which this tool needs to be run." )
 	CORE_ACTION_ARGUMENT( "origin", "The origin of the crop box" )
 	CORE_ACTION_ARGUMENT( "size",  "The size of the crop box" )
-	CORE_ACTION_KEY( "replace", "false", "Whether to delete the input layers when done" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "false", "Whether to delete the input layers when done" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -53,8 +59,6 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionCrop();
-	
-	virtual ~ActionCrop() {}
 	
 	// -- Functions that describe action --
 public:

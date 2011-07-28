@@ -111,32 +111,6 @@ void StateView2D::dolly( double dz )
 	}
 }
 
-void StateView2D::flip( Core::FlipDirectionType direction )
-{
-	// NOTE: State variables can only be set from the application thread
-	ASSERT_IS_APPLICATION_THREAD_OR_INITIALIZING();
-
-	{
-		StateEngine::lock_type lock( StateEngine::Instance()->get_mutex() );
-		this->value_.flip( direction );
-	}
-	
-	if ( this->signals_enabled() )
-	{
-		this->state_changed_signal_();
-	}
-}
-
-bool StateView2D::x_flipped() const
-{
-	return this->value_.x_flipped();
-}
-
-bool StateView2D::y_flipped() const
-{
-	return this->value_.y_flipped();
-}
-
 bool StateView2D::set( const Core::View2D& value, ActionSource source )
 {
 	// NOTE: State variables can only be set from the application thread
@@ -160,23 +134,23 @@ bool StateView2D::set( const Core::View2D& value, ActionSource source )
 	return true;
 }
 
-void StateView2D::export_to_variant( ActionParameterVariant& variant ) const
+void StateView2D::export_to_variant( Variant& variant ) const
 {
-	variant.set_value( this->value_ );
+	variant.set( this->value_ );
 }
 
-bool StateView2D::import_from_variant( ActionParameterVariant& variant, ActionSource source )
+bool StateView2D::import_from_variant( Variant& variant, ActionSource source )
 {
 	Core::View2D value;
-	if ( !( variant.get_value( value ) ) ) return false;
+	if ( !( variant.get( value ) ) ) return false;
 
 	return this->set( value, source );
 }
 
-bool StateView2D::validate_variant( ActionParameterVariant& variant, std::string& error )
+bool StateView2D::validate_variant( Variant& variant, std::string& error )
 {
 	Core::View2D value;
-	if ( !( variant.get_value( value ) ) )
+	if ( !( variant.get( value ) ) )
 	{
 		error = "Cannot convert the value '" + variant.export_to_string()
 		    + "' to a 2D Camera position";

@@ -31,7 +31,7 @@
 
 // Application includes
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionTransform.h>
 #include <Application/Filters/LayerFilter.h>
 
@@ -51,10 +51,11 @@ namespace Seg3D
 class ActionTransformPrivate
 {
 public:
-	Core::ActionParameter< std::vector< std::string > > layer_ids_;
-	Core::ActionParameter< Core::Point > origin_;
-	Core::ActionParameter< Core::Vector > spacing_;
-	Core::ActionParameter< bool > replace_;
+	std::vector< std::string > layer_ids_;
+	Core::Point origin_;
+	Core::Vector spacing_;
+	bool replace_;
+	SandboxID sandbox_;
 
 	Core::GridTransform output_grid_trans_;
 };
@@ -168,8 +169,13 @@ void TransformAlgo::transform_data_layer( DataLayerHandle input, DataLayerHandle
 
 	if ( !this->check_abort() )
 	{
+		// Centering should be preserved for each layer
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
+
 		this->dispatch_insert_data_volume_into_layer( output, Core::DataVolumeHandle(
-			new Core::DataVolume( output->get_grid_transform(), output_datablock ) ), 
+			new Core::DataVolume( output_grid_transform, output_datablock ) ), 
 			true );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -232,27 +238,30 @@ ActionTransform::ActionTransform() :
 	private_( new ActionTransformPrivate )
 {
 	// Action arguments
-	this->add_argument( this->private_->layer_ids_ );
-	this->add_argument( this->private_->origin_ );
-	this->add_argument( this->private_->spacing_ );
-
-	this->add_key( this->private_->replace_ );
+	this->add_layer_id_list( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->origin_ );
+	this->add_parameter( this->private_->spacing_ );
+	this->add_parameter( this->private_->replace_ );
+	this->add_parameter( this->private_->sandbox_ );
 }
 
 bool ActionTransform::validate( Core::ActionContextHandle& context )
 {
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->private_->sandbox_, context ) ) return false;
+
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
 		context->report_error( "No input layers specified" );
 		return false;
 	}
 	
-	LayerGroupHandle layer_group;
+	Core::GridTransform src_grid_trans;
 	for ( size_t i = 0; i < layer_ids.size(); ++i )
 	{
 		// Check for layer existence
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_ids[ i ] );
+		LayerHandle layer = LayerManager::FindLayer( layer_ids[ i ], this->private_->sandbox_ );
 		if ( !layer )
 		{
 			context->report_error( "Layer '" + layer_ids[ i ] + "' doesn't exist" );
@@ -260,27 +269,22 @@ bool ActionTransform::validate( Core::ActionContextHandle& context )
 		}
 
 		// Make sure that all the layers are in the same group
-		if ( !layer_group )
+		if ( i == 0 )
 		{
-			layer_group = layer->get_layer_group();
+			src_grid_trans = layer->get_grid_transform();
 		}
-		else if ( layer_group != layer->get_layer_group() )
+		else if ( src_grid_trans != layer->get_grid_transform() )
 		{
 			context->report_error( "Input layers do not belong to the same group" );
 			return false;
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_.value(), notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			this->private_->replace_, context, this->private_->sandbox_ ) ) return false;
 	}
 	
-	const Core::Vector& spacing = this->private_->spacing_.value();
+	const Core::Vector& spacing = this->private_->spacing_;
 	if ( spacing[ 0 ] <= 0 || spacing[ 1 ] <= 0 || spacing[ 2 ] <= 0 )
 	{
 		context->report_error( "Spacing must be greater than 0" );
@@ -288,14 +292,13 @@ bool ActionTransform::validate( Core::ActionContextHandle& context )
 	}
 
 	// Compute the output grid transform
-	const Core::GridTransform& src_grid_trans = layer_group->get_grid_transform();
 	this->private_->output_grid_trans_.set_nx( src_grid_trans.get_nx() );
 	this->private_->output_grid_trans_.set_ny( src_grid_trans.get_ny() );
 	this->private_->output_grid_trans_.set_nz( src_grid_trans.get_nz() );
-	this->private_->output_grid_trans_.load_basis( this->private_->origin_.value(), 
+	this->private_->output_grid_trans_.load_basis( this->private_->origin_, 
 		Core::Vector( spacing[ 0 ], 0, 0 ), Core::Vector( 0, spacing[ 1 ], 0 ), 
 		Core::Vector( 0, 0, spacing[ 2 ] ) );
-
+	
 	// Validation successful
 	return true;
 }
@@ -307,21 +310,21 @@ bool ActionTransform::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< TransformAlgo > algo( new TransformAlgo );
 
 	// Set up parameters
-	algo->replace_ = this->private_->replace_.value();
+	algo->set_sandbox( this->private_->sandbox_ );
+	algo->replace_ = this->private_->replace_;
 
 	// Set up input and output layers
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	size_t num_of_layers = layer_ids.size();
 	algo->src_layers_.resize( num_of_layers );
 	algo->dst_layers_.resize( num_of_layers );
 	std::vector< std::string > dst_layer_ids( num_of_layers );
-	for ( size_t j = 0; j < num_of_layers; ++j )
+	for ( size_t i = 0; i < num_of_layers; ++i )
 	{
-		size_t i = num_of_layers - 1 - j;
 		algo->find_layer( layer_ids[ i ], algo->src_layers_[ i ] );
 		if ( algo->replace_ )
 		{
-			algo->lock_for_processing( algo->src_layers_[ i ], false );
+			algo->lock_for_deletion( algo->src_layers_[ i ] );
 		}
 		else
 		{
@@ -329,28 +332,35 @@ bool ActionTransform::run( Core::ActionContextHandle& context,
 		}
 
 		switch ( algo->src_layers_[ i ]->get_type() )
-		{
-		case Core::VolumeType::DATA_E:
-			algo->create_and_lock_data_layer( this->private_->output_grid_trans_, 
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			break;
-		case Core::VolumeType::MASK_E:
-			algo->create_and_lock_mask_layer( this->private_->output_grid_trans_,
-				algo->src_layers_[ i ], algo->dst_layers_[ i ] );
-			static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
-				static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
-			break;
-		default:
-			assert( false );
+		{	
+			case Core::VolumeType::DATA_E:
+				algo->create_and_lock_data_layer( this->private_->output_grid_trans_, 
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				break;
+			case Core::VolumeType::MASK_E:
+				algo->create_and_lock_mask_layer( this->private_->output_grid_trans_,
+					algo->src_layers_[ i ], algo->dst_layers_[ i ] );
+				static_cast< MaskLayer* >( algo->dst_layers_[ i ].get() )->color_state_->set(
+					static_cast< MaskLayer* >( algo->src_layers_[ i ].get() )->color_state_->get() );
+				break;
+			default:
+				assert( false );
 		}
 		dst_layer_ids[ i ] = algo->dst_layers_[ i ]->get_layer_id();
 	}
 	
 	// Return the ids of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( dst_layer_ids ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this(), true );
 
 	// Start the filter.
 	Core::Runnable::Start( algo );
@@ -364,10 +374,10 @@ void ActionTransform::Dispatch( Core::ActionContextHandle context,
 							  bool replace )
 {
 	ActionTransform* action = new ActionTransform;
-	action->private_->layer_ids_.set_value( layer_ids );
-	action->private_->origin_.set_value( origin );
-	action->private_->spacing_.set_value( spacing );
-	action->private_->replace_.set_value( replace );
+	action->private_->layer_ids_ = layer_ids;
+	action->private_->origin_ = origin;
+	action->private_->spacing_ = spacing;
+	action->private_->replace_ = replace;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

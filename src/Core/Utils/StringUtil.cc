@@ -143,6 +143,11 @@ inline std::string ToString( double val )
 	return oss.str();
 }
 
+inline std::string ToString( const std::string& value )
+{
+	return ExportToString( value );
+}
+
 // Export a value to a string with precision control
 
 template< class T >
@@ -153,6 +158,48 @@ std::string ToString( T val, int precision )
 	oss << val;
 	return ( oss.str() );
 }
+
+
+inline std::string ToString( unsigned char val, int precision )
+{
+	std::ostringstream oss;
+	
+	oss.precision( precision );
+	oss << std::right << std::setfill( '0' ) << std::setw( precision ) << val;
+	return ( oss.str() );
+}
+
+
+inline std::string ToString( unsigned short val, int precision )
+{
+	std::ostringstream oss;
+	
+	oss.precision( precision );
+	oss << std::right << std::setfill( '0' ) << std::setw( precision ) << val;
+	return ( oss.str() );
+}
+
+
+inline std::string ToString( unsigned int val, int precision )
+{
+	std::ostringstream oss;
+	
+	oss.precision( precision );
+	oss << std::right << std::setfill( '0' ) << std::setw( precision ) << val;
+	return ( oss.str() );
+}
+
+
+inline std::string ToString( unsigned long long val, int precision )
+{
+	std::ostringstream oss;
+	
+	oss.precision( precision );
+	oss << std::right << std::setfill( '0' ) << std::setw( precision ) << val;
+	return ( oss.str() );
+}
+
+
 
 inline std::string ToString( float val, int precision )
 {
@@ -199,6 +246,27 @@ inline std::string ToString( double val, size_t digits )
 	return oss.str();
 }
 
+template< class CONTAINER_TYPE >
+std::string MultipleToString( const CONTAINER_TYPE& values )
+{
+	typename CONTAINER_TYPE::const_iterator it = values.begin();
+	typename CONTAINER_TYPE::const_iterator it_end = values.end();
+	std::string result( "[" );
+	while ( it != it_end )
+	{
+		result += ToString( *it ) + ',';
+		++it;
+	}
+	if ( result.size() > 1 )
+	{
+		result[ result.size() - 1 ] = ']';
+	}
+	else
+	{
+		result += "]";
+	}
+	return result;
+}
 
 std::string StringToUpper( std::string str )
 {
@@ -398,78 +466,98 @@ std::vector<std::string> SplitString( const std::string& str, const std::string&
 }
 
 
-std::string ExportToString( const bool& value )
+std::string ExportToString( bool value )
 {
 	if ( value ) return ( std::string( "true" ) );
 	else return ( std::string( "false" ) );
 }
 
-std::string ExportToString( const char& value )
+std::string ExportToString( char value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString(const unsigned char& value)
+std::string ExportToString( unsigned char value )
 {
 	return ToString(value);
 }
 
-std::string ExportToString( const short& value )
+std::string ExportToString( short value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString(const unsigned short& value)
+std::string ExportToString( unsigned short value )
 {
 	return ToString(value);
 }
 
-std::string ExportToString( const int& value )
+std::string ExportToString( int value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString(const unsigned int& value)
+std::string ExportToString( unsigned int value )
 {
 	return ToString(value);
 }
 
-std::string ExportToString( const long& value )
+std::string ExportToString( long value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const unsigned long& value )
+std::string ExportToString( unsigned long value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const long long& value )
+std::string ExportToString( long long value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const unsigned long long& value )
+std::string ExportToString( unsigned long long value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const float& value )
+std::string ExportToString( float value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const double& value )
+std::string ExportToString( double value )
 {
 	return ToString( value );
 }
 
-std::string ExportToString( const float& value, int precision )
+std::string ExportToString( unsigned char value, int precision )
 {
 	return ToString( value, precision );
 }
 
-std::string ExportToString( const double& value, int precision )
+std::string ExportToString( unsigned short value, int precision )
+{
+	return ToString( value, precision );
+}
+
+std::string ExportToString( unsigned int value, int precision )
+{
+	return ToString( value, precision );
+}
+
+std::string ExportToString( unsigned long long value, int precision )
+{
+	return ToString( value, precision );
+}
+
+std::string ExportToString( float value, int precision )
+{
+	return ToString( value, precision );
+}
+
+std::string ExportToString( double value, int precision )
 {
 	return ToString( value, precision );
 }
@@ -490,6 +578,7 @@ std::string ExportToString( const std::string& value )
 			need_quotes = true;
 		}
 	}
+	if ( value.size() == 0) need_quotes = true;
 	
 	if ( need_quotes ) return std::string(1,'[') + value + std::string(1,']');
 	else return value;
@@ -497,139 +586,19 @@ std::string ExportToString( const std::string& value )
 
 std::string ExportToString( const std::vector< char >& value )
 {
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ] ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
+	return MultipleToString( value );
 }
 	
-	std::string ExportToString( const std::vector< std::string >& value )
+std::string ExportToString( const std::vector< std::string >& value )
+{
+
+	std::vector< std::string >::const_iterator it = value.begin();
+	std::vector< std::string >::const_iterator it_end = value.end();
+	
+	std::string result( "[" );
+	while ( it != it_end )
 	{
-		std::string result( 1, '[' );
-		for ( size_t j = 0; j < value.size(); j++ )
-			result += ExportToString(value[ j ]) + ' ';
-		result[ result.size() - 1 ] = ']';
-		return result;
-	}	
-
-std::string ExportToString(const std::vector< unsigned char >& value)
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< short >& value )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ] ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< unsigned short >& value )
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< int >& value )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ] ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< unsigned int >& value)
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< long >& value )
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< unsigned long >& value )
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< long long >& value )
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< unsigned long long >& value )
-{
-	std::string result(1,'[');
-	for (size_t j=0;j<value.size();j++) result += ToString(value[j])+' ';
-	result[result.size()-1] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< float >& value )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ] ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< double >& value )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ] ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< float >& value, int precision )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ], precision ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::vector< double >& value, int precision )
-{
-	std::string result( 1, '[' );
-	for ( size_t j = 0; j < value.size(); j++ )
-		result += ToString( value[ j ], precision ) + ' ';
-	result[ result.size() - 1 ] = ']';
-	return result;
-}
-
-std::string ExportToString( const std::set< int >& value )
-{
-	std::string result( 1, '[' );
-	std::set< int >::const_iterator it = value.begin();
-	while ( it != value.end() )
-	{
-		result += ToString( *it ) + ' ';
+		result += '[' + ToString( *it ) + ']' + ',';
 		++it;
 	}
 	if ( result.size() > 1 )
@@ -640,6 +609,85 @@ std::string ExportToString( const std::set< int >& value )
 	{
 		result += "]";
 	}
+	return result;
+	
+}
+
+std::string ExportToString(const std::vector< unsigned char >& value)
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< short >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< unsigned short >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< int >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< unsigned int >& value)
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< long >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< unsigned long >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< long long >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< unsigned long long >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< float >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< double >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::set< int >& value )
+{
+	return MultipleToString( value );
+}
+
+std::string ExportToString( const std::vector< float >& value, int precision )
+{
+	std::string result( "[ " );
+	for ( size_t j = 0; j < value.size(); j++ )
+		result += ToString( value[ j ], precision ) + ' ';
+	result += "]";
+	return result;
+}
+
+std::string ExportToString( const std::vector< double >& value, int precision )
+{
+	std::string result( "[ " );
+	for ( size_t j = 0; j < value.size(); j++ )
+		result += ToString( value[ j ], precision ) + ' ';
+	result += "]";
 	return result;
 }
 
@@ -799,7 +847,7 @@ bool ImportFromString( const std::string& str, std::vector< std::string >& value
 	while ( j < data.size() )
 	{
 		while ( j < data.size() && ( ( data[ j ] == ' ') || ( data[ j ] == '\t' ) || 
-			( data[ j ] == '\r' ) || ( data[ j ] == '\n' ) ) ) j++;
+			( data[ j ] == '\r' ) || ( data[ j ] == '\n' ) || ( data[ j ] == ',' ) ) ) j++;
 
 		if ( j == data.size() ) return true;
 		if ( data[ j ] == '[' )
@@ -820,11 +868,33 @@ bool ImportFromString( const std::string& str, std::vector< std::string >& value
 			value.push_back( data.substr( start, j-start ) );
 			j++;
 		}
+		else if ( data[ j ] == '\'' )
+		{
+			++j;
+			size_t start = j;
+			while ( j < data.size() && data[ j ] != '\'' ) ++j;
+
+			if ( j == data.size() ) return false; // No matching quote
+
+			value.push_back( data.substr( start, j - start ) );
+			++j;
+		}
+		else if ( data[ j ] == '"' )
+		{
+			++j;
+			size_t start = j;
+			while ( j < data.size() && data[ j ] != '"' ) ++j;
+
+			if ( j == data.size() ) return false; // No matching double quote
+
+			value.push_back( data.substr( start, j - start ) );
+			++j;
+		}
 		else
 		{
 			size_t start = j;
 			while ( j < data.size() && ( ( data[ j ] != ' ' )  && ( data[ j ] != '\t' ) &&
-				( data[ j ] != '\r' ) && ( data[ j ] != '\n' ) ) ) j++;
+				( data[ j ] != '\r' ) && ( data[ j ] != '\n' ) && ( data[ j ] != ',' ) ) ) j++;
 		
 			value.push_back( data.substr( start, j-start ) );
 		}

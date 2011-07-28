@@ -31,7 +31,7 @@
 #include <Application/Tools/InvertTool.h>
 #include <Application/Filters/Actions/ActionInvert.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 // Register the tool into the tool factory
 SCI_REGISTER_TOOL( Seg3D, InvertTool )
@@ -55,7 +55,10 @@ void InvertTool::execute( Core::ActionContextHandle context )
 	std::string layer_id;
 	bool replace;
 	{
-		Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
+		// NOTE: Need to lock state engine as this function is run from the interface thread
+		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
+	
 		if ( !this->valid_target_state_->get() )
 		{
 			return;

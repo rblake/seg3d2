@@ -29,7 +29,11 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONARITHMETICFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONARITHMETICFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -37,17 +41,19 @@ namespace Seg3D
 class ActionArithmeticFilterPrivate;
 typedef boost::shared_ptr< ActionArithmeticFilterPrivate > ActionArithmeticFilterPrivateHandle;
 
-class ActionArithmeticFilter : public Core::Action
+class ActionArithmeticFilter : public LayerAction
 {
 
 CORE_ACTION( 
-	CORE_ACTION_TYPE( "Arithmetic", "Apply boolean/arithmetic expressions to input layers." )
+	CORE_ACTION_TYPE( "ArithmeticFilter", "Apply boolean/arithmetic expressions to input layers." )
 	CORE_ACTION_ARGUMENT( "layerids", "The layerids on which this tool needs to be run." )
 	CORE_ACTION_ARGUMENT( "expressions", "The expressions" )
 	CORE_ACTION_ARGUMENT( "output_type",  "The type of the output layer" )
-	CORE_ACTION_KEY( "replace", "false", "Whether to replace the first input layer with the output" )
-	CORE_ACTION_KEY( "preserve_data_format", "false", "Whether to use the same data type as the "
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "false", "Whether to replace the first input layer with the output" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "preserve_data_format", "false", "Whether to use the same data type as the "
 		"first input layer for the output" ) 
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -55,8 +61,6 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionArithmeticFilter();
-	
-	virtual ~ActionArithmeticFilter() {}
 	
 	// -- Functions that describe action --
 public:

@@ -33,11 +33,21 @@
 
 // Set the version numbers of the application
 
-#define CORE_APPLICATION_VERSION "@SEG3D_MAJOR_VERSION@.@SEG3D_MINOR_VERSION@"
+#define CORE_APPLICATION_VERSION "@SEG3D_MAJOR_VERSION@.@SEG3D_MINOR_VERSION@.@SEG3D_PATCH_VERSION@"
 #define CORE_APPLICATION_MAJOR_VERSION @SEG3D_MAJOR_VERSION@
 #define CORE_APPLICATION_MINOR_VERSION @SEG3D_MINOR_VERSION@
 #define CORE_APPLICATION_PATCH_VERSION @SEG3D_PATCH_VERSION@
-#define CORE_APPLICATION_RELEASE "(BETA 3)"
+#define CORE_APPLICATION_RELEASE "ALPHA"
 #define CORE_APPLICATION_NAME "Seg3D"
+#define CORE_APPLICATION_PROJECT_EXTENSION ".s3d"
+#define CORE_APPLICATION_PROJECT_FOLDER_EXTENSION ".seg3dproj"
+
+#define CORE_APPLICATION_ABOUT "<p align=\"justify\">Seg3D is a free volume segmentation and image processing tool" \
+			" that was created by the NIH NCRR Center for Integrative Biomedical (CIBC) located " \
+			"at the Scientific Computing and Imaging Instititute (SCI) at the University of Utah" \
+			" and was developed in collaboration with Numira Biosciences. " \
+		    "Seg3D combines a flexible manual segmentation interface with powerful " \
+		    "image processing and segmentation tools from the Insight " \
+		    "Toolkit.</p>"
 
 #endif

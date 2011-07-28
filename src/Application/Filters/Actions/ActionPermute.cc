@@ -31,7 +31,7 @@
 
 // Application includes
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionPermute.h>
 #include <Application/Filters/LayerFilter.h>
 
@@ -51,9 +51,10 @@ namespace Seg3D
 class ActionPermutePrivate
 {
 public:
-	Core::ActionParameter< std::vector< std::string > > layer_ids_;
-	Core::ActionParameter< std::vector< int > > permutation_;
-	Core::ActionParameter< bool > replace_;
+	std::vector< std::string > layer_ids_;
+	std::vector< int > permutation_;
+	bool replace_;
+	SandboxID sandbox_;
 
 	Core::GridTransform output_grid_trans_;
 };
@@ -141,8 +142,13 @@ void PermuteAlgo::permute_data_layer( DataLayerHandle input, DataLayerHandle out
 
 	if ( succeeded && !this->check_abort() )
 	{
+		// Centering should be preserved for each layer
+		Core::GridTransform output_grid_transform = output->get_grid_transform();
+		output_grid_transform.set_originally_node_centered( 
+			input->get_grid_transform().get_originally_node_centered() );
+
 		this->dispatch_insert_data_volume_into_layer( output, Core::DataVolumeHandle(
-			new Core::DataVolume( output->get_grid_transform(), output_datablock ) ), 
+			new Core::DataVolume( output_grid_transform, output_datablock ) ), 
 			true );
 		output->update_progress_signal_( 1.0 );
 		this->dispatch_unlock_layer( output );
@@ -197,26 +203,29 @@ ActionPermute::ActionPermute() :
 	private_( new ActionPermutePrivate )
 {
 	// Action arguments
-	this->add_argument( this->private_->layer_ids_ );
-	this->add_argument( this->private_->permutation_ );
-
-	this->add_key( this->private_->replace_ );
+	this->add_layer_id_list( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->permutation_ );
+	this->add_parameter( this->private_->replace_ );
+	this->add_parameter( this->private_->sandbox_ );
 }
 
 bool ActionPermute::validate( Core::ActionContextHandle& context )
 {
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->private_->sandbox_, context ) ) return false;
+
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	if ( layer_ids.size() == 0 )
 	{
 		context->report_error( "No input layers specified" );
 		return false;
 	}
 	
-	LayerGroupHandle layer_group;
+	Core::GridTransform src_grid_trans;
 	for ( size_t i = 0; i < layer_ids.size(); ++i )
 	{
 		// Check for layer existence
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_ids[ i ] );
+		LayerHandle layer = LayerManager::FindLayer( layer_ids[ i ], this->private_->sandbox_ );
 		if ( !layer )
 		{
 			context->report_error( "Layer '" + layer_ids[ i ] + "' doesn't exist" );
@@ -224,27 +233,22 @@ bool ActionPermute::validate( Core::ActionContextHandle& context )
 		}
 
 		// Make sure that all the layers are in the same group
-		if ( !layer_group )
+		if ( i == 0 )
 		{
-			layer_group = layer->get_layer_group();
+			src_grid_trans = layer->get_grid_transform();
 		}
-		else if ( layer_group != layer->get_layer_group() )
+		else if ( src_grid_trans != layer->get_grid_transform() )
 		{
 			context->report_error( "Input layers do not belong to the same group" );
 			return false;
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
 		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			this->private_->replace_.value(), notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+			this->private_->replace_, context, this->private_->sandbox_ ) ) return false;
 	}
 	
-	const std::vector< int >& permutation = this->private_->permutation_.value();
+	const std::vector< int >& permutation = this->private_->permutation_;
 	bool found_x = false, found_y = false, found_z = false;
 	if ( permutation.size() == 3 )
 	{
@@ -272,7 +276,6 @@ bool ActionPermute::validate( Core::ActionContextHandle& context )
 	}
 
 	// Compute the output grid transform
-	const Core::GridTransform& src_grid_trans = layer_group->get_grid_transform();
 	std::vector< size_t > src_size( 3 );
 	src_size[ 0 ] = src_grid_trans.get_nx();
 	src_size[ 1 ] = src_grid_trans.get_ny();
@@ -311,26 +314,26 @@ bool ActionPermute::run( Core::ActionContextHandle& context,
 	boost::shared_ptr< PermuteAlgo > algo( new PermuteAlgo );
 
 	// Set up parameters
-	algo->permutation_ = this->private_->permutation_.value();
-	algo->replace_ = this->private_->replace_.value();
+	algo->set_sandbox( this->private_->sandbox_ );
+	algo->permutation_ = this->private_->permutation_;
+	algo->replace_ = this->private_->replace_;
 
 	// Set up input and output layers
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->private_->layer_ids_;
 	size_t num_of_layers = layer_ids.size();
 	algo->src_layers_.resize( num_of_layers );
 	algo->dst_layers_.resize( num_of_layers );
 	std::vector< std::string > dst_layer_ids( num_of_layers );
 	
-	for ( size_t j = 0; j < num_of_layers; ++j )
+	for ( size_t i = 0; i < num_of_layers; ++i )
 	{
-		size_t i = num_of_layers - 1 - j;
 		if ( !( algo->find_layer( layer_ids[ i ], algo->src_layers_[ i ] ) ) )
 		{
 			return false;
 		}
 		if ( algo->replace_ )
 		{
-			algo->lock_for_processing( algo->src_layers_[ i ] );
+			algo->lock_for_deletion( algo->src_layers_[ i ] );
 		}
 		else
 		{
@@ -364,10 +367,17 @@ bool ActionPermute::run( Core::ActionContextHandle& context,
 	
 	// Return the ids of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( dst_layer_ids ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-	
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this(), true );
+		
 	// Start the filter.
 	Core::Runnable::Start( algo );
 
@@ -380,9 +390,9 @@ void ActionPermute::Dispatch( Core::ActionContextHandle context,
 							  bool replace )
 {
 	ActionPermute* action = new ActionPermute;
-	action->private_->layer_ids_.set_value( layer_ids );
-	action->private_->permutation_.set_value( permutation );
-	action->private_->replace_.set_value( replace );
+	action->private_->layer_ids_ = layer_ids;
+	action->private_->permutation_ = permutation;
+	action->private_->replace_ = replace;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

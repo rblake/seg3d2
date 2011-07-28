@@ -34,7 +34,7 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/LayerFilter.h>
 #include <Application/Filters/Actions/ActionNeighborhoodConnectedFilter.h>
@@ -50,25 +50,18 @@ namespace Seg3D
 
 bool ActionNeighborhoodConnectedFilter::validate( Core::ActionContextHandle& context )
 {
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
 	// Check for layer existence and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
-		notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
+		context, this->sandbox_ ) ) return false;
 
-	if ( this->seeds_.value().size() == 0 )
+	if ( this->seeds_.size() == 0 )
 	{
 		context->report_error( "There needs to be at least one seed point." );
 		return false;
@@ -276,9 +269,10 @@ bool ActionNeighborhoodConnectedFilter::run( Core::ActionContextHandle& context,
 {
 	// Create algorithm
 	boost::shared_ptr<NeighborhoodConnectedFilterAlgo> algo( new NeighborhoodConnectedFilterAlgo );
+	algo->set_sandbox( sandbox_ );
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
@@ -293,7 +287,7 @@ bool ActionNeighborhoodConnectedFilter::run( Core::ActionContextHandle& context,
 	try
 	{
 		std::vector< int > index( 3 );
-		const std::vector< Core::Point > seeds = this->seeds_.value();
+		const std::vector< Core::Point > seeds = this->seeds_;
 		for ( size_t i = 0; i < seeds.size(); ++i )
 		{
 			Core::Point seed = inverse_trans * seeds[ i ];
@@ -329,10 +323,17 @@ bool ActionNeighborhoodConnectedFilter::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter on a separate thread.
 	Core::Runnable::Start( algo );
 
@@ -346,8 +347,8 @@ void ActionNeighborhoodConnectedFilter::Dispatch( Core::ActionContextHandle cont
 	ActionNeighborhoodConnectedFilter* action = new ActionNeighborhoodConnectedFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->seeds_.value() = seeds;
+	action->target_layer_ = target_layer;
+	action->seeds_ = seeds;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

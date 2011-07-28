@@ -42,6 +42,8 @@ SET(APPLICATION_FILTERS_SRCS
   NrrdFilter.cc
   LayerResampler.h
   LayerResampler.cc
+  LayerFilterNotifier.h
+  LayerFilterNotifier.cc
 )
 
 SET(APPLICATION_FILTERS_ACTIONS_SRCS
@@ -107,6 +109,8 @@ SET(APPLICATION_FILTERS_ACTIONS_SRCS
   Actions/ActionOrFilter.cc
   Actions/ActionXorFilter.h
   Actions/ActionXorFilter.cc
+  Actions/ActionThresholdSegmentationLSFilter.h
+  Actions/ActionThresholdSegmentationLSFilter.cc
   Actions/ActionThreshold.h
   Actions/ActionThreshold.cc
   Actions/ActionInvert.h
@@ -119,8 +123,19 @@ SET(APPLICATION_FILTERS_ACTIONS_SRCS
   Actions/ActionPermute.cc
   Actions/ActionTransform.h
   Actions/ActionTransform.cc
+  Actions/ActionPointSetRegisterFilter.h
+  Actions/ActionPointSetRegisterFilter.cc
+  Actions/ActionPointSetTransformFilter.h
+  Actions/ActionPointSetTransformFilter.cc
+  Actions/ActionSpeedlineImageFilter.h
+  Actions/ActionSpeedlineImageFilter.cc
   )
 
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_Filters ${APPLICATION_FILTERS_ACTIONS_SRCS})
+  SET(APPLICATION_FILTERS_SRCS ${APPLICATION_FILTERS_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
+  
 CORE_ADD_LIBRARY(Application_Filters ${APPLICATION_FILTERS_SRCS}
             ${APPLICATION_FILTERS_ACTIONS_SRCS} )
             
@@ -130,7 +145,8 @@ TARGET_LINK_LIBRARIES(Application_Filters
                       Core_State
                       Core_Parser
                       Application_Layer
-                      Application_LayerManager
+                      Application_Project
+                      Application_ProjectManager
                       ${SCI_BOOST_LIBRARY})
 
 # Register action classes

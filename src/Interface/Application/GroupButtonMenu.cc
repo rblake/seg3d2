@@ -44,11 +44,11 @@
 #include <Interface/Application/StyleSheet.h>
 #include <Interface/Application/DropSpaceWidget.h>
 #include <Interface/Application/OverlayWidget.h>
+#include <Interface/Application/LayerWidget.h>
 
 //Application Includes
-#include <Application/LayerManager/LayerManager.h>
-#include <Application/LayerManager/Actions/ActionMoveLayerBelow.h>
-#include <Application/LayerManager/Actions/ActionNewMaskLayer.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/Actions/ActionNewMaskLayer.h>
 
 //UI Includes
 #include "ui_GroupButtonMenu.h"
@@ -64,6 +64,7 @@ public:
 	OverlayWidget* overlay_;
 	QButtonGroup* iso_quality_button_group_;
 	std::string group_id_;
+	LayerGroupHandle group_;
 };
 	
 GroupButtonMenu::GroupButtonMenu( QWidget* parent, LayerGroupHandle group ) :
@@ -77,6 +78,7 @@ GroupButtonMenu::GroupButtonMenu( QWidget* parent, LayerGroupHandle group ) :
 
 	this->private_->ui_.facade_->hide();
 	this->private_->group_id_ = group->get_group_id();
+	this->private_->group_ = group;
 
 	this->private_->ui_.delete_button_->setEnabled( false );
 	this->private_->ui_.duplicate_button_->setEnabled( false );
@@ -121,8 +123,8 @@ GroupButtonMenu::GroupButtonMenu( QWidget* parent, LayerGroupHandle group ) :
 	QtUtils::QtBridge::Connect( this->private_->ui_.duplicate_layer_button_, 
 		group->show_duplicate_menu_state_ );
 		
-
 	QtUtils::QtBridge::Show( this->private_->ui_.iso_quality_, group->show_iso_menu_state_ );	
+	QtUtils::QtBridge::Show( this->private_->ui_.iso_capping_, group->show_iso_menu_state_ );	
 	QtUtils::QtBridge::Show( this->private_->ui_.delete_, group->show_delete_menu_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.duplicate_layers_,
 		group->show_duplicate_menu_state_ );
@@ -134,34 +136,42 @@ GroupButtonMenu::GroupButtonMenu( QWidget* parent, LayerGroupHandle group ) :
 	// --- ISOSURFACE---
 	QtUtils::QtBridge::Connect( this->private_->iso_quality_button_group_, 
 		group->isosurface_quality_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.iso_capping_checkbox_, 
+		group->isosurface_capping_enabled_state_ );
 
 	this->private_->ui_.verticalLayout_10->setAlignment( Qt::AlignTop );
 	
 	this->private_->overlay_ = new OverlayWidget( this );	
 	this->private_->overlay_->hide();
+	
+	this->setStyleSheet( StyleSheet::GROUP_MENUBAR_C );
 }
 
 GroupButtonMenu::~GroupButtonMenu()
 {
 }
 
+LayerGroupHandle GroupButtonMenu::get_group() const
+{
+	return this->private_->group_;
+}
+
 void GroupButtonMenu::dropEvent( QDropEvent* event )
 {
 	this->enable_drop_space( false );
+	event->setAccepted( true );
 		
 	std::string layer_name_ = event->mimeData()->text().toStdString();
 	
-	if ( LayerManager::Instance()->get_layer_by_name( layer_name_ ) )
+	if ( LayerManager::Instance()->find_layer_by_name( layer_name_ ) )
 	{
-		event->setAccepted( true );
-		ActionMoveLayerBelow::Dispatch( Core::Interface::GetWidgetActionContext(), 
-			layer_name_, this->private_->group_id_ );
-		this->private_->layer_slot_->instant_hide();
-		event->accept();
+		LayerWidget* layer_widget = dynamic_cast< LayerWidget* >( event->source() );
+		if ( layer_widget )
+	{
+			layer_widget->set_drop_group( this ); 
+			event->setDropAction( Qt::MoveAction );
+			return;
 	}
-	else
-	{
-		event->ignore();
 	}
 
 	event->setDropAction( Qt::IgnoreAction );
@@ -169,7 +179,7 @@ void GroupButtonMenu::dropEvent( QDropEvent* event )
 
 void GroupButtonMenu::dragEnterEvent( QDragEnterEvent* event)
 {
-	if( LayerManager::Instance()->get_layer_by_name( event->mimeData()->text().toStdString() ) )
+	if( LayerManager::Instance()->find_layer_by_name( event->mimeData()->text().toStdString() ) )
 	{
 		this->enable_drop_space( true );
 		event->setAccepted( true );

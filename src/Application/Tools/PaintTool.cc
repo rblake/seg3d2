@@ -36,13 +36,14 @@
 #include <Core/Graphics/Algorithm.h>
 #include <Core/RenderResources/RenderResources.h>
 #include <Core/Utils/ScopedCounter.h>
+#include <Core/Utils/Exception.h>
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
 
 // Application includes
 #include <Application/Layer/LayerGroup.h>
 #include <Application/Layer/MaskLayer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/Tools/detail/MaskShader.h>
 #include <Application/Tool/ToolFactory.h>
@@ -73,19 +74,10 @@ public:
 	void initialize();
 	void upload_mask_texture();
 
-	void handle_layers_changed();
-	void handle_active_layer_changed( LayerHandle layer );
-	void handle_layer_name_changed( std::string layer_id );
-
 	void handle_brush_radius_changed();
-	void handle_use_active_layer_changed( bool use_active_layer );
-	void handle_target_layer_changed( std::string layer_id );
 	void handle_data_constraint_changed();
 	void handle_data_cstr_visibility_changed();
 	void handle_data_cstr_range_changed();
-
-	void update_target_options();
-	void update_constraint_options();
 
 	bool check_paintable( ViewerHandle viewer );
 
@@ -114,6 +106,7 @@ public:
 	bool erase_;
 	bool brush_visible_;
 	bool paintable_;
+	bool data_layer_;
 	size_t signal_block_count_;
 
 	bool has_data_constraint_;
@@ -258,7 +251,6 @@ void PaintToolPrivate::upload_mask_texture()
 		return;
 	}
 
-	
 	int brush_size = this->radius_ * 2 + 1;
 	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 	{
@@ -421,57 +413,6 @@ void PaintToolPrivate::update_same_mode_viewers()
 	ViewerManager::Instance()->update_viewers_overlay( view_mode );
 }
 
-void PaintToolPrivate::handle_active_layer_changed( LayerHandle layer )
-{
-	if ( !this->paint_tool_->use_active_layer_state_->get() )
-	{
-		return;
-	}
-
-	this->paint_tool_->target_layer_state_->set( layer->get_type() == Core::VolumeType::MASK_E ? 
-		layer->get_layer_id() : Tool::NONE_OPTION_C );
-}
-
-void PaintToolPrivate::handle_use_active_layer_changed( bool use_active_layer )
-{
-	if ( use_active_layer )
-	{
-		LayerHandle layer = LayerManager::Instance()->get_active_layer();
-		this->paint_tool_->target_layer_state_->set( 
-			( layer && layer->get_type() == Core::VolumeType::MASK_E ) ? 
-			layer->get_layer_id() : Tool::NONE_OPTION_C );
-	}
-}
-
-void PaintToolPrivate::handle_target_layer_changed( std::string layer_id )
-{
-	if ( this->paint_tool_->use_active_layer_state_->get() )
-	{
-		LayerHandle active_layer = LayerManager::Instance()->get_active_layer();
-		if ( active_layer && active_layer->get_type() == Core::VolumeType::MASK_E && 
-			layer_id != active_layer->get_layer_id() )
-		{
-			this->paint_tool_->target_layer_state_->set( active_layer->get_layer_id() );
-			return;
-		}
-
-		if ( !active_layer || ( active_layer && active_layer->get_type() != Core::VolumeType::MASK_E 
-			&& layer_id != Tool::NONE_OPTION_C ) )
-		{
-			this->paint_tool_->target_layer_state_->set( Tool::NONE_OPTION_C );
-			return;
-		}
-	}
-
-	this->update_constraint_options();
-}
-
-void PaintToolPrivate::handle_layers_changed()
-{
-	this->update_target_options();
-	this->update_constraint_options();
-}
-
 void PaintToolPrivate::handle_data_constraint_changed()
 {
 	if ( this->paint_tool_->show_data_cstr_bound_state_->get() )
@@ -485,7 +426,7 @@ void PaintToolPrivate::handle_data_constraint_changed()
 	}
 
 	const std::string& layer_id = this->paint_tool_->data_constraint_layer_state_->get();
-	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_id );
+	LayerHandle layer = LayerManager::Instance()->find_layer_by_id( layer_id );
 	if ( !layer )
 	{
 		CORE_THROW_LOGICERROR( "Data layer '" + layer_id + "' does not exist" );
@@ -499,51 +440,6 @@ void PaintToolPrivate::handle_data_constraint_changed()
 	this->paint_tool_->lower_threshold_state_->set_step( step );
 	this->paint_tool_->upper_threshold_state_->set_step( step );
 
-}
-
-void PaintToolPrivate::update_target_options()
-{
-	std::vector< LayerIDNamePair > mask_layer_names;
-	mask_layer_names.push_back( std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
-	LayerManager::Instance()->get_layer_names( mask_layer_names, Core::VolumeType::MASK_E );
-
-	{
-		Core::ScopedCounter counter( this->signal_block_count_ );
-		this->paint_tool_->target_layer_state_->set_option_list( mask_layer_names );
-	}
-}
-
-void PaintToolPrivate::update_constraint_options()
-{
-	if ( this->signal_block_count_ > 0 )
-	{
-		return;
-	}
-
-	std::vector< LayerIDNamePair > mask_layer_names;
-	mask_layer_names.push_back( std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
-
-	std::vector< LayerIDNamePair > data_layer_names;
-	data_layer_names.push_back( std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
-
-	const std::string& target_layer_id = this->paint_tool_->target_layer_state_->get();
-	if ( target_layer_id != Tool::NONE_OPTION_C )
-	{
-		LayerHandle target_layer = LayerManager::Instance()->get_layer_by_id( target_layer_id );
-		if ( !target_layer )
-		{
-			CORE_THROW_LOGICERROR( std::string( "Layer " ) + target_layer_id + " does not exist" );
-		}
-
-		LayerGroupHandle layer_group = target_layer->get_layer_group();
-		layer_group->get_layer_names( mask_layer_names, Core::VolumeType::MASK_E,
-			target_layer );
-		layer_group->get_layer_names( data_layer_names, Core::VolumeType::DATA_E );
-	}
-
-	this->paint_tool_->data_constraint_layer_state_->set_option_list( data_layer_names );
-	this->paint_tool_->mask_constraint1_layer_state_->set_option_list( mask_layer_names );
-	this->paint_tool_->mask_constraint2_layer_state_->set_option_list( mask_layer_names );
 }
 
 bool PaintToolPrivate::start_painting()
@@ -669,15 +565,6 @@ void PaintToolPrivate::handle_data_cstr_range_changed()
 	ViewerManager::Instance()->update_2d_viewers_overlay();
 }
 
-void PaintToolPrivate::handle_layer_name_changed( std::string layer_id )
-{
-	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_id );
-	if ( layer->get_type() == Core::VolumeType::MASK_E )
-	{
-		this->handle_layers_changed();
-	}
-}
-
 void PaintToolPrivate::flood_fill( Core::ActionContextHandle context, 
 								  bool erase, ViewerHandle viewer )
 {
@@ -710,7 +597,7 @@ void PaintToolPrivate::flood_fill( Core::ActionContextHandle context,
 			return;
 		}
 
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( ff_params.target_layer_id_ );
+		LayerHandle layer = LayerManager::Instance()->find_layer_by_id( ff_params.target_layer_id_ );
 		if ( !layer->is_visible( viewer->get_viewer_id() ) )
 		{
 			context->report_error( "Layer not visible in the active viewer" );
@@ -722,7 +609,6 @@ void PaintToolPrivate::flood_fill( Core::ActionContextHandle context,
 			return;
 		}
 		
-
 		ff_params.slice_type_ = vol_slice->get_slice_type();
 		ff_params.slice_number_ = vol_slice->get_slice_number();
 		ff_params.seeds_ = this->paint_tool_->seed_points_state_->get();
@@ -749,7 +635,7 @@ bool PaintToolPrivate::check_paintable( ViewerHandle viewer )
 		{
 			size_t viewer_id = viewer->get_viewer_id();
 			MaskLayerHandle layer = boost::dynamic_pointer_cast< Core::MaskLayer >(
-				LayerManager::Instance()->get_layer_by_id( layer_id ) );
+				LayerManager::Instance()->find_layer_by_id( layer_id ) );
 			if ( layer )
 			{
 				paintable = layer->is_visible( viewer_id ) && layer->has_valid_data() &&
@@ -758,8 +644,10 @@ bool PaintToolPrivate::check_paintable( ViewerHandle viewer )
 		}
 	}
 
-	lock_type lock(  this->get_mutex() );
-	this->paintable_ = paintable;
+	{
+		lock_type lock(  this->get_mutex() );
+		this->paintable_ = paintable;
+	}
 	return paintable;
 }
 
@@ -777,17 +665,20 @@ PaintTool::PaintTool( const std::string& toolid ) :
 	this->private_->painting_ = false;
 	this->private_->brush_visible_ = true;
 	this->private_->paintable_ = false;
+	this->private_->data_layer_ = false;
 	this->private_->signal_block_count_ = 0;
 
 	std::vector< LayerIDNamePair > empty_names( 1, 
 		std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
 
-	this->add_state( "data_constraint", this->data_constraint_layer_state_, 
-		Tool::NONE_OPTION_C, empty_names );
-	this->add_state( "mask_constraint1", this->mask_constraint1_layer_state_,
-		Tool::NONE_OPTION_C, empty_names );
-	this->add_state( "mask_constraint2", this->mask_constraint2_layer_state_,
-		Tool::NONE_OPTION_C, empty_names );
+	this->add_state( "data_constraint", this->data_constraint_layer_state_, Tool::NONE_OPTION_C, empty_names );
+	this->add_extra_layer_input( this->data_constraint_layer_state_, Core::VolumeType::DATA_E );
+
+	this->add_state( "mask_constraint1", this->mask_constraint1_layer_state_, Tool::NONE_OPTION_C, empty_names );
+	this->add_extra_layer_input( this->mask_constraint1_layer_state_, Core::VolumeType::MASK_E );
+
+	this->add_state( "mask_constraint2", this->mask_constraint2_layer_state_, Tool::NONE_OPTION_C, empty_names );
+	this->add_extra_layer_input( this->mask_constraint2_layer_state_, Core::VolumeType::MASK_E );
 
 	this->add_state( "negative_data_constraint", this->negative_data_constraint_state_, false );
 	this->add_state( "negative_mask_constraint1", this->negative_mask_constraint1_state_, false );
@@ -811,30 +702,6 @@ PaintTool::PaintTool( const std::string& toolid ) :
 	this->add_connection( this->negative_data_constraint_state_->state_changed_signal_.connect(
 		boost::bind( &PaintToolPrivate::handle_data_cstr_range_changed, this->private_ ) ) );
 
-	this->private_->handle_layers_changed();
-
-	this->add_connection( this->target_layer_state_->value_changed_signal_.connect(
-		boost::bind( &PaintToolPrivate::handle_target_layer_changed, this->private_.get(), _2 ) ) );
-		
-	this->add_connection ( LayerManager::Instance()->layers_changed_signal_.connect(
-		boost::bind( &PaintToolPrivate::handle_layers_changed, this->private_.get() ) ) );
-	this->add_connection( LayerManager::Instance()->active_layer_changed_signal_.connect(
-		boost::bind( &PaintToolPrivate::handle_active_layer_changed, this->private_.get(), _1 ) ) );
-	this->add_connection( LayerManager::Instance()->layer_name_changed_signal_.connect(
-		boost::bind( &PaintToolPrivate::handle_layer_name_changed, this->private_.get(), _1 ) ) );
-	this->add_connection( this->use_active_layer_state_->value_changed_signal_.connect(
-		boost::bind( &PaintToolPrivate::handle_use_active_layer_changed, this->private_.get(), _1 ) ) );
-
-	LayerHandle active_layer = LayerManager::Instance()->get_active_layer();
-	if ( active_layer && active_layer->get_type() == Core::VolumeType::MASK_E )
-	{
-		this->target_layer_state_->set( active_layer->get_layer_id() );
-	}
-	else if ( this->use_active_layer_state_->get() )
-	{
-		this->target_layer_state_->set( Tool::NONE_OPTION_C );
-	}
-
 	this->private_->build_brush_mask();
 
 	this->add_connection( this->brush_radius_state_->state_changed_signal_.connect(
@@ -847,26 +714,33 @@ PaintTool::~PaintTool()
 	this->disconnect_all();
 }
 
-void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
+void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+	int viewer_width, int viewer_height )
 {
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( viewer_id );
 	ViewerHandle current_viewer;
 	double world_x, world_y;
 	int radius;
 	bool brush_visible = false;
+	
+	int center_x, center_y;
+	
 	{
 		PaintToolPrivate::lock_type private_lock( this->private_->get_mutex() );
 		current_viewer = this->private_->viewer_;
-		if ( current_viewer && !current_viewer->is_volume_view() )
-		{
-			current_viewer->window_to_world( this->private_->center_x_, this->private_->center_y_,
-				world_x, world_y );
-		}
-		
-		this->private_->initialize();
-		this->private_->upload_mask_texture();
 		radius = this->private_->radius_;
+		center_x = this->private_->center_x_;
+		center_y = this->private_->center_y_;
+		
 	}
+	
+	if ( current_viewer && !current_viewer->is_volume_view() )
+	{
+		current_viewer->window_to_world( center_x, center_y, world_x, world_y );
+	}
+	
+	this->private_->initialize();
+	this->private_->upload_mask_texture();
 	
 	std::string target_layer_id;
 	std::string data_constraint_layer_id;
@@ -892,11 +766,16 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		{
 			return;
 		}
-		target_layer = LayerManager::Instance()->get_layer_by_id( target_layer_id );
+		target_layer = LayerManager::Instance()->find_layer_by_id( target_layer_id );
 		if ( !target_layer )
 		{
-			CORE_THROW_LOGICERROR( "Layer with ID '" + this->target_layer_state_->get() +
+			// NOTE: Since the rendering is happening on a different thread, occasionally
+			// when a layer is deleted, the state variables of the paint tool may have not
+			// been updated yet, and thus the target layer might be invalid. We should just
+			// ignore this kind of errors. Log it in case it's caused by something else.
+			CORE_LOG_ERROR( "Layer with ID '" + this->target_layer_state_->get() +
 				"' does not exist" );
+			return;
 		}
 
 		layer_visible = target_layer->has_valid_data() && target_layer->is_visible( viewer_id );
@@ -941,6 +820,8 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 	glPushMatrix();
 	glLoadIdentity();
 	glMultMatrixd( proj_mat.data() );
+
+	CORE_CHECK_OPENGL_ERROR();
 	
 	MaskLayer* target_mask_layer = static_cast< MaskLayer* >( target_layer.get() );
 	Core::Color color = PreferencesManager::Instance()->get_color( 
@@ -974,7 +855,7 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		double slice_height = top - bottom;
 		Core::Vector slice_x( slice_width, 0.0, 0.0 );
 		slice_x = proj_mat * slice_x;
-		double slice_screen_width = slice_x.x() / 2.0 * viewer->get_width();
+		double slice_screen_width = Core::Abs( slice_x.x() ) / 2.0 * viewer_width;
 		double slice_screen_height = slice_height / slice_width * slice_screen_width;
 		this->private_->shader_->set_pixel_size( static_cast< float >( 1.0 / slice_screen_width ), 
 			static_cast< float >( 1.0 /slice_screen_height ) );
@@ -991,6 +872,7 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 			glVertex2d( left, top );
 		glEnd();
 		data_constraint_tex->unbind();
+		CORE_CHECK_OPENGL_ERROR();
 	}
 	
 	if ( brush_visible && current_viewer_mode == redraw_viewer_mode )
@@ -1008,7 +890,7 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		// Compute the size of the brush in window space
 		Core::Vector brush_x( right - left, 0.0, 0.0 );
 		brush_x = proj_mat * brush_x;
-		double brush_screen_width = brush_x.x() / 2.0 * viewer->get_width();
+		double brush_screen_width = Core::Abs( brush_x.x() ) / 2.0 * viewer_width;
 		double brush_screen_height = ( top - bottom ) / ( right - left ) * brush_screen_width;
 
 		if ( current_viewer->get_viewer_id() != viewer_id )
@@ -1035,6 +917,7 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 		glEnd();
 
 		this->private_->brush_tex_->unbind();
+		CORE_CHECK_OPENGL_ERROR();
 	}
 	
 	Core::Texture::SetActiveTextureUnit( old_tex_unit );
@@ -1044,7 +927,8 @@ void PaintTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 
 	if ( layer_visible )
 	{
-		SeedPointsTool::redraw( viewer_id, proj_mat );
+		SeedPointsTool::redraw( viewer_id, proj_mat, viewer_width, viewer_height );
+		CORE_CHECK_OPENGL_ERROR();
 	}
 	
 	glFinish();
@@ -1054,12 +938,11 @@ bool PaintTool::handle_mouse_enter( ViewerHandle viewer, int x, int y )
 {
 	PaintToolPrivate::lock_type lock( this->private_->get_mutex() );
 	this->private_->viewer_ = viewer;
-	if ( !this->private_->viewer_->is_volume_view() )
-	{
-		this->private_->brush_visible_ = true;
-		this->private_->center_x_ = x;
-		this->private_->center_y_ = y;
-	}
+	if ( this->private_->viewer_->is_volume_view() ) return false;
+
+	this->private_->brush_visible_ = true;
+	this->private_->center_x_ = x;
+	this->private_->center_y_ = y;
 
 	return true;
 }
@@ -1086,10 +969,11 @@ void PaintTool::deactivate()
 	ViewerManager::Instance()->reset_cursor();
 }
 
-bool PaintTool::handle_mouse_move( ViewerHandle viewer, 
-								  const Core::MouseHistory& mouse_history, 
-								  int button, int buttons, int modifiers )
+bool PaintTool::handle_mouse_move( ViewerHandle viewer, const Core::MouseHistory& mouse_history, 
+	int button, int buttons, int modifiers )
 {
+	if ( this->private_->data_layer_ ) return false;
+
 	// NOTE: This function call is running on the interface thread
 	// Hence we need to lock as most of the paint tool runs on the Application thread.
 	{
@@ -1169,9 +1053,8 @@ bool PaintTool::handle_mouse_move( ViewerHandle viewer,
 	return false;
 }
 
-bool PaintTool::handle_mouse_press( ViewerHandle viewer, 
-								   const Core::MouseHistory& mouse_history, 
-								   int button, int buttons, int modifiers )
+bool PaintTool::handle_mouse_press( ViewerHandle viewer, const Core::MouseHistory& mouse_history, 
+	int button, int buttons, int modifiers )
 {
 	{
 		PaintToolPrivate::lock_type lock( this->private_->get_mutex() );
@@ -1196,6 +1079,8 @@ bool PaintTool::handle_mouse_press( ViewerHandle viewer,
 	bool paintable = false;
 	bool erase = false;
 	{
+	
+		this->private_->data_layer_ = false;
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		erase = this->erase_state_->get();
 		if ( this->target_layer_state_->get() != Tool::NONE_OPTION_C &&
@@ -1203,12 +1088,22 @@ bool PaintTool::handle_mouse_press( ViewerHandle viewer,
 		{
 			size_t viewer_id = this->private_->viewer_->get_viewer_id();
 			MaskLayerHandle layer = boost::dynamic_pointer_cast< Core::MaskLayer >(
-				LayerManager::Instance()->get_layer_by_id( this->target_layer_state_->get() ) );
+				LayerManager::Instance()->find_layer_by_id( this->target_layer_state_->get() ) );
 			if ( layer )
 			{
 				paintable = layer->is_visible( viewer_id ) && layer->has_valid_data() && 
 					!layer->locked_state_->get();
 			}
+			else
+			{
+				this->private_->data_layer_ = true;
+				return false;
+			}
+		}
+		else
+		{
+			this->private_->data_layer_ = true;
+			return false;
 		}
 	}
 
@@ -1265,10 +1160,11 @@ bool PaintTool::handle_mouse_press( ViewerHandle viewer,
 	return false;
 }
 
-bool PaintTool::handle_mouse_release( ViewerHandle viewer,
-									 const Core::MouseHistory& mouse_history, 
-									 int button, int buttons, int modifiers )
+bool PaintTool::handle_mouse_release( ViewerHandle viewer, const Core::MouseHistory& mouse_history, 
+	int button, int buttons, int modifiers )
 {
+	if ( this->private_->data_layer_ ) return false;
+
 	{
 		PaintToolPrivate::lock_type lock( this->private_->get_mutex() );
 		this->private_->viewer_ = viewer;
@@ -1329,7 +1225,8 @@ bool PaintTool::handle_wheel( ViewerHandle viewer, int delta,
 		return false;
 	}
 
-	if ( modifiers == Core::KeyModifier::NO_MODIFIER_E &&
+	if ( ( modifiers & ~Core::KeyModifier::KEYPAD_MODIFIER_E ) == 
+		Core::KeyModifier::NO_MODIFIER_E &&
 		!this->private_->painting_ )
 	{
 		int min_radius, max_radius;
@@ -1389,7 +1286,6 @@ bool PaintTool::handle_update_cursor( ViewerHandle viewer )
 
 bool PaintTool::post_load_states()
 {
-	this->private_->handle_layers_changed();
 	return true;
 }
 

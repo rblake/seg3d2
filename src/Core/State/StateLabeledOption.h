@@ -68,6 +68,8 @@ public:
 	StateLabeledOption( const std::string& stateid, const std::string& default_value,
 		const std::vector< OptionLabelPair >& labeled_option_list );
 
+	StateLabeledOption( const std::string& stateid );
+
 	virtual ~StateLabeledOption();
 
 public:
@@ -83,18 +85,17 @@ public:
 protected:
 	// EXPORT_TO_VARIANT
 	// Export the state data to a variant parameter
-	virtual void export_to_variant( ActionParameterVariant& variant ) const;
+	virtual void export_to_variant( Variant& variant ) const;
 
 	// IMPORT_FROM_VARIANT:
 	// Import the state data from a variant parameter.
-	virtual bool import_from_variant( ActionParameterVariant& variant, 
-		ActionSource source = ActionSource::NONE_E );
+	virtual bool import_from_variant( Variant& variant, ActionSource source = ActionSource::NONE_E );
 
 	// VALIDATE_VARIANT:
 	// Validate a variant parameter
 	// This function returns false if the parameter is invalid or cannot be
 	// converted and in that case error will describe the error.
-	virtual bool validate_variant( ActionParameterVariant& variant, std::string& error );
+	virtual bool validate_variant( Variant& variant, std::string& error );
 	
 	// -- signals describing the state --
 public:
@@ -136,6 +137,8 @@ public:
 private:
 	StateLabeledOptionPrivateHandle private_;
 
+public:
+	static const std::string EMPTY_OPTION_C;
 };
 
 } // end namespace Core

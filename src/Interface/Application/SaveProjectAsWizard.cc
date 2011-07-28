@@ -36,9 +36,11 @@
 #include <QtGui/QMessageBox>
 
 // Core includes
+#include <Core/State/Actions/ActionSet.h>
 #include <Core/Application/Application.h>
 
 // Application includes
+#include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ProjectManager/Actions/ActionSaveProjectAs.h>
 #include <Application/ProjectManager/Actions/ActionSaveSession.h>
@@ -60,8 +62,8 @@ SaveProjectAsWizard::SaveProjectAsWizard( QWidget *parent ) :
 	connect( this->page( 0 ), SIGNAL( need_to_set_delete_path( QString ) ), this, 
 		SLOT( set_delete_path( QString ) ) );
 	
-	this->setPixmap( QWizard::BackgroundPixmap, QPixmap( QString::fromUtf8( 
-		":/Images/Symbol.png" ) ) );
+	this->setPixmap( QWizard::BackgroundPixmap, 
+		QPixmap( QString::fromUtf8( ":/Images/Symbol.png" ) ) );
 	
 	this->setWindowTitle( tr( "Save Project As Wizard" ) );
 }
@@ -74,12 +76,31 @@ void SaveProjectAsWizard::accept()
 {
 	if( this->path_to_delete_ != "" )
 	{
-		boost::filesystem::remove_all( boost::filesystem::path( this->path_to_delete_ ) );
+		try
+		{
+			boost::filesystem::remove_all( boost::filesystem::path( this->path_to_delete_ ) );
+		}
+		catch ( ... )
+		{
+			std::string error = std::string( "Could not remove all files from directory '" ) +
+				this->path_to_delete_ + "'.";
+			CORE_LOG_ERROR( error );
+		}
 	}
+	
+	bool anonymize = field( "anonymize" ).toBool();
 
 	ActionSaveProjectAs::Dispatch( Core::Interface::GetWidgetActionContext(), 
 		field( "projectPath" ).toString().toStdString(),
-		field( "projectName" ).toString().toStdString() );
+		field( "projectName" ).toString().toStdString(), anonymize );
+	
+	// Switch on autosave if needed
+	if( field( "autosave" ).toBool() )
+	{
+		Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(), 
+			PreferencesManager::Instance()->auto_save_state_, true );
+	}
+
     QDialog::accept();
 }
 
@@ -97,30 +118,37 @@ void SaveProjectAsWizard::set_delete_path( QString path )
 SaveAsInfoPage::SaveAsInfoPage( QWidget *parent )
     : QWizardPage( parent )
 {
-    this->setTitle( "Export Project Information" );
-    this->setSubTitle( "You are exporting the current project with the following settings: " );
+    this->setTitle( "Save Project As..." );
+    this->setSubTitle( "You are saving the current project with the following settings: " );
 
     this->project_name_label_ = new QLabel( "Project name:" );
 
 	this->project_name_lineedit_ = new QLineEdit();
 	std::string project_name = ProjectManager::Instance()->
-		current_project_->project_name_state_->get();
-	
-	if( project_name == "untitled_project" )
-	{
-		project_name = "";
-	}
+		get_current_project()->project_name_state_->get();
+		
+	std::string current_project_dir = ProjectManager::Instance()->
+		get_current_project_folder().string();
 		
 	this->project_name_lineedit_->setText(  QString::fromStdString( project_name ) );
 
     this->project_path_label_ = new QLabel( "Project Path:" );
     this->project_path_lineedit_ = new QLineEdit;
     
+
+	this->project_path_lineedit_->setText(  QString::fromStdString( current_project_dir ) );
+
     this->project_path_change_button_ = new QPushButton( "Choose Alternative Location" );
     connect( this->project_path_change_button_, SIGNAL( clicked() ), this, SLOT( set_path() ) );
 	this->project_path_change_button_->setFocusPolicy( Qt::NoFocus );
 
     registerField( "projectName", this->project_name_lineedit_ );
+    
+	this->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please choose a valid location." ) );
+	this->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
+	this->warning_message_->setWordWrap( true );
+	this->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
+	this->warning_message_->hide();
 
     QGridLayout *layout = new QGridLayout;
     layout->addWidget( this->project_name_label_, 0, 0 );
@@ -128,31 +156,38 @@ SaveAsInfoPage::SaveAsInfoPage( QWidget *parent )
     layout->addWidget( this->project_path_label_, 1, 0 );
     layout->addWidget( this->project_path_lineedit_, 1, 1 );
     layout->addWidget( this->project_path_change_button_, 2, 1, 1, 2 );
+    layout->addWidget( this->warning_message_, 3, 1, 1, 2 );
+    
     setLayout( layout );
 }
 	
 void SaveAsInfoPage::initializePage()
 {
 	QString finishText = wizard()->buttonText( QWizard::FinishButton );
-	finishText.remove('&');
+	finishText.remove( '&' );
 
-	boost::filesystem::path desktop_path;
 	this->project_path_lineedit_->setText( QString::fromStdString( 
-		ProjectManager::Instance()->current_project_path_state_->get() ) );
-	registerField( "projectPath", this->project_path_lineedit_ );
+		ProjectManager::Instance()->get_current_project_folder().string() ) );
+	this->registerField( "projectPath", this->project_path_lineedit_ );
 }
 	
 void SaveAsInfoPage::set_path()
 {
-    QDir project_directory_;
-	QString path = QFileDialog::getExistingDirectory ( this, "Directory",
-		this->project_path_lineedit_->text() );
+	this->warning_message_->hide();
+
+    QDir project_directory_ = QDir( QFileDialog::getExistingDirectory ( this, 
+		tr( "Choose Save Directory..." ), this->project_path_lineedit_->text(), 
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks  ) );
 	
-    if ( path.isNull() == false )
+	if( project_directory_.exists() )
     {
-        project_directory_.setPath( path );
+       this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
     }
-    this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
+    else
+    {
+		this->project_path_lineedit_->setText( "" );
+    }
+    
     registerField( "projectPath", this->project_path_lineedit_ );
 }
 
@@ -161,24 +196,29 @@ bool SaveAsInfoPage::validatePage()
 	// before we do anything we clear the delete path variable
 	Q_EMIT need_to_set_delete_path( "" );
 	
-	boost::filesystem::path new_path = 
+	boost::filesystem::path project_path = 
 		boost::filesystem::path( this->project_path_lineedit_->text().toStdString() ) / 
-		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() );
+		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() + 
+			Project::GetDefaultProjectPathExtension() );
 		
-	if( boost::filesystem::exists( new_path ) )
+	// We check to see if the path they are choosing already exists
+	if( boost::filesystem::exists( project_path ) )
 	{
-		if( ( ProjectManager::Instance()->current_project_->project_name_state_->get() == 
+		// If we save on top of our current project
+		if( ( ProjectManager::Instance()->get_current_project()->project_name_state_->get() == 
 			this->project_name_lineedit_->text().toStdString() ) && 
-			( ProjectManager::Instance()->current_project_path_state_->get() == 
-			this->project_path_lineedit_->text().toStdString() ) )
+			( ProjectManager::Instance()->get_current_project()->project_path_state_->get() == 
+			project_path.string() ) )
 		{
-			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), false, "" );
+			// Just save a session
+			ActionSaveSession::Dispatch( Core::Interface::GetWidgetActionContext(), "" );
 			Q_EMIT just_a_save();
 			return true;		
 		}
 	
 		int ret = QMessageBox::warning( this, 
 			"A project with this name already exists!",
+			"A project with this name already exists!\n"
 			"If you proceed the old project will be deleted and replaced.\n"
 			"Are you sure you would like to continue?",
 			QMessageBox::Yes | QMessageBox::No );
@@ -188,9 +228,38 @@ bool SaveAsInfoPage::validatePage()
 			return false;
 		}
 		
-		Q_EMIT need_to_set_delete_path( QString::fromStdString( new_path.string() ) );
-
+		Q_EMIT need_to_set_delete_path( QString::fromStdString( project_path.string() ) );
+		
+		return true;
 	}
+	
+	// Check to see if the directory that we are trying to save in exists
+	if( !boost::filesystem::exists( project_path.parent_path() ) )
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location does not exist, please choose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// Finally we check to see if we can write to that directory
+	try // to create a project sessions folder
+	{
+		boost::filesystem::create_directory( project_path );
+	}
+	catch ( ... ) // any errors that we might get thrown would indicate that we cant write here
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location is not writable, please choose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// if we have made it to here we have created a new directory lets remove it.
+	boost::filesystem::remove( project_path );
+	
+	this->warning_message_->hide();
+
 	return true;
 }
 
@@ -209,11 +278,26 @@ SaveAsSummaryPage::SaveAsSummaryPage( QWidget *parent )
     this->project_path_ = new QLabel;
     this->project_path_->setWordWrap( true );
 	
+	this->autosave_checkbox_ = new QCheckBox();
+	this->autosave_checkbox_->setObjectName(QString::fromUtf8("autosave_checkbox_"));
+	this->autosave_checkbox_->setChecked(true);
+	this->autosave_checkbox_->setText( QString::fromUtf8( "Enable Autosave" ) );
+
+	this->anonymize_checkbox_ = new QCheckBox();
+	this->anonymize_checkbox_->setObjectName(QString::fromUtf8("anonymize_checkbox_"));
+	this->anonymize_checkbox_->setChecked( false );
+	this->anonymize_checkbox_->setText( QString::fromUtf8( "Anonymize (Remove provenance, embedded files, and meta data)" ) );
+	
     QVBoxLayout *layout = new QVBoxLayout;
 	layout->addWidget( this->description_ );
     layout->addWidget( this->project_name_ );
     layout->addWidget( this->project_path_ );
+	layout->addWidget( this->autosave_checkbox_ );
+	layout->addWidget( this->anonymize_checkbox_ );
     this->setLayout( layout );
+	
+	registerField( "autosave", this->autosave_checkbox_ );
+	registerField( "anonymize", this->anonymize_checkbox_ );
 }
 
 void SaveAsSummaryPage::initializePage()

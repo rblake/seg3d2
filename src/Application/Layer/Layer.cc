@@ -36,6 +36,7 @@
 #include <Core/State/StateIO.h>
 #include <Core/Utils/AtomicCounter.h>
 #include <Core/Utils/StringUtil.h>
+#include <Core/Utils/Log.h>
 
 // Application includes
 #include <Application/Layer/Layer.h>
@@ -56,6 +57,14 @@ public:
 	void handle_data_state_changed( std::string data_state );
 	void handle_visible_state_changed( size_t viewer_id, bool visible );
 
+	// Function for setting abort flag
+	void handle_abort();
+	
+	// Function for setting stop flag
+	void handle_stop();
+
+public:
+	// Pointer back to the main class
 	Layer* layer_;
 
 	// Handle to the layer group (this one needs to be weak to ensure objects are not persistent
@@ -70,6 +79,9 @@ public:
 	
 	// Abort flag
 	bool abort_;
+
+	// Stop processing flag
+	bool stop_;
 };
 
 void LayerPrivate::handle_locked_state_changed( bool locked )
@@ -99,6 +111,18 @@ void LayerPrivate::handle_visible_state_changed( size_t viewer_id, bool visible 
 	{
 		this->layer_->master_visible_state_->set( true );
 	}
+}
+
+void LayerPrivate::handle_abort()
+{
+	Layer::lock_type lock( Layer::GetMutex() );
+	this->abort_ = true;
+}
+
+void LayerPrivate::handle_stop()
+{
+	Layer::lock_type lock( Layer::GetMutex() );
+	this->stop_ = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -165,7 +189,9 @@ void Layer::initialize_states( const std::string& name, bool creating )
 {
 	// Setup the default values for private class
 	this->private_->layer_ = this;
+
 	this->private_->abort_ = false;
+	this->private_->stop_ = false;
 	
 	//  Build the layer specific state variables
 
@@ -194,27 +220,34 @@ void Layer::initialize_states( const std::string& name, bool creating )
 	this->add_state( "opacity", opacity_state_, 
 		PreferencesManager::Instance()->default_layer_opacity_state_->get(), 0.0, 1.0, 0.01 );
 
-	// == Selected by the LayerGroup ==
-	this->add_state( "selected", selected_state_, false );
-
-	// == The generation number of the data, or -1 if there is no data =
+	// == The generation number of the data, or -1 if there is no data ==
 	this->add_state( "generation", this->generation_state_, -1 );
 
-	// == The last action that was run on this layer ==
-	this->add_state( "last_action", this->last_action_state_, "" );
+	// == The generation number of the data, or -1 if there is no data ==
+	this->add_state( "provenance_id", this->provenance_id_state_, -1 );
+	
+	// == The meta data for this dataset ==
+	this->add_state( "metadata", this->meta_data_state_, "" );
+
+	// == Information string for the metadata of this dataset ==
+	this->add_state( "metadata_info", this->meta_data_info_state_, "" );
 	
 	// == The layer state indicating whether data is bein processed ==
 	this->add_state( "data", this->data_state_,  creating ? CREATING_C : AVAILABLE_C  , 
 		AVAILABLE_C + "|" + CREATING_C + "|" + PROCESSING_C + "|" + IN_USE_C );
-	
 	this->data_state_->set_is_project_data( false );
 	
+	// == Centering (node vs. cell) ==
+	this->add_state( "centering", this->centering_state_, "node" );
+	this->centering_state_->set_is_project_data( false );
+
 	this->add_state( "show_info", this->show_information_state_, false );
 	this->add_state( "show_advanced_visibility", this->show_advanced_visibility_state_, false );
 	this->add_state( "show_opacity", this->show_opacity_state_, false );
 	this->add_state( "show_appearance", this->show_appearance_state_, false );
 	this->add_state( "show_progress", this->show_progress_bar_state_, creating );
 	this->add_state( "show_abort", this->show_abort_message_state_, false );
+	this->add_state( "show_stop_button", this->show_stop_button_state_, false );
 	
 	this->show_information_state_->set_is_project_data( false );
 	this->show_advanced_visibility_state_->set_is_project_data( false );
@@ -222,6 +255,7 @@ void Layer::initialize_states( const std::string& name, bool creating )
 	this->show_appearance_state_->set_is_project_data( false );
 	this->show_progress_bar_state_->set_is_project_data( false );
 	this->show_abort_message_state_->set_is_project_data( false );
+	this->show_stop_button_state_->set_is_project_data( false );
 
 	// These states do not need to be loaded from file -- just reset to defaults.
 	this->data_state_->set_session_priority( Core::StateBase::DO_NOT_LOAD_E );
@@ -237,7 +271,10 @@ void Layer::initialize_states( const std::string& name, bool creating )
 
 	// Make suer handle_abort is called when the signal is triggered
 	this->private_->add_connection( this->abort_signal_.connect( boost::bind(
-		&Layer::handle_abort, this ) ) );
+		&LayerPrivate::handle_abort, this->private_ ) ) );
+
+	this->private_->add_connection( this->stop_signal_.connect( boost::bind(
+		&LayerPrivate::handle_stop, this->private_ ) ) );
 
 	size_t num_of_viewers = ViewerManager::Instance()->number_of_viewers();
 	for ( size_t i = 0; i < num_of_viewers; ++i )
@@ -288,6 +325,20 @@ bool Layer::is_visible( size_t viewer_id ) const
 	lock_type lock( Layer::GetMutex() );
 
 	return this->master_visible_state_->get() && this->visible_state_[ viewer_id ]->get();
+}
+
+LayerMetaData Layer::get_meta_data() const
+{
+	LayerMetaData meta_data;
+	meta_data.meta_data_ = this->meta_data_state_->get();
+	meta_data.meta_data_info_ = this->meta_data_info_state_->get();
+	return meta_data;
+}
+
+void Layer::set_meta_data( const LayerMetaData& meta_data )
+{
+	this->meta_data_state_->set( meta_data.meta_data_ );
+	this->meta_data_info_state_->set( meta_data.meta_data_info_ );
 }
 
 bool Layer::check_filter_key( filter_key_type key ) const
@@ -343,13 +394,6 @@ Layer::filter_key_type Layer::GenerateFilterKey()
 	return filter_key_count++;
 }
 
-
-void Layer::handle_abort()
-{
-	lock_type lock( GetMutex() );
-	this->private_->abort_ = true;
-}
-
 void Layer::reset_abort()
 {
 	lock_type lock( GetMutex() );
@@ -362,5 +406,31 @@ bool Layer::check_abort()
 	return this->private_->abort_;
 }
 
+void Layer::reset_stop()
+{
+	lock_type lock( GetMutex() );
+	this->private_->stop_ = false;
+}
+
+bool Layer::check_stop()
+{
+	lock_type lock( GetMutex() );
+	return this->private_->stop_;
+}
+
+void Layer::set_allow_stop()
+{
+	this->show_stop_button_state_->set( true );
+}
+
+void Layer::reset_allow_stop()
+{
+	this->show_stop_button_state_->set( false );
+}
+
+int Layer::get_version()
+{
+	return 2;
+}
 
 } // end namespace Seg3D

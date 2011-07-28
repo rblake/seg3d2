@@ -36,14 +36,16 @@
 // Core includes
 #include <Core/Isosurface/Isosurface.h>
 #include <Core/Volume/MaskVolume.h>
-#include <Core/Utils/AtomicCounter.h>
 
 // Application includes
 #include <Application/Layer/Layer.h>
-#include <Application/Layer/LayerGroup.h>
 
 namespace Seg3D
 {
+
+// Hide header includes, private interface and implementation
+class MaskLayerPrivate;
+typedef boost::shared_ptr< MaskLayerPrivate > MaskLayerPrivateHandle;
 
 // CLASS MaskLayer
 
@@ -71,7 +73,13 @@ public:
 
 	// GET_GRID_TRANSFORM:
 	// This function returns the grid transform of the mask volume.
+	// Locks: StateEngine
 	virtual Core::GridTransform get_grid_transform() const;
+
+	// SET_GRID_TRANSFORM:
+	// Set the grid transform of the mask volume.
+	virtual void set_grid_transform( const Core::GridTransform& grid_transform, 
+		bool preserve_centering );
 
 	// GET_DATA_TYPE:
 	// Get the data type of the underlying data
@@ -98,16 +106,16 @@ public:
 	bool set_mask_volume( Core::MaskVolumeHandle volume );
 	
 
-	// -- iso surface handling --
+	// -- isosurface handling --
 public:
 	// GET_ISOSURFACE:
-	// Get the iso-surface associated with this layer
+	// Get the isosurface associated with this layer
 	Core::IsosurfaceHandle get_isosurface();
 
 	// COMPUTE_ISOSURFACE
 	// Compute the isosurface for this layer using the given quality factor.
 	// Quality factor must be one of: 1.0, 0.5, 0.25, 0.125
-	void compute_isosurface( double quality_factor );
+	void compute_isosurface( double quality_factor, bool capping_enabled );
 	
 	// CALCULATE_VOLUME:
 	// function that is called by the calculate volume action that calculate the volume of the mask
@@ -137,8 +145,11 @@ public:
 	// State that describes whether to show the  isosurface state
 	Core::StateBoolHandle show_isosurface_state_;
 	
-	// State that describes whether the iso surface has been generated
+	// State that describes whether the isosurface has been generated
 	Core::StateBoolHandle iso_generated_state_;
+
+	// The area of the generated isosurface
+	Core::StateDoubleHandle isosurface_area_state_;
 	
 	// State that describes the calculated volume of the mask, as string because its connected to a 
 	// label that will show a non numeric value, when the volume has not been calculated.
@@ -160,27 +171,6 @@ protected:
 	// this function cleans up the mask volume for when you are deleting the mask and reloading 
 	virtual void clean_up();
 
-	// -- internal functions --
-private:
-	void initialize_states();
-	void handle_mask_data_changed();
-	void handle_isosurface_update_progress( double progress );
-	
-private:
-	// bool to enable a different behavior when the iso surface is being generated after a session
-	// load.
-	bool loading_;
-	
-	// Extra private state information
-	// NOTE: This used for saving the bit that is used in a mask to a session file. As the state
-	// variables are read first, this will allow for reconstructing which data block and which bit
-	// need to be loaded.
-	Core::StateIntHandle   bit_state_;
-	
-	// Information about two components not included in the state manager.
-	Core::MaskVolumeHandle mask_volume_;
-	Core::IsosurfaceHandle isosurface_;
-
 	// -- color functions --
 public:
 	
@@ -192,6 +182,8 @@ public:
 	// Set the color count to a specific number
 	static void SetColorCount( size_t count );
 	
+private:
+	MaskLayerPrivateHandle private_;
 };
 
 } // end namespace Seg3D

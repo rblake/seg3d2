@@ -34,14 +34,10 @@
 
 // Boost includes
 #include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
 
 // Core includes
 #include <Core/State/StateHandler.h>
-#include <Core/Utils/EnumClass.h>
 #include <Core/Viewer/Mouse.h>
-#include <Core/Volume/Volume.h>
-#include <Core/Interface/Interface.h>
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
@@ -150,6 +146,10 @@ public:
 	// Called when a key is pressed
 	virtual bool handle_key_press( ViewerHandle viewer, int key, int modifiers );
 
+	// HANDLE_KEY_RELEASE:
+	// Called when a key is released
+	virtual bool handle_key_release( ViewerHandle viewer, int key, int modifiers );
+
 	// HANDLE_UPDATE_CURSOR:
 	// Called when a viewer requires an update to its cursor.
 	virtual bool handle_update_cursor( ViewerHandle viewer );
@@ -158,7 +158,13 @@ public:
 	// REDRAW:
 	// Draw the tool in the specified viewer. Default implementation does nothing.
 	// The function should only be called by the renderer, which has a valid GL context.
-	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat );
+	// NOTE: If the viewer layout changes, viewer attributes could be changed by the interface thread 
+	// underneath us.  Since there is no way to force Qt to lock the viewer before making these 
+	// changes, we grab the width and height up front and check for validity so that we at least
+	// don't crash later due to a width or height of 0.  The width and height are passed to the
+	// tools and should be used instead of querying the viewer directly.
+	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat, 
+		int viewer_width, int viewer_height );
 
 	// HAS_2D_VISUAL:
 	// Returns true if the tool draws itself in the 2D view, otherwise false.
@@ -200,13 +206,13 @@ public:
 	// Fire off the action that executes the filter
 	virtual void execute( Core::ActionContextHandle context );
 
+	// -- internals --
 private:
 	ToolPrivateHandle private_;
 
 public:
 
 	const static std::string NONE_OPTION_C;
-
 };
 
 
@@ -231,7 +237,6 @@ public:
 #define SEG3D_TOOL_VERSION( version ) \
 "<version>" version "</version>"
 
-
 #define SEG3D_TOOL( definition_string ) \
 public: \
 	static std::string Definition() { return GetToolInfo()->get_definition(); }\
@@ -244,7 +249,7 @@ public: \
     static int Version() { return GetToolInfo()->get_version(); } \
 	static Seg3D::ToolInfoHandle GetToolInfo() \
 	{\
-		static bool initialized; \
+		static bool initialized = false; \
 		static Seg3D::ToolInfoHandle info; \
 		if ( !initialized ) \
 		{\

@@ -51,20 +51,34 @@ public:
     ProjectWizard( QWidget *parent = 0 );
     virtual ~ProjectWizard();
 
-private:
+private Q_SLOTS:
+	void set_delete_path( QString );
+
     void accept();
     void reject();
+    
+private:
+	std::string path_to_delete_;
+	
 };
 
 class ProjectInfoPage : public QWizardPage
 {
 Q_OBJECT
 
+Q_SIGNALS:
+	void need_to_set_delete_path( QString );;
+
 public:
     ProjectInfoPage( QWidget *parent = 0 );
 	
 protected:
     void initializePage();
+    
+	// VALIDATEPAGE:
+	// function that is called right after the next button is clicked and used to process
+	// the entered data so it can be passed to the next page
+	virtual bool validatePage();
 
 private:
     QLabel *project_name_label_;
@@ -72,6 +86,7 @@ private:
     QLineEdit *project_name_lineedit_;
     QLineEdit *project_path_lineedit_;
     QPushButton *project_path_change_button_;
+    QLabel *warning_message_;
 
 private Q_SLOTS:
     void set_path();
@@ -90,7 +105,7 @@ protected:
 private:
 	QLabel *description_;
     QLabel *project_name_;
-    QLabel *project_path_;
+    QLabel *project_location_;
 
 };
 

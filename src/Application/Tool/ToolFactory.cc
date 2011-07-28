@@ -40,6 +40,8 @@
 
 // Core includes
 #include <Core/State/StateIO.h>
+#include <Core/Utils/Exception.h>
+#include <Core/Utils/Log.h>
 
 // Application includes
 #include <Application/Tool/ToolFactory.h>
@@ -302,7 +304,7 @@ void ToolFactory::save_settings()
 	boost::filesystem::path config_path;
 	Core::Application::Instance()->get_config_directory( config_path );
 	Core::StateIO state_io;
-	state_io.initialize( "Seg3D2" );
+	state_io.initialize();
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		this->save_states( state_io );

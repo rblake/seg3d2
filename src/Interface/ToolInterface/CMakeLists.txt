@@ -67,6 +67,9 @@ SET(INTERFACE_TOOLINTERFACE_SRCS
   FlipToolInterface.cc
   TransformToolInterface.cc
   ClipboardToolInterface.cc
+  MeasurementToolInterface.cc
+  PointSetFilterInterface.cc
+  SpeedlineToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
@@ -105,9 +108,20 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   FlipToolInterface.h
   TransformToolInterface.h
   ClipboardToolInterface.h
+  MeasurementToolInterface.h 
+  detail/MeasurementTableView.h
+  detail/MeasurementTableModel.h
+  detail/MeasurementItemDelegate.h
+  detail/MeasurementTextEdit.h
+  PointSetFilterInterface.h
+  SpeedlineToolInterface.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
+  detail/MeasurementTableView.cc
+  detail/MeasurementTableModel.cc
+  detail/MeasurementItemDelegate.cc
+  detail/MeasurementTextEdit.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_UI_SRCS
@@ -146,6 +160,9 @@ SET(INTERFACE_TOOLINTERFACE_UI_SRCS
   FlipToolInterface.ui
   TransformToolInterface.ui
   ClipboardToolInterface.ui
+  MeasurementToolInterface.ui
+  PointSetFilterInterface.ui
+  SpeedlineToolInterface.ui
 )
 
 ##################################################
@@ -195,12 +212,10 @@ TARGET_LINK_LIBRARIES(Interface_ToolInterface
                       QtUtils_Widgets
 					  QtUtils_Bridge
 					  Interface_Application
-					  Resources_QtResources
                       ${QT_LIBRARIES} 
                       ${SCI_BOOST_LIBRARY})
 
 # Register action classes
 REGISTER_LIBRARY_AND_CLASSES(Interface_ToolInterface
             ${INTERFACE_TOOLINTERFACE_SRCS})
-
 

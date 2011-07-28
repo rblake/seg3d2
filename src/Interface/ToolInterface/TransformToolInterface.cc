@@ -26,6 +26,10 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Interface/Interface.h>
+#include <Core/Utils/Log.h>
+
 //QtUtils Includes
 #include <QtUtils/Bridge/QtBridge.h>
 
@@ -62,10 +66,8 @@ bool TransformToolInterface::build_widget( QFrame* frame )
 {
 	//Step 1 - build the Qt GUI Widget
 	this->private_->ui_.setupUi( frame );
-	this->private_->ui_.horizontalLayout_13->setAlignment( Qt::AlignHCenter );
 	this->private_->ui_.horizontalLayout_7->setAlignment( Qt::AlignHCenter );
 	
-
 	//Step 2 - get a pointer to the tool
 	ToolHandle base_tool_ = tool();
 	TransformTool* tool = dynamic_cast< TransformTool* > ( base_tool_.get() );
@@ -100,7 +102,7 @@ bool TransformToolInterface::build_widget( QFrame* frame )
 		tool->use_active_group_state_, true ); 
 	QtUtils::QtBridge::Enable( this->private_->ui_.execute_button_, tool->valid_target_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
-
+	
 	//Send a message to the log that we have finished with building the Flip Tool Interface
 	CORE_LOG_DEBUG( "Finished building a Transform Tool Interface" );
 

@@ -37,9 +37,6 @@
 
 // Applications
 #include <Application/UndoBuffer/UndoBuffer.h>
-#ifdef BUILD_WITH_PYTHON
-#include <Application/PythonModule/PythonInterpreter.h>
-#endif
 
 // QtUtils includes
 #include <QtUtils/Bridge/QtBridge.h>
@@ -80,10 +77,14 @@ ControllerInterface::ControllerInterface( QWidget* parent ) :
 	QtUtils::QtCustomDialog( parent ), 
 	private_( new ControllerInterfacePrivate )
 {
-
 	// Step 1: Setup the private structure and allocate all the needed structures
 	private_->ui_.setupUi( this );
 	private_->context_ = Core::ActionContextHandle( new ControllerContext( this ) );
+	
+	// Update the title of the dialog
+	std::string title = std::string( "Controller - "  )
+		+ Core::Application::GetApplicationNameAndVersion();
+	this->setWindowTitle( QString::fromStdString( title ) );
 	
 	// Step 1.5: Remove the help button and set the icon because removing the button can occasionaly
 	// cause problems with it
@@ -132,6 +133,8 @@ ControllerInterface::ControllerInterface( QWidget* parent ) :
 	this->private_->ui_.TV_UNDOBUFFER->setColumnWidth( 1, 200 );
 	this->private_->ui_.TV_UNDOBUFFER->resizeRowsToContents();
 	this->private_->ui_.TV_REDOBUFFER->resizeRowsToContents();
+	
+	this->private_->ui_.TW_CONTROLLER->setCurrentIndex( 0 );
 
 
 	// Get the list of actions
@@ -189,9 +192,6 @@ void ControllerInterface::post_action()
 	std::string action_error;
 	std::string action_usage;
 
-#ifdef BUILD_WITH_PYTHON
-	PythonInterpreter::Instance()->run_string( action_string );
-#else
 	Core::ActionHandle action;
 	if ( !( Core::ActionFactory::CreateAction( action_string, action, action_error, action_usage ) ) )
 	{
@@ -203,7 +203,6 @@ void ControllerInterface::post_action()
 	{
 		Core::ActionDispatcher::PostAction( action, private_->context_ );
 	}
-#endif
 }
 
 void ControllerInterface::post_action_message( std::string message )

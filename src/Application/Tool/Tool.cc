@@ -34,7 +34,7 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Tool/Tool.h>
 #include <Application/Tool/ToolFactory.h>
 
@@ -171,13 +171,20 @@ bool Tool::handle_key_press( ViewerHandle viewer, int key, int modifiers )
 	return false;
 }
 
+bool Tool::handle_key_release( ViewerHandle viewer, int key, int modifiers )
+{
+	// Default implementation doesn't handle this event
+	return false;
+}
+
 bool Tool::handle_update_cursor( ViewerHandle viewer )
 {
 	// Default implementation doesn't handle this event
 	return false;
 }
 
-void Tool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
+void Tool::redraw( size_t viewer_id, const Core::Matrix& proj_mat, 
+	int viewer_width, int viewer_height )
 {
 }
 

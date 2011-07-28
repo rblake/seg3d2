@@ -29,8 +29,7 @@
 #ifndef CORE_STATE_ACTIONS_ACTIONGET_H
 #define CORE_STATE_ACTIONS_ACTIONGET_H
 
-#include <Core/Action/Actions.h>
-#include <Core/Interface/Interface.h>
+#include <Core/Action/Action.h>
 
 namespace Core
 {
@@ -47,11 +46,7 @@ CORE_ACTION_ARGUMENT( "stateid", "The name of the state variable." )
 public:
 	ActionGet()
 	{
-		add_argument( stateid_ );
-	}
-
-	virtual ~ActionGet()
-	{
+		this->add_parameter( this->stateid_ );
 	}
 
 	// -- Functions that describe action --
@@ -61,7 +56,7 @@ public:
 	// -- Action parameters --
 private:
 	// This one describes where the state is located
-	ActionParameter< std::string > stateid_;
+	std::string stateid_;
 
 	// -- Action optimization --
 private:
@@ -71,11 +66,6 @@ private:
 
 	// -- Create and dispatch this action --
 public:
-
-	// CREATE:
-	// Create the action but do not dispatch it yet
-	static ActionHandle Create( StateBaseHandle& state );
-
 	// DISPATCH:
 	// Dispatch the action from the specified context
 	static void Dispatch( ActionContextHandle context, StateBaseHandle& state );

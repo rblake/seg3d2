@@ -9,7 +9,7 @@
  
  Permission is hereby granted, free of charge, to any person obtaining a
  copy of this software and associated documentation files (the "Software"),
- to deal in the Software without restriction, including without limitation
+ to deal in the Software without restriction, including without limitationø
  the rights to use, copy, modify, merge, publish, distribute, sublicense,
  and/or sell copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following conditions:
@@ -48,6 +48,7 @@ public:
 
 QtLogSliderIntCombo::QtLogSliderIntCombo( QWidget* parent ) :
 	QWidget( parent ),
+	value_( 0 ),
 	private_( new QtLogSliderIntComboPrivate )
 {
     this->private_->ui_.setupUi( this );
@@ -57,23 +58,27 @@ QtLogSliderIntCombo::QtLogSliderIntCombo( QWidget* parent ) :
     this->connect( this->private_->ui_.spinBox, SIGNAL( valueChanged( int ) ), 
 		this, SLOT( spinner_signal( int ) ) );
 	
-#if defined ( __APPLE__ )  
-	QFont font;
+	this->private_->ui_.horizontalSlider->setTickPosition( QSlider::NoTicks );
+
+	QFont font = this->private_->ui_.min_->font();
+#ifdef __APPLE__
 	font.setPointSize( 10 );
+#else
+	font.setPointSize( 8 );
+#endif
 	this->private_->ui_.min_->setFont( font );
 	this->private_->ui_.max_->setFont( font );
 	this->private_->ui_.spinBox->setFont( font );
-#endif
 
-    this->private_->ui_.decrease_range_button_->hide();
-    this->private_->ui_.increase_range_button_->hide();
-	this->private_->ui_.edit_button_->hide();
-	
-	this->private_->ui_.horizontalSlider->setTickPosition( QSlider::NoTicks );
 }
 
 QtLogSliderIntCombo::~QtLogSliderIntCombo()
 {
+}
+	
+void QtLogSliderIntCombo::set_description( std::string description )
+{
+	this->private_->ui_.description_->setText( QString::fromStdString( description ) );
 }
 
 void QtLogSliderIntCombo::spinner_signal( int value )

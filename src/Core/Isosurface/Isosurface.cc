@@ -29,6 +29,9 @@
 // STL includes
 #include <fstream>
 
+// Boost includes
+#include <boost/array.hpp>
+ 
 // Core includes
 #include <Core/DataBlock/StdDataBlock.h>
 #include <Core/Isosurface/Isosurface.h>
@@ -45,7 +48,7 @@ namespace Core
 
 typedef struct {
 	int edges_[15]; // Vertex indices for at most 5 triangles
-	int num_triangles_; 
+	int num_triangles_; // Last number in each table entry
 } MarchingCubesTableType;
 
 // Precalculated array of 256 possible polygon configurations (2^8 = 256) within the cube
@@ -311,6 +314,35 @@ const MarchingCubesTableType MARCHING_CUBES_TABLE_C[] = {
 	{{ 0,  8,  3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 1},
 	{{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 0}};
 
+typedef struct {
+	int points_[12]; // Vertex indices for at most 4 triangles
+	int num_triangles_; // Last number in each table entry
+} CappingTableType;
+
+// Precalculated array of 16 possible polygon configurations (2^4 = 16) within the cell.
+// 16x13 table of integer values, which are used as indices for the array of 8 points (4 vertices, 4 edges) of 
+// intersection. It defines the right order to connect the intersected edges to form triangles. 
+// The process for one cell stops when index of -1 is returned from the table, forming a maximum of 
+// 4 triangles. 
+// For example: {{tri1.p1, tri1.p2, tri1.p3, tri2.p1, tri2.p2, tri2.p3, tri3.p1, tri3.p2, tri3.p3, 
+// tri4.p1, tri4,p2, tri4.p3}, num_tri}
+const CappingTableType CAPPING_TABLE_C[] = {
+	{{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 0},	// 0
+	{{0, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 1},		// 1
+	{{4, 1, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 1},		// 2
+	{{0, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1}, 2},		// 3
+	{{6, 5, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 1},		// 4
+	{{0, 4, 7, 7, 4, 5, 7, 5, 6, 6, 5, 2}, 4},				// 5
+	{{4, 1, 6, 6, 1, 2, -1, -1, -1, -1, -1, -1}, 2},		// 6
+	{{0, 6, 7, 0, 1, 6, 6, 1, 2, -1, -1, -1}, 3},			// 7
+	{{7, 6, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 1},		// 8 
+	{{0, 4, 3, 3, 4, 6, -1, -1, -1, -1, -1, -1}, 2},		// 9
+	{{7, 6, 3, 7, 4, 6, 4, 5, 6, 4, 1, 5}, 4},				// 10
+	{{0, 6, 3, 0, 5, 6, 0, 1, 5, -1, -1, -1}, 3},			// 11
+	{{7, 5, 3, 3, 5, 2, -1, -1, -1, -1, -1, -1}, 2},		// 12
+	{{0, 5, 3, 0, 4, 5, 3, 5, 2, -1, -1, -1}, 3},			// 13
+	{{7, 4, 3, 3, 4, 2, 4, 1, 2, -1, -1, -1}, 3},			// 14
+	{{0, 1, 3, 3, 1, 2, -1, -1, -1, -1, -1, -1}, 2}};		// 15
 
 class VertexBufferBatch
 {
@@ -334,13 +366,21 @@ public:
 	void parallel_downsample_mask( int thread, int num_threads, boost::barrier& barrier, 
 		double quality_factor );
 
+	// Copy values to members just to simplify and shorten code.  Must be called after downsample
+	// and before face computation.
+	void compute_setup();
+
 	// SETUP:
-	// Setup the algorithm and the buffers
-	void compute_setup( int num_threads );
+	// Setup the algorithm and the buffers for face computation
+	void compute_faces_setup( int num_threads );
 
 	// PARALLEL_COMPUTE_FACES:
 	// Parallelized isosurface computation algorithm 
 	void parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier );
+
+	void translate_cap_coords( int cap_num, float i, float j, float& x, float& y, float& z );
+
+	size_t get_data_index( float x, float y, float z );
 
 	// COMPUTE_CAP_FACES:
 	// Compute the "cap" faces at the boundary of the mask volume to handle the case where the 
@@ -357,6 +397,7 @@ public:
 	void upload_to_vertex_buffer();
 
 	void reset();
+	
 
 	// Pointer to public Isosurface -- needed to give access to public signals
 	Isosurface* isosurface_;
@@ -379,13 +420,14 @@ public:
 	std::vector< VectorF > normals_; 
 	std::vector< unsigned int > faces_; // unsigned int because GL expects this
 	std::vector< float > values_; // Should be in range [0, 1]
+	float area_; // Surface area of the isosurface
 
 	// Single colormap shared by all isosurfaces
 	ColorMapHandle color_map_;
 
 	// Algorithm data & buffers
 	unsigned char* data_; // Mask data is stored in bit-plane (8 masks per data block)
-	size_t nx_, ny_, nz_; // Mask dimensions
+	size_t nx_, ny_, nz_; // Mask dimensions of original or downsampled volume depending on quality
 	size_t elem_nx_, elem_ny_, elem_nz_; // Number of (marching) cubes
 
 	std::vector<unsigned char> type_buffer_; 
@@ -400,8 +442,9 @@ public:
 	std::vector< std::pair<unsigned int, unsigned int> > part_faces_;
 	std::vector< std::vector< unsigned int > > part_indices_;
 
-	std::vector<std::vector< PointF > > new_points_; 
-	std::vector<std::vector< StackVector< size_t, 3 > > > new_elems_;
+	std::vector< std::vector< PointF > > new_points_; 
+	std::vector< std::vector< StackVector< size_t, 3 > > > new_elems_;
+	std::vector< float > new_elem_areas_;
 
 	std::vector< size_t > front_offset_;
 	std::vector< size_t > back_offset_;
@@ -564,24 +607,27 @@ void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads,
 	}
 }
 
-void IsosurfacePrivate::compute_setup( int num_threads )
+void IsosurfacePrivate::compute_setup()
 {
 	this->nx_ = this->compute_mask_volume_->get_mask_data_block()->get_nx();
 	this->ny_ = this->compute_mask_volume_->get_mask_data_block()->get_ny();
 	this->nz_ = this->compute_mask_volume_->get_mask_data_block()->get_nz();
-
-	// Number of elements (cubes) in each dimension
-	this->elem_nx_ = this->nx_ - 1;
-	this->elem_ny_ = this->ny_ - 1;
-	this->elem_nz_ = this->nz_ - 1;
 
 	// Mask data is stored in bit-plane (8 masks per data block)
 	this->data_ = this->compute_mask_volume_->get_mask_data_block()->get_mask_data();
 
 	// Bit where mask bit is stored
 	this->mask_value_ = this->compute_mask_volume_->get_mask_data_block()->get_mask_value();
+}
 
-	// Stores index into polgyon configuration table for each element (cube)?
+void IsosurfacePrivate::compute_faces_setup( int num_threads )
+{
+	// Number of elements (cubes) in each dimension
+	this->elem_nx_ = this->nx_ - 1;
+	this->elem_ny_ = this->ny_ - 1;
+	this->elem_nz_ = this->nz_ - 1;
+
+	// Stores index into polygon configuration table for each element (cube)?
 	// Why +1?  Maybe just padding for safety?
 	this->type_buffer_.resize( ( this->nx_ + 1 ) * ( this->ny_ + 1 ) );
 	// For each element (cube), holds edge ID (12 edges) back_buffer_x, back_buffer_y, 
@@ -597,6 +643,8 @@ void IsosurfacePrivate::compute_setup( int num_threads )
 
 	// Vector of face indices per triangle, per thread
 	this->new_elems_.resize( num_threads );
+	// Surface areas of generated triangles per thread
+	this->new_elem_areas_.resize( num_threads, 0 );
 	// Offset allows zero-based indexing over multiple slices
 	this->front_offset_.resize( num_threads, 0 );
 	this->back_offset_.resize( num_threads, 0 ); 
@@ -645,7 +693,7 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 	// Setup the algorithm and the buffers
 	if ( thread == 0 ) // Only need to setup once 
 	{
-		this->compute_setup( num_threads ); 
+		this->compute_faces_setup( num_threads ); 
 	}
 
 	// An object of class barrier is a synchronization primitive used to cause a set of threads 
@@ -1064,6 +1112,10 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 						elems[ 2 ] = ( p3 & 0x00FFFFFF ) + this->front_offset_[ p3>>24 ];            
 					}
 					elements.push_back( elems );
+					// Add the area of the triangle to the total
+					this->new_elem_areas_[ thread ] += 0.5f * 
+						Cross( this->points_[ elems[ 1 ] ] - this->points_[ elems[ 0 ] ], 
+						this->points_[ elems[ 2 ] ] - this->points_[ elems[ 0 ] ] ).length();
 				}
 			}
 		}
@@ -1115,133 +1167,416 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 	}   
 
 	barrier.wait();
+
+	// Add up surface areas computed in all threads
+	if ( thread == 0 )
+	{
+		for ( int p = 0; p < num_threads; ++p )
+		{
+			this->area_ += this->new_elem_areas_[ p ];
+		}
+	}
+	
+	barrier.wait();
+}
+
+//  Translates border face coords (i, j) to volume coords (x, y, z).  
+
+
+void IsosurfacePrivate::translate_cap_coords( int cap_num, float i, float j, 
+	float& x, float& y, float& z )
+{
+	switch( cap_num )
+	{
+		case 0: // x, y, z = 0 (front)
+			x = i;
+			y = j;
+			z = 0;
+			break;
+		case 1: // x, z, y = 0  (top) 
+			x = i;
+			y = 0;
+			z = j;
+			break;
+		case 2: // y, z, x = 0 (left)
+			x = 0;
+			y = i;
+			z = j;
+			break;
+		case 3: // x, y, z = nz - 1 (back)
+			x = i;
+			y = j;
+			z = static_cast< float >( this->nz_ - 1 );
+			break;
+		case 4: // x, z, y = ny - 1 (bottom)
+			x = i;
+			y = static_cast< float >( this->ny_ - 1 );
+			z = j;
+			break;
+		case 5: // y, z, x = nx - 1 (right)
+			x = static_cast< float >( this->nx_ - 1 );
+			y = i;
+			z = j;
+			break;
+		default:
+			x = y = z = 0;
+			break;
+	}
+}
+
+size_t IsosurfacePrivate::get_data_index( float x, float y, float z )
+{
+	size_t data_index = ( static_cast< size_t >( z ) * this->nx_ * this->ny_ ) + 
+		( static_cast< size_t >( y ) * this->nx_ ) + static_cast< size_t >( x );
+	return data_index;
 }
 
 /*
 Basic ideas:
 - Marching cubes:
-  - Each "cube" has a configuration of on/off nodes that can be represented as and 8-bit bitmask.
-    The bitmask can be used as an index into a 256 (2^8) entry lookup table of predefined, generic
+  - Each "cube" has a configuration of on/off nodes that can be represented as an 8-bit bitmask.
+    The bitmask can be used as an index into a 256 (2^8) entry lookup table of predefined, canonical
     facet combinations.
   - A naive implementation of marching cubes would just process each cube 
     independently and add all the faces (points and indices) for that cube.  The problem with this 
     approach is that points end up in the points list multiple times (more GPU memory) and edges get 
     evaluated multiple times (once for each cube they belong to, up to 4).  To avoid this we process edges 
-    one at a time by running through them horizontally and vertically.  For each edge that is split,
-    we add a point to the points list.  At this point we have a list of points as well as a generic facet
+    one at a time by running through them horizontally and vertically.  For each edge that is split (one vertex is "on" and the other is "off"),
+    we add a point to the points list.  At this point we have a list of points as well as a canonical facet
     combination for each cube.  We want to build triangles.  What we need is a way to map the canonical edge indices in the facet 
     combination to indices of actual points in the points list.  So while we are examining edges we 
-    build a translation table to keep track of what canonical index an split edge point belongs to for 
-    each adjacent cube.  For each cube we can look up the point index for each canonical index in that 
+    build a translation table to keep track of what canonical index a split edge point belongs to for 
+    each cube adjacent to the edge.  For each cube we can look up the point index for each canonical index in that 
     cube's facet combination.  This 2D array looks like 
     cubes[cube_index][canonical_edge_index] = point_index.  
 	Size: cubes[num cubes][12 (edges per cube)]
 	We're translating this data:
     cube type -> facet combo -> canonical edge index -> actual point index -> point
-  - Normally in marching cubes the edge points are interpolation between the vertex values, but for
+  - Normally in marching cubes the edge points are linearly interpolated between the vertex values, but for
 	for binary images we always place the edge points in the middle of the edge.
 - Isosurface capping
-  - Generating isosurface geometry for the 6 border faces of the volume is a 2D operation since each
+  - Generating isosurface geometry for the 6 caps of the volume is a 2D operation since each
     of the 6 faces is a 2D image.  Therefore, instead of calling the elements "cubes," we call them 
     "cells."
-  - We need a different facet combo type table for border faces.
-  - For border faces, both nodes and edges can potentially be added to the list of points.  This is 
-    because there would be edge points between the border faces and the imaginary outside padding, but
+  - We need a different facet combo type table for caps.
+  - For caps, both nodes and edge center-points can potentially be added to the list of points.  This is 
+    because there would be edge points between the caps and the imaginary outside padding, but
     these points get clamped to the nodes on the border.  In fact, all border nodes that are "on" are
     included as points because they are all adjacent to the imaginary padding that is "off."  This
 	means that the canonical point indices must include both nodes and edge points, amounting to 
 	8 canonical indices for a cell (4 nodes, 4 edge points).
 */
+// Naive implementation -- needs to be optimized!
 void IsosurfacePrivate::compute_cap_faces()
 {
-	// TODO Create lookup table for border cells.  Size = 2^4 = 16
-	// How are facet combos stored?
-	// type_table
-	// TODO Figure out how to handle x/y/z indices for border faces so that code doesn't have to
-	// be duplicated for each face
-		// x, y, z = 0
-		// x, y, z = nz - 1
-		// x, z, y = 0
-		// x, z, y = ny - 1
-		// y, z, x = 0
-		// y, z, x = nx - 1
+	// TODO Figure out how to handle x/y/z indices for caps so that code doesn't have to
+	// be duplicated for each cap
+		
 	// Solution A: have function that translates (i, j) to (x, y, z).  Try this first.
-	// Solution B (faster): Have (i, j, k) Vector offsets based on face.  Add at end of loops.
+	// Solution B (faster): Have (i, j, k) Vector offsets based on cap.  Add at end of loops.
 
-	// Process 6 border faces independently.  A most this will duplicate volume edges nodes twice.
-	// For each of 6 border faces
+	// Process 6 caps independently.  At most this will duplicate volume edge nodes twice.
+	
+	size_t nx = this->nx_; // Store local copy just to make code more concise
+	size_t ny = this->ny_;
+	size_t nz = this->nz_;
+	std::vector< std::pair< size_t, size_t > > cap_dimensions;
+	cap_dimensions.push_back( std::make_pair( nx, ny ) ); // front and back caps
+	cap_dimensions.push_back( std::make_pair( nx, nz ) ); // top and bottom caps
+	cap_dimensions.push_back( std::make_pair( ny, nz ) ); // left and right side caps
+	PointF elem_vertices[ 3 ]; // Temporary storage for triangle vertices
 
+	// For each of 6 caps
+	for( int cap_num = 0; cap_num < 6; cap_num++ )
+	{
+		unsigned int min_point_index = static_cast< unsigned int >( this->points_.size() );
+		unsigned int min_face_index = static_cast< unsigned int >( this->faces_.size() );
+
+		// Each 
 		// STEP 1: Find cell types
+
+		// Calculate ni, nj for this face
+		size_t ni = cap_dimensions[ cap_num % 3 ].first;
+		size_t nj = cap_dimensions[ cap_num % 3 ].second;
 
 		// Since each cell has 4 nodes, we only need a char to represent the type.  Only using bits
 		// 0 - 3.
 		// Create an array of type per index
-		// unsigned char cell_types[ num_cells = ( ni - 1 ) * ( nj - 1 ) ]
-		// Loop through all 2D cells 
-		// cell_index = 0;
-		// for( j = 0; j < nj - 1; j++ )
-			// for( i = 0; i < ni - 1; i++ )
+		size_t num_cells = ( ni - 1 )* ( nj - 1 );
+		std::vector< unsigned char > cell_types( num_cells );
+		// Loop through all 2D cells to find each cell type
+		size_t cell_index = 0;
+		bool some_nodes_on = false;
+		for( float j = 0; j < nj - 1; j++ )
+		{
+			for( float i = 0; i < ni - 1; i++ )
+			{
 				// Build type
-				// char cell_type = 0;
-				// Check each of 4 nodes in cell to see if they are "on" on mask.  If so, turn on bit.
-				// Add the type to a vector of chars, one for each cell index
-				// cell_types[ cell_index ] = cell_type;
-				// cell_index++ 
+				// type = index into polygonal configuration table
+				unsigned char cell_type = 0;
+
+				// A 4 bit index is formed where each bit corresponds to a vertex 
+				// Bit on if vertex is inside surface, off otherwise
+				float x, y, z;
+				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
+				size_t data_index = this->get_data_index( x, y, z );
+				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x1;
+				
+				this->translate_cap_coords( cap_num, i + 1, j, x, y, z ); 
+				data_index = this->get_data_index( x, y, z );
+				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x2;
+
+				this->translate_cap_coords( cap_num, i + 1, j + 1, x, y, z ); 
+				data_index = this->get_data_index( x, y, z );
+				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x4;
+
+				this->translate_cap_coords( cap_num, i, j + 1, x, y, z ); 
+				data_index = this->get_data_index( x, y, z );
+				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x8;
+
+				cell_types[ cell_index ] = cell_type;
+				cell_index++; 
+
+				if( cell_type != 0 )
+				{
+					some_nodes_on = true;
+				}
+			}
+		}
+
+		// If no border nodes for this cap are on, skip this cap
+		if( !some_nodes_on )
+		{
+			continue;
+		}
 
 		// STEP 2: Add nodes to points list and translation table
 
 		// Create translation table (2D matrix storing indices into actual points vector)
 		// size_t point_trans_table[num cells = (nx - 1) * (ny - 1)][8 canonical indices (4 nodes, 4 edge points)]
+		std::vector< boost::array< unsigned int, 8 > > point_trans_table( num_cells );
+
+		// Get mask transform from MaskVolume 
+		GridTransform grid_transform = this->compute_mask_volume_->get_grid_transform();
 
 		// All border nodes that are "on" are included as points because they are all adjacent to 
 		// the imaginary padding that is "off." 
-		// Loop over i & j 
-			// Translate (i, j) to (x, y, z) for this face
-			// Look up mask value at (x, y, z)
-			// If mask value on
-				// Transform point by mask transform
-				// node_point = grid_transform.project( Point( x, y, z);
-				// Add node to the points list.
-				// this->points_.push_back( node_point );
-				// Add the relevant canonical coordinates to the translation table for adjacent cells.
+		// Loop through all nodes
+		
+		for( float j = 0; j < nj; j++ )
+		{
+			for( float i = 0; i < ni; i++ )
+			{
+				// Translate (i, j) to (x, y, z) for this cap
+				float x, y, z;
+				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
+
+				// Look up mask value at (x, y, z)
+				size_t data_index = this->get_data_index( x, y, z );
+					
+				// If mask value on
+				if ( this->data_[ data_index ] & this->mask_value_ )
+				{
+					// Transform point by mask transform
+					PointF node_point = grid_transform.project( PointF( x, y, z ) );
+					// Add node to the points list.
+					this->points_.push_back( node_point );
+					unsigned int point_index = 
+						static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add relevant canonical coordinates to translation table for adjacent cells.
+					// Find indices and canonical coordinates of 1-4 adjacent cells
+
+					// Lower right cell index
+					if( i < ni - 1 && j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 0; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Lower left cell index
+					if( i > 0 && j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 1; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Upper left cell index
+					if( i > 0 && j > 0 )
+					{
+						size_t cell_index = 
+							static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 2; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Upper right cell index
+					if( i < ni - 1 && j > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 3; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
+			}
+		}
 
 		// STEP 3: Find edge nodes, add to points list and translation table
 
-		// Check horizontal edges
-			// If edge is "split" (one endpoint node is on and the other is off)
-				// Transform point by mask transform
-				// edge_point = grid_transform.project( Point( x, y, z);
-				// Add edge to the points list.
-				// this->points_.push_back( edge_point );
-				// Add the relevant canonical coordinates to the translation table for adjacent cells.
 		// Check vertical edges
-			// If edge is "split" (one endpoint node is on and the other is off)
-				// Transform point by mask transform
-				// edge_point = grid_transform.project( Point( x, y, z);
-				// Add edge to the points list.
-				// this->points_.push_back( edge_point );
-				// Add the relevant canonical coordinates to the translation table for adjacent cells.
+		for( float j = 0; j < nj - 1; j++ )
+		{
+			for( float i = 0; i < ni; i++ )
+			{
+				// Find endpoint nodes
+				float start_x, start_y, start_z;
+				this->translate_cap_coords( cap_num, i, j, start_x, start_y, start_z ); 
+				float end_x, end_y, end_z;
+				this->translate_cap_coords( cap_num, i, j + 1, end_x, end_y, end_z ); 
 
+				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
+				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
+					
+				// If edge is "split" (one endpoint node is on and the other is off)
+				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
+				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
+				if ( start_bit != end_bit )
+				{
+					// Find edge point
+					float edge_x, edge_y, edge_z;
+					this->translate_cap_coords( cap_num, i, j + 0.5f, 
+						edge_x, edge_y, edge_z ); 
+
+					// Transform point by mask transform
+					PointF edge_point = grid_transform.project( PointF( edge_x, edge_y, edge_z) );
+					// Add edge to the points list.
+					this->points_.push_back( edge_point );
+					unsigned int point_index = 
+						static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+
+					// Left cell index
+					if( i > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 5; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+
+					// Right cell index
+					if( i < ni - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 7; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
+			}
+		}
+
+		// Check horizontal edges
+		for( float j = 0; j < nj; j++ )
+		{
+			for( float i = 0; i < ni - 1; i++ )
+			{
+				// Find endpoint nodes
+				float start_x, start_y, start_z;
+				this->translate_cap_coords( cap_num, i, j, start_x, start_y, start_z ); 
+				float end_x, end_y, end_z;
+				this->translate_cap_coords( cap_num, i + 1, j, end_x, end_y, end_z ); 
+
+				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
+				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
+
+				// If edge is "split" (one endpoint node is on and the other is off)
+				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
+				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
+				if ( start_bit != end_bit )
+				{
+					// Find edge point
+					float edge_x, edge_y, edge_z;
+					this->translate_cap_coords( cap_num, i + 0.5f, j, 
+						edge_x, edge_y, edge_z ); 
+
+					// Transform point by mask transform
+					PointF edge_point = grid_transform.project( PointF( edge_x, edge_y, edge_z) );
+					// Add edge to the points list.
+					this->points_.push_back( edge_point );
+					unsigned int point_index = 
+						static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+
+					// Upper cell index
+					if( j > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 6; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+
+					// Lower cell index
+					if( j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 4; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
+			}
+		}
+		
 		// STEP 4: Create face geometry (points + triangle indices)
 
 		// Add points list to existing vertex list
 		// For each cell
-		// for( cell_index = 0; cell_index < ( ni - 1 ) * ( nj - 1 ); cell_index++ )
+		for( size_t cell_index = 0; cell_index < num_cells; cell_index++ )
+		{
 			// Lookup cell type (already stored in a 1D vector)
-			// unsigned char cell_type = cell_types[ cell_index ];
+			unsigned char cell_type = cell_types[ cell_index ];
 			
 			// Couldn't I just look up type on the fly here?  Or does that make parallelization harder?
 			// Look up the facet combo for this type
-			// tesselation = type_table[ cell_type ]
-			// For each face in the facet combo for this type
-			// OR For each triangle in the tesselation for this type
-			// for( triangle_index = 0; triangle_index < test.num_tri_; triangle_index++ )
-				// For each canonical index in the face
+			const CappingTableType& tesselation = CAPPING_TABLE_C[ cell_type ];
+
+			// For each triangle in the tesselation for this type
+			for( int triangle_index = 0; triangle_index < tesselation.num_triangles_; triangle_index++ )
+			{
+				// For each vertex in the triangle
+				for( int triangle_point_index = 0; triangle_point_index < 3; triangle_point_index++ )
+				{
+					// Find canonical index for the point
+					int canonical_index = 
+						tesselation.points_[ 3 * triangle_index + triangle_point_index ];
+				
 					// Look up the point index in the translation table for this cell 
-					// point_index = point_trans_table[ cell_index ][ canonical index ]
-					// Add this point index to the faces list
-					// this->faces_.push_back( point_index );
-	
+					unsigned int point_index = point_trans_table[ cell_index ][ canonical_index ];
+					// Store the point coordinates in the temporary variable
+					elem_vertices[ triangle_point_index ] = this->points_[ point_index ];
+					// Add point index to the faces list
+					this->faces_.push_back( point_index );
+				}
+				// Compute the area of  the triangle and add it to the total area
+				this->area_ += 0.5f * Cross( elem_vertices[ 1 ] - elem_vertices[ 0 ], 
+					elem_vertices[ 2 ] - elem_vertices[ 0 ] ).length();
+			}
+		}
+
+		// Create a rendering "patch" for each cap 
+		unsigned int max_point_index = static_cast< unsigned int >( this->points_.size() );
+		unsigned int max_face_index = static_cast< unsigned int >( this->faces_.size() );
+		if( min_point_index != max_point_index && min_face_index != max_face_index )
+		{
+			this->min_point_index_.push_back( min_point_index );
+			this->max_point_index_.push_back( max_point_index );
+
+			this->min_face_index_.push_back( min_face_index );
+			this->max_face_index_.push_back( max_face_index );
+		}
+	}
 }
 
 void IsosurfacePrivate::parallel_compute_normals( int thread, int num_threads, 
@@ -1423,7 +1758,8 @@ Isosurface::Isosurface( const MaskVolumeHandle& mask_volume ) :
 	//this->private_->color_map_ = ColorMapHandle( new ColorMap() );
 }
 
-void Isosurface::compute( double quality_factor, boost::function< bool () > check_abort )
+void Isosurface::compute( double quality_factor, bool capping_enabled, 
+	boost::function< bool () > check_abort )
 {
 	lock_type lock( this->get_mutex() );
 
@@ -1431,6 +1767,7 @@ void Isosurface::compute( double quality_factor, boost::function< bool () > chec
 	this->private_->normals_.clear();
 	this->private_->faces_.clear();
 	this->private_->values_.clear();
+	this->private_->area_ = 0;
 	this->private_->values_changed_ = false;
 	this->private_->check_abort_ = check_abort;
 
@@ -1440,6 +1777,7 @@ void Isosurface::compute( double quality_factor, boost::function< bool () > chec
 		// Initially assume we're computing the isosurface for the original volume (not downsampled)
 		this->private_->compute_mask_volume_ = this->private_->orig_mask_volume_;
 
+		// Downsample mask if needed
 		if( quality_factor != 1.0 )
 		{
 			assert( quality_factor == 0.5 || quality_factor == 0.25 || quality_factor == 0.125 );
@@ -1455,6 +1793,10 @@ void Isosurface::compute( double quality_factor, boost::function< bool () > chec
 			return;
 		}
 
+		// Copy values to members just to simplify and shorten code.
+		this->private_->compute_setup();
+
+		// Compute isosurface without caps
 		Parallel parallel_faces( boost::bind( &IsosurfacePrivate::parallel_compute_faces, 
 			this->private_, _1, _2, _3 ) );
 		parallel_faces.run();
@@ -1464,6 +1806,12 @@ void Isosurface::compute( double quality_factor, boost::function< bool () > chec
 			// leave it in a decent state
 			this->private_->reset();
 			return;
+		}
+
+		// Compute isosurface caps
+		if( capping_enabled )
+		{
+			this->private_->compute_cap_faces();
 		}
 	}
 
@@ -1499,6 +1847,7 @@ void Isosurface::compute( double quality_factor, boost::function< bool () > chec
 	this->private_->edge_buffer_.clear();
 	this->private_->new_points_.clear();
 	this->private_->new_elems_.clear();
+	this->private_->new_elem_areas_.clear();
 	this->private_->front_offset_.clear();
 	this->private_->back_offset_.clear();
 	
@@ -1703,11 +2052,23 @@ void Isosurface::redraw( bool use_colormap )
 		
 		vertex_buffer->set_buffer_data( vertex_size, 0, GL_STREAM_DRAW );
 		void* buffer = vertex_buffer->map_buffer( GL_WRITE_ONLY );
+		if ( buffer == 0 )
+		{
+			CORE_LOG_ERROR( "Failed to map OpenGL buffer, isosurface rendering will"
+				" be incomplete!" );
+			return;
+		}
 		memcpy( buffer, &this->private_->points_[ this->private_->part_points_[ i ].first ], vertex_size );
 		vertex_buffer->unmap_buffer();
 		
 		normal_buffer->set_buffer_data( normal_size, 0, GL_STREAM_DRAW );
 		buffer = normal_buffer->map_buffer( GL_WRITE_ONLY );
+		if ( buffer == 0 )
+		{
+			CORE_LOG_ERROR( "Failed to map OpenGL buffer, isosurface rendering will"
+				" be incomplete!" );
+			return;
+		}
 		memcpy( buffer, &this->private_->normals_[ this->private_->part_points_[ i ].first ], normal_size );
 		normal_buffer->unmap_buffer();
 		
@@ -1715,12 +2076,24 @@ void Isosurface::redraw( bool use_colormap )
 		{
 			value_buffer->set_buffer_data( value_size, 0, GL_STREAM_DRAW );
 			buffer = value_buffer->map_buffer( GL_WRITE_ONLY );
+			if ( buffer == 0 )
+			{
+				CORE_LOG_ERROR( "Failed to map OpenGL buffer, isosurface rendering will"
+					" be incomplete!" );
+				return;
+			}
 			memcpy( buffer, &this->private_->values_[ this->private_->part_points_[ i ].first ], value_size );
 			value_buffer->unmap_buffer();
 		}
 
 		face_buffer->set_buffer_data( face_size, 0, GL_STREAM_DRAW );
 		buffer = face_buffer->map_buffer( GL_WRITE_ONLY );
+		if ( buffer == 0 )
+		{
+			CORE_LOG_ERROR( "Failed to map OpenGL buffer, isosurface rendering will"
+				" be incomplete!" );
+			return;
+		}
 		memcpy( buffer, &this->private_->part_indices_[ i ][ 0 ], face_size );
 		face_buffer->unmap_buffer();
 
@@ -1795,6 +2168,12 @@ bool Isosurface::export_isosurface( const boost::filesystem::path& path,
 	}
 
 	return true;
+}
+
+float Isosurface::surface_area() const
+{
+	lock_type lock( this->get_mutex() );
+	return this->private_->area_;
 }
 
 } // end namespace Core

@@ -29,8 +29,12 @@
 #ifndef APPLICATION_TOOLS_ACTIONS_ACTIOINFLOODFILL_H
 #define APPLICATION_TOOLS_ACTIONS_ACTIOINFLOODFILL_H
 
+// Core includes
 #include <Core/Action/Action.h>
-#include <Application/LayerManager/LayerManager.h>
+
+// Application includes
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -56,33 +60,34 @@ public:
 	bool erase_;
 };
 
-class ActionFloodFill : public Core::Action
+class ActionFloodFill : public LayerAction
 {
 
 CORE_ACTION
 ( 
-	CORE_ACTION_TYPE( "Floodfill", "Flood fill the content of a mask slice "
+	CORE_ACTION_TYPE( "FloodFill", "Flood fill the content of a mask slice "
 		"starting from seed points." )
 	CORE_ACTION_ARGUMENT( "target", "The ID of the target mask layer." )
 	CORE_ACTION_ARGUMENT( "slice_type", "The slicing direction." )
 	CORE_ACTION_ARGUMENT( "slice_number", "The slice number to be filled." )
 	CORE_ACTION_ARGUMENT( "seed_points", "The world coordinates of seed points." )
-	CORE_ACTION_KEY( "data_constraint", "<none>", "The ID of data constraint layer." )
-	CORE_ACTION_KEY( "min_value", "0", "The minimum data constraint value." )
-	CORE_ACTION_KEY( "max_value", "0", "The maximum data constraint value." )
-	CORE_ACTION_KEY( "negative_data_constraint", "false", "Whether to negate the data constraint." )
-	CORE_ACTION_KEY( "mask_constraint1", "<none>", "The ID of first mask constraint layer." )
-	CORE_ACTION_KEY( "negative_mask_constraint1", "false", "Whether to negate the first mask constraint." )
-	CORE_ACTION_KEY( "mask_constraint2", "<none>", "The ID of second mask constraint layer." )
-	CORE_ACTION_KEY( "negative_mask_constraint2", "false", "Whether to negate the second mask constraint." )
-	CORE_ACTION_KEY( "erase", "false", "Whether to erase instead of fill." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "data_constraint", "<none>", "The ID of data constraint layer." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "min_value", "0", "The minimum data constraint value." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "max_value", "0", "The maximum data constraint value." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "negative_data_constraint", "false", "Whether to negate the data constraint." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "mask_constraint1", "<none>", "The ID of first mask constraint layer." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "negative_mask_constraint1", "false", "Whether to negate the first mask constraint." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "mask_constraint2", "<none>", "The ID of second mask constraint layer." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "negative_mask_constraint2", "false", "Whether to negate the second mask constraint." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "erase", "false", "Whether to erase instead of fill." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
 
 public:
 	ActionFloodFill();
-	virtual ~ActionFloodFill();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

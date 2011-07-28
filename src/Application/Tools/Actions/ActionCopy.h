@@ -26,11 +26,11 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_ACTIONS_ACTIOINCOPY_H
-#define APPLICATION_TOOLS_ACTIONS_ACTIOINCOPY_H
+#ifndef APPLICATION_TOOLS_ACTIONS_ACTIONCOPY_H
+#define APPLICATION_TOOLS_ACTIONS_ACTIONCOPY_H
 
-#include <Core/Action/Actions.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
@@ -38,7 +38,7 @@ namespace Seg3D
 class ActionCopyPrivate;
 typedef boost::shared_ptr< ActionCopyPrivate > ActionCopyPrivateHandle;
 
-class ActionCopy : public Core::Action
+class ActionCopy : public LayerAction
 {
 
 CORE_ACTION
@@ -47,13 +47,13 @@ CORE_ACTION
 	CORE_ACTION_ARGUMENT( "target", "The ID of the target mask layer." )
 	CORE_ACTION_ARGUMENT( "slice_type", "The slicing direction." )
 	CORE_ACTION_ARGUMENT( "slice_number", "The slice number to be copied." )
-	CORE_ACTION_KEY( "slot", "0", "Which clipboard slot to use." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "Which clipboard sandbox to use." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )
 	CORE_ACTION_IS_UNDOABLE()
 )
 
 public:
 	ActionCopy();
-	virtual ~ActionCopy();
 
 	// -- Functions that describe action --
 public:

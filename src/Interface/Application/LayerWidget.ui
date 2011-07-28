@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>269</width>
-    <height>635</height>
+    <width>286</width>
+    <height>642</height>
    </rect>
   </property>
   <property name="mouseTracking">
@@ -17,22 +17,50 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QWidget#background_{
-	background-color: rgb( 90, 90, 90 );
+   <string notr="true">QPushButton{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(221, 221, 221, 255), stop:0.155779 rgba(238, 238, 238, 255), stop:1 rgba(192, 194, 194, 255));
+	border-radius: 4px;
+	border: 1px solid rgb(90, 90, 90);
+	margin:4px;
+}
+
+QPushButton:hover{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(195, 195, 195, 255), stop:0.253769 rgba(206, 206, 206, 255), stop:1 rgba(185, 185, 185, 255));
+	border-radius: 4px;
+	border: 1px solid rgb(90, 90, 90);
+	margin:4px;
+}
+
+QPushButton:pressed{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(150, 150, 150, 255), stop:0.753769 rgba(206, 206, 206, 255), stop:1 rgba(185, 185, 185, 255));
+	border-radius: 4px;
+	border: 1px solid rgb(90, 90, 90);
+	margin:4px;
+}
+
+QWidget#background_{
+	background-color: rgb( 100, 100, 100 );
 }
 
 QLabel#facade_widget_{
 	background-color: rgba(0, 0, 0, 0);
 }
 
+QFrame#iso_control_separator_line_{
+	background-color: gray;
+}
+
 QWidget#base_{
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(211, 211, 211, 255), stop:0.155779 rgba(225, 225, 225, 255), 				stop:1 rgba(194, 194, 194, 255));
-	border: 1px solid gray;
-border-radius: 6px;
+border-radius: 3px;
+}
+
+QWidget#buttons_widget_{
+	border-top: 1px solid gray;
 }
 
 QToolButton#viewer_0_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 2px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -42,7 +70,7 @@ QToolButton#viewer_0_button_:checked{
 
 
 QToolButton#viewer_1_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 1px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -52,7 +80,7 @@ QToolButton#viewer_1_button_:checked{
 
 
 QToolButton#viewer_2_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 1px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -61,7 +89,7 @@ QToolButton#viewer_2_button_:checked{
 }
 
 QToolButton#viewer_3_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 1px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -70,7 +98,7 @@ QToolButton#viewer_3_button_:checked{
 }
 
 QToolButton#viewer_4_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 1px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -79,7 +107,7 @@ QToolButton#viewer_4_button_:checked{
 }
 
 QToolButton#viewer_5_button_{
-	border: 1px solid rgb( 90, 90, 90 );
+	border: 1px solid rgb( 100, 100, 100 );
 	border-radius: 3px;
 }
 
@@ -87,6 +115,14 @@ QToolButton#viewer_5_button_:checked{
 	background-color: rgb(255, 128, 0);
 }
 
+QLineEdit#label_{
+	text-align: left;
+	color: black;
+	background-color: rgba(255, 255, 255, 0);
+}
+/*QLineEdit#label_:focus{
+	background-color: rgb(255, 255, 255);
+}*/
 
 QWidget#type_{
 	background-color: rgb(255, 128, 0);
@@ -94,39 +130,26 @@ QWidget#type_{
 	border: 1px solid rgba(165, 165, 165, 200);
 }
 QWidget#typeGradient_{
-	border-radius: 3px;
+	border-radius: 2px;
 	border: 1px solid white;
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:0.960227, stop:0 rgba(0, 0, 0, 25), stop:0.258706 rgba(40, 40, 40, 0), stop:1 rgba(0, 0, 0, 30));
 }
 
-QLineEdit#label_{
-	text-align: left;
-	color: black;
-	selection-background-color: rgb( 237, 148, 31 );
-	selection-color: rgb( 255, 255, 255 );
-	background-color: rgba( 255, 255, 255, 0 );
-}
-QLineEdit#label_:focus{
-	background-color: rgba( 255, 255, 255, 100 );
-}
 
 /* Buttons */
 
 QToolButton{
 	background-color: rgba(0, 0, 0, 0);
-	border: 1px solid rgba(0, 0, 0, 0);
 }
 QToolButton:hover{
 	background-color: rgba( 0, 0, 0, 30 );
 }
 QToolButton:pressed{
 	background-color: rgba(0, 0, 0, 0);
-	border: 1px solid rgb(139, 139, 139);
 	margin:0;
 }
 QToolButton:checked{
 	background-color: rgba(0, 0, 0, 0);
-	border: 1px solid rgb(139, 139, 139);
 	margin:0;
 }
 
@@ -135,7 +158,6 @@ QPushButton#activate_button_{
 	margin-left:1px;
 	color: white;
 }
-
 </string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_22">
@@ -165,7 +187,7 @@ QPushButton#activate_button_{
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>45</height>
+          <height>43</height>
          </size>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -180,13 +202,13 @@ QPushButton#activate_button_{
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>45</height>
+             <height>43</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>45</height>
+             <height>43</height>
             </size>
            </property>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -194,16 +216,16 @@ QPushButton#activate_button_{
              <number>0</number>
             </property>
             <property name="leftMargin">
-             <number>3</number>
+             <number>2</number>
             </property>
             <property name="topMargin">
-             <number>1</number>
+             <number>0</number>
             </property>
             <property name="rightMargin">
-             <number>3</number>
+             <number>2</number>
             </property>
             <property name="bottomMargin">
-             <number>1</number>
+             <number>0</number>
             </property>
             <item>
              <widget class="QWidget" name="checkbox_widget_" native="true">
@@ -289,6 +311,9 @@ QPushButton#activate_button_{
                </property>
                <item>
                 <widget class="QWidget" name="typeGradient_" native="true">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -345,7 +370,7 @@ QPushButton#activate_button_{
                 <number>0</number>
                </property>
                <property name="leftMargin">
-                <number>4</number>
+                <number>2</number>
                </property>
                <property name="topMargin">
                 <number>0</number>
@@ -367,13 +392,13 @@ QPushButton#activate_button_{
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>18</height>
+                   <height>19</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>18</height>
+                   <height>19</height>
                   </size>
                  </property>
                  <property name="focusPolicy">
@@ -403,24 +428,17 @@ QPushButton#activate_button_{
                 </widget>
                </item>
                <item>
-                <widget class="Line" name="line">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QWidget" name="widget_2" native="true">
+                <widget class="QWidget" name="buttons_widget_" native="true">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>18</height>
+                   <height>20</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>18</height>
+                   <height>20</height>
                   </size>
                  </property>
                  <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -667,6 +685,21 @@ QPushButton#activate_button_{
                   </item>
                   <item>
                    <widget class="Line" name="iso_control_separator_line_">
+                    <property name="minimumSize">
+                     <size>
+                      <width>1</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>1</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true"/>
+                    </property>
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
                     </property>
@@ -906,7 +939,7 @@ QPushButton#activate_button_{
              <widget class="QWidget" name="bright_contrast_" native="true">
               <layout class="QVBoxLayout" name="verticalLayout_4">
                <property name="spacing">
-                <number>2</number>
+                <number>4</number>
                </property>
                <property name="margin">
                 <number>2</number>
@@ -920,19 +953,6 @@ QPushButton#activate_button_{
                   <property name="margin">
                    <number>0</number>
                   </property>
-                  <item>
-                   <widget class="QLabel" name="brigntness_label_">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>Brightness:</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="brightness_adjuster_" native="true"/>
                   </item>
@@ -949,31 +969,6 @@ QPushButton#activate_button_{
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="contrast_label_">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Contrast:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="contrast_adjuster_" native="true"/>
                   </item>
                  </layout>
@@ -988,13 +983,6 @@ QPushButton#activate_button_{
                   <property name="margin">
                    <number>0</number>
                   </property>
-                  <item>
-                   <widget class="QLabel" name="label_4">
-                    <property name="text">
-                     <string>Max:</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="display_max_adjuster_" native="true"/>
                   </item>
@@ -1011,26 +999,37 @@ QPushButton#activate_button_{
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="label_6">
-                    <property name="text">
-                     <string>Min:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <widget class="QtUtils::QtSliderDoubleCombo" name="display_min_adjuster_" native="true"/>
                   </item>
                  </layout>
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="adjust_minmax_checkbox_">
-                 <property name="toolTip">
-                  <string>Adjust the contrast/brightness by setting the minimum and maximum gray value</string>
+                <widget class="QWidget" name="widget_2" native="true">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
-                 <property name="text">
-                  <string>Adjust Min/Max</string>
-                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_25">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QCheckBox" name="adjust_minmax_checkbox_">
+                    <property name="toolTip">
+                     <string>Adjust the contrast/brightness by setting the minimum and maximum gray value</string>
+                    </property>
+                    <property name="text">
+                     <string>Adjust Min/Max</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </widget>
                </item>
                <item>
@@ -1050,6 +1049,12 @@ QPushButton#activate_button_{
                   </property>
                   <item>
                    <widget class="QPushButton" name="reset_brightness_contrast_button_">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>30</height>
+                     </size>
+                    </property>
                     <property name="toolTip">
                      <string>Reset contrast brightness to its default values</string>
                     </property>
@@ -1302,26 +1307,7 @@ QPushButton#activate_button_{
              <number>4</number>
             </property>
             <item>
-             <widget class="QWidget" name="widget_3" native="true">
-              <layout class="QVBoxLayout" name="verticalLayout_2">
-               <property name="spacing">
-                <number>2</number>
-               </property>
-               <property name="margin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="opacity_label_">
-                 <property name="text">
-                  <string>Opacity:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QtUtils::QtSliderDoubleCombo" name="opacity_adjuster_" native="true"/>
-               </item>
-              </layout>
-             </widget>
+             <widget class="QtUtils::QtSliderDoubleCombo" name="opacity_adjuster_" native="true"/>
             </item>
            </layout>
           </widget>
@@ -1477,6 +1463,82 @@ QPushButton#activate_button_{
              </widget>
             </item>
             <item>
+             <widget class="QWidget" name="centering_widget_" native="true">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_23">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="margin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_10">
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Centering:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="centering_label_">
+                 <property name="text">
+                  <string>node</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="widget_10" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_24">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="margin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_13">
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Provenance ID:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="provenance_id_">
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
              <widget class="QWidget" name="datainfo_widget_" native="true">
               <property name="minimumSize">
                <size>
@@ -1585,6 +1647,50 @@ QPushButton#activate_button_{
                    </widget>
                   </item>
                  </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="isosurface_area_widget_" native="true">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_26">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="margin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_4">
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Isosurface Area:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="isosurface_area_">
+                 <property name="text">
+                  <string>0</string>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -1710,6 +1816,12 @@ QPushButton#activate_button_{
                   </property>
                   <item>
                    <widget class="QPushButton" name="calculate_volume_button_">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>30</height>
+                     </size>
+                    </property>
                     <property name="toolTip">
                      <string>Calculate the volume in world space and index space</string>
                     </property>
@@ -1775,11 +1887,20 @@ QPushButton#activate_button_{
             </property>
             <item>
              <widget class="QWidget" name="widget_7" native="true">
-              <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,4,1">
                <property name="spacing">
+                <number>6</number>
+               </property>
+               <property name="leftMargin">
                 <number>2</number>
                </property>
-               <property name="margin">
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
                 <number>0</number>
                </property>
                <item>
@@ -1845,6 +1966,25 @@ QPushButton#activate_button_{
                  </property>
                  <property name="textVisible">
                   <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="stop_button_">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Finish</string>
                  </property>
                 </widget>
                </item>

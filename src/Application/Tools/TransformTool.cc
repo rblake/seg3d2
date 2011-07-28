@@ -43,7 +43,7 @@
 #include <Application/Tools/detail/MaskShader.h>
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/Filters/Actions/ActionTransform.h>
@@ -102,7 +102,7 @@ void TransformToolPrivate::handle_target_group_changed( std::string group_id )
 		return;
 	}
 
-	LayerGroupHandle layer_group = LayerManager::Instance()->get_layer_group( group_id );
+	LayerGroupHandle layer_group = LayerManager::Instance()->find_group( group_id );
 	const Core::GridTransform& grid_trans = layer_group->get_grid_transform();
 	Core::Point origin = grid_trans * Core::Point( 0, 0, 0 );
 	this->src_spacing_ = grid_trans * Core::Vector( 1, 1, 1 );
@@ -137,11 +137,14 @@ void TransformToolPrivate::handle_target_layers_changed()
 	for ( size_t i = 0; i < target_layers.size(); ++i )
 	{
 		std::string layer_id = target_layers[ i ];
-		Core::OptionLabelPairVector::const_iterator it = std::find_if( option_list.begin(),
-			option_list.end(), boost::lambda::bind( &Core::OptionLabelPair::first, 
-			boost::lambda::_1 ) == layer_id );
-		assert( it != option_list.end() );
-		preview_layers_list.push_back( *it );
+		for ( size_t j = 0; j < option_list.size(); j++ )
+		{
+			if ( option_list[ j ].first == layer_id )
+			{
+				preview_layers_list.push_back( option_list[ j ] );
+				break;
+			}
+		}
 	}
 	
 	this->tool_->preview_layer_state_->set_option_list( 	preview_layers_list );
@@ -453,15 +456,19 @@ void TransformTool::execute( Core::ActionContextHandle context )
  		this->origin_state_[ 1 ]->get(), this->origin_state_[ 2 ]->get() );
  	Core::Vector spacing( this->spacing_state_[ 0 ]->get(),
  		this->spacing_state_[ 1 ]->get(), this->spacing_state_[ 2 ]->get() );
- 	ActionTransform::Dispatch( context, this->target_layers_state_->get(), 
- 		origin, spacing, this->replace_state_->get() );
+	// Reverse the order of target layers
+	std::vector< std::string > target_layers = this->target_layers_state_->get();
+	std::reverse( target_layers.begin(), target_layers.end() );
+
+	ActionTransform::Dispatch( context, target_layers, origin, spacing, this->replace_state_->get() );
 	Core::Application::PostEvent( boost::bind( &Core::StateBool::set, 
 		this->show_preview_state_, false, Core::ActionSource::NONE_E ) );
 	Core::Application::PostEvent( boost::bind( &Core::StateBool::set, 
 		this->show_border_state_, false, Core::ActionSource::NONE_E ) );
 }
 
-void TransformTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
+void TransformTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+	int viewer_width, int viewer_height )
 {
 	ViewerHandle viewer = ViewerManager::Instance()->get_viewer( viewer_id );
 
@@ -510,7 +517,7 @@ void TransformTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat )
 
 		if ( show_preview )
 		{
-			LayerHandle layer = LayerManager::Instance()->get_layer_by_id( preview_layer );
+			LayerHandle layer = LayerManager::Instance()->find_layer_by_id( preview_layer );
 			switch ( layer->get_type() )
 			{
 			case Core::VolumeType::MASK_E:

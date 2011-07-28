@@ -30,6 +30,9 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
+// Core includes
+#include <Core/Interface/Interface.h>
+
 //QtUtils Includes
 #include <QtUtils/Bridge/QtBridge.h>
 
@@ -126,15 +129,9 @@ bool ArithmeticFilterInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton,tool->valid_target_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
 
-	for ( size_t j = 0; j < this->private_->predefined_.size(); j++ )
-	{
-		this->private_->ui_.predefined_expressions_->addItem( QString::fromStdString( 
-			this->private_->predefined_[ j ].first ) );
-	}
-	
-	connect( this->private_->ui_.predefined_expressions_, SIGNAL( activated( 
+	connect( this->private_->ui_.predefined_expressions_, SIGNAL( currentIndexChanged( 
 		int ) ), SLOT( set_predefined_text( int ) ) );
-
+	
 	// Step 4 - Qt connections
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );	
@@ -145,7 +142,13 @@ bool ArithmeticFilterInterface::build_widget( QFrame* frame )
 
 		this->connect( this->private_->ui_.runFilterButton, SIGNAL( clicked() ), 
 			this, SLOT( run_filter() ) );
-	}	
+	}
+
+	for ( size_t j = 0; j < this->private_->predefined_.size(); j++ )
+	{
+		this->private_->ui_.predefined_expressions_->addItem( QString::fromStdString( 
+			this->private_->predefined_[ j ].first ) );
+	}
 
 	return true;
 	

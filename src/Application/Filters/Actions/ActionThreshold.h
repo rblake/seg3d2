@@ -29,19 +29,26 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLD_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONTHRESHOLD_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionThreshold : public Core::Action
+class ActionThreshold : public LayerAction
 {
 
 CORE_ACTION( 
-	CORE_ACTION_TYPE( "ThresholdTool", "Build a mask layer by thresholding a data layer." )
+	CORE_ACTION_TYPE( "Threshold", "Build a mask layer by thresholding a data layer." )
 	CORE_ACTION_ARGUMENT( "layerid", "The ID of the data layer on which to run the tool." )
 	CORE_ACTION_ARGUMENT( "lower_threshold", "The minimum value of the threshold range." )
 	CORE_ACTION_ARGUMENT( "upper_threshold", "The maximum value of the threshold range." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -49,8 +56,6 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionThreshold();
-	
-	virtual ~ActionThreshold() {}
 	
 	// -- Functions that describe action --
 public:
@@ -60,14 +65,13 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	
-	Core::ActionParameter< double > upper_threshold_;
-	Core::ActionParameter< double > lower_threshold_;
+	std::string target_layer_;
+	double upper_threshold_;
+	double lower_threshold_;
+	SandboxID sandbox_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 

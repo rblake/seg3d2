@@ -33,7 +33,7 @@
 
 	
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/ITKFilter.h>
 #include <Application/Filters/Actions/ActionIntensityCorrectionFilter.h>
@@ -49,33 +49,26 @@ namespace Seg3D
 
 bool ActionIntensityCorrectionFilter::validate( Core::ActionContextHandle& context )
 {
-	// Check for layer existance and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::DATA_E, error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
+	// Check for layer existence and type information
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_.value(), 
-		this->replace_.value(), notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailability( this->target_layer_, 
+		this->replace_, context, this->sandbox_ ) ) return false;
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->order_.value() < 1  || this->order_.value() > 4)
+	if( this->order_ < 1  || this->order_ > 4)
 	{
 		context->report_error( "The polynomial order needs to be between 1 and 4." );
 		return false;
 	}
 	
 	// Conductance needs to be a positive number
-	if( this->edge_.value() < 0.0 )
+	if( this->edge_ < 0.0 )
 	{
 		context->report_error( "The sensitivity needs to be larger than zero." );
 		return false;
@@ -138,7 +131,8 @@ public:
 		dgfilter->SetMaximumKernelWidth(8);
 		dgfilter->SetUseImageSpacingOff();
 		
-		this->observe_itk_filter( dgfilter, this->dst_layer_, 0.0f, 0.05f );
+		this->forward_abort_to_filter( dgfilter, this->dst_layer_ );
+		this->observe_itk_progress( dgfilter, this->dst_layer_, 0.0, 0.05 );
 
 		try
 		{
@@ -151,7 +145,7 @@ public:
 				this->report_error( "Filter was aborted." );
 				return;
 			}
-			this->report_error( "Internal error." );
+			this->report_error( "ITK filter failed to complete." );
 			return;	
 		}
 
@@ -189,8 +183,9 @@ public:
 		
 		gmag_filter->SetInput( dg_image->get_image() );
 		
-		this->observe_itk_filter( gmag_filter, this->dst_layer_, 0.1f, 0.05f );
-	
+		this->forward_abort_to_filter( gmag_filter, this->dst_layer_ );
+		this->observe_itk_progress( gmag_filter, this->dst_layer_, 0.1, 0.05 );
+
 		try
 		{
 			gmag_filter->Update();
@@ -202,7 +197,7 @@ public:
 				this->report_error( "Filter was aborted." );
 				return;
 			}
-			this->report_error( "Internal error." );
+			this->report_error( "ITK filter failed to complete." );
 			return;	
 		}
 
@@ -243,7 +238,8 @@ public:
 	
 		gradient_filter->SetInput( gmag_image->get_image() );
 
-		this->observe_itk_filter( gradient_filter, this->dst_layer_, 0.2f, 0.05f );
+		this->forward_abort_to_filter( gradient_filter, this->dst_layer_ );
+		this->observe_itk_progress( gradient_filter, this->dst_layer_, 0.2, 0.05 );
 
 		try
 		{
@@ -256,7 +252,7 @@ public:
 				this->report_error( "Filter was aborted." );
 				return;
 			}
-			this->report_error( "Internal error." );
+			this->report_error( "ITK filter failed to complete." );
 			return;				
 		}
 
@@ -617,17 +613,18 @@ bool ActionIntensityCorrectionFilter::run( Core::ActionContextHandle& context,
 		new IntensityCorrectionFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->order_ = this->order_.value();
-	algo->edge_  = this->edge_.value();
-	algo->preserve_data_format_ = this->preserve_data_format_.value();
+	algo->set_sandbox( this->sandbox_ );
+	algo->order_ = this->order_;
+	algo->edge_  = this->edge_;
+	algo->preserve_data_format_ = this->preserve_data_format_;
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->target_layer_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -645,10 +642,17 @@ bool ActionIntensityCorrectionFilter::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter.
 	Core::Runnable::Start( algo );
 
@@ -663,11 +667,11 @@ void ActionIntensityCorrectionFilter::Dispatch( Core::ActionContextHandle contex
 		new ActionIntensityCorrectionFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = layer_id;
-	action->order_.value() = order;
-	action->edge_.value() = edge;
-	action->preserve_data_format_.value() = preserve_data_format;
-	action->replace_.value() = replace;
+	action->target_layer_ = layer_id;
+	action->order_ = order;
+	action->edge_ = edge;
+	action->preserve_data_format_ = preserve_data_format;
+	action->replace_ = replace;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

@@ -32,10 +32,15 @@
 ##################################################
 
 SET(APPLICATION_PROJECT_SRCS
-  Project.h
-  Project.cc
   DataManager.h
   DataManager.cc
+  InputFilesImporter.h
+  InputFilesImporter.cc
+  Project.h
+  Project.cc
+  SessionInfo.h
+  SessionInfo.cc
+  ProjectNote.h
 )
 
 SET(APPLICATION_PROJECT_ACTIONS_SRCS
@@ -44,14 +49,31 @@ SET(APPLICATION_PROJECT_ACTIONS_SRCS
 CORE_ADD_LIBRARY(Application_Project ${APPLICATION_PROJECT_SRCS}
             ${APPLICATION_PROJECT_ACTIONS_SRCS} )
             
+IF(APPLE)
 TARGET_LINK_LIBRARIES(Application_Project
                       Core_Action
                       Core_State
                       Core_Utils
                       Core_Application
                       Core_Interface
-					  Application_Session
                       Application_InterfaceManager
-		              Application_LayerManager
-                      ${SCI_BOOST_LIBRARY})
-                    
+		              Application_Layer
+		              Application_Provenance
+                      ${SCI_BOOST_LIBRARY}
+                      ${SCI_SQLITE_LIBRARY}
+					  /System/Library/Frameworks/CoreServices.framework)
+ELSE(APPLE)                    
+TARGET_LINK_LIBRARIES(Application_Project
+                      Core_Action
+                      Core_State
+                      Core_Utils
+                      Core_Application
+                      Core_Interface
+                      Application_InterfaceManager
+		              Application_Layer
+		              Application_Provenance
+                      ${SCI_BOOST_LIBRARY}
+                      ${SCI_SQLITE_LIBRARY})
+
+ENDIF(APPLE)					
+					

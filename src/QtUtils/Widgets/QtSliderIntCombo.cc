@@ -46,44 +46,35 @@ public:
 };
 
 QtSliderIntCombo::QtSliderIntCombo( QWidget* parent, bool edit_range ) :
-     QWidget( parent ),
+    QWidget( parent ),
+	value_( 0 ),
 	private_( new QtSliderIntComboPrivate )
 {
     this->private_->ui_.setupUi( this );
-    
-    this->private_->ui_.decrease_range_button_->hide();
-    this->private_->ui_.increase_range_button_->hide();
-    
-    if( !edit_range )
-    {
-        this->private_->ui_.edit_button_->setEnabled( edit_range );
-        this->private_->ui_.edit_button_->hide();
-    }
-    
-    this->connect( this->private_->ui_.edit_button_, SIGNAL( clicked( bool ) ), 
-		this, SLOT( edit_ranges(bool ) ) );
-    this->connect( this->private_->ui_.decrease_range_button_, SIGNAL( clicked() ), 
-		this, SLOT( half_range() ) );
-    this->connect( this->private_->ui_.increase_range_button_, SIGNAL( clicked()), 
-		this, SLOT( double_range() ) );
     
     this->connect( this->private_->ui_.horizontalSlider, SIGNAL( valueChanged( int ) ), 
 		this, SLOT( slider_signal( int ) ) );
     this->connect( this->private_->ui_.spinBox, SIGNAL( valueChanged( int ) ), 
 		this, SLOT( spinner_signal( int ) ) );
-	
-#if defined ( __APPLE__ )  
-	QFont font;
+
+	QFont font = this->private_->ui_.min_->font();
+#ifdef __APPLE__
 	font.setPointSize( 10 );
+#else
+	font.setPointSize( 8 );
+#endif
 	this->private_->ui_.min_->setFont( font );
 	this->private_->ui_.max_->setFont( font );
-	this->private_->ui_.spinBox->setFont( font );
-#endif
-	
+	this->private_->ui_.spinBox->setFont( font );	
 }
 
 QtSliderIntCombo::~QtSliderIntCombo()
 {
+}
+	
+void QtSliderIntCombo::set_description( std::string description )
+{
+	this->private_->ui_.description_->setText( QString::fromStdString( description ) );
 }
 
 void QtSliderIntCombo::spinner_signal( int value )
@@ -135,6 +126,8 @@ void QtSliderIntCombo::setRange( int min, int max)
 
 void QtSliderIntCombo::setCurrentValue( int value )
 {
+	if ( this->value_ == value ) return;
+
 	block_signals( true );
 	this->value_ = value;
     this->private_->ui_.horizontalSlider->setValue( this->value_ );
@@ -164,33 +157,6 @@ void QtSliderIntCombo::change_max( int new_max )
     int tick = (this->private_->ui_.max_->text().toInt() - this->private_->ui_.min_->text().toInt())/10;
     this->private_->ui_.horizontalSlider->setTickInterval( tick );
     block_signals( false );
-}
-
-void QtSliderIntCombo::double_range()
-{
-    int new_max = this->private_->ui_.max_->text().toInt() * 2;
-    change_max( new_max );
-    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
-}
-void QtSliderIntCombo::half_range()
-{
-    int new_max = this->private_->ui_.max_->text().toInt() / 2;
-    change_max( new_max );
-    rangeChanged( this->private_->ui_.min_->text().toInt(), new_max );
-}
-
-void QtSliderIntCombo::edit_ranges( bool edit )
-{
-	if( edit )
-	{
-		this->private_->ui_.decrease_range_button_->show();
-		this->private_->ui_.increase_range_button_->show();
-	}
-	else
-	{
-		this->private_->ui_.decrease_range_button_->hide();
-		this->private_->ui_.increase_range_button_->hide();
-	}
 }
 
 void QtSliderIntCombo::block_signals( bool block )

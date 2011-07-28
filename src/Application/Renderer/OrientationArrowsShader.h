@@ -32,7 +32,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include <Core/Graphics/GLSLProgram.h>
+#include <Core/Graphics/ShaderBase.h>
 
 namespace Seg3D
 {
@@ -40,26 +40,15 @@ namespace Seg3D
 class OrientationArrowsShader;
 typedef boost::shared_ptr< OrientationArrowsShader > OrientationArrowsShaderHandle;
 
-class OrientationArrowsShader : public boost::noncopyable
+class OrientationArrowsShader : public Core::ShaderBase
 {
 public:
 	OrientationArrowsShader();
-	~OrientationArrowsShader();
+	virtual ~OrientationArrowsShader();
 
-	bool initialize();
-	void enable();
-	void disable();
-
-private:
-
-	bool valid_;
-
-	Core::GLSLProgramHandle glsl_prog_;
-	Core::GLSLShaderHandle glsl_frag_shader_;
-	Core::GLSLShaderHandle glsl_vert_shader_;
-
-	const static char* VERT_SHADER_SOURCE_C[];
-	const static char* FRAG_SHADER_SOURCE_C[];
+protected:
+	virtual bool get_vertex_shader_source( std::string& source );
+	virtual bool get_fragment_shader_source( std::string& source );
 };
 
 } // end namespace Seg3D

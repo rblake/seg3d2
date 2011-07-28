@@ -26,12 +26,15 @@
  DEALINGS IN THE SOFTWARE.
  */
  
-#ifndef APPLICATION_LAYERMANAGER_LAYERABSTRACTFILTER_H 
-#define APPLICATION_LAYERMANAGER_LAYERABSTRACTFILTER_H 
+#ifndef APPLICATION_LAYER_LAYERABSTRACTFILTER_H 
+#define APPLICATION_LAYER_LAYERABSTRACTFILTER_H 
+ 
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+# pragma once
+#endif  
  
 // Boost includes
 #include <boost/smart_ptr.hpp> 
-#include <boost/utility.hpp> 
  
 // Core includes
 #include <Core/Utils/Runnable.h>

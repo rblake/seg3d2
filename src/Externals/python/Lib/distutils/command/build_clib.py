@@ -4,7 +4,7 @@ Implements the Distutils 'build_clib' command, to build a C/C++ library
 that is included in the module distribution and needed by an extension
 module."""
 
-__revision__ = "$Id: build_clib.py 72379 2009-05-06 07:26:24Z tarek.ziade $"
+__revision__ = "$Id: build_clib.py 84608 2010-09-07 22:11:52Z eric.araujo $"
 
 
 # XXX this module has *lots* of code ripped-off quite transparently from
@@ -32,9 +32,9 @@ class build_clib(Command):
     description = "build C/C++ libraries used by Python extensions"
 
     user_options = [
-        ('build-clib', 'b',
+        ('build-clib=', 'b',
          "directory to build C/C++ libraries to"),
-        ('build-temp', 't',
+        ('build-temp=', 't',
          "directory to put temporary build by-products"),
         ('debug', 'g',
          "compile with debugging information"),

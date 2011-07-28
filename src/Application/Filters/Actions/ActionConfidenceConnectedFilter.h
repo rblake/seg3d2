@@ -29,23 +29,31 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONCONFIDENCECONNECTEDFILTER_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONCONFIDENCECONNECTEDFILTER_H
 
+// Core includes
 #include <Core/Action/Actions.h>
 #include <Core/Geometry/Point.h>
 #include <Core/Interface/Interface.h>
+
+// Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
+
 
 namespace Seg3D
 {
 
-class ActionConfidenceConnectedFilter : public Core::Action
+class ActionConfidenceConnectedFilter : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "ConfidenceConnectedFilter", "ITK filter that masks out statistically connected data." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
 	CORE_ACTION_ARGUMENT( "seeds", "The seed points in world space." )
-	CORE_ACTION_KEY( "iterations", "3", "The number of iterations." )
-	CORE_ACTION_KEY( "multiplier", "2.5", "The confidence interval multipiler." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "3", "The number of iterations." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "multiplier", "2.5", "The confidence interval multipiler." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -54,17 +62,11 @@ CORE_ACTION(
 public:
 	ActionConfidenceConnectedFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->seeds_ );
-		
-		// Action options
-		this->add_key( this->iterations_ );
-		this->add_key( this->multiplier_ );
-	}
-	
-	virtual ~ActionConfidenceConnectedFilter()
-	{
+		this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->seeds_ );
+		this->add_parameter( this->iterations_ );
+		this->add_parameter( this->multiplier_ );
+		this->add_parameter( this->sandbox_ );
 	}
 	
 	// -- Functions that describe action --
@@ -75,11 +77,11 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::vector< Core::Point > > seeds_;
-	
-	Core::ActionParameter< unsigned int > iterations_;
-	Core::ActionParameter< double > multiplier_;
+	std::string target_layer_;
+	std::vector< Core::Point > seeds_;
+	unsigned int iterations_;
+	double multiplier_;
+	SandboxID sandbox_;
 	
 	// -- Dispatch this action from the interface --
 public:

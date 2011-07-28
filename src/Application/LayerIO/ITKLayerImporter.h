@@ -33,11 +33,6 @@
 # pragma once
 #endif 
 
-// ITK includes
-#include "itkRGBPixel.h"
-#include "itkTIFFImageIO.h"
-#include "itkVTKImageIO.h"
-
 // Boost includes 
 #include <boost/filesystem.hpp>
 
@@ -45,140 +40,65 @@
 #include <Core/DataBlock/StdDataBlock.h>
 
 // Application includes
-#include <Application/LayerIO/LayerImporter.h>
+#include <Application/LayerIO/LayerSingleFileImporter.h>
 #include <Application/LayerIO/LayerIO.h>
 
 namespace Seg3D
 {
 
-class ITKLayerImporter : public LayerImporter
+// Forward declaration for internals of this class
+class ITKLayerImporterPrivate;
+typedef boost::shared_ptr<ITKLayerImporterPrivate> ITKLayerImporterPrivateHandle;
+
+// CLASS ITKLayerImporter
+// This class imports files, using ITK's importers. This one has a low priority as it is the
+// the importer of last resort. As ITK's importers are buggy, dedicated importers are preferred
+// over ITK's importers
+
+class ITKLayerImporter : public LayerSingleFileImporter
 {
-	// The ITKLayerImporter is capable of importing DICOMS, tiffs, and pngs.  It assumes that
-	// when a file name does not include an extension that it is a DICOM
-	SCI_IMPORTER_TYPE( "ITK Importer",	".dcm;.DCM;.dicom;.DICOM;"
-										".tiff;.tif;.TIFF;.TIF;"
-										".png;.PNG;"
-										".jpg;.jpeg;.JPG;.JPEG;"
-										".bmp;.BMP;"
-										".vtk;.VTK", 5, 2 )
+	SEG3D_IMPORTER_TYPE( "ITK Importer",".lsm;.LSM;"
+										".tiff;.tif;.TIFF;.TIF;.stk;.STK;"
+										".nii;.img;.hdr;"
+										".vtk;.VTK;"
+										".mha;.mhd", 5 )
 
 	// -- Constructor/Destructor --
 public:
-	// Construct a new layer file importer
-	ITKLayerImporter( const std::string& filename );
+	ITKLayerImporter();
+	virtual ~ITKLayerImporter();
 
-	// Virtual destructor for memory management of derived classes
-	virtual ~ITKLayerImporter()
-	{
-	}
-
-	// -- Import a file information --
+	// -- Import information from file --
 public:
+	// GET_FILE_INFO
+	// Get the information about the file we are currently importing.
+	// NOTE: This function often causes the file to be loaded in its entirety
+	// Hence it is best to run this on a separate thread if needed ( from the GUI ).
+	virtual bool get_file_info( LayerImporterFileInfoHandle& info );
 
-	// IMPORT_HEADER:
-	// Import all the information needed to translate the header and metadata information, but not
-	// necessarily read the whole file. NOTE: Some external packages do not support reading a header
-	// and hence these importers should read the full file here.
-	virtual bool import_header();
-
-	// GET_GRID_TRANSFORM:
-	// Get the grid transform of the grid that we are importing
-	virtual Core::GridTransform get_grid_transform();
-
-	// GET_DATA_TYPE:
-	// Get the type of data that is being imported
-	virtual Core::DataType get_data_type();
-
-	// GET_IMPORTER_MODES:
-	// Get then supported importer modes
-	virtual int get_importer_modes();
-	
-	// --Import the data as a specific type --	
+	// -- Import data from file --	
 public:	
+	// GET_FILE_DATA
+	// Get the file data from the file/ file series
+	// NOTE: The information is generated again, so that hints can be processed
+	virtual bool get_file_data( LayerImporterFileDataHandle& data );
 
-	// SET_FILE_LIST:
-	// we need a list of files to import, this function provides the list, the list must be set 
-	// before import_layer is called.
-	virtual bool set_file_list( const std::vector< std::string >& file_list )
-	{
-		this->file_list_ = file_list;
-		this->set_extension();
-		return true;
-	}
+	// -- Copy files --
+public:
+	// GET_INPUTFILES_IMPORTER
+	// For provenance files need to be copied into the project cache. As some files need special
+	// attention: for example mhd and nhdr files actually list where there data is stored, this
+	// function can be overloaded with a specific function that copies the files. Otherwise a
+	// default implementation is given in the two derived classes.
 	
-private:
-	// SCAN_DICOM:
-	// this function is called by import_header to scan a single dicom and determine what kind of 
-	// data type to use for the import
-	bool scan_dicom();
-
-
-	// SET_EXTENSION:
-	// we need to know which type of file we are dealing with, this function provides that ability,
-	// the extension must be set before import_layer is called.
-	void set_extension()
-	{
-		this->extension_ = boost::filesystem::path( this->file_list_[ 0 ] ).extension();
+	// NOTE: This function has to be implemented as metaIO files can refer to other files on the
+	// file system. Hence copying the header files needs special logic, as it needs to copy the depending
+	// files as well and may need to change file references in the header files.
+	virtual InputFilesImporterHandle get_inputfiles_importer();
 		
-		// now we force it to be lower case, just to be safe.
-		boost::to_lower( this->extension_ );
-	}
-	
-	
-protected:
-	// LOAD_DATA:
-	// Load the data from the file(s).
-	// NOTE: This function is called by import_layer internally.
-	virtual bool load_data( Core::DataBlockHandle& data_block, 
-		Core::GridTransform& grid_trans );
-
-	// GET_LAYER_NAME:
-	// Return the string that will be used to name the layers.
-	virtual std::string get_layer_name();
-
+	// -- internals of the class --
 private:
-	bool is_dicom() const
-	{
-		return ( ( this->extension_ == ".dcm" ) || ( this->extension_ == ".dicom" ) ||
-			( this->extension_ == ".DCM" ) || ( this->extension_ == ".DICOM" ) || 
-			( this->extension_ == "" ) );
-	}
-
-	bool is_png() const
-	{
-		return ( ( this->extension_ == ".png" ) || ( this->extension_ == ".PNG" ) );
-	}
-	
-	bool is_bmp() const
-	{
-		return ( ( this->extension_ == ".bmp" ) || ( this->extension_ == ".BMP" ) );
-	}
-	
-	bool is_vtk() const
-	{
-		return ( ( this->extension_ == ".vtk" ) || ( this->extension_ == ".VTK" ) );
-	}
-
-	bool is_tiff() const
-	{
-		return ( ( this->extension_ == ".tif" ) || ( this->extension_ == ".tiff" ) ||
-			( this->extension_ == ".TIF" ) || ( this->extension_ == ".TIFF" ) );
-	}
-	
-	bool is_jpeg() const
-	{
-		return ( ( this->extension_ == ".jpg" ) || ( this->extension_ == ".JPG" ) ||
-			( this->extension_ == ".jpeg" ) || ( this->extension_ == ".JPEG" ) );
-	}
-
-
-	Core::ITKImageDataHandle				image_data_;
- 	Core::DataBlockHandle					data_block_;
-	std::vector< std::string >				file_list_;
-	size_t									bits_;
-	bool									signed_data_;
-	Core::DataType							pixel_type_;
-	std::string								extension_;
+	ITKLayerImporterPrivateHandle private_;
 };
 
 } // end namespace seg3D

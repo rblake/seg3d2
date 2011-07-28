@@ -35,7 +35,6 @@
 
 // Boost includes
 #include <boost/utility.hpp>
-#include <boost/filesystem.hpp>
 
 // Core includes
 #include <Core/Utils/ConnectionHandler.h>
@@ -185,6 +184,10 @@ public:
 	// MARK_AS_PROJECT_DATA:
 	// Mask the states that are added to this state handler as project data
 	void mark_as_project_data();
+	
+	// DO_NOT_SAVE_ID_NUMBER
+	// The id number of the statehandler will not be saved
+	void do_not_save_id_number();
 
 protected:
 
@@ -196,12 +199,11 @@ protected:
 	// This function enables/disables signals in the state variables
 	void enable_signals( bool enabled );
 	
+public:
 	// SET_INITIALIZING:
 	// This function denotes whether a state handler is initializing or not. During the initializing
 	// phase signals and thread checking are turned off
 	void set_initializing( bool initializing );
-
-public:
 
 	// TODO:
 	// These should be private and only the StateEngine should have access as a friend of this class
@@ -213,7 +215,7 @@ public:
 
 	// SAVE_STATES:
 	// Save the states into the StateIO variable
-	void save_states( StateIO& state_io );
+	bool save_states( StateIO& state_io );
 
 protected:
 	// PRE_LOAD_STATES:
@@ -236,21 +238,10 @@ protected:
 	// states are saved.  If it doesn't succeed it needs to return false.
 	virtual bool post_save_states( StateIO& state_io );
 	
-
-protected:
 	// STATE_CHANGED:
 	// This function is called when any of the state variables are changed and can be overloaded
 	// to implement a general function that needs to be called each time the state is updated.
 	virtual void state_changed();
-
-public:
-	// GET_STATEHANDLER_ID:
-	// The id of the handler that will be the prefix of the state variables
-	const std::string& get_statehandler_id() const;
-
-	// GET_STATEHANDLER_ID_NUMBER:
-	// The id number of the handler that will be at the end of the prefix
-	size_t get_statehandler_id_number() const;
 
 	// GET_SESSION_PRIORITY:
 	// Returns the session priority of the state handler. State handlers with higher priorities
@@ -262,6 +253,27 @@ public:
 	// GET_VERSION:
 	// Get the version number of this class, this one is used for versioning of session files
 	virtual int get_version();
+	
+	// GET_LOADED_VERSION:
+	// Get the version number of the data that was loaded
+	int get_loaded_version();
+		
+	// SET_LOADED_VERSION:
+	// Set the version number of the data that was loaded
+	void set_loaded_version( int loaded_version );
+
+public:
+	// GET_STATEHANDLER_ID:
+	// The id of the handler that will be the prefix of the state variables
+	const std::string& get_statehandler_id() const;
+
+	// GET_STATEHANDLER_ID_BASE:
+	// The id of the handler that will be the prefix of the state variables
+	const std::string& get_statehandler_id_base() const;
+
+	// GET_STATEHANDLER_ID_NUMBER:
+	// The id number of the handler that will be at the end of the prefix
+	size_t get_statehandler_id_number() const;
 
 private:
 	friend class StateEngine;

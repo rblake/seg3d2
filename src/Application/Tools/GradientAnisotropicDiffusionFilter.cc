@@ -29,7 +29,7 @@
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 // StateEnigne of the tool
 #include <Application/Tools/GradientAnisotropicDiffusionFilter.h>
@@ -62,6 +62,9 @@ GradientAnisotropicDiffusionFilter::~GradientAnisotropicDiffusionFilter()
 
 void GradientAnisotropicDiffusionFilter::execute( Core::ActionContextHandle context )
 {	
+	// NOTE: Need to lock state engine as this function is run from the interface thread
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	
 	ActionGradientAnisotropicDiffusionFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->iterations_state_->get(),

@@ -29,8 +29,9 @@
 #include <iostream>
 #include <sstream>
 
-#include <boost/bind.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/bind.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/timer.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -60,27 +61,44 @@ std::string Log::header( const int line, const char* file ) const
 	std::string header_string = std::string( "[" ) + 
 		boost::posix_time::to_simple_string( timestamp ) + 
 		std::string( "|" ) + ExportToString( log_timer.elapsed() ) +
-		std::string( "|" ) + filename.filename() +  
+		std::string( "|" ) + filename.filename().string() +  
 		std::string( "|" ) + ExportToString( line ) + std::string( "]" );
 	return header_string;
+}
+
+void Log::post_critical_error( std::string message, const int line, const char* file )
+{
+	std::string str = this->header( line, file ) + std::string( " ERROR: " ) + message;
+	post_log_signal_( LogMessageType::ERROR_E, str );
+	post_status_signal_( LogMessageType::ERROR_E, message );
+	post_critical_signal_( LogMessageType::CRITICAL_ERROR_E, message );
 }
 
 void Log::post_error( std::string message, const int line, const char* file )
 {
 	std::string str = this->header( line, file ) + std::string( " ERROR: " ) + message;
 	post_log_signal_( LogMessageType::ERROR_E, str );
+	post_status_signal_( LogMessageType::ERROR_E, message );
 }
 
 void Log::post_warning( std::string message, const int line, const char* file )
 {
 	std::string str = this->header( line, file ) + std::string( " WARNING: " ) + message;
 	post_log_signal_( LogMessageType::WARNING_E, str );
+	this->post_status_signal_( LogMessageType::WARNING_E, message );
 }
 
 void Log::post_message( std::string message, const int line, const char* file )
 {
 	std::string str = this->header( line, file ) + std::string( " MESSAGE: " ) + message;
 	post_log_signal_( LogMessageType::MESSAGE_E, str );
+}
+
+void Log::post_success( std::string message, const int line, const char* file )
+{
+	std::string str = this->header( line, file ) + std::string( " SUCCESS: " ) + message;
+	post_log_signal_( LogMessageType::SUCCESS_E, str );
+	post_status_signal_( LogMessageType::SUCCESS_E, message );
 }
 
 void Log::post_debug( std::string message, const int line, const char* file )

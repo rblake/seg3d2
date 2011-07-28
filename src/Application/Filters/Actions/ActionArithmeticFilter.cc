@@ -29,10 +29,11 @@
 // Core includes
 #include <Core/DataBlock/MaskDataBlockManager.h>
 #include <Core/Parser/ArrayMathEngine.h>
+#include <Core/Utils/Log.h>
 
 // Application includes
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionArithmeticFilter.h>
 #include <Application/Filters/LayerFilter.h>
 #include <Application/StatusBar/StatusBar.h>
@@ -92,7 +93,7 @@ void ArithmeticFilterAlgo::run_filter()
 	std::string error;
 	if ( !this->engine_.run( error ) )
 	{
-		StatusBar::SetMessage( Core::LogMessageType::ERROR_E, error );
+		CORE_LOG_ERROR( error );
 		return;
 	}
 
@@ -140,11 +141,12 @@ public:
 	// Validate the filter inputs, outputs and expression prior to running filter.
 	bool validate_parser( Core::ActionContextHandle& context );
 
-	Core::ActionParameter< std::vector< std::string > > layer_ids_;
-	Core::ActionParameter< std::string > expressions_;
-	Core::ActionParameter< std::string > output_type_;
-	Core::ActionParameter< bool > replace_;
-	Core::ActionParameter< bool > preserve_data_format_;
+	std::vector< std::string > layer_ids_;
+	std::string expressions_;
+	std::string output_type_;
+	bool replace_;
+	bool preserve_data_format_;
+	SandboxID sandbox_;
 	boost::shared_ptr< ArithmeticFilterAlgo > algo_;
 };
 
@@ -153,10 +155,11 @@ bool ActionArithmeticFilterPrivate::validate_parser( Core::ActionContextHandle& 
 	// Validate algorithm
 	// Create algorithm
 	this->algo_ = boost::shared_ptr< ArithmeticFilterAlgo >( new ArithmeticFilterAlgo );
+	this->algo_->set_sandbox( this->sandbox_ );
 
-	bool replace = this->replace_.value();
+	bool replace = this->replace_;
 
-	const std::vector< std::string >& layer_ids = this->layer_ids_.value();
+	const std::vector< std::string >& layer_ids = this->layer_ids_;
 	std::vector< LayerHandle > layers( layer_ids.size() );
 
 	std::string name( "A" );
@@ -245,16 +248,16 @@ bool ActionArithmeticFilterPrivate::validate_parser( Core::ActionContextHandle& 
 		this->algo_->dst_layer_ = layers[ 0 ];
 		// Make sure the dst layer type matches the output type
 		if( !( ( this->algo_->dst_layer_->get_type() == Core::VolumeType::MASK_E && 
-			this->output_type_.value() ==  ActionArithmeticFilter::MASK_C ) ||
+			this->output_type_ ==  ActionArithmeticFilter::MASK_C ) ||
 			( this->algo_->dst_layer_->get_type() == Core::VolumeType::DATA_E && 
-			this->output_type_.value() ==  ActionArithmeticFilter::DATA_C ) ) )
+			this->output_type_ ==  ActionArithmeticFilter::DATA_C ) ) )
 		{
 			context->report_error( 
 				std::string("Arithmetic Filter: Cannot replace first input -- input/output types don't match.") );
 			return false;
 		}
 	}
-	else if ( this->output_type_.value() == ActionArithmeticFilter::DATA_C )
+	else if ( this->output_type_ == ActionArithmeticFilter::DATA_C )
 	{
 		if ( ! (this->algo_->create_and_lock_data_layer_from_layer( layers[ 0 ], 
 			this->algo_->dst_layer_ ) ) )
@@ -275,7 +278,7 @@ bool ActionArithmeticFilterPrivate::validate_parser( Core::ActionContextHandle& 
 		}
 	}
 
-	if( this->preserve_data_format_.value() )
+	if( this->preserve_data_format_ )
 	{
 		this->algo_->src_layer_ = layers[ 0 ];
 	}
@@ -306,7 +309,7 @@ bool ActionArithmeticFilterPrivate::validate_parser( Core::ActionContextHandle& 
 		}
 	}
 
-	this->algo_->engine_.add_expressions( this->expressions_.value() );
+	this->algo_->engine_.add_expressions( this->expressions_ );
 
 	if( !this->algo_->engine_.parse_and_validate( error ) )
 	{
@@ -330,56 +333,53 @@ ActionArithmeticFilter::ActionArithmeticFilter() :
 	private_( new ActionArithmeticFilterPrivate )
 {
 	// Action arguments
-	this->add_argument( this->private_->layer_ids_ );
-	this->add_argument( this->private_->expressions_ );
-	this->add_argument( this->private_->output_type_ );
-
-	// Action options
-	this->add_key( this->private_->replace_ );
-	this->add_key( this->private_->preserve_data_format_ );
+	this->add_layer_id_list( this->private_->layer_ids_ );
+	this->add_parameter( this->private_->expressions_ );
+	this->add_parameter( this->private_->output_type_ );
+	this->add_parameter( this->private_->replace_ );
+	this->add_parameter( this->private_->preserve_data_format_ );
+	this->add_parameter( this->private_->sandbox_ );
 }
 
 bool ActionArithmeticFilter::validate( Core::ActionContextHandle& context )
 {
-	const std::vector< std::string >& layer_ids = this->private_->layer_ids_.value();
-	if ( layer_ids.size() == 0 )
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->private_->sandbox_, context ) ) return false;
+
+	if ( this->private_->layer_ids_.size() == 0 )
 	{
 		context->report_error( "No input layers specified" );
 		return false;
 	}
 	
 	// Validate layers
-	LayerGroupHandle layer_group;
-	for ( size_t i = 0; i < layer_ids.size(); ++i )
+	Core::GridTransform grid_trans;
+	for ( size_t i = 0; i < this->private_->layer_ids_.size(); ++i )
 	{
-		if ( layer_ids[ i ] == "<none>" || layer_ids[ i ] == "" ) continue;
+		if ( this->private_->layer_ids_[ i ] == "<none>" || this->private_->layer_ids_[ i ] == "" ) continue;
 		// Check for layer existence
-		LayerHandle layer = LayerManager::Instance()->get_layer_by_id( layer_ids[ i ] );
+		LayerHandle layer = LayerManager::FindLayer( this->private_->layer_ids_[ i ], 
+			this->private_->sandbox_ );
 		if ( !layer )
 		{
-			context->report_error( "Layer '" + layer_ids[ i ] + "' doesn't exist" );
+			context->report_error( "Layer '" + this->private_->layer_ids_[ i ] + "' doesn't exist" );
 			return false;
 		}
 
 		// Make sure that all the layers are in the same group
-		if ( !layer_group )
+		if ( i == 0 )
 		{
-			layer_group = layer->get_layer_group();
+			grid_trans = layer->get_grid_transform();
 		}
-		else if ( layer_group != layer->get_layer_group() )
+		else if ( grid_trans != layer->get_grid_transform() )
 		{
 			context->report_error( "Input layers do not belong to the same group" );
 			return false;
 		}
 		
 		// Check for layer availability 
-		Core::NotifierHandle notifier;
-		if ( !LayerManager::CheckLayerAvailability( layer_ids[ i ], 
-			i == 0 && this->private_->replace_.value(), notifier ) )
-		{
-			context->report_need_resource( notifier );
-			return false;
-		}
+		if ( ! LayerManager::CheckLayerAvailability( this->private_->layer_ids_[ i ], 
+			i == 0 && this->private_->replace_, context, this->private_->sandbox_ ) ) return false;
 	}
 
 	// Validate parser inputs, outputs, and expression
@@ -396,18 +396,24 @@ bool ActionArithmeticFilter::run( Core::ActionContextHandle& context,
 	Core::ActionResultHandle& result )
 {
 	// Copy the parameters over to the algorithm that runs the filter
-	this->private_->algo_->preserve_data_format_ = this->private_->preserve_data_format_.value();
+	this->private_->algo_->preserve_data_format_ = this->private_->preserve_data_format_;
 
 	// Connect ArrayMathEngine progress signal to output layer progress signal
 	this->private_->algo_->engine_.update_progress_signal_.connect(
 		boost::bind( &Layer::update_progress, this->private_->algo_->dst_layer_, _1, 0.0, 1.0 ) );
 
 	// Return the ids of the destination layer.
-	result = Core::ActionResultHandle( 
-		new Core::ActionResult( this->private_->algo_->dst_layer_->get_layer_id() ) );
+	result.reset( new Core::ActionResult( this->private_->algo_->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( this->private_->algo_->get_notifier() );
+	}
 
 	// Create undo/redo record for this layer action
-	this->private_->algo_->create_undo_redo_record( context, this->shared_from_this() );
+	this->private_->algo_->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
 
 	// Start the filter.
 	Core::Runnable::Start( this->private_->algo_ );
@@ -425,11 +431,11 @@ void ActionArithmeticFilter::Dispatch( Core::ActionContextHandle context,
 									  bool replace, bool preserve_data_format )
 {
 	ActionArithmeticFilter* action = new ActionArithmeticFilter;
-	action->private_->layer_ids_.set_value( layer_ids );
-	action->private_->expressions_.set_value( expressions );
-	action->private_->output_type_.set_value( output_type );
-	action->private_->replace_.set_value( replace );
-	action->private_->preserve_data_format_.set_value( preserve_data_format );
+	action->private_->layer_ids_= layer_ids;
+	action->private_->expressions_ = expressions;
+	action->private_->output_type_ = output_type;
+	action->private_->replace_ = replace;
+	action->private_->preserve_data_format_ = preserve_data_format;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

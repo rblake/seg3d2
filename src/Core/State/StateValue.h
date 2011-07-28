@@ -39,6 +39,7 @@
 #include <Core/Geometry/Color.h>
 #include <Core/Geometry/Point.h>
 #include <Core/Geometry/Vector.h>
+#include <Core/Geometry/Path.h>
 
 namespace Core
 {
@@ -80,6 +81,9 @@ typedef boost::weak_ptr< StateLongLong > StateLongLongWeakHandle;
 typedef StateValue< std::string > StateString;
 typedef boost::shared_ptr< StateString > StateStringHandle;
 typedef boost::weak_ptr< StateString > StateStringWeakHandle;
+
+typedef StateValue< Path > StateSpeedlinePath;
+typedef boost::shared_ptr< StateSpeedlinePath > StateSpeedlinePathHandle;
 
 // Definition of the templated StateValue class
 
@@ -130,18 +134,17 @@ public:
 protected:
 	// EXPORT_TO_VARIANT
 	// Export the state data to a variant parameter
-	virtual void export_to_variant( ActionParameterVariant& variant ) const
+	virtual void export_to_variant( Variant& variant ) const
 	{
-		variant.set_value( this->value_ );
+		variant.set( this->value_ );
 	}
 
 	// IMPORT_FROM_VARIANT:
 	// Import the state data from a variant parameter.
-	virtual bool import_from_variant( ActionParameterVariant& variant, 
-		ActionSource source = ActionSource::NONE_E )
+	virtual bool import_from_variant( Variant& variant, ActionSource source = ActionSource::NONE_E )
 	{
 		T value;
-		if ( !( variant.get_value( value ) ) ) return false;
+		if ( !( variant.get( value ) ) ) return false;
 		return set( value, source );
 	}
 
@@ -149,7 +152,7 @@ protected:
 	// Validate a variant parameter
 	// This function returns false if the parameter is invalid or cannot be
 	// converted and in that case error will describe the error.
-	virtual bool validate_variant( Core::ActionParameterVariant& variant, std::string& error )
+	virtual bool validate_variant( Variant& variant, std::string& error )
 	{
 		if ( !( variant.validate_type< T > () ) )
 		{

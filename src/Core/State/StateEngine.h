@@ -29,25 +29,13 @@
 #ifndef CORE_STATE_STATEENGINE_H
 #define CORE_STATE_STATEENGINE_H
 
-// STL includes
-#include <map>
-#include <set>
-
 // Boost includes
-#include <boost/filesystem.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <boost/noncopyable.hpp>
 
-#include <Core/Utils/Log.h>
-#include <Core/Utils/Exception.h>
-#include <Core/Utils/Singleton.h>
-#include <Core/Utils/Lockable.h>
-
+// Core includes
 #include <Core/Application/Application.h>
 #include <Core/State/StateBase.h>
+#include <Core/Utils/Singleton.h>
 
 namespace Core
 {
@@ -142,6 +130,7 @@ public:
 
 	// GETMUTEX
 	// Get the mutex of the state engine
+	// NOTE: Do not lock the StateEngine while RenderResources is locked as this will cause deadlock
 	static mutex_type& GetMutex()
 	{
 		return Instance()->get_mutex();

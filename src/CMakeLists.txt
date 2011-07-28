@@ -30,46 +30,67 @@
 # PROJECT: Seg3D
 ###########################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(Seg3D)
 
-MESSAGE( STATUS "${CMAKE_ROOT}")
+###########################################
+#
+###########################################
+
+IF( ${CMAKE_BINARY_DIR} MATCHES ${CMAKE_SOURCE_DIR} )
+	MESSAGE( FATAL_ERROR "Please delete the CMakeCache.txt from the src directory and build Seg3D in the bin directory. Run 'rm CMakeCache.txt; cd ../bin; cmake ../src' from the binary directory." )
+ENDIF( ${CMAKE_BINARY_DIR} MATCHES ${CMAKE_SOURCE_DIR} )
 
 ###########################################
 # WHERE TO COMPILE EXECUTABLES
 ###########################################
 
 SET(SEG3D_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}) # Needed by ITK
-SET(CMAKE_BUNDLE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
-
-SET(CMAKE_BUNDLE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib)
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/tmp)
-
-SET(CMAKE_BUNDLE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib)
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/tmp)
+SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR} CACHE PATH "" FORCE) # Needed by ITK
 
 ###########################################
 # COMPILE OPTIONS
 ###########################################
 
 SET(SEG3D_BUILD_INTERFACE 1 CACHE BOOL "Build the interface to Seg3D")
+IF (WIN32)
+	SET(SEG3D_SHOW_CONSOLE FALSE CACHE BOOL "Show console for debugging")
+ENDIF (WIN32)
 
 ###########################################
 # SEG3D VERSION NUMBERS
 ###########################################
 
-SET(SEG3D_MAJOR_VERSION 2)
-SET(SEG3D_MINOR_VERSION 0)
-SET(SEG3D_PATCH_VERSION 0)
+SET(SEG3D_MAJOR_VERSION 2 CACHE INTERNAL "Major version number" FORCE)
+SET(SEG3D_MINOR_VERSION 1 CACHE INTERNAL "Minor version number" FORCE)
+SET(SEG3D_PATCH_VERSION 0 CACHE INTERNAL "Patch version number" FORCE)
+
+###########################################
+# APPLICATION Information
+###########################################
+
+SET(APPLICATION_NAME "Seg3D2" CACHE INTERNAL "Name of the application" FORCE)
+SET(APPLICATION_EXTENSION ".s3d" CACHE INTERNAL "Name of the extension" FORCE)
+SET(APPLICATION_URL "www.seg3d.org" CACHE INTERNAL "URL where more information can be found" FORCE)
+SET(APPLICATION_VENDOR "SCI" CACHE INTERNAL "Who generated the applicatio" FORCE)
+SET(APPLICATION_CONTACT "seg3d-users@sci.utah.edu" CACHE INTERNAL "Contact information" FORCE)
+SET(APPLICATION_WINDOWS_ICON "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\Seg3D.ico" CACHE INTERNAL "Windows icon" FORCE)
+SET(APPLICATION_WINDOWS_RC "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\Seg3D.rc" CACHE INTERNAL "Windows icon" FORCE)
+SET(APPLICATION_OSX_ICON_FULL_PATH "${CMAKE_SOURCE_DIR}/Resources/Icons/Seg3D.icns" CACHE INTERNAL "OSX icon" FORCE)
+SET(APPLICATION_OSX_ICON "Seg3D.icns" CACHE INTERNAL "OSX icon" FORCE)
+
+
+###########################################
+# PACKAGING Information
+###########################################
+
+SET(PACKAGING_README "${CMAKE_CURRENT_SOURCE_DIR}/CMake/ReadMe.txt" CACHE INTERNAL "Where to find the readme file." FORCE )
+SET(PACKAGING_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/License.txt" CACHE INTERNAL "Where to find the license file." FORCE )
+SET(PACKAGING_RELEASENOTES "${CMAKE_CURRENT_SOURCE_DIR}/ReleaseNotes.txt" CACHE INTERNAL "Where to find the releasenotes file." FORCE )
+SET(PACKAGING_WELCOME "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Welcome.txt" CACHE INTERNAL "Where to find the welcome file." FORCE )
+SET(PACKAGING_ICON "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\package_icon.bmp" CACHE INTERNAL "Packing icon." FORCE )
+
 
 ###########################################
 # DO STANDARD TESTS
@@ -113,19 +134,25 @@ ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 ADD_DEFINITIONS(-DTIXML_USE_STL)
   
 SET(ITK_BUILD_SHARED_LIBS "STATIC")
+SET(ITK_USE_REVIEW TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
+SET(ITK_USE_REVIEW_STATISTICS TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
 
 ###########################################
 # Flags for Microsoft Compiler
-# Disable Visual C++ Secure Warnings
-# Enable Intrinsic Functions
 ###########################################
 
 IF (WIN32 AND MSVC)
-  ADD_DEFINITIONS(-D_WIN32_WINNT=0x0501)
+  ADD_DEFINITIONS(-D_WIN32_WINNT=0x0501 -DNTDDI_VERSION=0x05010000)
   ADD_DEFINITIONS(-DPSAPI_VERSION=1)
+  # Disable Visual C++ Secure Warnings
   ADD_DEFINITIONS(-D_SCL_SECURE_NO_WARNINGS)
   ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
+  ADD_DEFINITIONS(-D_BIND_TO_CURRENT_VCLIBS_VERSION=1)
+  ADD_DEFINITIONS(-D_BIND_TO_CURRENT_CRT_VERSION=1)
+  # Enable Intrinsic Functions
   SET(CMAKE_CXX_FLAGS "/Oi ${CMAKE_CXX_FLAGS}")
+  # Build with multiple processes -- speeds up compilation on multi-processor machines.
+  SET(CMAKE_CXX_FLAGS "/MP ${CMAKE_CXX_FLAGS}") 
 ENDIF (WIN32 AND MSVC)
 
 
@@ -153,32 +180,30 @@ ENDIF(UNIX)
 
 IF(SEG3D_BUILD_INTERFACE)
 
-SET(QT_MIN_VERSION "4.6.0")
-SET(QT_DIR "" CACHE PATH "Path to QT")
-INCLUDE(CMake/FindQt4.cmake)
-SET(QT_USE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/CMake/UseQt4.cmake)
+SET(QT_MIN_VERSION "4.7.3")
+#SET(QT_DIR "" CACHE PATH "Path to QT")
+INCLUDE(FindQt4)
+#SET(QT_USE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/CMake/UseQt4.cmake)
 
 IF (QT_FOUND)
   SET(QT_USE_QTOPENGL 1)
   INCLUDE(${QT_USE_FILE})
 ELSE (QT_FOUND)
-  MESSAGE(SEND_ERROR "QT 4.6.0 or later is required for building Seg3D")
+  MESSAGE(FATAL_ERROR "QT ${QT_MIN_VERSION} or later is required for building Seg3D")
 ENDIF (QT_FOUND)
 
 ENDIF(SEG3D_BUILD_INTERFACE)
 
 ###########################################
 # Configure python
-OPTION(BUILD_WITH_PYTHON "Build with python support." OFF)
+OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
 IF(BUILD_WITH_PYTHON)
   ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
 				  -DPy_NO_ENABLE_SHARED 
 				  -DBOOST_PYTHON_STATIC_MODULE
 				  -DBOOST_PYTHON_STATIC_LIB 
-				  -DLANDMARK=L"lib\\\\pythonlib.zip"
-				  -DPYTHONPATH=L".\\\\lib\\\\pythonlib.zip")
-  FILE(COPY Externals/python/pythonlib.zip DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG})
-  FILE(COPY Externals/python/pythonlib.zip DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE})
+				  -DLANDMARK=L"lib/pythonlib.zip"
+				  -DPYTHONPATH=L"./lib/pythonlib.zip")
 ENDIF(BUILD_WITH_PYTHON)
 
 ###########################################
@@ -251,6 +276,11 @@ ENDIF(NOT WIN32 AND NOT APPLE)
 CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/Configuration/ApplicationConfiguration.h.in 
                 ${CMAKE_CURRENT_BINARY_DIR}/ApplicationConfiguration.h 
                 @ONLY )
+
+CONFIGURE_FILE (${CMAKE_CURRENT_SOURCE_DIR}/Configuration/InterfaceConfiguration.h.in 
+                ${CMAKE_CURRENT_BINARY_DIR}/InterfaceConfiguration.h 
+                @ONLY )
+
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 
 ###########################################
@@ -267,10 +297,14 @@ INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
 INCLUDE_DIRECTORIES(${SCI_FREETYPE_INCLUDE})
 INCLUDE_DIRECTORIES(${SCI_ITK_INCLUDE})
 INCLUDE_DIRECTORIES(${SCI_TINYXML_INCLUDE})
+INCLUDE_DIRECTORIES(${SCI_MATLABIO_INCLUDE})
+INCLUDE_DIRECTORIES(${SCI_SQLITE_INCLUDE})
+INCLUDE_DIRECTORIES(${SCI_MRC2000IO_INCLUDE})
 
 IF(BUILD_WITH_PYTHON)
   INCLUDE_DIRECTORIES(${SCI_PYTHON_INCLUDE})
   ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
+  INCLUDE(CMake/GenerateActionPythonWrapper.cmake)
 ENDIF(BUILD_WITH_PYTHON)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
@@ -307,10 +341,8 @@ ADD_SUBDIRECTORY(Core)
 MESSAGE(STATUS "Configuring Seg3D Application")
 ADD_SUBDIRECTORY(Application)
 
-
 MESSAGE(STATUS "Configuring Seg3D Interface")
 IF(SEG3D_BUILD_INTERFACE)
-  ADD_SUBDIRECTORY(Resources)
   ADD_SUBDIRECTORY(QtUtils)
   ADD_SUBDIRECTORY(Interface)
 ENDIF(SEG3D_BUILD_INTERFACE)
@@ -324,6 +356,8 @@ ENDIF(SEG3D_BUILD_INTERFACE)
 # factories.
 ###########################################
 
+SET(IGNORE_RESOURCES FALSE CACHE INTERNAL "Ignore default resources library." FORCE)
+
 MESSAGE(STATUS "Configuring Seg3D Plugins")
 FILE(GLOB PLUGIN_DIRS "Plugins/*" )
 
@@ -336,6 +370,20 @@ FOREACH(DIR ${PLUGIN_DIRS})
 	ENDIF(IS_DIRECTORY ${DIR}) 
   ENDIF(NOT ${DIR} MATCHES "Plugins/.svn")
 ENDFOREACH(DIR ${PLUGIN_DIRS})
+
+###########################################
+# Rsources:
+# images + icons
+###########################################
+
+
+IF(NOT IGNORE_RESOURCES)
+MESSAGE(STATUS "Configuring Seg3D Resources")
+IF(SEG3D_BUILD_INTERFACE)
+  ADD_SUBDIRECTORY(Resources)
+ENDIF(SEG3D_BUILD_INTERFACE)
+ENDIF(NOT IGNORE_RESOURCES)
+
 
 ###########################################
 # Main:
@@ -361,6 +409,15 @@ MESSAGE(STATUS "Configuring Seg3D registered functions")
 GENERATE_REGISTRATION_FILES()
 
 ###########################################
+# Generate the python functions registration file
+###########################################
+
+IF(BUILD_WITH_PYTHON)
+  MESSAGE(STATUS "Configuring action python wrapper functions")
+  GENERATE_ACTION_PYTHON_WRAPPER_REGISTRATION_FILE()
+ENDIF(BUILD_WITH_PYTHON)
+
+###########################################
 # Bootstrap
 # Add code for packaging shaders and other
 # objects into the executable
@@ -378,53 +435,72 @@ MESSAGE(STATUS "Configuring Seg3D packaging")
 
 INCLUDE(InstallRequiredSystemLibraries)
 
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Seg3D2")
-SET(CPACK_PACKAGE_VENDOR "SCI")
-      
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/ReadMe.txt")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Seg3D2 ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION} is a segmentation program")
+SET(CPACK_PACKAGE_NAME "${APPLICATION_NAME}")
 
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/CMake/License.txt")
-SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/CMake/ReadMe.txt")
-SET(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Welcome.txt")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${APPLICATION_NAME}")
+SET(CPACK_PACKAGE_VENDOR "${APPLICATION_VENDOR}")
+      
+SET(CPACK_PACKAGE_DESCRIPTION_FILE ${PACKAGING_README} )
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}.${SEG3D_PATCH_VERSION} is a segmentation program")
+
+SET(CPACK_RESOURCE_FILE_LICENSE ${PACKAGING_LICENSE})
+SET(CPACK_RESOURCE_FILE_README ${PACKAGING_RELEASENOTES})
+SET(CPACK_RESOURCE_FILE_WELCOME ${PACKAGING_WELCOME})
 
 SET(CPACK_PACKAGE_VERSION_MAJOR "${SEG3D_MAJOR_VERSION}")
 SET(CPACK_PACKAGE_VERSION_MINOR "${SEG3D_MINOR_VERSION}")
 SET(CPACK_PACKAGE_VERSION_PATCH "${SEG3D_PATCH_VERSION}")
 
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY 
-    "Seg3D ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
-    
+    "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
     
 IF(WIN32 AND NOT UNIX)
   # There is a bug in NSIS that does not handle full unix paths properly. Make
-  # sure there is at least one set of four (4) backlasshes.
-  SET(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\Seg3D.bmp")
+  # sure there is at least one set of four (4) backslashes.
+  SET(CPACK_PACKAGE_ICON "${PACKAGING_ICON}")
     IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
       SET(CPACK_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
       SET(CMAKE_INSTALL_PREFIX "/" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
     ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\Seg3D")
-  SET(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/Resources/Icons\\\\Seg3D.ico")
-  SET(CPACK_NSIS_DISPLAY_NAME "Seg3D ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
-  SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\www.seg3d.org")
-  SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\www.seg3d.org")
-  SET(CPACK_NSIS_CONTACT "seg3d-users@sci.utah.edu")
+  SET(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\${APPLICATION_NAME}")
+  SET(CPACK_NSIS_MUI_ICON "${APPLICATION_WINDOWS_ICON}")
+  SET(CPACK_NSIS_DISPLAY_NAME "${APPLICATION_NAME} ${SEG3D_MAJOR_VERSION}.${SEG3D_MINOR_VERSION}")
+  SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\${APPLICATION_URL}")
+  SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\${APPLICATION_URL}")
+  SET(CPACK_NSIS_CONTACT ${APPLICATION_CONTACT} )
   SET(CPACK_NSIS_MODIFY_PATH ON)
-  SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2" "Seg3D2")
+  SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}" "${APPLICATION_NAME}")
   SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-	WriteRegStr HKCR '.nrrd' '' 'Seg3D2'
-	WriteRegStr HKCR 'Seg3D2' '' 'Seg3D2 Data File'
-	WriteRegStr HKCR 'Seg3D2\\\\shell' '' 'open'
-	WriteRegStr HKCR 'Seg3D2\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe,0'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\edit' '' 'Edit Seg3D2 Data File'
-	WriteRegStr HKCR 'Seg3D2\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\Seg3D2.exe \\\"%1\\\"'
+	WriteRegStr HKCR '.nrrd' '' '${APPLICATION_NAME}-nrrd'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd' '' '${APPLICATION_NAME} NRRD File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit' '' 'Open NRRD Data File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
+	WriteRegStr HKCR '.nhdr' '' '${APPLICATION_NAME}-nhdr'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr' '' '${APPLICATION_NAME} NHDR File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit' '' 'Open NHDR Data File'
+	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
+	WriteRegStr HKCR '${APPLICATION_EXTENSION}' '' '${APPLICATION_NAME}'
+	WriteRegStr HKCR '${APPLICATION_NAME}' '' '${APPLICATION_NAME} Project File'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell' '' 'open'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit' '' 'Open ${APPLICATION_NAME} Project File'
+	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
 	System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
   ")
   SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
 	DeleteRegKey HKCR '.nrrd'
-	DeleteRegKey HKCR 'Seg3D2'
+	DeleteRegKey HKCR '.nhdr'
+	DeleteRegKey HKCR '${APPLICATION_EXTENSION}'
+	DeleteRegKey HKCR '${APPLICATION_NAME}'
   ")
 ELSE(WIN32 AND NOT UNIX)
   IF(APPLE)
@@ -437,11 +513,11 @@ ELSE(WIN32 AND NOT UNIX)
     SET(CPACK_PACKAGING_INSTALL_PREFIX "/")
     SET(CPACK_STRIP_FILES TRUE)
     SET(CPACK_SOURCE_STRIP_FILES TRUE)
-    SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2.app" "Seg3D2")
+    SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}.app" "${APPLICATION_NAME}")
   ELSE(APPLE)
     SET(CPACK_STRIP_FILES TRUE)
     SET(CPACK_SOURCE_STRIP_FILES TRUE)
-    SET(CPACK_PACKAGE_EXECUTABLES "Seg3D2" "Seg3D2")
+    SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}" "${APPLICATION_NAME}")
   ENDIF(APPLE)
 ENDIF(WIN32 AND NOT UNIX)
 

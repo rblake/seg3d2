@@ -29,8 +29,7 @@
 #ifndef APPLICATION_TOOLS_ACTIONS_ACTIONPASTE_H
 #define APPLICATION_TOOLS_ACTIONS_ACTIONPASTE_H
 
-// Core includes
-#include <Core/Action/Actions.h>
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -38,7 +37,7 @@ namespace Seg3D
 class ActionPastePrivate;
 typedef boost::shared_ptr< ActionPastePrivate > ActionPastePrivateHandle;
 
-class ActionPaste : public Core::Action
+class ActionPaste : public LayerAction
 {
 
 CORE_ACTION
@@ -48,14 +47,14 @@ CORE_ACTION
 	CORE_ACTION_ARGUMENT( "slice_type", "The slicing direction." )
 	CORE_ACTION_ARGUMENT( "min_slice", "The minimum slice number to paste onto." )
 	CORE_ACTION_ARGUMENT( "max_slice", "The maximum slice number to paste onto." )
-	CORE_ACTION_KEY( "slot", "0", "Which clipboard slot to use." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "Which sandbox to use." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
 
 public:
 	ActionPaste();
-	virtual ~ActionPaste();
 
 	// VALIDATE:
 	// Each action needs to be validated just before it is posted. This way we

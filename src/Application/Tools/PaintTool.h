@@ -78,7 +78,7 @@ public:
 	bool erase_;
 };
 
-class PaintTool : public SeedPointsTool, public boost::enable_shared_from_this< PaintTool >
+class PaintTool : public SeedPointsTool, public boost::enable_shared_from_this< PaintTool >//, public SingleTargetTool
 {
 
 SEG3D_TOOL
@@ -144,7 +144,8 @@ public:
 	// REDRAW:
 	// Draw the paint tool in the specified viewer.
 	// The function should only be called by the renderer, which has a valid GL context.
-	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat );
+	virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat,
+		int viewer_width, int viewer_height );
 
 	// HAS_2D_VISUAL:
 	// Returns true if the tool draws itself in the 2D view, otherwise false.

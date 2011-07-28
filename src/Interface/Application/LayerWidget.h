@@ -30,104 +30,39 @@
 #define INTERFACE_APPLICATION_LAYERWIDGET_H
 
 // QT Includes
-#include <QtGui/QWidget>
-#include <QtGui/QFrame>
-#include <QtGui/QMouseEvent>
-#include <QtGui/QDragEnterEvent>
-#include <QtGui/QDragLeaveEvent>
-#include <QtGui/QDropEvent>
-#include <QtCore/QPointer>
-
+#include <QWidget>
+#include <QFrame>
 
 // Application includes
-#include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerFWD.h>
+
+// Interface includes
+#include <Interface/Application/GroupButtonMenu.h>
 
 namespace Seg3D
 {
 	
-class LayerGroupWidget;
-typedef QSharedPointer< LayerGroupWidget > LayerGroupWidgetQHandle;
-	
 class LayerWidget;
-typedef QSharedPointer< LayerWidget > LayerWidgetQHandle;
-typedef QWeakPointer< LayerWidget > LayerWidgetQWeakHandle;
-
-
 class LayerWidgetPrivate;
 	
 class LayerWidget : public QWidget
 {
-Q_OBJECT
+	Q_OBJECT
 
-
-Q_SIGNALS:
-	// PREP_FOR_DRAG_AND_DROP:
-	// this signal tells the group that it is time to prep the layers for drag and drop
-	void prep_for_drag_and_drop( bool );
-	
-	// LAYER_SIZE_SIGNAL:
-	// this function lets the LayerManagerWidget know what size the picked up layer is so that it
-	// can notify the layers
-	void layer_size_signal_( int );
-	
-	// SELECTION_BOX_CHANGED:
-	// this signal tells the group that the selection box's status has been changed
-	void selection_box_changed();
-
-// -- constructor/destructor --
+	// -- constructor/destructor --
 public:
 	LayerWidget( QFrame* parent, LayerHandle layer );
 	virtual ~LayerWidget();
 
-// -- update functions --
 public:
-
-	// UPDATE_APPEARANCE:
-	// Update the appearance of the widget to reflect its state
-	void update_appearance( bool locked, bool active, bool in_use, bool initialize = false);
-
-	// UPDATE_WIDGET_STATE:
-	// Update the button state, the open menus and color of the widget
-	void update_widget_state( bool initialize = false );
-
-public:
-	
-	// UPDATE_PROGRESS_BAR:
-	// Update the progress in the widget
-	void update_progress_bar( double progress );
-	
 	// SHOW_SELECTION_CHECKBOX:
 	// this function is called when the user opens a group menu so that the layer's selection
 	// checkbox can be accessed
 	void show_selection_checkbox( bool hideshow );
 
-	// SET_ACTIVE:
-	// this function is called when the user activates or deactivates the layer and changes the
-	// stylesheet of the layer appropriately
-	void set_active( bool active );
-
-	// ENABLE_DROP_SPACE:
-	// this function is called when a drag enter or leave event is triggered and it calls hide
-	// or show on the dropspace to make it look like there is a space for the user to drop the
-	// dragged layer
-	void enable_drop_space( bool drop );
-	
 	// INSTANT_HIDE_DROP_SPACE:
-	// this funtion instantly hides the drop space for when a move has been made
+	// this function instantly hides the drop space for when a move has been made
 	void instant_hide_drop_space();
-	
-	// HIDE_OVERLAY:
-	// this hides the invsible overlay that we put over the widget when dragging and dropping so
-	// that we dont have multiple enter and exit events
-	void hide_overlay();
-
-	// SET_GROUP_MENU_STATUS:
-	// this function is called by the group to let the layers know that a group menu has been opened
-	void set_group_menu_status( bool status );
-
-	// SET_PICKED_UP:
-	// this function is called to set or unset the state of picked_up_
-	void set_picked_up( bool up );
 
 	// PREP_FOR_ANIMATION:
 	// this function hides the actual widgets and substitutes them for images to make drag and drop
@@ -140,18 +75,9 @@ public:
 	void set_picked_up_layer_size( int size );
 	
 	// SET_CHECK_SELECTED:
-	// funtion that sets whether all the layer checkboxes are selected or not when you press the 
+	// function that sets whether all the layer checkboxes are selected or not when you press the 
 	// select all button
 	void set_selected( bool selected );
-	
-	// SET_ISO_SURFACE_VISIBILITY:
-	// function that sets the state of the iso surface visibility button, triggered from the layergroupwidget
-	void set_iso_surface_visibility( bool visibility );
-
-public:
-	// GET_VOLUME_TYPE:
-	// this function returns the type volume that the layerwidget represents
-	int get_volume_type() const;
 
 	// GET_LAYER_ID:
 	// this function returns the id of the layer that the layerwidget represents
@@ -161,19 +87,16 @@ public:
 	// this function returns the id of the layer that the layerwidget represents
 	std::string get_layer_name() const;
 	
-	// GET_SELECTED:
-	// funtion that returns whether or not the layer is selected.
-	bool get_selected() const;
+	// IS_SELECTED:
+	// function that returns whether or not the layer is selected.
+	bool is_selected() const;
 
-private:
-    boost::shared_ptr< LayerWidgetPrivate > private_;
+	// SET_DROP_GROUP:
+	// this function is for keeping track of which group the drop is going to happen on
+	void set_drop_group( GroupButtonMenu* target_group );
 
-// FUNCTIONS FOR HANDLING DRAG AND DROP
-private:
-	// SET_DROP_TARGET:
-	// this function is for keeping track of which layer the drop is going to happen on
-	void set_drop_target( LayerWidget* target_layer );
-
+	// -- Virtual functions defined by QWidget --
+protected:
 	// MOUSEPRESSEVENT:
 	// this function is overloaded to enable drag and drop
 	virtual void mousePressEvent( QMouseEvent* event );
@@ -190,7 +113,27 @@ private:
 	// this function is called when the user drags another layer off of the top of this one
 	virtual void dragLeaveEvent( QDragLeaveEvent* event );
 	
+	// CONTEXTMENUEVENT:
+	// this function is the overloaded qt function that creates and connects actions to a context event
 	virtual void contextMenuEvent( QContextMenuEvent * event );
+
+	// RESIZEEVENT:
+	// Called when the widget has been resized.
+	virtual void resizeEvent( QResizeEvent *event );
+
+Q_SIGNALS:
+	// PREP_FOR_DRAG_AND_DROP:
+	// this signal tells the group that it is time to prep the layers for drag and drop
+	void prep_for_drag_and_drop( bool );
+
+	// LAYER_SIZE_SIGNAL:
+	// this function lets the LayerManagerWidget know what size the picked up layer is so that it
+	// can notify the layers
+	void layer_size_signal_( int );
+
+	// SELECTION_BOX_CHANGED:
+	// this signal tells the group that the selection box's status has been changed
+	void selection_box_changed();
 	
 private Q_SLOTS:
 
@@ -199,7 +142,7 @@ private Q_SLOTS:
 	void set_mask_background_color( int color_index );
 
 	// SET_MASK_BACKGROUND_COLOR_FROM_PREFERENCE_CHANGE:
-	// this seperate function is need to change the color of the mask backgroun in the case that
+	// this separate function is need to change the color of the mask background in the case that
 	// the active color for the layer has been changed by the preferences manager
 	void set_mask_background_color_from_preference_change( int color_index );
 
@@ -213,6 +156,10 @@ private Q_SLOTS:
 	// TRIGGER_ABORT:
 	// Trigger the abort signal of the layer
 	void trigger_abort();
+
+	// TRIGGER_STOP:
+	// Trigger the stop signal of the layer
+	void trigger_stop();
 	
 	// SET_BRIGHTNESS_CONTRAST_TO_DEFAULT:
 	// dispatches actions that set the values of the brightness and contrast back to defaults
@@ -227,40 +174,29 @@ private Q_SLOTS:
 	// dispatches an action that deletes the layer
 	void delete_layer_from_context_menu();
 	
-	// EXPORT_DATA:
-	// dispatches an action that exports the data
-	void export_data();
-	
-	// EXPORT_BMP:
-	// dispatches an action that exports the layer as a segmentation
-	void export_bmp();
-	
 	// EXPORT_NRRD:
-	// dispatches an action that exports the layer as a segmentation
+	// dispatches an action that exports the layer as a nrrd
 	void export_nrrd();
-
-protected:
-	void resizeEvent( QResizeEvent *event );
 	
-public:
-	typedef QPointer< LayerWidget > qpointer_type;
-
-	// UPDATESTATE:
-	// Entry point for the state engine to notify state has changed
-	static void UpdateState( qpointer_type qpointer );
-
-	// UPDATEACTIVESTATE:
-	// Entry point for the state engine to notify active layer has changed
-	static void UpdateActiveState( qpointer_type qpointer, LayerHandle layer );
+	// EXPORT_DICOM:
+	// dispatches an action that exports the layer as a dicom
+	void export_dicom();
 	
-	// UPDATEVIEWERBUTTONS:
-	// update the layout of the viewer buttons
-	static void UpdateViewerButtons( qpointer_type qpointer, std::string layout );
-
-	// UPDATEPROGRESS:
-	// Update the progress bar 
-	static void UpdateProgress( qpointer_type qpointer, double progress );
+	// EXPORT_TIFF
+	// dispatches an action that exports the layer as a tiff
+	void export_tiff();
 	
+	// EXPORT_BITMAP:
+	// dispatches an action that exports the layer as a bitmap
+	void export_bitmap();
+	
+	// EXPORT_PNG:
+	// dispatches an action that exports the layer as a png
+	void export_png();
+
+private:
+	friend class LayerWidgetPrivate;
+	LayerWidgetPrivate* private_;	
 };
 
 } //end namespace Seg3D

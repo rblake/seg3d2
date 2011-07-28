@@ -32,21 +32,24 @@
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
 #include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
-
 	
-class ActionDiscreteGaussianFilter : public Core::Action
+class ActionDiscreteGaussianFilter : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "DiscreteGaussianFilter", "ITK filter that blurs the data." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
-	CORE_ACTION_KEY( "replace", "true", "Replace the old layer (true), or add an new layer (false)" )
-	CORE_ACTION_KEY( "preserve_data_format", "true", "ITK filters run in floating point percision,"
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "true", "Replace the old layer (true), or add an new layer (false)" )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "preserve_data_format", "true", "ITK filters run in floating point percision,"
 		" this option will convert the result back into the original format." )
-	CORE_ACTION_KEY( "blurring_distance", "2.0", "The amount of blurring." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "blurring_distance", "2.0", "The amount of blurring." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -55,20 +58,13 @@ CORE_ACTION(
 public:
 	ActionDiscreteGaussianFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		
-		// Action options
-		this->add_key( this->replace_ );
-		this->add_key( this->preserve_data_format_ );
-		
-		this->add_key( this->blurring_distance_ );
+		this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->preserve_data_format_ );
+		this->add_parameter( this->blurring_distance_ );
+		this->add_parameter( this->sandbox_ );
 	}
-	
-	virtual ~ActionDiscreteGaussianFilter()
-	{
-	}
-	
+
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
@@ -77,15 +73,14 @@ public:
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< bool > replace_;
-	Core::ActionParameter< bool > preserve_data_format_;
-	
-	Core::ActionParameter< double > blurring_distance_;
+	std::string target_layer_;
+	bool replace_;
+	bool preserve_data_format_;
+	double blurring_distance_;
+	SandboxID sandbox_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, std::string target_layer, bool replace,

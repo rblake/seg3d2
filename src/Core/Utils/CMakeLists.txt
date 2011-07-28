@@ -38,6 +38,8 @@ SET(CORE_UTILS_SRCS
   EnumClass.h
   Exception.h
   Exception.cc
+  FilesystemUtil.h
+  FilesystemUtil.cc
   GenerationNumber.h
   GenerationNumber.cc
   IntrusiveBase.h
@@ -59,12 +61,15 @@ SET(CORE_UTILS_SRCS
   Singleton.h
   StackBasedVector.h
   StackVector.h
+  StringContainer.h
   StringParser.h
   StringParser.cc
   StringUtil.h
   StringUtil.cc
   Timer.h
   Timer.cc
+  Variant.h
+  Variant.cc
 )
 
 ##################################################

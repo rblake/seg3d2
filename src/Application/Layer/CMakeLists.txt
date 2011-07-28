@@ -45,10 +45,66 @@ SET(APPLICATION_LAYER_SRCS
 	MaskLayer.cc
 	LabelLayer.h
 	LabelLayer.cc
+	LayerAvailabilityNotifier.h
+	LayerAvailabilityNotifier.cc
+	LayerManager.h
+	LayerManager.cc
+	LayerScene.h
+	LayerCheckPoint.h
+	LayerCheckPoint.cc
+	LayerUndoBufferItem.h
+	LayerUndoBufferItem.cc
+	LayerActionParameter.h
+	LayerActionParameter.cc
+	LayerAction.h
+	LayerAction.cc
+	LayerRecreationUndoBufferItem.h
+	LayerRecreationUndoBufferItem.cc
+	ProvenanceScript.h
+	ProvenanceScript.cc
 )
 
 SET(APPLICATION_LAYER_ACTIONS_SRCS
+	Actions/ActionActivateLayer.h
+	Actions/ActionActivateLayer.cc
+	Actions/ActionShiftActiveLayer.h
+	Actions/ActionShiftActiveLayer.cc
+	Actions/ActionCalculateMaskVolume.h
+	Actions/ActionCalculateMaskVolume.cc
+	Actions/ActionComputeIsosurface.h
+	Actions/ActionComputeIsosurface.cc
+	Actions/ActionDeleteIsosurface.h
+	Actions/ActionDeleteIsosurface.cc
+	Actions/ActionDeleteLayers.h
+	Actions/ActionDeleteLayers.cc
+	Actions/ActionMoveGroup.h
+	Actions/ActionMoveGroup.cc
+	Actions/ActionMoveLayer.h
+	Actions/ActionMoveLayer.cc
+	Actions/ActionNewMaskLayer.h
+	Actions/ActionNewMaskLayer.cc
+	Actions/ActionDuplicateLayer.h
+	Actions/ActionDuplicateLayer.cc
+	Actions/ActionMigrateSandboxLayer.h
+	Actions/ActionMigrateSandboxLayer.cc
+	Actions/ActionCreateSandbox.h
+	Actions/ActionCreateSandbox.cc
+	Actions/ActionDeleteSandbox.h
+	Actions/ActionDeleteSandbox.cc
+	Actions/ActionRecreateLayer.h
+	Actions/ActionRecreateLayer.cc
+	Actions/ActionBeginScriptStatusReport.h
+	Actions/ActionBeginScriptStatusReport.cc
+	Actions/ActionEndScriptStatusReport.h
+	Actions/ActionEndScriptStatusReport.cc
+	Actions/ActionReportScriptStatus.h
+	Actions/ActionReportScriptStatus.cc
 )
+
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_Layer ${APPLICATION_LAYER_ACTIONS_SRCS})
+  SET(APPLICATION_LAYER_SRCS ${APPLICATION_LAYER_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(Application_Layer ${APPLICATION_LAYER_SRCS}
             ${APPLICATION_LAYER_ACTIONS_SRCS} )
@@ -61,6 +117,9 @@ TARGET_LINK_LIBRARIES(Application_Layer
 					  Core_State
                       Core_Utils
                       Application_InterfaceManager
-					  Application_LayerManager
+					  Application_Provenance
                       ${SCI_BOOST_LIBRARY})
-					  
+
+# register actions					  
+REGISTER_LIBRARY_AND_CLASSES(Application_Layer
+                    ${APPLICATION_LAYER_ACTIONS_SRCS})

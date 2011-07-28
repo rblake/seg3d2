@@ -34,40 +34,53 @@
 namespace Core
 {
 
+// By default, assume data is node-centered unless otherwise indicated.  Intended to match 
+// unu resample behavior.
+const bool GridTransform::DEFAULT_NODE_CENTERED_C = true;
+
 GridTransform::GridTransform() :
-	nx_( 0 ), ny_( 0 ), nz_( 0 )
+	nx_( 0 ), ny_( 0 ), nz_( 0 ), originally_node_centered_( DEFAULT_NODE_CENTERED_C )
 {
 }
 
 GridTransform::GridTransform( const GridTransform& copy ) :
-	Transform( copy.transform() ), nx_( copy.nx_ ), ny_( copy.ny_ ), nz_( copy.nz_ )
+	Transform( copy.transform() ), nx_( copy.nx_ ), ny_( copy.ny_ ), nz_( copy.nz_ ), 
+	originally_node_centered_( copy.originally_node_centered_ )
 {
 }
 
 GridTransform& GridTransform::operator=( const GridTransform& copy )
 {
-	mat_ = copy.mat_;
-	nx_ = copy.nx_;
-	ny_ = copy.ny_;
-	nz_ = copy.nz_;
+	this->mat_ = copy.mat_;
+	this->nx_ = copy.nx_;
+	this->ny_ = copy.ny_;
+	this->nz_ = copy.nz_;
+	this->originally_node_centered_ = copy.originally_node_centered_;
 
 	return ( *this );
 }
 
 GridTransform::GridTransform( size_t nx, size_t ny, size_t nz, const Point& p, const Vector& i,
     const Vector& j, const Vector& k ) :
-	nx_( nx ), ny_( ny ), nz_( nz )
+	nx_( nx ), ny_( ny ), nz_( nz ), originally_node_centered_( DEFAULT_NODE_CENTERED_C )
 {
 	load_basis( p, i, j, k );
 }
 
 GridTransform::GridTransform( size_t nx, size_t ny, size_t nz, const Transform& transform ) :
-	Transform( transform ), nx_( nx ), ny_( ny ), nz_( nz )
+	Transform( transform ), nx_( nx ), ny_( ny ), nz_( nz ), 
+	originally_node_centered_( DEFAULT_NODE_CENTERED_C )
+{
+}
+
+GridTransform::GridTransform( size_t nx, size_t ny, size_t nz, const Transform& transform, 
+	bool node_centered ) :
+	Transform( transform ), nx_( nx ), ny_( ny ), nz_( nz ), originally_node_centered_( node_centered )
 {
 }
 
 GridTransform::GridTransform( size_t nx, size_t ny, size_t nz ) :
-	nx_( nx ), ny_( ny ), nz_( nz )
+	nx_( nx ), ny_( ny ), nz_( nz ), originally_node_centered_( DEFAULT_NODE_CENTERED_C )
 {
 	load_identity();
 }
@@ -79,18 +92,24 @@ Transform GridTransform::transform() const
 
 bool GridTransform::operator==( const GridTransform& gt ) const
 {
-	return ( nx_ == gt.nx_ && ny_ == gt.ny_ && nz_ == gt.nz_ && 
+	return ( this->nx_ == gt.nx_ && this->ny_ == gt.ny_ && this->nz_ == gt.nz_ && 
 		Transform::operator==( gt ) );
 }
 
 bool GridTransform::operator!=( const GridTransform& gt ) const
 {
-	return ( nx_ != gt.nx_ || ny_ != gt.ny_ || nz_ != gt.nz_ || 
+	return ( this->nx_ != gt.nx_ || this->ny_ != gt.ny_ || this->nz_ != gt.nz_ || 
 		Transform::operator!=( gt ) );
 }
 
+double GridTransform::get_diagonal_length() const
+{
+	return project( Vector( static_cast<double>( this->nx_ ), static_cast<double>( this->ny_ ), 
+		 static_cast<double>( this->nz_ ) ) ).length();
+}
+
 void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transform, 
-												std::vector< int >& permutation, GridTransform& dst_transform )
+	std::vector< int >& permutation, GridTransform& dst_transform )
 {
 	// Step 1. Align the transformation frame to axes
 	Vector axes[ 3 ];
@@ -103,6 +122,7 @@ void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transf
 	axes[ 2 ] = src_transform.project( canonical_axes[ 2 ] );
 
 	// Find the closest axis to each vector
+	
 	for ( int i = 0; i < 3; ++i )
 	{
 		double proj_len = 0;
@@ -116,11 +136,14 @@ void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transf
 				proj_len = dot_prod;
 			}
 		}
-		axes[ i ] = canonical_axes[ index ] * ( Sign( proj_len ) * axes[ i ].length() );
+		double length = axes[ i ].length();
+		if ( length == 0.0 ) length = 1.0;
+		axes[ i ] = canonical_axes[ index ] * ( Sign( proj_len ) * length );
 		canonical_axes.erase( canonical_axes.begin() + index );
 	}
 	
-	Point src_origin = src_transform.project( Point( 0, 0, 0 ) );
+	Point src_origin = src_transform.project( Point( 0.0, 0.0, 0.0 ) );
+	
 	std::vector< size_t > src_size( 3 );
 	src_size[ 0 ] = src_transform.get_nx();
 	src_size[ 1 ] = src_transform.get_ny();
@@ -146,11 +169,30 @@ void GridTransform::AlignToCanonicalCoordinates( const GridTransform& src_transf
 		}
 	}
 	
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( permutation[ i ] < 0 )
+		{
+			if ( src_transform.get_originally_node_centered() )
+			{
+				dst_origin[ i ] = dst_origin[ i ] - 
+					static_cast<double> ( dst_size[ i ] ) * spacing[ i ];
+			}
+			else
+			{
+				dst_origin[ i ] = dst_origin[ i ] - 
+					static_cast<double> ( dst_size[ i ] - 1 ) * spacing[ i ];
+			}
+		}
+	}
+	
 	dst_transform.load_basis( dst_origin, Vector( spacing[ 0 ], 0.0, 0.0 ),
 		Vector( 0.0, spacing[ 1 ], 0.0 ), Vector( 0.0, 0.0, spacing[ 2 ] ) );
 	dst_transform.set_nx( dst_size[ 0 ] );
 	dst_transform.set_ny( dst_size[ 1 ] );
 	dst_transform.set_nz( dst_size[ 2 ] );
+
+	dst_transform.set_originally_node_centered( src_transform.get_originally_node_centered() );
 }
 
 Point operator*( const GridTransform& gt, const Point& d )
@@ -175,8 +217,8 @@ VectorF operator*( const GridTransform& gt, const VectorF& d )
 
 std::string ExportToString( const GridTransform& value )
 {
-	return ( std::string( 1, '[' ) + ExportToString( value.get_nx() ) + ' ' + ExportToString(
-	    value.get_ny() ) + ' ' + ExportToString( value.get_nz() ) + ' ' + ExportToString(
+	return ( std::string( 1, '[' ) + ExportToString( value.get_nx() ) + ',' + ExportToString(
+	    value.get_ny() ) + ',' + ExportToString( value.get_nz() ) + ',' + ExportToString(
 	    value.transform() ) + ']' );
 }
 

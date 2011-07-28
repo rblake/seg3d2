@@ -36,13 +36,6 @@ MESSAGE(STATUS "Configuring zlib")
 ADD_SUBDIRECTORY(zlib)
 
 ##################################################
-# ADDING OPENSSL
-##################################################
-
-MESSAGE(STATUS "Configuring openssl")
-ADD_SUBDIRECTORY(openssl)
-
-##################################################
 # ADDING MATLABIO
 ##################################################
 
@@ -74,37 +67,11 @@ MESSAGE(STATUS "Configuring glew")
 ADD_SUBDIRECTORY(glew)
 
 ##################################################
-# ADDING SLIVR
-##################################################
-
-# FOR NOW SLIVR IS DISABLED AS IT DOES NOT COMPILE
-# WITH GLEWMX - WHICH IS THE CORRECT GLEW SETTING
-
-MESSAGE(STATUS "Configuring slivr")
-ADD_SUBDIRECTORY(slivr)
-
-##################################################
 # ADDING FREETYPE
 ##################################################
 
 MESSAGE(STATUS "Configuring freetype")
 ADD_SUBDIRECTORY(freetype)
-
-##################################################
-# ADDING PYTHON
-##################################################
-
-IF(BUILD_WITH_PYTHON)
-  MESSAGE(STATUS "Configuring python")
-  ADD_SUBDIRECTORY(python)
-ENDIF(BUILD_WITH_PYTHON)
-
-##################################################
-# ADDING BOOST
-##################################################
-
-MESSAGE(STATUS "Configuring boost")
-ADD_SUBDIRECTORY(boost)
 
 ##################################################
 # ADDING TINYXML
@@ -115,6 +82,13 @@ ADD_SUBDIRECTORY(tinyxml)
 
 ##################################################
 # ADDING TINYXML
+##################################################
+
+MESSAGE(STATUS "Configuring SQLite")
+ADD_SUBDIRECTORY(sqlite)
+
+##################################################
+# ADDING GDCM
 ##################################################
 
 MESSAGE(STATUS "Configuring GDCM")
@@ -136,5 +110,35 @@ SET(ITK_INSTALL_NO_LIBRARIES 1)
 SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
 INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
 ADD_SUBDIRECTORY(itk)
+
+##################################################
+# ADDING HDF5
+##################################################
+
+MESSAGE(STATUS "Configuring HDF5")
+ADD_SUBDIRECTORY(hdf5)
+
+##################################################
+# ADDING MRC2000
+##################################################
+
+MESSAGE(STATUS "Configuring MRC2000")
+ADD_SUBDIRECTORY(MRC2000IO)
+
+##################################################
+# ADDING PYTHON
+##################################################
+
+IF(BUILD_WITH_PYTHON)
+  MESSAGE(STATUS "Configuring python")
+  ADD_SUBDIRECTORY(python)
+ENDIF(BUILD_WITH_PYTHON)
+
+##################################################
+# ADDING BOOST
+##################################################
+
+MESSAGE(STATUS "Configuring boost")
+ADD_SUBDIRECTORY(boost)
 
 MESSAGE(STATUS "Configuring Seg3D2")

@@ -44,12 +44,12 @@ class ProjectExportWizard : public QWizard
 Q_OBJECT
 
 public:
-	ProjectExportWizard( const std::string& session_name, QWidget *parent = 0 );
+	ProjectExportWizard( long long session_id, QWidget *parent = 0 );
     virtual ~ProjectExportWizard();
 
 private:
     void accept();
-	QString session_name_;
+	long long session_id_;
 };
 
 class ExportInfoPage : public QWizardPage
@@ -58,14 +58,16 @@ Q_OBJECT
 
 public:
     ExportInfoPage( QWidget *parent = 0 );
-
-public:
-	QString session_name_;
 	
 protected:
 	// INITIALIZEPAGE:
 	// function for preloading the page information for the info page
     void initializePage();
+    
+	// VALIDATEPAGE:
+	// function that is called right after the next button is clicked and used to process
+	// the entered data so it can be passed to the next page
+	virtual bool validatePage();
 
 private:
 	QLabel *project_name_label_;
@@ -74,6 +76,7 @@ private:
     QLineEdit *project_path_lineedit_;
     QPushButton *project_path_change_button_;
     QCheckBox *automatically_consolidate_checkbox_;
+    QLabel *warning_message_;
 
 private Q_SLOTS:
 	// SETPATH:

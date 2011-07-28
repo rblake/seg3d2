@@ -3,7 +3,7 @@
 Contains CCompiler, an abstract base class that defines the interface
 for the Distutils compiler abstraction model."""
 
-__revision__ = "$Id: ccompiler.py 77430 2010-01-11 23:23:44Z tarek.ziade $"
+__revision__ = "$Id: ccompiler.py 86223 2010-11-05 23:51:56Z eric.araujo $"
 
 import sys, os, re
 from distutils.errors import *
@@ -779,14 +779,16 @@ class CCompiler:
             library_dirs = []
         fd, fname = tempfile.mkstemp(".c", funcname, text=True)
         f = os.fdopen(fd, "w")
-        for incl in includes:
-            f.write("""#include "%s"\n""" % incl)
-        f.write("""\
+        try:
+            for incl in includes:
+                f.write("""#include "%s"\n""" % incl)
+            f.write("""\
 main (int argc, char **argv) {
     %s();
 }
 """ % funcname)
-        f.close()
+        finally:
+            f.close()
         try:
             objects = self.compile([fname], include_dirs=include_dirs)
         except CompileError:

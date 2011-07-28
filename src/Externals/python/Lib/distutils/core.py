@@ -6,7 +6,7 @@ indirectly provides the Distribution and Command classes, although they are
 really defined in distutils.dist and distutils.cmd.
 """
 
-__revision__ = "$Id: core.py 63335 2008-05-16 00:03:33Z alexandre.vassalotti $"
+__revision__ = "$Id: core.py 86223 2010-11-05 23:51:56Z eric.araujo $"
 
 import sys, os
 
@@ -215,7 +215,11 @@ def run_setup (script_name, script_args=None, stop_after="run"):
             sys.argv[0] = script_name
             if script_args is not None:
                 sys.argv[1:] = script_args
-            exec(open(script_name).read(), g, l)
+            f = open(script_name)
+            try:
+                exec(f.read(), g, l)
+            finally:
+                f.close()
         finally:
             sys.argv = save_argv
             _setup_stop_after = None

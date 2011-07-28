@@ -33,19 +33,16 @@
 # pragma once
 #endif
 
-// STL includes
-#include <map>
-#include <vector>
-
 // Boost includes 
 #include <boost/smart_ptr.hpp>
 #include <boost/function.hpp>
-#include <boost/thread.hpp>
 
 // Core includes
+#include <Core/Geometry/Point.h>
 #include <Core/Viewer/AbstractViewer.h>
 #include <Core/Volume/VolumeSlice.h>
 #include <Core/State/State.h>
+#include <Core/Renderer/PickPoint.h>
 
 // Application includes
 #include <Application/Layer/LayerFWD.h>
@@ -84,19 +81,47 @@ public:
 	typedef boost::function< bool( ViewerHandle ) > leave_event_handler_type;
 	typedef boost::function< bool( ViewerHandle, int, int, int, int, int ) > wheel_event_handler_type;
 	typedef boost::function< bool( ViewerHandle, int, int ) > key_press_event_handler_type;
+	typedef boost::function< bool( ViewerHandle, int, int ) > key_release_event_handler_type;
 	typedef boost::function< bool( ViewerHandle ) > cursor_handler_type;
 
+	// MOUSE_MOVE_EVENT:
+	// This function is called by the render widget when a mouse move event has occurred.
+	// This function needs to be overloaded to record mouse movements.
 	virtual void mouse_move_event( const Core::MouseHistory& mouse_history, 
 		int button, int buttons, int modifiers );
+
+	// MOUSE_PRESS_EVENT:
+	// This function is called by the render widget when a mouse button press event has occurred.
+	// This function needs to be overloaded to record mouse buttons being pressed.
 	virtual void mouse_press_event( const Core::MouseHistory& mouse_history, 
 		int button, int buttons, int modifiers );
+
+	// MOUSE_RELEASE_EVENT:
+	// This function is called by the render widget when a mouse button release event has occurred.
+	// This function needs to be overloaded to record mouse buttons being released.
 	virtual void mouse_release_event( const Core::MouseHistory& mouse_history, 
 		int button, int buttons, int modifiers );
+
+	// MOUSE_ENTER_EVENT:
+	// This function is called by the render widget when a mouse enter event has occurred.
 	virtual void mouse_enter_event( int x, int y );
+
+	// MOUSE_LEAVE_EVENT:
+	// This function is called by the render widget when a mouse leave event has occurred.
 	virtual void mouse_leave_event();
+
+	// WHEEL_EVENT:
+	// This function is called by the render widget when a mouse wheel event has occurred.
+	// This function needs to be overloaded to track mouse wheel events. 
 	virtual bool wheel_event( int delta, int x, int y, int buttons, int modifiers );
 
+	// KEY_PRESS_EVENT:
+	// This function is called when a key is pressed while hovering over the render widget
 	virtual bool key_press_event( int key, int modifiers, int x, int y );
+
+	// KEY_RELEASE_EVENT:
+	// This function is called when a key is released while hovering over the render widget
+	virtual bool key_release_event( int key, int modifiers, int x, int y );
 
 	void set_mouse_move_handler( mouse_event_handler_type func );
 	void set_mouse_press_handler( mouse_event_handler_type func );
@@ -105,6 +130,7 @@ public:
 	void set_mouse_leave_handler( leave_event_handler_type func );
 	void set_wheel_event_handler( wheel_event_handler_type func );
 	void set_key_press_event_handler( key_press_event_handler_type func );
+	void set_key_release_event_handler( key_press_event_handler_type func );
 	void set_cursor_handler( cursor_handler_type func );
 	void reset_mouse_handlers();
 
@@ -144,6 +170,10 @@ public:
 	// Set the new size of the viewer.
 	virtual void resize( int width, int height );
 
+	// INSTALL_RENDERER:
+	// Install a renderer to the viewer.
+	virtual void install_renderer( Core::AbstractRendererHandle renderer );
+
 	// AUTO_VIEW:
 	// Auto adjust the view for the active layer
 	void auto_view();
@@ -163,7 +193,14 @@ public:
 	// WINDOW_TO_WORLD:
 	// Maps from window coordinates to world coordinates.
 	// NOTE: Only call this function when the viewer is in one of the 2D modes.
+	// Locks: StateEngine
 	void window_to_world( int x, int y, double& world_x, double& world_y ) const;
+
+	// WORLD_TO_WINDOW:
+	// Maps from world coordinates to window coordinates.
+	// NOTE: Only call this function when the viewer is in one of the 2D modes.
+	// Locks: StateEngine
+	void world_to_window( double world_x, double world_y, double& x, double& y ) const;
 
 	// GET_PROJECTION_MATRIX:
 	// Get the projection matrix of current view mode.
@@ -190,10 +227,19 @@ public:
 	// Emits both redraw_scene_signal_ and redraw_overlay_signal_
 	void redraw_all();
 
+	// -- Signals and Slots --
+public:
+	// Types of signals
+	typedef boost::signals2::signal< void( Core::PickPointHandle ) > redraw_scene_pick_signal_type;
+	typedef boost::signals2::signal< void ( size_t ) > slice_changed_signal_type;
+
+	// REDRAW_SCENE_PICK_SIGNAL:
+	// Signals that 3D pick point needs to be obtained from renderer.
+	redraw_scene_pick_signal_type redraw_scene_pick_signal_;
+
 	// SLICE_CHANGED_SIGNAL_:
 	// Triggered when slice number or viewer visibility is changed.
 	// Renderer of other viewers connect to this signal to update the overlay.
-	typedef boost::signals2::signal< void ( size_t ) > slice_changed_signal_type;
 	slice_changed_signal_type slice_changed_signal_;
 
 	// -- State handling --
@@ -218,6 +264,11 @@ public:
 	Core::StateView3DHandle volume_view_state_;
 	Core::StateRangedIntHandle slice_number_state_;
 
+	// Whether to flip the 2D view horizontally
+	Core::StateBoolHandle flip_horizontal_state_;
+	// Whether to flip the 2D view vertically
+	Core::StateBoolHandle flip_vertical_state_;
+
 	// 2D viewer state
 	Core::StateBoolHandle slice_grid_state_;
 	Core::StateBoolHandle slice_visible_state_;
@@ -228,7 +279,10 @@ public:
 	Core::StateBoolHandle volume_isosurfaces_visible_state_;
 	Core::StateBoolHandle volume_volume_rendering_visible_state_;
 	Core::StateBoolHandle volume_light_visible_state_;
+	Core::StateBoolHandle volume_enable_fog_state_;
+	Core::StateBoolHandle volume_enable_clipping_state_;
 	Core::StateBoolHandle volume_show_invisible_slices_state_;
+	Core::StateBoolHandle volume_show_bounding_box_state_;
 
 	Core::StateBoolHandle lock_state_;
 	Core::StateBoolHandle overlay_visible_state_;

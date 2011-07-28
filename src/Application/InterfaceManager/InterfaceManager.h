@@ -69,6 +69,9 @@ private:
 	InterfaceManager();
 	virtual ~InterfaceManager();
 
+public:
+	virtual int get_session_priority();
+
 	// -- state variables of interface --
 public:
 	// Whether the view is in full screen mode
@@ -78,15 +81,23 @@ public:
 	Core::StateBoolHandle project_dockwidget_visibility_state_;
 	Core::StateBoolHandle toolmanager_dockwidget_visibility_state_;
 	Core::StateBoolHandle layermanager_dockwidget_visibility_state_;
-	Core::StateBoolHandle measurement_project_dockwidget_visibility_state_;
+	Core::StateBoolHandle rendering_dockwidget_visibility_state_;
+	Core::StateBoolHandle provenance_dockwidget_visibility_state_;
 	Core::StateBoolHandle history_dockwidget_visibility_state_;
 	
-	// Other widget visibilty state
+	// Other widget visibility state
 	Core::StateBoolHandle preferences_manager_visibility_state_;
 	Core::StateBoolHandle controller_visibility_state_;
 	Core::StateBoolHandle message_window_visibility_state_;
 	Core::StateBoolHandle splash_screen_visibility_state_;
 	Core::StateBoolHandle keyboard_shortcut_visibility_state_;
+	Core::StateBoolHandle python_console_visibility_state_;
+	
+	//Options of what to show
+	Core::StateBoolHandle enable_project_creation_state_;
+	Core::StateBoolHandle enable_file_import_state_;
+	Core::StateBoolHandle enable_controller_state_;
+	Core::StateBoolHandle enable_tool_help_state_;
 	
 private:
 	// INITIALIZE_STATES:

@@ -30,7 +30,7 @@
 #include <itkCannyEdgeDetectionImageFilter.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 #include <Application/Filters/ITKFilter.h>
 #include <Application/Filters/Actions/ActionCannyEdgeDetectionFilter.h>
@@ -46,26 +46,22 @@ namespace Seg3D
 
 bool ActionCannyEdgeDetectionFilter::validate( Core::ActionContextHandle& context )
 {
-	// Check for layer existance and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistanceAndType( this->target_layer_.value(), 
-		Core::VolumeType::DATA_E, error ) )
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) )
 	{
-		context->report_error( error );
 		return false;
 	}
+
+	// Check for layer existence and type information
+	if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
+		Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;
 	
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_.value(), 
-		notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailabilityForProcessing( this->target_layer_, 
+		context, this->sandbox_ ) ) return false;
 		
 	// If the number of iterations is lower than one, we cannot run the filter
-	if( this->blurring_distance_.value() < 0.0 )
+	if ( this->blurring_distance_ < 0.0 )
 	{
 		context->report_error( "The blurring distance needs to be larger than zero." );
 		return false;
@@ -112,7 +108,8 @@ public:
 		filter_type::Pointer filter = filter_type::New();
 
 		// Relay abort and progress information to the layer that is executing the filter.
-		this->observe_itk_filter( filter, this->dst_layer_ );
+		this->forward_abort_to_filter( filter, this->dst_layer_ );
+		this->observe_itk_progress( filter, this->dst_layer_ );
 
 		// Setup the filter parameters that we do not want to change.
 		filter->SetInput( input_image->get_image() );
@@ -137,7 +134,7 @@ public:
 				return;
 			}
 
-			this->report_error( "Internal error in filter." );
+			this->report_error( "ITK filter failed to complete." );
 			return;
 		}
 
@@ -163,9 +160,7 @@ public:
 	{
 		return "CannyEdge";
 	}
-	
 };
-
 
 bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context, 
 	Core::ActionResultHandle& result )
@@ -174,14 +169,15 @@ bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context,
 	boost::shared_ptr<CannyEdgeDetectionFilterAlgo> algo( new CannyEdgeDetectionFilterAlgo );
 
 	// Copy the parameters over to the algorithm that runs the filter
-	algo->blurring_distance_ = this->blurring_distance_.value();
-	algo->threshold_ = this->threshold_.value();
+	algo->blurring_distance_ = this->blurring_distance_;
+	algo->threshold_ = this->threshold_;
+	algo->set_sandbox( this->sandbox_ );
 
 	// Find the handle to the layer
-	if ( !( algo->find_layer( this->target_layer_.value(), algo->src_layer_ ) ) )
-	{
-		return false;
-	}
+	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_, this->sandbox_ );
+
+	// Check if layer really exists
+	if ( !algo->src_layer_ ) return false;
 
 	// Lock the src layer, so it cannot be used else where
 	if ( !( algo->lock_for_use( algo->src_layer_ ) ) )
@@ -197,9 +193,16 @@ bool ActionCannyEdgeDetectionFilter::run( Core::ActionContextHandle& context,
 
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
 
 	// Start the filter on a separate thread.
 	Core::Runnable::Start( algo );
@@ -215,9 +218,9 @@ void ActionCannyEdgeDetectionFilter::Dispatch( Core::ActionContextHandle context
 	ActionCannyEdgeDetectionFilter* action = new ActionCannyEdgeDetectionFilter;
 
 	// Setup the parameters
-	action->target_layer_.value() = target_layer;
-	action->blurring_distance_.value() = blurring_distance;
-	action->threshold_.value() = threshold;
+	action->target_layer_ = target_layer;
+	action->blurring_distance_ = blurring_distance;
+	action->threshold_ = threshold;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

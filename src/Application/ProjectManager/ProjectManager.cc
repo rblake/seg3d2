@@ -27,10 +27,7 @@
  */
 
 // STL includes
-#include <time.h>
-
-// Boost includes
-#include <boost/lexical_cast.hpp>
+#include <ctime>
 
 // Core includes
 #include <Core/State/StateIO.h>
@@ -40,598 +37,788 @@
 #include <Application/ProjectManager/ProjectManager.h>
 #include <Application/ProjectManager/AutoSave.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
-#include <Application/StatusBar/StatusBar.h>
 #include <Application/ToolManager/ToolManager.h>
+#include <Application/DatabaseManager/DatabaseManager.h>
+
+#include "ApplicationConfiguration.h"
 
 namespace Seg3D
 {
 
 CORE_SINGLETON_IMPLEMENTATION( ProjectManager );
 
+// File name of the project database
+static const std::string PROJECT_DATABASE_C( 
+	std::string( CORE_APPLICATION_VERSION ) + "_recentprojects.sqlite" );
+
+// File name of the ProjectManager state config file
+static const std::string CONFIGURATION_FILE_C( 
+	std::string( CORE_APPLICATION_VERSION ) + "_projectmanager.xml" );
+
+// Version number of the project database
+static const int PROJECT_DATABASE_VERSION_C = 2;
+
+class ProjectManagerPrivate : public DatabaseManager 
+{
+public:
+	// INITIALIZE_PROJECT_DATABASE:
+	// Create the project database.
+	bool initialize_project_database();
+
+	// LOAD_OR_CREATE_PROJECT_DATABASE:
+	// Load the project database from file if it exists, or create a new one.
+	// It also handles converting old version database into the new format.
+	bool load_or_create_project_database();
+
+	// SET_CURRENT_PROJECT:
+	// Set the current project
+	void set_current_project( const ProjectHandle& project );
+
+	// CREATE_PROJECT_DIRECTORY:
+	// Create a new directory for a seg3d project
+	bool create_project_directory( const std::string& project_location,
+		const std::string& project_name, boost::filesystem::path& project_path );
+
+	// CLEANUP_PROJECTS_LIST:
+	// this function cleans up projects from the recent projects list that don't exist.
+	void cleanup_project_database();
+	
+	// INSERT_OR_UPDATE_PROJECT_ENTRY:
+	// Add a project to the database if it doesn't exist yet, otherwise update
+	// its last_access_time to the current time.
+	bool insert_or_update_project_entry( const boost::filesystem::path& project_file );
+
+	// RESET_CURRENT_PROJECT_FOLDER:
+	// Reset the current project folder variable to the one the preference
+	void reset_current_project_folder();
+
+public:
+	// public handle to the current project
+	ProjectHandle current_project_;
+
+	// Pointer back to project manager class
+	ProjectManager* project_manager_;
+
+	// A database of recently loaded projects
+	DatabaseManagerHandle project_database_;
+
+	// Path of the project database file
+	boost::filesystem::path project_db_file_;
+};
+
+bool ProjectManagerPrivate::initialize_project_database()
+{
+	this->project_database_.reset( new DatabaseManager );
+	std::string sql_statements;
+
+	// Create table for storing the database version
+	sql_statements += "CREATE TABLE database_version "
+		"(version INTEGER NOT NULL PRIMARY KEY);";
+
+	// Create table for storing projects
+	sql_statements += "CREATE TABLE project "
+		"(project_id INTEGER NOT NULL PRIMARY KEY, "
+		"name TEXT NOT NULL, "
+		"path TEXT NOT NULL UNIQUE, "
+		"last_access_time INTEGER NOT NULL);";
+
+	// Set the database version to 2
+	sql_statements += "INSERT INTO database_version VALUES ("
+		+ Core::ExportToString( PROJECT_DATABASE_VERSION_C ) + ");";
+
+	std::string error;
+	if ( !this->project_database_->run_sql_script( sql_statements, error ) )
+	{
+		CORE_LOG_ERROR( "Failed to initialize the project database: " + error );
+		return false;
+	}
+
+	return true;
+}
+
+bool ProjectManagerPrivate::load_or_create_project_database()
+{
+	// Find the directory where user settings are stored
+	Core::Application::Instance()->get_config_directory( this->project_db_file_ );
+	this->project_db_file_ = this->project_db_file_ / PROJECT_DATABASE_C;
+
+	this->project_database_.reset( new DatabaseManager );
+	std::string error;
+	if ( boost::filesystem::exists( this->project_db_file_ ) &&
+		this->project_database_->load_database( this->project_db_file_, error ) )
+	{
+		// Check the database version
+		long long version = 0;
+		std::string sql_str = "SELECT version FROM database_version ORDER BY version DESC LIMIT 1;";
+		ResultSet results;
+		if ( this->project_database_->run_sql_statement( sql_str, results, error ) && results.size() == 1 )
+		{
+			try
+			{
+				version = boost::any_cast< long long >( results[ 0 ][ "version" ] );
+			}
+			catch ( ... ) {}
+		}
+
+		// If the version is the same as current version
+		if ( version == PROJECT_DATABASE_VERSION_C )
+		{
+			// Clean out any projects that don't exist
+			this->cleanup_project_database();
+			return true;
+		}
+
+		// Otherwise log a warning
+		CORE_LOG_WARNING( "The project database is not compatible with this version of " +
+			Core::Application::GetApplicationName() + ". A new one will be created." );
+	}
+
+	// The project database doesn't exist or isn't compatible
+	return this->initialize_project_database();
+}
+
+void ProjectManagerPrivate::set_current_project( const ProjectHandle& current_project )
+{
+	this->current_project_ = current_project;
+}
+
+// NOTE: This function is here, so we can create the directory before building the
+// actual project
+bool ProjectManagerPrivate::create_project_directory( const std::string& project_location,
+	const std::string& project_name, boost::filesystem::path& project_path )
+{
+	// Location where the project needs to be generated
+	boost::filesystem::path project_loc( project_location );
+
+	try 
+	{
+		project_loc = boost::filesystem::absolute( project_loc );
+	}
+	catch ( ... ) 
+	{
+		std::string error = std::string( "Directory '" ) + project_loc.string() +
+			"' does not exist.";
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	if ( ! boost::filesystem::exists( project_loc ) )
+	{
+		std::string error = std::string( "Directory '" ) + project_loc.string() +
+			"' does not exist.";
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	// Generate the new name of the directory
+	project_path = project_loc / ( project_name + Project::GetDefaultProjectPathExtension() );
+
+	// Check if the directory already existed
+	if ( boost::filesystem::exists( project_path ) )
+	{
+		std::string error = std::string( "Directory '" ) + project_path.string() +
+			"' already exists.";
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	// try to create a project folder
+	try 	
+	{
+		boost::filesystem::create_directory( project_path );
+	}
+	catch ( ... ) // any errors that we might get thrown
+	{
+		std::string error = std::string( "Could not create '" ) + project_path.filename().string()
+			+ "'.";
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+
+	// The directory has been made
+	return true;
+}
+
+void ProjectManagerPrivate::reset_current_project_folder()
+{
+	this->project_manager_->current_project_folder_state_->set( 
+		PreferencesManager::Instance()->project_path_state_->get() );
+}
+
+bool ProjectManagerPrivate::insert_or_update_project_entry( const boost::filesystem::path& project_file )
+{
+	std::string sql_str = "SELECT project_id FROM project WHERE path = '" + 
+		DatabaseManager::EscapeQuotes( project_file.generic_string() ) + "';";
+	ResultSet results;
+	std::string error;
+	if ( !this->project_database_->run_sql_statement( sql_str, results, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+	
+	if ( results.size() > 0 )
+	{
+		assert( results.size() == 1 );
+		long long project_id = boost::any_cast< long long >( results[ 0 ][ "project_id" ] );
+		sql_str = "UPDATE project SET last_access_time = strftime('%s', 'now') WHERE project_id = " +
+			Core::ExportToString( project_id ) + ";";
+		if ( !this->project_database_->run_sql_statement( sql_str, error ) )
+		{
+			CORE_LOG_ERROR( error );
+			return false;
+		}
+	}
+	else
+	{
+		sql_str = "INSERT INTO project (name, path, last_access_time) VALUES ('" +
+			DatabaseManager::EscapeQuotes( project_file.stem().string() ) + "', '" + 
+			DatabaseManager::EscapeQuotes( project_file.generic_string() ) + "', strftime('%s', 'now'));";
+		if ( !this->project_database_->run_sql_statement( sql_str, error ) )
+		{
+			CORE_LOG_ERROR( error );
+			return false;
+		}
+	}
+	
+	// if we've successfully added recent projects to our database
+	// then we let everyone know things have changed.
+	this->project_manager_->recent_projects_changed_signal_();
+	return true;
+}
+
+void ProjectManagerPrivate::cleanup_project_database()
+{
+	// Get all the entries from the database
+	std::string sql_str = "SELECT project_id, path FROM project;";
+	std::string error;
+	ResultSet results;
+	if ( !this->project_database_->run_sql_statement( sql_str, results, error ) )
+	{
+		CORE_LOG_ERROR( error );
+		return;
+	}
+	
+	// Whether the database has been changed
+	bool changed = false;
+
+	// For every entry, check if the project file still exists
+	for ( size_t i = 0; i < results.size(); ++i )
+	{
+		bool exists = false;
+		try
+		{
+			std::string file_str = boost::any_cast< std::string >( results[ i ][ "path" ] );
+			exists = boost::filesystem::exists( file_str ) && boost::filesystem::is_regular_file( file_str );
+		}
+		catch( ... ) {}
+
+		if ( !exists )
+		{
+			try
+			{
+				long long project_id = boost::any_cast< long long >( results[ i ][ "project_id" ] );
+				sql_str = "DELETE FROM project WHERE project_id = " +
+					Core::ExportToString( project_id ) + ";";
+				if ( !this->project_database_->run_sql_statement( sql_str, error ) )
+				{
+					CORE_LOG_ERROR( error );
+				}
+				else
+				{
+					changed = true;
+				}
+			}
+			catch( ... ) {}
+		}
+	}
+	
+	// If the database was changed, save it out
+	if ( changed && !this->project_database_->save_database( this->project_db_file_, error ) )
+	{
+		CORE_LOG_ERROR( error );
+	}
+}
+
+//////////////////////////////////////////////////////////
+
+
 ProjectManager::ProjectManager() :
 	StateHandler( "projectmanager", false ),
-	session_saving_( false ),
-	changing_projects_( false )
+	private_( new ProjectManagerPrivate )
 {	
-	Core::Application::Instance()->get_config_directory( this->local_projectmanager_path_ );
-	
-	std::vector< std::string> projects;
-	projects.resize( 20, "" );
+	// Ensure we have a pointer back for the private functions
+	this->private_->project_manager_ = this;
 
-	this->add_state( "recent_projects", this->recent_projects_state_, projects );
-	this->add_state( "current_project_path", this->current_project_path_state_, 
-		PreferencesManager::Instance()->project_path_state_->get() );
-	this->add_state( "default_project_name_counter", this->default_project_name_counter_state_, 0 );
-	this->add_state( "project_saved", this->project_saved_state_, false );
-
-	try
-	{
-		boost::filesystem::path path = complete( boost::filesystem::path(
-			PreferencesManager::Instance()->project_path_state_->get().c_str(), 
-			boost::filesystem::native ) );
-		boost::filesystem::create_directory( path );
-	}
-	catch ( std::exception& e ) 
-	{
-		CORE_LOG_ERROR( e.what() );
-	}
-	
-	// This constructor is called from the Qt thread, hence state variables can only be set
+	// NOTE: This constructor is called from the Qt thread, hence state variables can only be set
 	// in initializing mode.
 	this->set_initializing( true );
 
+	// Add state variables
+	// This variable keeps track of the 'New Project' names
+	this->add_state( "default_project_name_counter", this->default_project_name_counter_state_, 0 );
+	// This state variable keeps track of what the last directory was that we
+	// used for saving/loading projects
+	this->add_state( "current_project_folder", this->current_project_folder_state_, "" );
+
+	// This state variable keeps track of what the last directory was that we
+	// used for saving/loading layer files
+	this->add_state( "current_file_folder", this->current_file_folder_state_, "" );
+
+	// Find the local configuration directory
+	boost::filesystem::path	configuration_dir;
+	Core::Application::Instance()->get_config_directory( configuration_dir );
+
+	// Update the states from the configuration file
 	Core::StateIO stateio;
-	if ( stateio.import_from_file( this->local_projectmanager_path_ / "projectmanager.xml" ) )
+	if ( stateio.import_from_file( configuration_dir / CONFIGURATION_FILE_C ) ||
+		stateio.import_from_file( configuration_dir / "projectmanager.xml" ) )
 	{
-		this->load_states( stateio );
+		this->load_states( stateio );	
 	}
 	
-	this->cleanup_projects_list();
+	// Check whether directory exists and whether it can be used, if not update it to something
+	// useful. The next function will go over a number of potential directories and finds the
+	// one that it can use.
+	boost::filesystem::path current_project_folder = this->get_current_project_folder();
+
+	boost::filesystem::path current_file_folder = this->get_current_file_folder();
+
+	// Update the current_project_folder to the most recent version 
+	this->current_project_folder_state_->set( current_project_folder.string() );
+	this->current_file_folder_state_->set( current_file_folder.string() );
+	
+	// Here we check to see if the recent projects database exists, otherwise we create it
+	this->private_->load_or_create_project_database();
+	
+	// Create a new project
+	this->private_->current_project_ = ProjectHandle( new Project( std::string( "Untitled Project" ) ) );	
+
+	// Start the auto save thread
+	AutoSave::Instance()->start();
+
+	PreferencesManager::Instance()->project_path_state_->state_changed_signal_.connect(
+		boost::bind( &ProjectManagerPrivate::reset_current_project_folder, this->private_ ) );
 
 	this->set_initializing( false );
-		
-	this->current_project_ = ProjectHandle( new Project( "untitled_project" ) );
-
-	// Connect the signals from the LayerManager to the GUI
-	this->add_connection( this->current_project_->project_name_state_->value_changed_signal_.connect( 
-		boost::bind( &ProjectManager::rename_project, this, _1, _2 ) ) );
-
-	AutoSave::Instance()->start();
 }
+
 
 ProjectManager::~ProjectManager()
 {
 }
-	
-void ProjectManager::save_projectmanager_state()
+
+
+boost::filesystem::path ProjectManager::get_current_project_folder()
 {
-	Core::StateIO stateio;
-	stateio.initialize( "Seg3D2" );
-	this->save_states( stateio );
-	stateio.export_to_file( this->local_projectmanager_path_ / "projectmanager.xml" );
-}
-	
-void ProjectManager::rename_project( const std::string& new_name, Core::ActionSource source )
-{
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() ); 
 
-	// If this is the first time the name has been set, then we set it, and return
-	if( !this->current_project_->is_valid() )
+	std::string current_project_folder_string = this->current_project_folder_state_->get(); 
+
+	if ( current_project_folder_string.empty() )
 	{
-		this->current_project_->set_valid( true );
-		return;
+		current_project_folder_string = PreferencesManager::Instance()->project_path_state_->get(); 		
 	}
 
-	// return if rename gets called while we are in the middle of changing a project
-	if( changing_projects_ )
-	{
-		return;
-	}
-	
-	std::vector< std::string > old_name_vector = 
-		Core::SplitString( this->recent_projects_state_->get()[ 0 ], "|" );
-	
-	// If the vector made from the old name, is less than 2, then we return
-	if( old_name_vector.size() < 2 )
-		return;
-
-	std::string old_name = old_name_vector[ 1 ];
-
-	// If the new name is the same as the old name we return
-	if( old_name == new_name )
-		return;
-	
-	// If the old name is empty then something is wrong and we return
-	if( old_name == "" )
-	{
-		return;
-	}
-	
-	boost::filesystem::path path = complete( boost::filesystem::path( this->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
+	boost::filesystem::path current_project_folder( current_project_folder_string );
 	try
 	{
-		boost::filesystem::rename( ( path / old_name ), ( path / new_name ) );
-		boost::filesystem::rename( ( path / new_name / ( old_name + ".s3d" ) ), 
-			( path / new_name / ( new_name + ".s3d" ) ) );
+		// Complete the path to have an absolute path
+		current_project_folder = boost::filesystem::absolute( current_project_folder );
 	}
-	catch ( std::exception& e ) 
+	catch ( ... )
 	{
-		CORE_LOG_ERROR( e.what() );
 	}
-	
-	this->current_project_->project_name_state_->set( new_name );
-	
-	std::vector< std::string > temp_projects_vector = this->recent_projects_state_->get();
 
-	// first we are going to remove this project from the list if its in there.
-	for( size_t i = 0; i < temp_projects_vector.size(); ++i )
+	// If it does not exist reset the path to another path
+	if ( !boost::filesystem::exists( current_project_folder ) )
 	{
-		if( temp_projects_vector[ i ] != "" )
+		current_project_folder = boost::filesystem::path(
+			PreferencesManager::Instance()->project_path_state_->get() );
+					
+		// Try the user directory
+		if ( !boost::filesystem::exists( current_project_folder ) )
 		{
-			std::string from_project_list = ( ( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 0 ] 
-				+ "|" + ( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 1 ] );
-			std::string from_path_and_name = ( path.string() + "|" + old_name );
+			Core::Application::Instance()->get_user_directory( current_project_folder );
 			
-			if( from_project_list == from_path_and_name )
-			{
-				temp_projects_vector.erase( temp_projects_vector.begin() + i );
+			current_project_folder = current_project_folder / 
+				( Core::Application::GetApplicationName() + "-Projects" );
+			// Try current working path
+			if ( !boost::filesystem::exists( current_project_folder ) )
+			{			
+				current_project_folder = current_project_folder.parent_path();
 			}
-		}
-	}
-	this->recent_projects_state_->set( temp_projects_vector );
-	
-	if( this->save_project_only( this->current_project_path_state_->get(), new_name ) )
-	{
-		this->add_to_recent_projects( this->current_project_path_state_->get(), new_name );
-		
-		//this->current_project_->set_project_path( path / new_name );
-		this->set_project_path( path / new_name );
-
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"The project name has been successfully changed to: '" + new_name  + "'" );
-	}
-	else
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::ERROR_E, 
-			"There has been a problem setting the name of the project to: '" + new_name  + "'" );
+		}			
 	}
 	
+	return current_project_folder;
 }
 
-void ProjectManager::new_project( const std::string& project_name, const std::string& project_path, bool save_on_creation )
+
+boost::filesystem::path ProjectManager::get_current_file_folder()
 {
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() ); 
+
+	boost::filesystem::path current_file_folder( this->current_file_folder_state_->get() );
+	try
+	{
+		// Complete the path to have an absolute path
+		current_file_folder = boost::filesystem::absolute( current_file_folder );
+	}
+	catch ( ... )
+	{
+	}
+
+	// If it does not exist reset the path to another path
+	if ( !boost::filesystem::exists( current_file_folder ) )
+	{
+		Core::Application::Instance()->get_user_directory( current_file_folder );
+			
+		// Try current working path
+		if ( !boost::filesystem::exists( current_file_folder ) )
+		{
+			current_file_folder = current_file_folder.parent_path();
+		}
+	}
+	
+	return current_file_folder;
+}
+
+
+bool ProjectManager::new_project( const std::string& project_location, 
+	const std::string& project_name )
+{
+	// This function sets state variables directly, hence we need to be on the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+
+	boost::filesystem::path project_path;
+
+	// If a project location is given, make the directory and check whether it is a new empty
+	// directory.
+	if ( !project_location.empty() )
+	{
+		if ( ! this->private_->create_project_directory( project_location, project_name, 
+			project_path ) )
+		{
+			return false;
+		}
+	}
+	
 	// Reset the application.
 	Core::Application::Reset();
-	
-	this->project_saved_state_->set( false );
-	this->changing_projects_ = true;
 
-	std::vector< std::string > empty_vector;
-	this->current_project_->sessions_state_->set( empty_vector );
-	this->current_project_->project_notes_state_->set( empty_vector );
-	this->current_project_->save_custom_colors_state_->set( false );
-	this->current_project_->clear_datamanager_list();
+	// Ensure that the next project default name will be increase by 1.
+	if( project_name.compare( 0, 12, "New Project " ) == 0 )
+	{
+		this->default_project_name_counter_state_->set( 
+			this->default_project_name_counter_state_->get() + 1 ); 
+	}
+
+	// Generate a new project
+	this->private_->set_current_project( ProjectHandle( new Project( project_name ) ) );
+	
+	// Open the default tools
 	ToolManager::Instance()->open_default_tools();
 	
-	if( save_on_creation )
+	if ( !project_location.empty() )
 	{
-		this->current_project_->project_name_state_->set( project_name );
-		
-		if( project_name.compare( 0, 11, "New Project" ) == 0 )
+		if ( !this->get_current_project()->save_project( project_path, project_name, false ) )
 		{
-			this->default_project_name_counter_state_->set( 
-				this->default_project_name_counter_state_->get() + 1 ); 
+			// Need to update this so the old project
+			this->current_project_changed_signal_();
+			// An error should have been logged by the save_project function. 
+			return false;
 		}
-		
-		boost::filesystem::path path = complete( boost::filesystem::path( project_path, 
-			boost::filesystem::native ) );
 
-		if( this->create_project_folders( path, this->current_project_->project_name_state_->get() ) )
-		{
-			boost::filesystem::path path = project_path;
-			path = path / project_name;
+		// Update recent file list, the current folder and save them to disk
+		this->checkpoint_projectmanager();
 
-			this->set_project_path( path );
-			this->save_project( true );
-			this->set_last_saved_session_time_stamp();
-			AutoSave::Instance()->recompute_auto_save();
-			this->project_saved_state_->set( true );
-		}
+		// Make sure auto save is recomputed
+		AutoSave::Instance()->recompute_auto_save();	
 	}
 	else
 	{
+		// Switch off auto save, as the project is not on disk one cannot save automatically.
 		PreferencesManager::Instance()->auto_save_state_->set( false );
 	}
 
-	this->changing_projects_ = false;
+	this->current_project_changed_signal_();
 
-}
 	
-void ProjectManager::open_project( const std::string& project_path )
+	return true;
+}
+
+	
+bool ProjectManager::open_project( const std::string& project_file )
 {	
+	// This function sets state variables directly, hence we need to be on the application thread.
+	ASSERT_IS_APPLICATION_THREAD();
+	
+	// Try to resolve the filename before we reset the application.
+	boost::filesystem::path full_filename( project_file );
+	
+	try 
+	{
+		full_filename = boost::filesystem::absolute( full_filename );
+	}
+	catch( ... ) 
+	{
+		std::string error = std::string( "Could resolve filename '" ) + project_file + "'.";
+		CORE_LOG_ERROR( error );
+		return false;
+	}
+	
 	// Reset the application.
 	Core::Application::Reset();
-	
-	this->changing_projects_ = true;
-	boost::filesystem::path path = project_path;
-	
-	this->set_project_path( path );
-		
-	this->current_project_->initialize_from_file( path.leaf() );
-	this->add_to_recent_projects( path.parent_path().string(), path.leaf() );
 
-	this->set_last_saved_session_time_stamp();
-	this->changing_projects_ = false;
-
-	StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-	   "Project: '" + this->current_project_->project_name_state_->get()
-	   + "' has been successfully opened." );
-	
-	this->set_last_saved_session_time_stamp();
-	AutoSave::Instance()->recompute_auto_save();
-	
-}
-	
-void ProjectManager::save_project( bool autosave /*= false*/, std::string session_name )
-{
-	ASSERT_IS_APPLICATION_THREAD();
-	this->session_saving_ = true;
+	// Create a new project, the old one will go out of scope as soon as 
+	// the GUI releases the old project
+	ProjectHandle new_proj;
+	bool succeeded = true;
 	try
 	{
-		if( this->save_project_session( autosave, session_name ) )
+		new_proj.reset( new Project( full_filename ) );
+	}
+	catch ( ... )
+	{
+		new_proj.reset( new Project( std::string( "Untitled Project" ) ) );
+		succeeded = false;
+	}
+
+	this->private_->set_current_project( new_proj );
+
+	if ( succeeded )
+	{
+		succeeded = new_proj->load_last_session();
+		if ( !succeeded )
 		{
-			this->save_project_only( this->current_project_path_state_->get(), 
-				this->current_project_->project_name_state_->get() );
+			this->private_->set_current_project( ProjectHandle( 
+				new Project( std::string( "Untitled Project" ) ) ) );
 		}
 	}
-	catch( std::exception& )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
-	}	
-	catch( Core::Exception& )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
-	}	
-	catch( ... )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave FAILED" );
-	}	
 
-	this->session_saving_ = false;
+	if ( succeeded )
+	{
+		// Reset the auto save system
+		AutoSave::Instance()->recompute_auto_save();
+
+		// Update recent file list, the current folder and save them to disk
+		this->checkpoint_projectmanager();
+	}
 	
-	if( autosave )
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Autosave completed successfully for project: '" 
-			+  this->current_project_->project_name_state_->get() + "'" );
-	}
-	else
-	{
-		StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-			"Project: '" + this->current_project_->project_name_state_->get() 
-			+ "' has been successfully saved" );
-	}
+	// TODO: Need to fix the widget, so it connects to the state variables correctly
+	this->current_project_changed_signal_();
 
+	return succeeded;
 }
 	
-bool ProjectManager::export_project( const std::string& export_path, const std::string& project_name, const std::string& session_name )
-{
-	boost::filesystem::path path = complete( boost::filesystem::path( export_path.c_str(), 
-		boost::filesystem::native ) );
-
-	this->create_project_folders( path, project_name );
-	this->save_project_only( export_path, project_name );
-	return this->current_project_->project_export( path, project_name, session_name );
 	
-}
-	
-bool ProjectManager::save_project_session( bool autosave /*= false */, std::string session_name  )
+bool ProjectManager::save_project_as( const std::string& project_location, 
+	const std::string& project_name, bool anonymize )
 {
-	// Here we check to see if its an autosave and if it is, just save over the previous autosave
-	if( session_name == "" )
+	// This function sets state variables directly, hence we need to be on the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+	
+	if ( project_name.substr( 0, 12 ) == "New Project " )
 	{
-		session_name = "UnnamedSession";
+		int number;
+		if ( Core::ImportFromString( project_name.substr( 12 ), number ) )
+		{
+			int default_name_count = 
+				ProjectManager::Instance()->default_project_name_counter_state_->get();
+			if ( number >= default_name_count )
+			{
+				ProjectManager::Instance()->default_project_name_counter_state_->set( number + 1 );
+			}
+		}
 	}
-	if( autosave )
+	
+	// Create a new directory for the project
+	boost::filesystem::path project_path;
+	if ( ! this->private_->create_project_directory( project_location, project_name, project_path ) )
 	{
-		session_name = "AutoSave";
-	}	
-	session_name = this->get_timestamp() + " - " + session_name;
-
-	std::string user_name;
-	Core::Application::Instance()->get_user_name( user_name );
-
-	session_name = session_name + " - " + user_name;
-	
-	boost::filesystem::path path = complete( boost::filesystem::path( this->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
-	
-	// This saves the project to the list that appears on the splash screen.
-	this->add_to_recent_projects( this->current_project_path_state_->export_to_string(),
-		this->current_project_->project_name_state_->get() );
-	
-	bool result = this->current_project_->save_session( session_name );
-
-	if( result )
-	{
-		this->set_last_saved_session_time_stamp();
+		return false;
 	}
 
+	if ( !this->get_current_project()->save_project( project_path, project_name, anonymize ) )
+	{
+		// An error should have been logged by the save_project function. 
+		return false;
+	}
+
+	// Ensure it is not auto saving a project with no new data
+	this->get_current_project()->reset_project_changed();
+
+	// Reset the auto save system
 	AutoSave::Instance()->recompute_auto_save();
-
-	return result;
-
-}
 	
-bool ProjectManager::load_project_session( const std::string& session_name )
+	// Update recent file list, the current folder and save them to disk
+	this->checkpoint_projectmanager();
+
+	return true;
+}
+
+	
+bool ProjectManager::export_project( const std::string& export_path, 
+									const std::string& project_name, long long session_id )
 {
+	// This function sets state variables directly, hence we need to be on the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+
+	// Create a new directory for the project
+	boost::filesystem::path project_path;
+	if ( ! this->private_->create_project_directory( export_path, project_name, project_path ) )
+	{
+		return false;
+	}
+
+	if ( !this->get_current_project()->export_project( project_path, project_name, session_id ) )
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool ProjectManager::save_project_session( const std::string& session_name  )
+{
+	// This function sets state variables directly, hence we need to be on the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+
+	if ( this->get_current_project()->save_session( session_name ) )
+	{
+		// Ensure it is not auto saving a project with no new data
+		this->get_current_project()->reset_project_changed();
+
+		// Recompute when auto save needs to happen
+		AutoSave::Instance()->recompute_auto_save();
+		return true;
+	}
+	
+	return false;
+}
+
+
+bool ProjectManager::load_project_session( long long session_id )
+{
+	// This function sets state variables directly, hence we need to be on the application thread
+	ASSERT_IS_APPLICATION_THREAD();
+
 	// Reset the application.
 	Core::Application::Reset();
 
-	boost::filesystem::path path = complete( boost::filesystem::path( this->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
-
-	bool result =  this->current_project_->load_session( session_name );
-	
-	if( result )
+	// Load the session
+	if ( this->get_current_project()->load_session( session_id ) )
 	{
-		this->set_last_saved_session_time_stamp();
+		// Recompute when auto save needs to happen
+		AutoSave::Instance()->recompute_auto_save();
+		return true;
 	}
 	
-	return result;
+	// Reset the application.
+	Core::Application::Reset();
+	return false;
 }
 	
-bool ProjectManager::delete_project_session( const std::string& session_name )
+
+bool ProjectManager::delete_project_session( long long session_id )
 {
-	boost::filesystem::path path = complete( boost::filesystem::path( this->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
-	
-	return this->current_project_->delete_session( session_name );
-
-}
-	
-void ProjectManager::add_to_recent_projects( const std::string& project_path, 
-	const std::string& project_name )
-{
-	std::vector< std::string > temp_projects_vector = this->recent_projects_state_->get();
-	
-	// first we are going to remove this project from the list if its in there.
-	for( size_t i = 0; i < temp_projects_vector.size(); ++i )
-	{
-		if( temp_projects_vector[ i ] != "" )
-		{
-			if( ( ( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 0 ] + "|" +
-				( Core::SplitString( temp_projects_vector[ i ], "|" ) )[ 1 ] )
-				== ( project_path + "|" + project_name ) )
-			{
-				temp_projects_vector.erase( temp_projects_vector.begin() + i );
-				break;
-			}
-		}
-	}
-	
-	// now we add id to the beginning of the list
-	temp_projects_vector.insert( temp_projects_vector.begin(), 
-		( project_path + "|" + project_name + "|" + this->get_timestamp() ) );
-	temp_projects_vector.resize( 20 );
-	
-	this->recent_projects_state_->set( temp_projects_vector );
-	this->save_projectmanager_state();
-}
-
-void ProjectManager::cleanup_projects_list()
-{
-	std::vector< std::string > projects_vector = this->recent_projects_state_->get();
-	std::vector< std::string > new_projects_vector;
-
-	for( int i = 0; i < static_cast< int >( projects_vector.size() ); ++i )
-	{
-		if( ( projects_vector[ i ] != "" ) && ( projects_vector[ i ] != "]" ) )
-		{
-			std::vector< std::string > single_project_vector = 
-				Core::SplitString( projects_vector[ i ], "|" );
-
-			boost::filesystem::path path = complete( boost::filesystem::path( 
-				single_project_vector[ 0 ].c_str(), boost::filesystem::native ) );
-
-			boost::filesystem::path project_path = path / single_project_vector[ 1 ] 
-				/ ( single_project_vector[ 1 ] + ".s3d" );
-
-			if( boost::filesystem::exists( project_path ) )
-			{
-				new_projects_vector.push_back( projects_vector[ i ] );
-			}
-		}
-	}
-	this->recent_projects_state_->set( new_projects_vector );
-}
-
-	
-bool ProjectManager::create_project_folders( boost::filesystem::path& path, const std::string& project_name )
-{
-	//std::string project_name = this->current_project_->project_name_state_->get();
-	try // to create a project folder
-	{
-		boost::filesystem::create_directory( path / project_name );
-	}
-	catch ( std::exception& e ) // any errors that we might get thrown
-	{
-		CORE_LOG_ERROR( e.what() );
-		return false;
-	}
-	
-	try // to create a project sessions folder
-	{
-		boost::filesystem::create_directory( path / project_name / "sessions");
-	}
-	catch ( std::exception& e ) // any errors that we might get thrown
-	{
-		CORE_LOG_ERROR( e.what() );
-		return false;
-	}
-	
-	try // to create a project data folder
-	{
-		boost::filesystem::create_directory( path / project_name / "data");
-	}
-	catch ( std::exception& e ) // any errors that we might get thrown
-	{
-		CORE_LOG_ERROR( e.what() );
-		return false;
-	}
-	
-	return true;
-}
-
-std::string ProjectManager::get_timestamp()
-{
-	time_t rawtime;
-	struct tm * timeinfo;
-	char time_buffer [80];
-	
-	time ( &rawtime );
-	timeinfo = localtime ( &rawtime );
-	
-	strftime ( time_buffer, 80, "%d-%b-%Y-%H-%M-%S", timeinfo );
-	std::string current_time_stamp = time_buffer;
-	return current_time_stamp;
-}
-
-void ProjectManager::set_last_saved_session_time_stamp()
-{
-	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-	this->last_saved_session_time_stamp_ = boost::posix_time::second_clock::local_time();
-}
-
-boost::posix_time::ptime ProjectManager::get_last_saved_session_time_stamp() const
-{
-	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-	return this->last_saved_session_time_stamp_;
-}
-
-boost::filesystem::path ProjectManager::get_project_data_path() const
-{
-	boost::filesystem::path path = complete( boost::filesystem::path( this->
-		current_project_path_state_->get().c_str(), boost::filesystem::native ) );
-	
-	return path / this->current_project_->project_name_state_->get() / "data";
-}
-
-void ProjectManager::save_note( const std::string& note )
-{
-	std::string user_name;
-	Core::Application::Instance()->get_user_name( user_name );
-
-	Core::ActionAdd::Dispatch( Core::Interface::GetWidgetActionContext(),
-		this->current_project_->project_notes_state_, 
-		get_timestamp() + " - " + user_name + "|" + note );
-
-	this->save_project_only( this->current_project_path_state_->get(), 
-		this->current_project_->project_name_state_->get() );
-}
-
-bool ProjectManager::save_project_only( const std::string& project_path_string, const std::string& project_name )
-{
-	// When we are using this function as part of exporting a project, we may be saving it with
-	// a different name, in that case, we need to temporarily change the project's name before
-	// we export it to file and, of course, change it back when we are done.
-	std::string current_project_name = this->current_project_->project_name_state_->get();
-	bool temporarily_changing_name = false;
-	if( project_name != current_project_name )
-	{
-		temporarily_changing_name = true;
-		this->current_project_->set_signal_block( false );
-		this->current_project_->project_name_state_->set( project_name );
-	}
-
-	boost::filesystem::path project_path( project_path_string );
-
-	project_path = project_path / project_name / ( project_name + ".s3d" );
-
-	Core::StateIO stateio;
-	stateio.initialize( "Seg3D2" );
-	this->current_project_->save_states( stateio );
-	stateio.export_to_file( project_path );
-	
-	// now if we changed the name, we change it back
-	if( temporarily_changing_name )
-	{
-		this->current_project_->project_name_state_->set( current_project_name );
-		this->current_project_->set_signal_block( true );
-	}
-	return true;
-}
-
-double ProjectManager::get_time_since_last_saved_session() const
-{
-	boost::posix_time::ptime last_save = this->get_last_saved_session_time_stamp();
-	boost::posix_time::ptime current_time = boost::posix_time::second_clock::local_time();
-	boost::posix_time::time_duration duration = current_time - last_save;
-	return static_cast< double >( duration.total_milliseconds() ) * 0.001;
-}
-
-bool ProjectManager::is_saving() const
-{
+	// This function sets state variables directly, hence we need to be on the application thread
 	ASSERT_IS_APPLICATION_THREAD();
-	return this->session_saving_;
+	
+	return this->get_current_project()->delete_session( session_id );
 }
 
-void ProjectManager::set_project_path( boost::filesystem::path path )
+
+ProjectHandle ProjectManager::get_current_project() const
 {
-	this->current_project_->set_project_path( path );
-	this->current_project_path_state_->set( path.parent_path().string() );
+	return this->private_->current_project_;
 }
 
-Seg3D::ProjectHandle ProjectManager::get_current_project() const
-{
-	return this->current_project_;
-}
 
-bool ProjectManager::project_save_as( const std::string& export_path, const std::string& project_name )
+void ProjectManager::checkpoint_projectmanager()
 {
-	this->changing_projects_ = true;
+	ProjectHandle current_project = this->get_current_project();
 	
-	boost::filesystem::path path = complete( boost::filesystem::path( export_path.c_str(), 
-		boost::filesystem::native ) );
+	boost::filesystem::path project_path( current_project->project_path_state_->get() );
+	boost::filesystem::path project_file = project_path / current_project->project_file_state_->get();
+	this->private_->insert_or_update_project_entry( project_file );
 
-	this->create_project_folders( path, project_name );
+	this->current_project_folder_state_->set( project_path.parent_path().string() );
+
+	// Get local configuration directory
+	boost::filesystem::path	configuration_dir;
+	Core::Application::Instance()->get_config_directory( configuration_dir );
+			
+	// Write out the XML file
+	Core::StateIO stateio;
+	stateio.initialize();
+	this->save_states( stateio );
+	stateio.export_to_file( configuration_dir / CONFIGURATION_FILE_C );
 	
-	
-	if( this->project_saved_state_->get() == true )
+	// Write out the database
+	std::string error;
+	if ( !this->private_->project_database_->save_database( this->private_->project_db_file_, error ) )
 	{
-		this->save_project_only( export_path, project_name );
-		
-		if( !this->current_project_->save_as( path, project_name ) ) return false;
-		this->set_project_path( path / project_name );
-		this->current_project_->project_name_state_->set( project_name );
+		// Just log the error if things do not work
+		CORE_LOG_ERROR( error );
 	}
-	else
+}
+
+bool ProjectManager::get_recent_projects( ProjectInfoList& recent_projects )
+{
+	// Clean up the project database first
+	this->private_->cleanup_project_database();
+
+	std::string sql_str = "SELECT * FROM project ORDER BY last_access_time DESC LIMIT 20";
+	std::string error;
+	ResultSet results;
+	if ( !this->private_->project_database_->run_sql_statement( sql_str, results, error ) )
 	{
-		this->set_project_path( path / project_name );
-		this->current_project_->project_name_state_->set( project_name );
-		this->save_project( true );
-		this->project_saved_state_->set( true );
+		CORE_LOG_ERROR( error );
+		return false;
 	}
-
-	this->set_last_saved_session_time_stamp();
-
-	StatusBar::Instance()->set_message( Core::LogMessageType::MESSAGE_E, 
-		"'Save As' has been successfully completed." );
-
-	this->set_last_saved_session_time_stamp();
-	AutoSave::Instance()->recompute_auto_save();
 	
-	this->changing_projects_ = true;
-	
-	this->add_to_recent_projects( export_path, project_name );
+	for ( size_t i = 0; i < results.size(); ++i )
+	{
+		std::string name = boost::any_cast< std::string >( results[ i ][ "name" ] );
+		boost::filesystem::path path( boost::any_cast< std::string >( results[ i ][ "path" ] ) );
+		time_t last_access_time = static_cast< time_t >( boost::any_cast< long long >( 
+			results[ i ][ "last_access_time" ] ) );
+		recent_projects.push_back( ProjectInfo( name, path,
+			boost::posix_time::from_time_t( last_access_time ) ) );
+	}
 	
 	return true;
 }
 
+//////////////////////////////////////////////
 
+bool ProjectManager::CheckProjectFile( const boost::filesystem::path& path )
+{
+	Core::StateIO stateio;
 
+	// Check whether the XML file can be imported
+	if ( ! stateio.import_from_file( path ) ) return false;
+	
+	// Check whether the version is equal or lower to the program version
+	if ( stateio.get_major_version() > Core::Application::GetMajorVersion() )
+	{
+		return false;
+	}
+	
+	// Check the minor version
+	if ( stateio.get_major_version() == Core::Application::GetMajorVersion() )
+	{
+		if ( stateio.get_minor_version() > Core::Application::GetMinorVersion() )
+		{
+			return false;
+		}
+	}
+
+	// Everything seems OK
+	return true;
+}
 
 } // end namespace seg3D

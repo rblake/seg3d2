@@ -68,8 +68,6 @@ SET(CORE_STATE_ACTIONS_SRCS
   Actions/ActionAdd.cc
   Actions/ActionClear.h
   Actions/ActionClear.cc
-  Actions/ActionFlip.h
-  Actions/ActionFlip.cc
   Actions/ActionGet.h
   Actions/ActionGet.cc
   Actions/ActionOffset.h
@@ -92,6 +90,11 @@ SET(CORE_STATE_ACTIONS_SRCS
   Actions/ActionSetAt.cc
   )
 
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Core_State ${CORE_STATE_ACTIONS_SRCS})
+  SET(CORE_STATE_SRCS ${CORE_STATE_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
+  
 CORE_ADD_LIBRARY(Core_State 
 	${CORE_STATE_SRCS} 
 	${CORE_STATE_ACTIONS_SRCS} 

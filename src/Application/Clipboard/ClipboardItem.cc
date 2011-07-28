@@ -46,6 +46,10 @@ public:
 	size_t height_;
 	Core::DataType data_type_;
 	std::vector< unsigned char > buffer_;
+
+	// Provenance ID of the clipboard item.
+	// It will be updated every time the clipboard item is changed.
+	ProvenanceID provenance_id_;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,6 +71,7 @@ ClipboardItemHandle ClipboardItem::clone() const
 	ClipboardItem* cpy = new ClipboardItem( this->private_->width_, 
 		this->private_->height_, this->private_->data_type_ );
 	cpy->private_->buffer_ = this->private_->buffer_;
+	cpy->private_->provenance_id_ = this->private_->provenance_id_;
 	return ClipboardItemHandle( cpy );
 }
 
@@ -133,6 +138,17 @@ void ClipboardItem::resize( size_t width, size_t height, Core::DataType data_typ
 
 	buffer_size *= ( width * height );
 	this->private_->buffer_.resize( buffer_size );
+	this->private_->provenance_id_ = -1;
+}
+
+void ClipboardItem::set_provenance_id( const ProvenanceID& pid )
+{
+	this->private_->provenance_id_ = pid;
+}
+
+ProvenanceID ClipboardItem::get_provenance_id() const
+{
+	return this->private_->provenance_id_;
 }
 
 } // end namespace Seg3D

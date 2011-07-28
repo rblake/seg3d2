@@ -26,29 +26,27 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-// STD includes
-#include <iostream>
-
-// Boost includes
-#include <boost/algorithm/string.hpp>
-
 // Core includes
+#include <Core/Utils/Exception.h>
 #include <Core/Utils/StringUtil.h>
 #include <Core/Utils/StringParser.h>
-
-// Application includes
 #include <Core/Action/ActionParameter.h>
 #include <Core/Action/Action.h>
 
 namespace Core
 {
 
-Action::Action()
+Action::Action() 
 {
 }
 
 Action::~Action()
 {
+	// Clean out the parameter accessors
+	for ( size_t j = 0; j < this->parameters_.size(); j++ )
+	{
+		delete this->parameters_[ j ];
+	}
 }
 
 std::string Action::get_definition() const
@@ -78,7 +76,7 @@ int Action::get_key_index( const std::string& key ) const
 
 bool Action::changes_project_data()
 {
-	return this->get_action_info()->get_changes_project_data();
+	return this->get_action_info()->changes_project_data();
 }
 
 bool Action::is_undoable() const
@@ -91,15 +89,9 @@ std::string Action::get_default_key_value( size_t index ) const
 	return this->get_action_info()->get_default_key_value( index );
 }
 
-void Action::add_argument_ptr( ActionParameterBase* param )
+bool Action::translate( ActionContextHandle& context )
 {
-	this->arguments_.push_back( param );
-}
-
-void Action::add_key_ptr( ActionParameterBase* param )
-{
-	param->import_from_string( this->get_default_key_value( this->keys_.size() ) );
-	this->keys_.push_back( param );
+	return true;
 }
 
 void Action::clear_cache()
@@ -108,22 +100,22 @@ void Action::clear_cache()
 
 std::string Action::export_to_string() const
 {
+#ifndef NDEBUG
+	if ( this->num_params() != this->get_action_info()->get_num_key_value_pairs() )
+	{
+		CORE_THROW_LOGICERROR( "Number of parameters doesn't match action definition." );
+	}
+#endif
+
 	// Add action name to string
 	std::string command = std::string( this->get_type() ) + " ";
-
-	// Loop through all the arguments and add them
-	for ( size_t j = 0; j < this->arguments_.size(); j++ )
-	{
-		command += this->arguments_[ j ]->export_to_string() + " ";
-	}
 	
-	for ( size_t j = 0; j < keys_.size(); j++ )
+	for ( size_t j = 0; j < this->parameters_.size(); j++ )
 	{
-		if ( keys_[ j ] == 0 )
+		if ( this->parameters_[ j ]->is_persistent() )
 		{
-			CORE_THROW_LOGICERROR( "Encountered incorrectly constructed action" );
-		}
-		command += this->get_key( j ) + "=" + this->keys_[ j ]->export_to_string() + " ";
+			command += this->get_key( j ) + "=" + this->parameters_[ j ]->export_to_string() + " ";
+		}	
 	}
 
 	// Return the command
@@ -138,9 +130,15 @@ bool Action::import_from_string( const std::string& action )
 
 bool Action::import_from_string( const std::string& action, std::string& error )
 {
+#ifndef NDEBUG
+	if ( this->num_params() != this->get_action_info()->get_num_key_value_pairs() )
+	{
+		CORE_THROW_LOGICERROR( "Number of parameters doesn't match action definition." );
+	}
+#endif
+	
 	std::string::size_type pos = 0;
 	std::string command;
-	std::string value;
 
 	// First part of the string is the command
 	if ( !( Core::ScanCommand( action, pos, command, error ) ) )
@@ -155,29 +153,10 @@ bool Action::import_from_string( const std::string& action, std::string& error )
 		return false;
 	}
 
-	for ( size_t j = 0; j < arguments_.size(); j++ )
-	{
-		if ( !( Core::ScanValue( action, pos, value, error ) ) )
-		{
-			error = std::string( "SYNTAX ERROR: " ) + error;
-		}
-
-		if ( value.empty() )
-		{
-			error = std::string( "ERROR: not enough arguments, argument " ) + 
-				ExportToString( j + 1 ) + " is missing.";
-			return false;
-		}
-
-		if ( !( this->arguments_[ j ]->import_from_string( value ) ) )
-		{
-			error = std::string( "SYNTAX ERROR: Could not interpret '" + value + "'" );
-			return false;
-		}
-	}
-
 	// Get all the key value pairs and stream them into the action
 	std::string key;
+	std::string value;
+	std::map< std::string, std::string > parameter_map;
 
 	while ( true )
 	{
@@ -189,21 +168,40 @@ bool Action::import_from_string( const std::string& action, std::string& error )
 
 		if ( key.empty() ) break;
 
-		int index = this->get_key_index( Core::StringToLower( key ) );
-		if ( index == -1 )
+		parameter_map[ key ] = value;
+	}
+
+	for ( size_t i = 0; i < this->num_params(); ++i )
+	{
+		std::string param_name = this->get_key( i );
+		std::string param_value;
+		std::map< std::string, std::string >::iterator it = parameter_map.find( param_name );
+		if ( it != parameter_map.end() )
 		{
-			error = std::string( "SYNTAX ERROR: Could not interpret '" + value + "'" );
-			return false;		
+			param_value = ( *it ).second;
+		}
+		else
+		{
+			param_value = this->get_default_key_value( i );
+			if ( param_value.empty() )
+			{
+				error = "Parameter '" + param_name + "' is required but not provided.";
+				return false;
+			}
 		}
 
-		if ( this->keys_[ index ] == 0 )
+		if ( this->parameters_[ i ] == 0 )
 		{
 			CORE_THROW_LOGICERROR( "Encountered incorrectly constructed action" );
 		}
 		
-		this->keys_[ index ]->import_from_string( value );
+		if ( !this->parameters_[ i ]->import_from_string( param_value ) )
+		{
+			error = "'" + param_value + "' is not a proper value for parameter '" + param_name + "'.";
+			return false;
+		}
 	}
-
+	
 	return true;
 }
 

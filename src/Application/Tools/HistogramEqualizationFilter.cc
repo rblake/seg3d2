@@ -29,7 +29,7 @@
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 // StateEnigne of the tool
 #include <Application/Tools/HistogramEqualizationFilter.h>
@@ -60,6 +60,9 @@ HistogramEqualizationFilter::~HistogramEqualizationFilter()
 
 void HistogramEqualizationFilter::execute( Core::ActionContextHandle context )
 {	
+	// NOTE: Need to lock state engine as this function is run from the interface thread
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+	
 	ActionHistogramEqualizationFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->replace_state_->get(),

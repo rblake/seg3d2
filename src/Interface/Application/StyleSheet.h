@@ -39,6 +39,9 @@ class StyleSheet
 {
 public:
 
+	// == Group menubar == //
+		const static QString GROUP_MENUBAR_C;
+
 	// === ViewerWidget Styles === //
 		const static QString VIEWERWIDGET_TOOLBAR_C;
 	
@@ -120,7 +123,22 @@ public:
 	// === ViewerWidget === //
 		const static QString VIEWERSELECTED_C;
 		const static QString VIEWERNOTSELECTED_C;
+		
+	// == Rendering DockWidget == //
+		const static QString RENDERING_CLIPPING_ACTIVE_C;
+		const static QString RENDERING_CLIPPING_INACTIVE_C;		
 
+		const static QString RENDERING_FOG_ACTIVE_C;
+		const static QString RENDERING_FOG_INACTIVE_C;		
+
+		const static QString RENDERING_VR_ACTIVE_C;
+		const static QString RENDERING_VR_INACTIVE_C;		
+
+	// == ProvenanceDockWidget == //
+		const static QString PROVENANCE_LIST_HEADER_C;
+		
+		const static QString LAYERIO_C;
+		
 };    
 
 }  // end namespace Seg3D

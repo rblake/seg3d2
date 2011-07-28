@@ -8,24 +8,27 @@ project(Python)
 FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MAJOR_VERSIONSTR
   REGEX "#define[ \t]+PY_MAJOR_VERSION[ \t]+[0-9]+")
 STRING(REGEX MATCH "[0-9]+" PY_MAJOR_VERSIONSTR ${PY_MAJOR_VERSIONSTR})
+STRING(LENGTH ${PY_MAJOR_VERSIONSTR} PY_MAJOR_VERSIONSTR_LEN)
 
 FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MINOR_VERSIONSTR
   REGEX "#define[ \t]+PY_MINOR_VERSION[ \t]+[0-9]+")
 STRING(REGEX MATCH "[0-9]+" PY_MINOR_VERSIONSTR ${PY_MINOR_VERSIONSTR})
+STRING(LENGTH ${PY_MINOR_VERSIONSTR} PY_MINOR_VERSIONSTR_LEN)
 
 FILE(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h PY_MICRO_VERSIONSTR
   REGEX "#define[ \t]+PY_MICRO_VERSION[ \t]+[0-9]+")
 STRING(REGEX MATCH "[0-9]+" PY_MICRO_VERSIONSTR ${PY_MICRO_VERSIONSTR})
+STRING(LENGTH ${PY_MICRO_VERSIONSTR} PY_MICRO_VERSIONSTR_LEN)
 
-IF(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+IF(PY_MAJOR_VERSIONSTR_LEN AND PY_MINOR_VERSIONSTR_LEN AND PY_MICRO_VERSIONSTR_LEN)
   MATH(EXPR PY_MAJOR "${PY_MAJOR_VERSIONSTR}")
   MATH(EXPR PY_MINOR "${PY_MINOR_VERSIONSTR}")
   MATH(EXPR PY_PATCH "${PY_MICRO_VERSIONSTR}")
   SET(PYTHON_VERSION "${PY_MAJOR}.${PY_MINOR}.${PY_PATCH}")
   MESSAGE(STATUS "Python version ${PYTHON_VERSION}")
-ELSE(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+ELSE(PY_MAJOR_VERSIONSTR_LEN AND PY_MINOR_VERSIONSTR_LEN AND PY_MICRO_VERSIONSTR_LEN)
   MESSAGE(FATAL_ERROR "Unable to parse Python version from ${CMAKE_CURRENT_SOURCE_DIR}/Include/patchlevel.h")
-ENDIF(PY_MAJOR_VERSIONSTR AND PY_MINOR_VERSIONSTR AND PY_MICRO_VERSIONSTR)
+ENDIF(PY_MAJOR_VERSIONSTR_LEN AND PY_MINOR_VERSIONSTR_LEN AND PY_MICRO_VERSIONSTR_LEN)
 
 # user configurable options
 
@@ -148,7 +151,9 @@ SET(MOD_SRCS ${MOD_SRCS}
 			Modules/_io/fileio.c
 			Modules/_io/iobase.c
 			Modules/_io/stringio.c
-			Modules/_io/textio.c)
+			Modules/_io/textio.c
+			Modules/_math.c
+			Modules/_time.c)
 			
 #zlib module
 add_python_module(zlib         	MOD_SRCS Modules/zlibmodule.c)
@@ -185,7 +190,7 @@ add_python_module(_csv          MOD_SRCS Modules/_csv.c)
 add_python_module(_sre      	MOD_SRCS Modules/_sre.c)
 add_python_module(parser        MOD_SRCS Modules/parsermodule.c)
 add_python_module(_struct       MOD_SRCS Modules/_struct.c)
-add_python_module(datetime      MOD_SRCS Modules/datetimemodule.c)
+add_python_module(_datetime      MOD_SRCS Modules/_datetimemodule.c)
 add_python_module(_functools    MOD_SRCS Modules/_functoolsmodule.c)
 add_python_module(_json    		MOD_SRCS Modules/_json.c )
 add_python_module(xxsubtype 	MOD_SRCS Modules/xxsubtype.c)
@@ -216,6 +221,10 @@ if(BUILD_UNTESTED_MODULES)
   add_python_module(grp           MOD_SRCS Modules/grpmodule.c )
 endif(BUILD_UNTESTED_MODULES)
 
+if(Py_USING_UNICODE)
+	add_python_module(_string MOD_SRCS Objects/unicodeobject.c)
+	set(MOD_SRCS ${MOD_SRCS} Objects/unicodectype.c)
+endif(Py_USING_UNICODE)
 
 file(MAKE_DIRECTORY ${Python_BINARY_DIR}/Modules)
 if(WIN32)
@@ -256,7 +265,6 @@ set(OBJECT_SRCS Objects/abstract.c
 				Objects/capsule.c
                 Objects/cellobject.c
                 Objects/classobject.c
-                Objects/cobject.c
                 Objects/codeobject.c
                 Objects/complexobject.c
                 Objects/descrobject.c
@@ -285,12 +293,6 @@ set(OBJECT_SRCS Objects/abstract.c
                 Objects/weakrefobject.c
    )
 
-if(Py_USING_UNICODE)
-   set(OBJECT_SRCS ${OBJECT_SRCS} 
-                   Objects/unicodeobject.c 
-                   Objects/unicodectype.c)
-endif(Py_USING_UNICODE)
-
 set(PYTHON_SRCS Python/Python-ast.c 
 				Python/_warnings.c
                 Python/asdl.c 
@@ -301,6 +303,7 @@ set(PYTHON_SRCS Python/Python-ast.c
                 Python/codecs.c 
 				Python/dtoa.c
                 Python/errors.c 
+				Python/fileutils.c
                 Python/formatter_unicode.c
                 Python/frozen.c 
                 Python/frozenmain.c 
@@ -327,7 +330,8 @@ set(PYTHON_SRCS Python/Python-ast.c
                 Python/pystate.c 
                 Python/pystrcmp.c
                 Python/pystrtod.c 
-                Python/pythonrun.c 
+                Python/pythonrun.c
+				Python/pytime.c
                 Python/structmember.c 
                 Python/symtable.c 
                 Python/sysmodule.c 
@@ -354,9 +358,13 @@ ELSE(WIN32)
 	SET(MODULE_SRCS ${MODULE_SRCS}
 					Modules/getpath.c)
 #	set_source_files_properties(Modules/getpath.c PROPERTIES COMPILE_FLAGS  -DVERSION=\\\"${PY_MAJOR}.${PY_MINOR}\\\")
+    IF(APPLE)
+        set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\\\"${PY_PLATFORM}\\\\\"")
+    ELSE(APPLE)
+        set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM="\\\"${PY_PLATFORM}\\\"")
+    ENDIF(APPLE)
 ENDIF(WIN32)				
 
-#set_source_files_properties(Python/getplatform.c PROPERTIES COMPILE_FLAGS -DPLATFORM=\\"${PY_PLATFORM}\\")
 
 include_directories(Include ${Python_BINARY_DIR} ${SCI_ZLIB_INCLUDE})
 if(WIN32)
@@ -366,6 +374,10 @@ endif(WIN32)
 
 add_definitions(-DPy_BUILD_CORE)
 ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
+
+IF(SCI_ZLIB_MANGLE)
+	ADD_DEFINITIONS(-DZ_PREFIX)
+ENDIF(SCI_ZLIB_MANGLE)
 
 #if(NOT HAVE_HYPOT)
 #  add_definitions(-DWITHOUT_COMPLEX)
@@ -382,10 +394,23 @@ add_library(python  STATIC
 target_link_libraries(python ${extraLibs} ${SCI_ZLIB_LIBRARY})
 #set_target_properties(pythonLib PROPERTIES OUTPUT_NAME python${PY_MAJOR}.${PY_MINOR})
 IF(WIN32)
-  SET_TARGET_PROPERTIES(python
-                        PROPERTIES
-                        COMPILE_FLAGS "-W3 -wd4267 -wd4244")
+	SET_TARGET_PROPERTIES(python
+						PROPERTIES
+						COMPILE_FLAGS "-W3 -wd4267 -wd4244")
+	FILE(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/pythonlib.zip" PYTHONLIB_SOURCE_PATH)
+	FILE(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/" PYTHONLIB_DST_PATH)
+	ADD_CUSTOM_COMMAND(TARGET python 
+		   POST_BUILD
+		   COMMAND if not exist "${PYTHONLIB_DST_PATH}" md "${PYTHONLIB_DST_PATH}"
+		   COMMAND copy /Y "${PYTHONLIB_SOURCE_PATH}" "${PYTHONLIB_DST_PATH}")
+ELSE(WIN32)
+	SET(PYTHONLIB_DST_PATH "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/")
+	ADD_CUSTOM_COMMAND(TARGET python 
+		   POST_BUILD
+		   COMMAND [ -d ${PYTHONLIB_DST_PATH} ] || mkdir "${PYTHONLIB_DST_PATH}" 
+		   COMMAND cp -rf "${CMAKE_CURRENT_SOURCE_DIR}/pythonlib.zip" "${PYTHONLIB_DST_PATH}")		   
 ENDIF(WIN32)
 
+SET(PYTHON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 SET(SCI_PYTHON_LIBRARY python CACHE INTERNAL "Python library." FORCE)
 SET(SCI_PYTHON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/Include ${Python_BINARY_DIR} CACHE INTERNAL "Python include directory." FORCE)

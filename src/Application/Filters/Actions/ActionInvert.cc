@@ -27,9 +27,10 @@
  */
 
 #include <Core/DataBlock/StdDataBlock.h>
+#include <Core/DataBlock/MaskDataBlockManager.h>
 
 // Application includes
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionInvert.h>
 #include <Application/Filters/LayerFilter.h>
 
@@ -227,22 +228,15 @@ public:
 
 bool ActionInvert::validate( Core::ActionContextHandle& context )
 {
+	// Make sure that the sandbox exists
+	if ( !LayerManager::CheckSandboxExistence( this->sandbox_, context ) ) return false;
+
 	// Check for layer existence and type information
-	std::string error;
-	if ( ! LayerManager::CheckLayerExistance( this->layer_id_.value(), error ) )
-	{
-		context->report_error( error );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerExistence( this->layer_id_, context, this->sandbox_ ) ) return false;
 
 	// Check for layer availability 
-	Core::NotifierHandle notifier;
-	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_.value(), 
-		this->replace_.value(), notifier ) )
-	{
-		context->report_need_resource( notifier );
-		return false;
-	}
+	if ( ! LayerManager::CheckLayerAvailability( this->layer_id_, 
+		this->replace_, context, this->sandbox_ ) ) return false;
 
 	// Validation successful
 	return true;
@@ -253,14 +247,15 @@ bool ActionInvert::run( Core::ActionContextHandle& context,
 {
 	// Create algorithm
 	boost::shared_ptr< InvertFilterAlgo > algo( new InvertFilterAlgo );
+	algo->set_sandbox( this->sandbox_ );
 
 	// Find the handle to the layer	
-	if ( !( algo->find_layer( this->layer_id_.value(), algo->src_layer_ ) ) )
+	if ( !( algo->find_layer( this->layer_id_, algo->src_layer_ ) ) )
 	{
 		return false;
 	}
 
-	if ( this->replace_.value() )
+	if ( this->replace_ )
 	{
 		// Copy the handles as destination and source will be the same
 		algo->dst_layer_ = algo->src_layer_;
@@ -291,10 +286,17 @@ bool ActionInvert::run( Core::ActionContextHandle& context,
 	// Return the id of the destination layer.
 	result = Core::ActionResultHandle( new Core::ActionResult( 
 		algo->dst_layer_->get_layer_id() ) );
+	// If the action is run from a script (provenance is a special case of script),
+	// return a notifier that the script engine can wait on.
+	if ( context->source() == Core::ActionSource::SCRIPT_E ||
+		context->source() == Core::ActionSource::PROVENANCE_E )
+	{
+		context->report_need_resource( algo->get_notifier() );
+	}
 
 	// Build the undo-redo record
-	algo->create_undo_redo_record( context, this->shared_from_this() );
-
+	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+	
 	// Start the filter.
 	Core::Runnable::Start( algo );
 
@@ -309,8 +311,8 @@ void ActionInvert::Dispatch( Core::ActionContextHandle context,
 	ActionInvert* action = new ActionInvert;
 
 	// Setup the parameters
-	action->layer_id_.value() = layer_id;
-	action->replace_.value() = replace;
+	action->layer_id_ = layer_id;
+	action->replace_ = replace;
 
 	// Dispatch action to underlying engine
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );

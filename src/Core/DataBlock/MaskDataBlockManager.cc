@@ -42,9 +42,6 @@
 #include <Core/DataBlock/StdDataBlock.h>
 #include <Core/DataBlock/DataBlockManager.h>
 
-// Application includes
-#include <Application/Layer/MaskLayer.h>
-
 namespace Core
 {
 
@@ -239,38 +236,6 @@ void MaskDataBlockManager::register_data_block( DataBlockHandle data_block,
 	lock_type lock( get_mutex() );
 
 	this->private_->mask_list_.push_back( MaskDataBlockEntry( data_block, grid_transform ) );
-}
-
-bool MaskDataBlockManager::save_data_blocks( boost::filesystem::path path, bool compress, int level )
-{
-	lock_type lock( get_mutex() );
-
-	MaskDataBlockManagerInternal::mask_list_type& mask_list = private_->mask_list_;
-
-	for ( size_t j = 0 ; j < mask_list.size() ; j++ )
-	{
-		boost::filesystem::path volume_path = path / 
-			( Core::ExportToString( mask_list[ j ].data_block_->
-			get_generation() ) + ".nrrd" );
-
-		if( !boost::filesystem::exists( volume_path ) )
-		{
-			NrrdDataHandle nrrd = NrrdDataHandle( new NrrdData( 
-				mask_list[ j ].data_block_, mask_list[ j ].grid_transform_ ) );
-
-			std::string error;
-
-			DataBlock::shared_lock_type slock( mask_list[ j ].data_block_->get_mutex() );
-			
-			if ( ! ( NrrdData::SaveNrrd( volume_path.string(), nrrd, error, compress, level ) ) ) 
-			{
-				CORE_LOG_ERROR( error );
-				return false;
-			}
-		}
-	}
-
-	return true;
 }
 
 void MaskDataBlockManager::clear()
@@ -542,6 +507,68 @@ bool MaskDataBlockManager::ConvertLabel( DataBlockHandle data,
 	return false;
 }
 
+
+
+template< class T>
+bool ConvertLabelToDataInternal( MaskDataBlockHandle mask, DataBlockHandle& data, double label )
+{
+	MaskDataBlock::shared_lock_type lock( mask->get_mutex( ) );
+
+	unsigned char* mask_ptr = mask->get_mask_data();
+	unsigned char mask_value = mask->get_mask_value();
+	
+	data = StdDataBlock::New( mask->get_nx(), mask->get_ny(), mask->get_nz(), 
+		GetDataType( reinterpret_cast< T* >( 0 ) ) );
+	T* data_ptr = reinterpret_cast< T* >( data->get_data() );
+	
+	const T on = static_cast<T>( label );
+	const T off = static_cast<T>( 0 );
+	size_t size = data->get_size();
+	size_t size8 = size & ~(0x7);
+
+	for ( size_t j = 0; j < size8; j+= 8 )
+	{
+		if ( mask_ptr[ j ] & mask_value ) data_ptr[ j ] = on; else data_ptr[ j ] = off;
+		if ( mask_ptr[ j + 1 ] & mask_value ) data_ptr[ j + 1 ] = on; else data_ptr[ j + 1 ] = off;
+		if ( mask_ptr[ j + 2 ] & mask_value ) data_ptr[ j + 2 ] = on; else data_ptr[ j + 2 ] = off;
+		if ( mask_ptr[ j + 3 ] & mask_value ) data_ptr[ j + 3 ] = on; else data_ptr[ j + 3 ] = off;
+		if ( mask_ptr[ j + 4 ] & mask_value ) data_ptr[ j + 4 ] = on; else data_ptr[ j + 4 ] = off;
+		if ( mask_ptr[ j + 5 ] & mask_value ) data_ptr[ j + 5 ] = on; else data_ptr[ j + 5 ] = off;
+		if ( mask_ptr[ j + 6 ] & mask_value ) data_ptr[ j + 6 ] = on; else data_ptr[ j + 6 ] = off;
+		if ( mask_ptr[ j + 7 ] & mask_value ) data_ptr[ j + 7 ] = on; else data_ptr[ j + 7 ] = off;
+	}
+	for ( size_t j = size8; j < size; j++ )
+	{
+		if ( mask_ptr[ j ] & mask_value ) data_ptr[ j ] = on; else data_ptr[ j ] = off;
+	}
+
+	return true;
+}
+
+bool MaskDataBlockManager::ConvertLabel( MaskDataBlockHandle mask, DataBlockHandle& data,
+	DataType data_type, double label )
+{
+	switch( data_type )
+	{
+		case DataType::CHAR_E:
+			return ConvertLabelToDataInternal<signed char>( mask, data, label );
+		case DataType::UCHAR_E:
+			return ConvertLabelToDataInternal<unsigned char>( mask, data, label );
+		case DataType::SHORT_E:
+			return ConvertLabelToDataInternal<short>( mask, data, label );
+		case DataType::USHORT_E:
+			return ConvertLabelToDataInternal<unsigned short>( mask, data, label );
+		case DataType::INT_E:
+			return ConvertLabelToDataInternal<int>( mask, data, label );
+		case DataType::UINT_E:
+			return ConvertLabelToDataInternal<unsigned int>( mask, data, label );
+		case DataType::FLOAT_E:
+			return ConvertLabelToDataInternal<float>( mask, data, label );
+		case DataType::DOUBLE_E:
+			return ConvertLabelToDataInternal<double>( mask, data, label );
+	}	
+	return false;
+}
 
 template< class T>
 bool ConvertToDataInternal( MaskDataBlockHandle mask, DataBlockHandle& data, bool invert )

@@ -29,7 +29,7 @@
 // Application includes
 #include <Application/Tool/ToolFactory.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 // StateEngine of the tool
 #include <Application/Tools/MaskDataFilter.h>
@@ -55,7 +55,7 @@ MaskDataFilter::MaskDataFilter( const std::string& toolid ) :
 
 	// Whether we use a mask to find which components to use
 	this->add_state( "mask", this->mask_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_dependent_layer_input( this->mask_state_, Core::VolumeType::MASK_E, true );
+	this->add_extra_layer_input( this->mask_state_, Core::VolumeType::MASK_E, true );
 	
 	// Whether that mask should be inverted
 	this->add_state( "invert_mask", this->mask_invert_state_, false );	
@@ -71,7 +71,10 @@ MaskDataFilter::~MaskDataFilter()
 }
 
 void MaskDataFilter::execute( Core::ActionContextHandle context )
-{
+{	
+	// NOTE: Need to lock state engine as this function is run from the interface thread
+	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
 	ActionMaskDataFilter::Dispatch( context,
 		this->target_layer_state_->get(),
 		this->mask_state_->get(),

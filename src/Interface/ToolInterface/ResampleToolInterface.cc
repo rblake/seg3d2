@@ -30,6 +30,10 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
+// Core includes
+#include <Core/Interface/Interface.h>
+#include <Core/Utils/Log.h>
+
 //QtUtils Includes
 #include <QtUtils/Bridge/QtBridge.h>
 #include <QtUtils/Widgets/QtHistogramWidget.h>
@@ -41,7 +45,7 @@
 //Application Includes
 #include <Application/Layer/DataLayer.h>
 #include <Application/Tools/ResampleTool.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 
 SCI_REGISTER_TOOLINTERFACE( Seg3D, ResampleToolInterface )
 
@@ -86,10 +90,6 @@ bool ResampleToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.layer_list_, tool->target_layers_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_group_, tool->use_active_group_state_ );
 
-	QtUtils::QtBridge::Connect( this->private_->ui_.label_nx_, tool->input_dimensions_state_[ 0 ] );
-	QtUtils::QtBridge::Connect( this->private_->ui_.label_ny_, tool->input_dimensions_state_[ 1 ] );
-	QtUtils::QtBridge::Connect( this->private_->ui_.label_nz_, tool->input_dimensions_state_[ 2 ] );
-
 	QtUtils::QtBridge::Connect( button_group, tool->size_scheme_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.dst_group_combobox_, tool->dst_group_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.padding_combobox_, tool->padding_value_state_ );
@@ -97,6 +97,12 @@ bool ResampleToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.output_x_, tool->output_dimensions_state_[ 0 ] );
 	QtUtils::QtBridge::Connect( this->private_->ui_.output_y_, tool->output_dimensions_state_[ 1 ] );
 	QtUtils::QtBridge::Connect( this->private_->ui_.output_z_, tool->output_dimensions_state_[ 2 ] );
+	
+	this->private_->ui_.output_x_->set_description( "X" );
+	this->private_->ui_.output_y_->set_description( "Y" );
+	this->private_->ui_.output_z_->set_description( "Z" );
+	this->private_->ui_.scale_->set_description( "Scale" );
+	
 
 	QtUtils::QtBridge::Connect( this->private_->ui_.aspect_checkbox_, tool->constraint_aspect_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.scale_, tool->scale_state_ );
@@ -121,6 +127,9 @@ bool ResampleToolInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Enable( this->private_->ui_.target_group_, 
 		tool->use_active_group_state_, true ); 
 	QtUtils::QtBridge::Enable( this->private_->ui_.scale_, tool->constraint_aspect_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.output_x_, tool->constraint_aspect_state_, true );
+	QtUtils::QtBridge::Enable( this->private_->ui_.output_y_, tool->constraint_aspect_state_, true );
+	QtUtils::QtBridge::Enable( this->private_->ui_.output_z_, tool->constraint_aspect_state_, true );
 
 	QtUtils::QtBridge::Show( this->private_->ui_.param_widget_, tool->has_params_state_ );
 	QtUtils::QtBridge::Show( this->private_->ui_.widget_new_size_, tool->manual_size_state_ );

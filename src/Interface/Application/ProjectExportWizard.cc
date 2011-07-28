@@ -33,6 +33,7 @@
 #include <QtCore/QVariant>
 #include <QtGui/QGridLayout>
 #include <QtGui/QFileDialog>
+#include <QtGui/QMessageBox>
 
 // Core includes
 #include <Core/State/Actions/ActionSet.h>
@@ -50,7 +51,7 @@
 namespace Seg3D
 {
 
-ProjectExportWizard::ProjectExportWizard( const std::string& session_name, QWidget *parent ) :
+ProjectExportWizard::ProjectExportWizard( long long session_id, QWidget *parent ) :
     QWizard( parent )
 {
     this->addPage( new ExportInfoPage );
@@ -59,7 +60,7 @@ ProjectExportWizard::ProjectExportWizard( const std::string& session_name, QWidg
 	this->setPixmap( QWizard::BackgroundPixmap, QPixmap( QString::fromUtf8( 
 		":/Images/Symbol.png" ) ) );
 
-	this->session_name_ = QString::fromStdString( session_name );
+	this->session_id_ = session_id;
 	
 	this->setWindowTitle( tr( "Export Project Wizard" ) );
 }
@@ -73,7 +74,7 @@ void ProjectExportWizard::accept()
 	ActionExportProject::Dispatch( Core::Interface::GetWidgetActionContext(), 
 		field( "projectPath" ).toString().toStdString(),
 		field( "projectName" ).toString().toStdString(),
-		this->session_name_.toStdString() );
+		this->session_id_ );
     QDialog::accept();
 }
 
@@ -87,7 +88,7 @@ ExportInfoPage::ExportInfoPage( QWidget *parent )
 
 	this->project_name_lineedit_ = new QLineEdit();
 	this->project_name_lineedit_->setText(  QString::fromStdString( ProjectManager::Instance()->
-		current_project_->project_name_state_->get() ) );
+		get_current_project()->project_name_state_->get() ) );
 
     this->project_path_label_ = new QLabel( "Project Path:" );
     this->project_path_lineedit_ = new QLineEdit;
@@ -97,6 +98,12 @@ ExportInfoPage::ExportInfoPage( QWidget *parent )
 	this->project_path_change_button_->setFocusPolicy( Qt::NoFocus );
 
     registerField( "projectName", this->project_name_lineedit_ );
+    
+	this->warning_message_ = new QLabel( QString::fromUtf8( "This location does not exist, please choose a valid location." ) );
+	this->warning_message_->setObjectName( QString::fromUtf8( "warning_message_" ) );
+	this->warning_message_->setWordWrap( true );
+	this->warning_message_->setStyleSheet(QString::fromUtf8( "QLabel#warning_message_{ color: red; } " ) );
+	this->warning_message_->hide();
 
     QGridLayout *layout = new QGridLayout;
     layout->addWidget( this->project_name_label_, 0, 0 );
@@ -104,34 +111,80 @@ ExportInfoPage::ExportInfoPage( QWidget *parent )
     layout->addWidget( this->project_path_label_, 1, 0 );
     layout->addWidget( this->project_path_lineedit_, 1, 1 );
     layout->addWidget( this->project_path_change_button_, 2, 1, 1, 2 );
+    layout->addWidget( this->warning_message_, 3, 1, 1, 2 );
     setLayout( layout );
 }
 	
 void ExportInfoPage::initializePage()
 {
-	QString export_path = QString::fromStdString( 
-		PreferencesManager::Instance()->export_path_state_->get() );
-
-	this->project_path_lineedit_->setText( export_path );
-	registerField( "projectPath", this->project_path_lineedit_ );
+	this->project_path_lineedit_->setText( 
+		QString::fromStdString( ProjectManager::Instance()->get_current_project_folder().string() ) );
+	this->registerField( "projectPath", this->project_path_lineedit_ );
 }
 	
 void ExportInfoPage::set_path()
 {
-    QDir project_directory_;
-    
-	QString export_path = QString::fromStdString( 
-		PreferencesManager::Instance()->export_path_state_->get() );
-    
-	QString path = QFileDialog::getExistingDirectory ( this, tr( "Choose Directory for Export..." ),
-		export_path, QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks );
+	this->warning_message_->hide();
 	
-    if ( path.isNull() == false )
+    QDir project_directory_ = QDir( QFileDialog::getExistingDirectory ( this, 
+		tr( "Choose Directory for Export..." ), this->project_path_lineedit_->text(), 
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks ) );
+	
+    if ( project_directory_.exists() )
     {
-        project_directory_.setPath( path );
+        this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
     }
-    this->project_path_lineedit_->setText( project_directory_.canonicalPath() );
+    else
+    {
+		this->project_path_lineedit_->setText( "" );
+    }
     registerField( "projectPath", this->project_path_lineedit_ );
+}
+
+bool ExportInfoPage::validatePage()
+{
+	boost::filesystem::path project_path = 
+		boost::filesystem::path( this->project_path_lineedit_->text().toStdString() ) / 
+		boost::filesystem::path( this->project_name_lineedit_->text().toStdString() + 
+			Project::GetDefaultProjectPathExtension() );
+
+	if( boost::filesystem::exists( project_path ) )
+	{
+		QMessageBox::critical( this, 
+			"A project with this name already exists!",
+			"A project with this name already exists!\n"
+			"You cannot export onto an existing project.\n"
+			"Choose a different export location",
+			QMessageBox::Ok );
+
+		return false;
+	}
+
+	if( !boost::filesystem::exists( project_path.parent_path() ) )
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location does not exist, please choose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+	
+	try // to create a project sessions folder
+	{
+		boost::filesystem::create_directory( project_path );
+	}
+	catch ( ... ) // any errors that we might get thrown would indicate that we cant write here
+	{
+		this->warning_message_->setText( QString::fromUtf8( 
+			"This location is not writable, please choose a valid location." ) );
+		this->warning_message_->show();
+		return false;
+	}
+
+	// if we have made it to here we have created a new directory lets remove it.
+	boost::filesystem::remove( project_path );
+	
+	this->warning_message_->hide();
+		return true;
 }
 
 ExportSummaryPage::ExportSummaryPage( QWidget *parent )
@@ -165,10 +218,6 @@ void ExportSummaryPage::initializePage()
 		QString::fromUtf8( "Project Name: " ) + field("projectName").toString() );
     this->project_path_->setText( 
 		QString::fromUtf8( "Project Path: " ) + field("projectPath").toString() );
-		
-	Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-		PreferencesManager::Instance()->export_path_state_, 
-		boost::filesystem::path( this->project_path_->text().toStdString() ).string() );
 }
 
 }	// end namespace Seg3D

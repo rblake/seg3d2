@@ -26,25 +26,21 @@
  DEALINGS IN THE SOFTWARE.
  */
  
-#ifndef APPLICATION_FILTERS_BASEFILTER_H 
-#define APPLICATION_FILTERS_BASEFILTER_H 
+#ifndef APPLICATION_FILTERS_LAYERFILTER_H 
+#define APPLICATION_FILTERS_LAYERFILTER_H 
  
 // Boost includes
 #include <boost/smart_ptr.hpp> 
-#include <boost/utility.hpp> 
  
 // Core includes
-#include <Core/Utils/Runnable.h>
+#include <Core/Utils/Notifier.h>
 #include <Core/Volume/DataVolume.h>
 #include <Core/Volume/MaskVolume.h>
-#include <Core/DataBlock/MaskDataBlockManager.h> 
 
 // Application includes
-#include <Application/Layer/DataLayer.h> 
-#include <Application/Layer/MaskLayer.h> 
-#include <Application/Layer/LabelLayer.h> 
- 
+#include <Application/Layer/LayerFWD.h> 
 #include <Application/Layer/LayerAbstractFilter.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
@@ -67,7 +63,7 @@ public:
 	LayerFilter();
 	virtual ~LayerFilter();
 		
-	// -- abort handling --	
+	// -- abort/stop handling --	
 public:		
 	// RAISE_ABORT:
 	// Raise the abort flag
@@ -76,7 +72,15 @@ public:
 	// CHECK_ABORT:
 	// Check the abort flag
 	bool check_abort();	
-	
+
+	// RAISE_STOP:
+	// Raise the stop flag
+	void raise_stop();
+		
+	// CHECK_STOP:
+	// Check the stop flag
+	bool check_stop();	
+
 	// ABORT_AND_WAIT:	
 	// NOTE: When undoing asynchronous layer operations, one may need to wait until the filter
 	// can be aborted. If not the state of the program is unclear. Hence this function will ensure
@@ -87,11 +91,25 @@ public:
 	// CONNECT_ABORT:
 	// Monitor the abort flag of a layer
 	void connect_abort( const LayerHandle& layer );	
+
+	// CONNECT_STOP:
+	// Monitor the stop flag of a layer
+	void connect_stop( const LayerHandle& layer );
+
+	// -- Filter Notifier --
+public:
+	// GET_NOTIFIER:
+	// Return a notifier that can be used to wait for the filter to finish.
+	Core::NotifierHandle get_notifier();
 	
 protected:			
 	// HANDLE_ABORT:
 	// A virtual function that can be overloaded
 	virtual void handle_abort();		
+
+	// HANDLE_STOP:
+	// A virtual function that can be overloaded
+	virtual void handle_stop();	
 		
 	// -- shortcuts into the LayerManager --	
 public:
@@ -113,8 +131,16 @@ public:
 	// NOTE: This function can only be run from the application thread.
 	// NOTE: The BaseFilter class records which layers are locked and will schedule an unlock
 	// for each layer that was not unlocked by the time this class is destroyed.
-	bool lock_for_processing( LayerHandle layer, bool check_point_volume = true );
-	
+	bool lock_for_processing( LayerHandle layer );
+
+	// LOCK_FOR_DELETION:
+	// Lock a layer for processing and then for deletion, i.e. when we change the data contained in
+	// the data/mask of the layer.
+	// NOTE: This function can only be run from the application thread.
+	// NOTE: The BaseFilter class records which layers are locked and will schedule an unlock
+	// for each layer that was not unlocked by the time this class is destroyed.
+	bool lock_for_deletion( LayerHandle layer );
+		
 	// CREATE_AND_LOCK_DATA_LAYER_FROM_LAYER:
 	// Create a new data layer with the same dimensions as another layer, the layer is immediately
 	// locked as it does not contain any data and will be in the creating state.
@@ -133,6 +159,14 @@ public:
 	// locked as it does not contain any data and will be in the creating state.
 	// NOTE: This function can only be run from the application thread.
 	bool create_and_lock_mask_layer_from_layer( LayerHandle src_layer, LayerHandle& dst_layer );	
+
+	// CREATE_AND_LOCK_MASK_LAYER_FROM_LAYER:
+	// Create a new mask layer with the same dimensions as another layer, the layer is immediately
+	// locked as it does not contain any data and will be in the creating state.
+	// This one can use specified name instead of src_layer name
+	// NOTE: This function can only be run from the application thread.
+	bool create_and_lock_mask_layer_from_layer( LayerHandle src_layer,
+		LayerHandle& dst_layer, std::string dst_name );
 	
 	// CREATE_AND_LOCK_MASK_LAYER:
 	// Create a new mask layer with the given grid transform, the layer is immediately
@@ -159,9 +193,25 @@ public:
 	bool dispatch_insert_mask_volume_into_layer( LayerHandle layer, 
 		Core::MaskVolumeHandle mask );
 
-	// CREATE_UNDO_REDO_RECORD:
-	// Create an undo record and add it to the undo stack
-	bool create_undo_redo_record( Core::ActionContextHandle context, Core::ActionHandle redo_action );
+	// CREATE_UNDO_REDO_AND_RPOVENANCE_RECORD:
+	// Create a provenance record and add it to the provenance database, 
+	// and an undo record and add it to the undo stack.
+	void create_undo_redo_and_provenance_record( Core::ActionContextHandle context, 
+		Core::ActionHandle action, bool split_prov = false );
+
+	// UPDATE_PROVENANCE_ACTION_STRING:
+	// For filters that can be stopped at certain iterations the provenance string needs
+	// to be updated with the number of iterations.
+	// This function allows to update it
+	bool update_provenance_action_string( Core::ActionHandle action );
+
+	// SET_SANDBOX:
+	// Set the sandbox in which the filter should be running.
+	void set_sandbox( SandboxID sandbox );
+
+	// GET_SANDBOX:
+	// Get the sandbox in which the filter is running.
+	SandboxID get_sandbox();
 
 	// -- filter specific information --
 public:
@@ -195,6 +245,7 @@ public:
 
 	// -- internals --
 private:
+	friend class LayerFilterPrivate;
 	LayerFilterPrivateHandle private_;
 
 };

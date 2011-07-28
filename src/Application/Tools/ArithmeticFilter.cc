@@ -33,7 +33,7 @@
 #include <Application/Tools/ArithmeticFilter.h>
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/LayerGroup.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/Filters/Actions/ActionArithmeticFilter.h>
 
 // Register the tool into the tool factory
@@ -50,16 +50,13 @@ ArithmeticFilter::ArithmeticFilter( const std::string& toolid ) :
 		std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
 	
 	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_dependent_layer_input( this->input_b_state_, 
-		Core::VolumeType::DATA_E|Core::VolumeType::MASK_E );
+	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::ALL_E );
 	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_dependent_layer_input( this->input_c_state_, 
-		Core::VolumeType::DATA_E|Core::VolumeType::MASK_E );
+	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::ALL_E );
 	this->add_state( "input_d", this->input_d_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_dependent_layer_input( this->input_d_state_, 
-		Core::VolumeType::DATA_E|Core::VolumeType::MASK_E );
+	this->add_extra_layer_input( this->input_d_state_, Core::VolumeType::ALL_E );
 	
-	this->add_state( "expressions", this->expressions_state_, "RESULT = A;" );
+	this->add_state( "expressions", this->expressions_state_, "" );
 
 	this->add_state( "output_type", this->output_type_state_, ActionArithmeticFilter::DATA_C, 
 		ActionArithmeticFilter::DATA_C + "=Data Layer|" + ActionArithmeticFilter::MASK_C + 
@@ -87,7 +84,7 @@ ArithmeticFilter::~ArithmeticFilter()
 
 void ArithmeticFilter::update_output_type()
 {
-	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( this->target_layer_state_->get() );
+	LayerHandle layer = LayerManager::Instance()->find_layer_by_id( this->target_layer_state_->get() );
 	if ( layer )
 	{
 		if ( layer->get_type() == Core::VolumeType::DATA_E ) 
@@ -107,7 +104,7 @@ void ArithmeticFilter::update_output_type()
 
 void ArithmeticFilter::update_replace_options()
 {
-	LayerHandle layer = LayerManager::Instance()->get_layer_by_id( this->target_layer_state_->get() );
+	LayerHandle layer = LayerManager::Instance()->find_layer_by_id( this->target_layer_state_->get() );
 	if( layer )
 	{
 		if( ( layer->get_type() == Core::VolumeType::DATA_E && 
@@ -133,6 +130,7 @@ void ArithmeticFilter::update_replace_options()
 
 void ArithmeticFilter::execute( Core::ActionContextHandle context )
 {
+	// NOTE: Need to lock state engine as this function is run from the interface thread
 	Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 
 	// Get action inputs from state engine

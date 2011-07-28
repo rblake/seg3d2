@@ -34,14 +34,12 @@
 #endif 
 
 // Boost includes
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <boost/noncopyable.hpp>
 
 // For event handling
-#include <Core/EventHandler/Event.h>
+#include <Core/EventHandler/EventFWD.h>
 #include <Core/EventHandler/EventHandlerContext.h>
 
 namespace Core
@@ -81,7 +79,7 @@ public:
 	void post_and_wait_event( boost::function< void() > function );
 
 	// -- Processing events from within the event handler thread --
-protected:
+public:
 
 	// PROCESS_EVENTS:
 	// Process the events that are in the event handler queue.

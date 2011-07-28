@@ -4,7 +4,7 @@ Implements the Distutils 'bdist_dumb' command (create a "dumb" built
 distribution -- i.e., just an archive to be unpacked under $prefix or
 $exec_prefix)."""
 
-__revision__ = "$Id: bdist_dumb.py 61003 2008-02-23 18:30:17Z christian.heimes $"
+__revision__ = "$Id: bdist_dumb.py 83053 2010-07-22 12:50:05Z tarek.ziade $"
 
 import os
 from distutils.core import Command

@@ -44,7 +44,9 @@
 #include <Core/State/StateBase.h>
 #include <Core/State/StateEngine.h>
 #include <Core/Geometry/Color.h>
+#include <Core/Geometry/Measurement.h>
 #include <Core/Geometry/Point.h>
+
 
 namespace Core
 {
@@ -71,8 +73,15 @@ typedef boost::shared_ptr< StatePointVector > StatePointVectorHandle;
 typedef StateVector< Color > StateColorVector;
 typedef boost::shared_ptr< StateColorVector > StateColorVectorHandle;
 
+//class Measurement
+typedef Core::StateVector< Measurement > StateMeasurementVector;
+typedef boost::shared_ptr< StateMeasurementVector > StateMeasurementVectorHandle;
+
 typedef StateVector< bool > StateBoolVector;
 typedef boost::shared_ptr< StateBoolVector > StateBoolVectorHandle;
+
+typedef StateVector< int > StateIntVector;
+typedef boost::shared_ptr< StateIntVector > StateIntVectorHandle;
 
 typedef StateVector< double > StateDoubleVector;
 typedef boost::shared_ptr< StateDoubleVector > StateDoubleVectorHandle;
@@ -98,19 +107,25 @@ protected:
 	friend class ActionClear;
 	friend class ActionSetAt;
 
-	virtual bool add( ActionParameterVariant& variant, 
-		ActionSource source = ActionSource::NONE_E ) = 0;
+	// ADD
+	// Add variant data to the state vector
+	virtual bool add( Variant& variant, ActionSource source = ActionSource::NONE_E ) = 0;
 
-	virtual bool remove( ActionParameterVariant& variant, 
-		ActionSource source = ActionSource::NONE_E ) = 0;
+	// REMOVE
+	// Remove variant data from the vector
+	virtual bool remove( Variant& variant, ActionSource source = ActionSource::NONE_E ) = 0;
 
-	virtual bool set_at( size_t index, ActionParameterVariant& variant,
-		ActionSource source = ActionSource::NONE_E ) = 0;
+	// SET_AT
+	// Set a value at a certain index
+	virtual bool set_at( size_t index, Variant& variant, ActionSource source = ActionSource::NONE_E ) = 0;
 
+	// CLEAR
+	// Clear the vector
 	virtual void clear( ActionSource source = ActionSource::NONE_E ) = 0;
 
-	virtual bool validate_element_variant( ActionParameterVariant& variant, 
-		std::string& error ) = 0;
+	// VALIDATE_ELEMENT_VARIANT
+	// validate whether the variant data is of the right type
+	virtual bool validate_element_variant( Variant& variant, std::string& error ) = 0;
 };
 
 
@@ -164,55 +179,55 @@ public:
 protected:
 	// EXPORT_TO_VARIANT
 	// Export the state data to a variant parameter
-	virtual void export_to_variant( ActionParameterVariant& variant ) const
+	virtual void export_to_variant( Variant& variant ) const
 	{
-		variant.set_value( this->values_vector_ );
+		variant.set( this->values_vector_ );
 	}
 
 	// IMPORT_FROM_VARIANT:
 	// Import the state data from a variant parameter.
-	virtual bool import_from_variant( ActionParameterVariant& variant, 
+	virtual bool import_from_variant( Variant& variant, 
 		Core::ActionSource source = Core::ActionSource::NONE_E )
 	{
 		std::vector<T> value;
-		if ( !( variant.get_value( value ) ) ) return false;
+		if ( !( variant.get( value ) ) ) return false;
 		return this->set( value, source );	
 	}
 
-	virtual bool add( ActionParameterVariant& variant, 
+	virtual bool add( Variant& variant, 
 		Core::ActionSource source = Core::ActionSource::NONE_E )
 	{
 		T element_value;
-		if ( !variant.get_value( element_value ) )
+		if ( !variant.get( element_value ) )
 		{
 			return false;
 		}
 		return this->add( element_value, source );
 	}
 
-	virtual bool set_at( size_t index, ActionParameterVariant& variant,
+	virtual bool set_at( size_t index, Variant& variant,
 		ActionSource source = ActionSource::NONE_E )
 	{
 		T element_value;
-		if ( !variant.get_value( element_value ) )
+		if ( !variant.get( element_value ) )
 		{
 			return false;
 		}
 		return this->set_at( index, element_value, source );
 	}
 
-	virtual bool remove( ActionParameterVariant& variant, 
+	virtual bool remove( Variant& variant, 
 		Core::ActionSource source = Core::ActionSource::NONE_E )
 	{
 		T element_value;
-		if ( !variant.get_value( element_value ) )
+		if ( !variant.get( element_value ) )
 		{
 			return false;
 		}
 		return this->remove( element_value, source );
 	}
 
-	virtual bool validate_element_variant( ActionParameterVariant& variant, 
+	virtual bool validate_element_variant( Variant& variant, 
 		std::string& error )
 	{
 		if ( !variant.validate_type< T >() )
@@ -228,7 +243,7 @@ protected:
 	// Validate a variant parameter
 	// This function returns false if the parameter is invalid or cannot be
 	// converted and in that case error will describe the error.
-	virtual bool validate_variant( ActionParameterVariant& variant, std::string& error )
+	virtual bool validate_variant( Variant& variant, std::string& error )
 	{
 		if ( !( variant.validate_type< std::vector< T > > () ) )
 		{
@@ -294,15 +309,19 @@ public:
 		{
 			// Lock the state engine so no other thread will be accessing it
 			StateEngine::lock_type lock( StateEngine::Instance()->get_mutex() );
-			this->values_vector_[ index ] = value;
+			if ( value != this->values_vector_[ index ] )
+			{
+				this->values_vector_[ index ] = value;
+				lock.unlock();
+
+				if ( this->signals_enabled() )
+				{
+					this->value_changed_signal_( this->values_vector_, source );
+					this->state_changed_signal_();
+				}
+			}
 		}
 
-		if ( this->signals_enabled() )
-		{
-			this->value_changed_signal_( this->values_vector_, source );
-			this->state_changed_signal_();
-		}
-		
 		return true;
 	}
 

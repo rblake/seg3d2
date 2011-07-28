@@ -26,6 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+// Core includes
+#include <Core/Utils/Log.h>
 #include <Core/Volume/VolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
 
@@ -36,7 +38,7 @@
 #include <Application/Tools/Actions/ActionCopy.h>
 #include <Application/Tools/Actions/ActionPaste.h>
 #include <Application/Layer/Layer.h>
-#include <Application/LayerManager/LayerManager.h>
+#include <Application/Layer/LayerManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
 #include <Application/StatusBar/StatusBar.h>
 
@@ -85,7 +87,7 @@ void ClipboardToolPrivate::update_slice_numbers()
 	}
 
 	MaskLayerHandle layer = boost::dynamic_pointer_cast< MaskLayer >( 
-		LayerManager::Instance()->get_layer_by_id( this->tool_->target_layer_state_->get() ) );
+		LayerManager::Instance()->find_layer_by_id( this->tool_->target_layer_state_->get() ) );
 	Core::MaskVolumeSliceHandle vol_slice( new Core::MaskVolumeSlice( 
 		layer->get_mask_volume(), slice_type ) );
 	int min_slice = zero_based ? 0 : 1;
@@ -268,7 +270,7 @@ void ClipboardTool::grab_min_paste_slice()
 	ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
 	if ( viewer->is_volume_view() )
 	{
-		StatusBar::SetMessage( Core::LogMessageType::ERROR_E, "Active viewer not in 2D view." );
+		CORE_LOG_ERROR( "Active viewer not in 2D view." );
 		return;
 	}
 
@@ -291,7 +293,7 @@ void ClipboardTool::grab_max_paste_slice()
 	ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
 	if ( viewer->is_volume_view() )
 	{
-		StatusBar::SetMessage( Core::LogMessageType::ERROR_E, "Active viewer not in 2D view." );
+		CORE_LOG_ERROR( "Active viewer not in 2D view." );
 		return;
 	}
 

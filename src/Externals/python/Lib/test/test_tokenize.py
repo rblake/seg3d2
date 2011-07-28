@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 doctests = """
 Tests for the tokenize module.
 
@@ -42,7 +40,7 @@ brevity.
         ...
     IndentationError: unindent does not match any outer indentation level
 
-There are some standard formattig practises that are easy to get right.
+There are some standard formatting practices that are easy to get right.
 
     >>> roundtrip("if x == 1:\\n"
     ...           "    print(x)\\n")
@@ -516,13 +514,13 @@ Two string literals on the same line
     True
 
 Test roundtrip on random python modules.
-pass the '-ucompiler' option to process the full directory.
+pass the '-ucpu' option to process the full directory.
 
     >>> import random
     >>> tempdir = os.path.dirname(f) or os.curdir
     >>> testfiles = glob.glob(os.path.join(tempdir, "test*.py"))
 
-    >>> if not support.is_resource_enabled("compiler"):
+    >>> if not support.is_resource_enabled("cpu"):
     ...     testfiles = random.sample(testfiles, 10)
     ...
     >>> for testfile in testfiles:
@@ -533,6 +531,7 @@ pass the '-ucompiler' option to process the full directory.
     True
 
 Evil tabs
+
     >>> dump_tokens("def f():\\n\\tif x\\n        \\tpass")
     ENCODING   'utf-8'       (0, 0) (0, 0)
     NAME       'def'         (1, 0) (1, 3)
@@ -549,11 +548,24 @@ Evil tabs
     NAME       'pass'        (3, 9) (3, 13)
     DEDENT     ''            (4, 0) (4, 0)
     DEDENT     ''            (4, 0) (4, 0)
+
+Non-ascii identifiers
+
+    >>> dump_tokens("Örter = 'places'\\ngrün = 'green'")
+    ENCODING   'utf-8'       (0, 0) (0, 0)
+    NAME       'Örter'       (1, 0) (1, 5)
+    OP         '='           (1, 6) (1, 7)
+    STRING     "'places'"    (1, 8) (1, 16)
+    NEWLINE    '\\n'          (1, 16) (1, 17)
+    NAME       'grün'        (2, 0) (2, 4)
+    OP         '='           (2, 5) (2, 6)
+    STRING     "'green'"     (2, 7) (2, 14)
 """
 
 from test import support
 from tokenize import (tokenize, _tokenize, untokenize, NUMBER, NAME, OP,
-                     STRING, ENDMARKER, tok_name, detect_encoding)
+                     STRING, ENDMARKER, tok_name, detect_encoding,
+                     open as tokenize_open)
 from io import BytesIO
 from unittest import TestCase
 import os, sys, glob
@@ -579,8 +591,10 @@ def roundtrip(f):
     """
     if isinstance(f, str):
         f = BytesIO(f.encode('utf-8'))
-    token_list = list(tokenize(f.readline))
-    f.close()
+    try:
+        token_list = list(tokenize(f.readline))
+    finally:
+        f.close()
     tokens1 = [tok[:2] for tok in token_list]
     new_bytes = untokenize(tokens1)
     readline = (line for line in new_bytes.splitlines(1)).__next__
@@ -598,11 +612,11 @@ def decistmt(s):
 
     The format of the exponent is inherited from the platform C library.
     Known cases are "e-007" (Windows) and "e-07" (not Windows).  Since
-    we're only showing 12 digits, and the 13th isn't close to 5, the
+    we're only showing 11 digits, and the 12th isn't close to 5, the
     rest of the output should be platform-independent.
 
     >>> exec(s) #doctest: +ELLIPSIS
-    -3.21716034272e-0...7
+    -3.2171603427...e-0...7
 
     Output from calculations with Decimal should be identical across all
     platforms.
@@ -675,8 +689,8 @@ class Test_Tokenize(TestCase):
         # skip the initial encoding token and the end token
         tokens = list(_tokenize(readline, encoding='utf-8'))[1:-1]
         expected_tokens = [(3, '"ЉЊЈЁЂ"', (1, 0), (1, 7), '"ЉЊЈЁЂ"')]
-        self.assertEquals(tokens, expected_tokens,
-                          "bytes not decoded with encoding")
+        self.assertEqual(tokens, expected_tokens,
+                         "bytes not decoded with encoding")
 
     def test__tokenize_does_not_decode_with_encoding_none(self):
         literal = '"ЉЊЈЁЂ"'
@@ -692,8 +706,8 @@ class Test_Tokenize(TestCase):
         # skip the end token
         tokens = list(_tokenize(readline, encoding=None))[:-1]
         expected_tokens = [(3, '"ЉЊЈЁЂ"', (1, 0), (1, 7), '"ЉЊЈЁЂ"')]
-        self.assertEquals(tokens, expected_tokens,
-                          "string not tokenized when encoding is None")
+        self.assertEqual(tokens, expected_tokens,
+                         "string not tokenized when encoding is None")
 
 
 class TestDetectEncoding(TestCase):
@@ -716,8 +730,8 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, list(lines[:2]))
+        self.assertEqual(encoding, 'utf-8')
+        self.assertEqual(consumed_lines, list(lines[:2]))
 
     def test_bom_no_cookie(self):
         lines = (
@@ -726,9 +740,9 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines,
-                          [b'# something\n', b'print(something)\n'])
+        self.assertEqual(encoding, 'utf-8-sig')
+        self.assertEqual(consumed_lines,
+                         [b'# something\n', b'print(something)\n'])
 
     def test_cookie_first_line_no_bom(self):
         lines = (
@@ -737,8 +751,8 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'iso-8859-1')
-        self.assertEquals(consumed_lines, [b'# -*- coding: latin-1 -*-\n'])
+        self.assertEqual(encoding, 'iso-8859-1')
+        self.assertEqual(consumed_lines, [b'# -*- coding: latin-1 -*-\n'])
 
     def test_matched_bom_and_cookie_first_line(self):
         lines = (
@@ -747,8 +761,8 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, [b'# coding=utf-8\n'])
+        self.assertEqual(encoding, 'utf-8-sig')
+        self.assertEqual(consumed_lines, [b'# coding=utf-8\n'])
 
     def test_mismatched_bom_and_cookie_first_line_raises_syntaxerror(self):
         lines = (
@@ -767,9 +781,9 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'ascii')
+        self.assertEqual(encoding, 'ascii')
         expected = [b'#! something\n', b'# vim: set fileencoding=ascii :\n']
-        self.assertEquals(consumed_lines, expected)
+        self.assertEqual(consumed_lines, expected)
 
     def test_matched_bom_and_cookie_second_line(self):
         lines = (
@@ -779,9 +793,9 @@ class TestDetectEncoding(TestCase):
             b'do_something(else)\n'
         )
         encoding, consumed_lines = detect_encoding(self.get_readline(lines))
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines,
-                          [b'#! something\n', b'f# coding=utf-8\n'])
+        self.assertEqual(encoding, 'utf-8-sig')
+        self.assertEqual(consumed_lines,
+                         [b'#! something\n', b'f# coding=utf-8\n'])
 
     def test_mismatched_bom_and_cookie_second_line_raises_syntaxerror(self):
         lines = (
@@ -806,7 +820,7 @@ class TestDetectEncoding(TestCase):
                          b"do_something += 4\n")
                 rl = self.get_readline(lines)
                 found, consumed_lines = detect_encoding(rl)
-                self.assertEquals(found, "iso-8859-1")
+                self.assertEqual(found, "iso-8859-1")
 
     def test_utf8_normalization(self):
         # See get_normal_name() in tokenizer.c.
@@ -819,30 +833,50 @@ class TestDetectEncoding(TestCase):
                          b"1 + 3\n")
                 rl = self.get_readline(lines)
                 found, consumed_lines = detect_encoding(rl)
-                self.assertEquals(found, "utf-8")
+                self.assertEqual(found, "utf-8")
 
     def test_short_files(self):
         readline = self.get_readline((b'print(something)\n',))
         encoding, consumed_lines = detect_encoding(readline)
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, [b'print(something)\n'])
+        self.assertEqual(encoding, 'utf-8')
+        self.assertEqual(consumed_lines, [b'print(something)\n'])
 
         encoding, consumed_lines = detect_encoding(self.get_readline(()))
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, [])
+        self.assertEqual(encoding, 'utf-8')
+        self.assertEqual(consumed_lines, [])
 
         readline = self.get_readline((b'\xef\xbb\xbfprint(something)\n',))
         encoding, consumed_lines = detect_encoding(readline)
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, [b'print(something)\n'])
+        self.assertEqual(encoding, 'utf-8-sig')
+        self.assertEqual(consumed_lines, [b'print(something)\n'])
 
         readline = self.get_readline((b'\xef\xbb\xbf',))
         encoding, consumed_lines = detect_encoding(readline)
-        self.assertEquals(encoding, 'utf-8')
-        self.assertEquals(consumed_lines, [])
+        self.assertEqual(encoding, 'utf-8-sig')
+        self.assertEqual(consumed_lines, [])
 
         readline = self.get_readline((b'# coding: bad\n',))
         self.assertRaises(SyntaxError, detect_encoding, readline)
+
+    def test_open(self):
+        filename = support.TESTFN + '.py'
+        self.addCleanup(support.unlink, filename)
+
+        # test coding cookie
+        for encoding in ('iso-8859-15', 'utf-8'):
+            with open(filename, 'w', encoding=encoding) as fp:
+                print("# coding: %s" % encoding, file=fp)
+                print("print('euro:\u20ac')", file=fp)
+            with tokenize_open(filename) as fp:
+                self.assertEqual(fp.encoding, encoding)
+                self.assertEqual(fp.mode, 'r')
+
+        # test BOM (no coding cookie)
+        with open(filename, 'w', encoding='utf-8-sig') as fp:
+            print("print('euro:\u20ac')", file=fp)
+        with tokenize_open(filename) as fp:
+            self.assertEqual(fp.encoding, 'utf-8-sig')
+            self.assertEqual(fp.mode, 'r')
 
 class TestTokenize(TestCase):
 
@@ -878,7 +912,7 @@ class TestTokenize(TestCase):
         tokenize_module._tokenize = mock__tokenize
         try:
             results = tokenize(mock_readline)
-            self.assertEquals(list(results), ['first', 'second', 1, 2, 3, 4])
+            self.assertEqual(list(results), ['first', 'second', 1, 2, 3, 4])
         finally:
             tokenize_module.detect_encoding = orig_detect_encoding
             tokenize_module._tokenize = orig__tokenize

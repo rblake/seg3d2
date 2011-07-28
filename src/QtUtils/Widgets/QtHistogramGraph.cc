@@ -56,11 +56,13 @@ QtHistogramGraph::~QtHistogramGraph()
 void QtHistogramGraph::set_histogram( const Core::Histogram& histogram )
 {
 	this->histogram_ = histogram;
+	this->update();
 }
 
 void QtHistogramGraph::reset_histogram( )
 {
 	this->histogram_ = Core::Histogram();
+	this->update();
 }
 
 void QtHistogramGraph::paintEvent(QPaintEvent * event )
@@ -137,10 +139,9 @@ void QtHistogramGraph::mousePressEvent( QMouseEvent* e )
 	}
 }
 
-void QtHistogramGraph::switch_between_linear_log_histogram( int mode )
+void QtHistogramGraph::set_logarithmic( bool logarithmic )
 {
-	if( mode == 0 )	this->logarithmic_ = false;
-	if( mode == 1 )	this->logarithmic_ = true;
+	this->logarithmic_ = logarithmic;
 	this->repaint();
 }
 
@@ -155,12 +156,5 @@ void QtHistogramGraph::mouseMoveEvent( QMouseEvent* e )
 		Q_EMIT lower_position( e->pos().x() );
 	}
 }
-
-
-
-
-
-
-
 
 } // end namespace QtUtils

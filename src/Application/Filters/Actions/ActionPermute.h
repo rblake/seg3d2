@@ -29,7 +29,11 @@
 #ifndef APPLICATION_FILTERS_ACTIONS_ACTIONPERMUTE_H
 #define APPLICATION_FILTERS_ACTIONS_ACTIONPERMUTE_H
 
+// Core includes
 #include <Core/Action/Actions.h>
+
+// Application includes
+#include <Application/Layer/LayerAction.h>
 
 namespace Seg3D
 {
@@ -37,14 +41,16 @@ namespace Seg3D
 class ActionPermutePrivate;
 typedef boost::shared_ptr< ActionPermutePrivate > ActionPermutePrivateHandle;
 
-class ActionPermute : public Core::Action
+class ActionPermute : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "Permute", "Permute the input layers" )
 	CORE_ACTION_ARGUMENT( "layerids", "The layerids on which this tool needs to be run." )
 	CORE_ACTION_ARGUMENT( "permutation", "The permutation array." )
-	CORE_ACTION_KEY( "replace", "false", "Whether to delete the input layers afterwards." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "false", "Whether to delete the input layers afterwards." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -52,8 +58,6 @@ CORE_ACTION(
 	// -- Constructor/Destructor --
 public:
 	ActionPermute();
-	
-	virtual ~ActionPermute() {}
 	
 	// -- Functions that describe action --
 public:

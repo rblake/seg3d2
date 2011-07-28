@@ -36,22 +36,42 @@ SET(APPLICATION_LAYERIO_SRCS
   LayerExporter.cc
   LayerImporter.h
   LayerImporter.cc
-  LayerExporterInfo.h
-  LayerExporterInfo.cc
+  LayerSingleFileImporter.h
+  LayerSingleFileImporter.cc
+  LayerFileSeriesImporter.h
+  LayerFileSeriesImporter.cc
   LayerImporterInfo.h
   LayerImporterInfo.cc
+  LayerImporterFileInfo.h
+  LayerImporterFileInfo.cc
+  LayerImporterFileData.h
+  LayerImporterFileData.cc
+  LayerExporterInfo.h
+  LayerExporterInfo.cc
   LayerIO.h
   LayerIO.cc
 )
 
 SET(APPLICATION_LAYERIO_ACTIONS_SRCS
+	Actions/ActionExportLayer.h
+	Actions/ActionExportLayer.cc
+	Actions/ActionExportSegmentation.h
+	Actions/ActionExportSegmentation.cc
+	Actions/ActionImportLayer.h
+	Actions/ActionImportLayer.cc
+	Actions/ActionImportSeries.h
+	Actions/ActionImportSeries.cc
 )
 
 SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
   ITKLayerImporter.h
   ITKLayerImporter.cc
+  ITKSeriesLayerImporter.h
+  ITKSeriesLayerImporter.cc
   MatlabLayerImporter.h
   MatlabLayerImporter.cc
+  MRCLayerImporter.h
+  MRCLayerImporter.cc
   NrrdLayerImporter.h
   NrrdLayerImporter.cc
   VFFLayerImporter.h
@@ -59,12 +79,22 @@ SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
   GDCMLayerImporter.h
   GDCMLayerImporter.cc
 )
+
 SET(APPLICATION_LAYERIO_EXPORTERS_SRCS
-  ITKLayerExporter.h
-  ITKLayerExporter.cc
+  ITKDataLayerExporter.h
+  ITKDataLayerExporter.cc
+  ITKMaskLayerExporter.h
+  ITKMaskLayerExporter.cc
+  MRCLayerExporter.h
+  MRCLayerExporter.cc
   NrrdLayerExporter.h
   NrrdLayerExporter.cc
 )
+
+IF(BUILD_WITH_PYTHON)
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_LayerIO ${APPLICATION_LAYERIO_ACTIONS_SRCS})
+  SET(APPLICATION_LAYERIO_SRCS ${APPLICATION_LAYERIO_SRCS} ${PYTHON_WRAPPER})
+ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(Application_LayerIO ${APPLICATION_LAYERIO_SRCS}
       ${APPLICATION_LAYERIO_IMPORTERS_SRCS}
@@ -83,7 +113,9 @@ TARGET_LINK_LIBRARIES(Application_LayerIO
 					Application_InterfaceManager
 					Application_Layer
 					${SCI_BOOST_LIBRARY}
-					${SCI_GDCM_LIBRARY})
+					${SCI_GDCM_LIBRARY}
+					${SCI_MATLABIO_LIBRARY}
+                                        ${SCI_MRC2000IO_LIBRARY})
 
 # Register actions and importers
 REGISTER_LIBRARY_AND_CLASSES(Application_LayerIO 

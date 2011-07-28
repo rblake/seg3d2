@@ -31,19 +31,24 @@
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
 #include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerAction.h>
+#include <Application/Layer/LayerManager.h>
 
 namespace Seg3D
 {
 
-class ActionAndFilter : public Core::Action
+class ActionAndFilter : public LayerAction
 {
 
 CORE_ACTION( 
 	CORE_ACTION_TYPE( "AndFilter", "Filter that does a boolean AND on two mask." )
 	CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
 	CORE_ACTION_ARGUMENT( "mask", "The layerid of the mask that needs to be applied." )
-	CORE_ACTION_KEY( "replace", "true", "Replace the old layer (true), or add an new mask layer (false)." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "replace", "true", "Replace the old layer (true), or add an new mask layer (false)." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 	CORE_ACTION_IS_UNDOABLE()
 )
@@ -52,33 +57,28 @@ CORE_ACTION(
 public:
 	ActionAndFilter()
 	{
-		// Action arguments
-		this->add_argument( this->target_layer_ );
-		this->add_argument( this->mask_layer_ );
+		this->add_layer_id( this->target_layer_ );
+		this->add_layer_id( this->mask_layer_ );
+		this->add_parameter( this->replace_ );
+		this->add_parameter( this->sandbox_ );
+	}
 
-		// Action options
-		this->add_key( this->replace_ );		
-	}
-	
-	virtual ~ActionAndFilter()
-	{
-	}
-	
 	// -- Functions that describe action --
 public:
 	virtual bool validate( Core::ActionContextHandle& context );
-	virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+	virtual bool run( Core::ActionContextHandle& context, 
+		Core::ActionResultHandle& result );
 	
 	// -- Action parameters --
 private:
 
-	Core::ActionParameter< std::string > target_layer_;
-	Core::ActionParameter< std::string > mask_layer_;
-	Core::ActionParameter< bool > replace_;
+	std::string target_layer_;
+	std::string mask_layer_;
+	bool replace_;
+	SandboxID sandbox_;
 	
 	// -- Dispatch this action from the interface --
 public:
-
 	// DISPATCH:
 	// Create and dispatch action that inserts the new layer 
 	static void Dispatch( Core::ActionContextHandle context, 
