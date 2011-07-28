@@ -142,12 +142,9 @@ int main( int argc, char **argv )
 	if ( !( QtUtils::QtApplication::Instance()->setup( argc, argv ) ) ) return ( -1 );
 
 	// -- Warn user about being an alpha/beta version --
-	std::string file_to_view = "";
-	Core::Application::Instance()->check_command_line_parameter( "file_to_open_on_start", file_to_view );
-
 	{
 		std::string warning = std::string( "<h3>" ) +
-			Core::Application::GetApplicationName() + " " + Core::Application::GetVersion() + 
+			Core::Application::GetApplicationNameAndVersion() + 
 			"</h3><h6><p align=\"justify\">Please note: This version of " + Core::Application::GetApplicationName()
 			+ " is still under development. For daily use we recommend the released version, as" 
 			" stability of this version depends on on going development.</p></h6>";
@@ -188,8 +185,8 @@ int main( int argc, char **argv )
 #endif
 
 	// -- Setup Application Interface Window --
-//	std::string file_to_view = "";
-//	Core::Application::Instance()->check_command_line_parameter( "file_to_open_on_start", file_to_view );
+	std::string file_to_view = "";
+	Core::Application::Instance()->check_command_line_parameter( "file_to_open_on_start", file_to_view );
 	
 	ApplicationInterface* app_interface = new ApplicationInterface( file_to_view );
 
@@ -200,8 +197,8 @@ int main( int argc, char **argv )
 	app_interface->raise();
 
 	// The application window needs the qApplication as parent, which is
-	// defined in the QtApplication, which integrates the Qt eventloop with
-	// the interface eventloop of the Application layer.
+	// defined in the QtApplication, which integrates the Qt event loop with
+	// the interface event loop of the Application layer.
 
 	// -- Run QT event loop --
 	if ( !( QtUtils::QtApplication::Instance()->exec() ) ) return ( -1 );

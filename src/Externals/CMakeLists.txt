@@ -115,8 +115,8 @@ ADD_SUBDIRECTORY(itk)
 # ADDING HDF5
 ##################################################
 
-MESSAGE(STATUS "Configuring HDF5")
-ADD_SUBDIRECTORY(hdf5)
+#MESSAGE(STATUS "Configuring HDF5")
+#ADD_SUBDIRECTORY(hdf5)
 
 ##################################################
 # ADDING MRC2000

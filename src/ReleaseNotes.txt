@@ -4,10 +4,21 @@ Release Notes
 Version 2.1.0
 -------------
 
-This version introduces a new cleaner look, first version of provenance tracking and a volume
-renderer.
+This version includes lots of new features and bug fixes.
 
-* Upgraded the look and feel of Seg3D. The colors are lighter and should focus more attention to the actual viewer.
+* Added volume rendering.
+
+* Added Python scripting support.
+
+* Added provenance tracking and replaying.
+
+* Added 3D picking.
+
+* Added speedline tool.
+
+* Added pointset registration filter.
+
+* Tweaked the GUI look and feel.
 
 * Sliders and Histograms now have better default settings.
 
@@ -15,20 +26,11 @@ renderer.
 
 * Highlighted the status bar coordinates.
 
-* Added volume rendering.
+* Project folders now have an extension.
 
-* Refactored importers to have clearer logic.
+* Project folders on the Mac OS X now function as a Mac OS X bundle.
 
-* Refactored the action mechanism to be easier to program.
-
-* Added provenance recording and a central database to each project.
-
-* Project Folders now have an extension.
-
-* Project Folders on the mac now generate a mac osx bundle.
-
-* Refactored project logic to manage files more efficient.
-
+* Bug fixes.
 
 Version 2.0.3
 ------------
@@ -44,7 +46,7 @@ This version adds several bug fixes and a few extra features.
 Version 2.0.2
 -------------
 
-This version address some major performance issues that were reported users for certain older graphics cards.
+This version address some major performance issues that were reported by users for certain older graphics cards.
 
 * Changed the mask shading so it is a power of two, so older graphics drivers do not default to software rendering.
 

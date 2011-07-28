@@ -423,7 +423,7 @@ std::string Application::GetReleaseName()
 
 std::string Application::GetApplicationNameAndVersion()
 {
-	return GetApplicationName() + " " + GetReleaseName() + " " + GetVersion();
+	return GetApplicationName() + " " + GetVersion() + " " + GetReleaseName();
 }
 
 std::string Application::GetAbout()
