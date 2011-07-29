@@ -68,6 +68,7 @@ bool SpeedlineToolInterface::build_widget( QFrame* frame )
 	//Step 1 - build the Qt GUI Widget
 	this->private_->ui_.setupUi( frame );
 	this->private_->ui_.horizontalLayout->setAlignment( Qt::AlignHCenter );
+	this->private_->ui_.horizontalLayout_2->setAlignment( Qt::AlignHCenter );
 	
 	//Step 2 - get a pointer to the tool
 	ToolHandle base_tool_ = tool();
@@ -88,6 +89,8 @@ bool SpeedlineToolInterface::build_widget( QFrame* frame )
 		&SpeedlineTool::erase, tool, Core::Interface::GetWidgetActionContext() ) );
 	QtUtils::QtBridge::Connect( this->private_->ui_.clear_button_, boost::bind(
 		&SpeedlineTool::reset, tool, Core::Interface::GetWidgetActionContext() ) );
+	QtUtils::QtBridge::Connect( this->private_->ui_.reset_parameters_button_, boost::bind(
+		&SpeedlineTool::reset_parameters, tool, Core::Interface::GetWidgetActionContext() ) );
 
 	QtUtils::QtBridge::Enable( this->private_->ui_.target_mask_, 
 		tool->use_active_layer_state_, true );
