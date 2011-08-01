@@ -155,6 +155,16 @@ SET(MOD_SRCS ${MOD_SRCS}
 			Modules/_math.c
 			Modules/_time.c)
 			
+#_multiprocessing module
+add_python_module(_multiprocessing	MOD_SRCS Modules/_multiprocessing/multiprocessing.c)
+SET(MOD_SRCS ${MOD_SRCS}
+			Modules/_multiprocessing/pipe_connection.c
+			Modules/_multiprocessing/semaphore.c
+			Modules/_multiprocessing/socket_connection.c)
+IF(WIN32)
+	SET(MOD_SRCS ${MOD_SRCS} Modules/_multiprocessing/win32_functions.c)
+ENDIF(WIN32)
+			
 #zlib module
 add_python_module(zlib         	MOD_SRCS Modules/zlibmodule.c)
 			
@@ -202,6 +212,7 @@ IF(WIN32)
   add_python_module(winreg		MOD_SRCS PC/winreg.c)
 ELSE(WIN32)
   add_python_module(pwd		MOD_SRCS Modules/pwdmodule.c)
+  add_python_module(_posixsubprocess MOD_SRCS Modules/_posixsubprocess.c)
 ENDIF(WIN32)
 
 #CJK codecs
