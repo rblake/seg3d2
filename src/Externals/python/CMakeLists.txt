@@ -163,6 +163,7 @@ SET(MOD_SRCS ${MOD_SRCS}
 			Modules/_multiprocessing/socket_connection.c)
 IF(WIN32)
 	SET(MOD_SRCS ${MOD_SRCS} Modules/_multiprocessing/win32_functions.c)
+	set(extraLibs ${extraLibs} Ws2_32.lib)
 ENDIF(WIN32)
 			
 #zlib module
@@ -425,3 +426,9 @@ ENDIF(WIN32)
 SET(PYTHON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
 SET(SCI_PYTHON_LIBRARY python CACHE INTERNAL "Python library." FORCE)
 SET(SCI_PYTHON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/Include ${Python_BINARY_DIR} CACHE INTERNAL "Python include directory." FORCE)
+
+OPTION(BUILD_PYTHON_INTERPRETER "Build the python interpreter executable." OFF)
+IF(BUILD_PYTHON_INTERPRETER)
+	ADD_EXECUTABLE(python3 Modules/python.c)
+	TARGET_LINK_LIBRARIES(python3 python)
+ENDIF(BUILD_PYTHON_INTERPRETER)
