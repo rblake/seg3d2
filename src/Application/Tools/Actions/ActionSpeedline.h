@@ -31,6 +31,7 @@
 
 // Core includes
 #include <Core/Volume/VolumeSlice.h>
+#include <Core/Utils/AtomicCounter.h>
 
 // Application includes
 #include <Application/Layer/LayerAction.h>
@@ -53,12 +54,12 @@ CORE_ACTION
 	CORE_ACTION_ARGUMENT( "slice_number", "The slice number to be painted on." )
 	CORE_ACTION_ARGUMENT( "vertices", "The 2D coordinates of Speedline vertices." )
 	CORE_ACTION_ARGUMENT( "current_vertex_index", "The vertex needes to compute paths." )
-	CORE_ACTION_OPTIONAL_ARGUMENT( "update_all_path", "true", "Update all paths" )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "1000", "Number of iterations to perform." )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "termination", "1.0", "Unit of Termination." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "update_all_path", "true", "Update all paths" )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "itk_path_state_id", "", "The statid of the state variable into which ITK continuous index values will be written." )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "world_path_state_id", "", "The statid of the state variable into which world coordinate path values will be written." )
-	CORE_ACTION_OPTIONAL_ARGUMENT( "path_vertices_state_id", "", "The statid of the state variable into which vertices values will be written." )
+	CORE_ACTION_OPTIONAL_ARGUMENT( "path_vertices_state_id", "", "The stateid of the state variable into which vertices values will be written." )
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 )
 
@@ -91,7 +92,9 @@ public:
 		bool update_all_paths,
 		const std::string& itk_path_state_id,
 		const std::string& world_path_state_id,
-		const std::string& path_vertices_state_id
+		const std::string& path_vertices_state_id,
+		long  action_id,
+		Core::AtomicCounterHandle action_handle
 		);
 };
 
