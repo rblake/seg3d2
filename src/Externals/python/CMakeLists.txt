@@ -158,11 +158,12 @@ SET(MOD_SRCS ${MOD_SRCS}
 #_multiprocessing module
 add_python_module(_multiprocessing	MOD_SRCS Modules/_multiprocessing/multiprocessing.c)
 SET(MOD_SRCS ${MOD_SRCS}
-			Modules/_multiprocessing/pipe_connection.c
 			Modules/_multiprocessing/semaphore.c
 			Modules/_multiprocessing/socket_connection.c)
 IF(WIN32)
-	SET(MOD_SRCS ${MOD_SRCS} Modules/_multiprocessing/win32_functions.c)
+	SET(MOD_SRCS ${MOD_SRCS} 
+			Modules/_multiprocessing/win32_functions.c
+			Modules/_multiprocessing/pipe_connection.c)
 	set(extraLibs ${extraLibs} Ws2_32.lib)
 ENDIF(WIN32)
 			
@@ -429,6 +430,6 @@ SET(SCI_PYTHON_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/Include ${Python_BINARY_DIR} 
 
 OPTION(BUILD_PYTHON_INTERPRETER "Build the python interpreter executable." OFF)
 IF(BUILD_PYTHON_INTERPRETER)
-	ADD_EXECUTABLE(python3 Modules/python.c)
+	ADD_EXECUTABLE(python3 pythonmain.cc)
 	TARGET_LINK_LIBRARIES(python3 python)
 ENDIF(BUILD_PYTHON_INTERPRETER)
