@@ -13,7 +13,7 @@ int
 wmain(int argc, wchar_t **argv)
 {
 	std::wstring module_path( argv[ 0 ] );
-	std::wstring::size_type pos = module_path.find_last_of( L'/' );
+	std::wstring::size_type pos = module_path.find_last_of( L"/\\" );
 	module_path = module_path.substr( 0, pos + 1 );
 	module_path += PYTHONPATH;
 	Py_SetPath( module_path.c_str() );

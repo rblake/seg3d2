@@ -11,16 +11,7 @@
 int
 wmain(int argc, wchar_t **argv)
 {
-	const wchar_t* relative_path = L"/../" PYTHONPATH;
-	wchar_t* module_path = PyMem_Malloc( ( wcslen( argv[ 0 ] ) + wcslen( relative_path ) + 1 ) * sizeof( wchar_t ) );
-	int res;
-
-	wcscpy( module_path, argv[ 0 ] );
-	wcscpy( module_path + wcslen( argv[ 0 ] ), relative_path );
-	Py_SetPath( module_path );
-	res = Py_Main(argc, argv);
-	PyMem_Free( module_path );
-    return res;
+    return Py_Main(argc, argv);
 }
 #else
 
@@ -34,9 +25,7 @@ main(int argc, char **argv)
     wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
     /* We need a second copies, as Python might modify the first one. */
     wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-	const wchar_t* relative_path = L"/../" PYTHONPATH;
-	wchar_t* module_path = PyMem_Malloc( ( wcslen( argv_copy[ 0 ] ) + wcslen( relative_path ) + 1 ) * sizeof( wchar_t ) );
-	int i, res;
+    int i, res;
     char *oldloc;
     /* 754 requires that FP exceptions run in "no stop" mode by default,
      * and until C vendors implement C99's ways to control FP exceptions,
@@ -67,9 +56,6 @@ main(int argc, char **argv)
     }
     setlocale(LC_ALL, oldloc);
     free(oldloc);
-	wcscpy( module_path, argv[ 0 ] );
-	wcscpy( module_path + wcslen( argv[ 0 ] ), relative_path );
-	Py_SetPath( module_path );
     res = Py_Main(argc, argv_copy);
     for (i = 0; i < argc; i++) {
         PyMem_Free(argv_copy2[i]);

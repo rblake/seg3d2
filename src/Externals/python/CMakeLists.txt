@@ -207,6 +207,7 @@ add_python_module(_functools    MOD_SRCS Modules/_functoolsmodule.c)
 add_python_module(_json    		MOD_SRCS Modules/_json.c )
 add_python_module(xxsubtype 	MOD_SRCS Modules/xxsubtype.c)
 add_python_module(zipimport 	MOD_SRCS Modules/zipimport.c)
+add_python_module(select		MOD_SRCS Modules/selectmodule.c)
 
 IF(WIN32)
   add_python_module(msvcrt		MOD_SRCS PC/msvcrtmodule.c)
