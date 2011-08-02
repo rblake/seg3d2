@@ -142,17 +142,17 @@ int main( int argc, char **argv )
 	if ( !( QtUtils::QtApplication::Instance()->setup( argc, argv ) ) ) return ( -1 );
 
 	// -- Warn user about being an alpha/beta version --
-	{
-		std::string warning = std::string( "<h3>" ) +
-			Core::Application::GetApplicationNameAndVersion() + 
-			"</h3><h6><p align=\"justify\">Please note: This version of " + Core::Application::GetApplicationName()
-			+ " is still under development. For daily use we recommend the released version, as" 
-			" stability of this version depends on on going development.</p></h6>";
-		
-		QMessageBox::information( 0, 
-			QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ), 
-			QString::fromStdString( warning )  );
-	}
+	//{
+	//	std::string warning = std::string( "<h3>" ) +
+	//		Core::Application::GetApplicationNameAndVersion() + 
+	//		"</h3><h6><p align=\"justify\">Please note: This version of " + Core::Application::GetApplicationName()
+	//		+ " is still under development. For daily use we recommend the released version, as" 
+	//		" stability of this version depends on on going development.</p></h6>";
+	//	
+	//	QMessageBox::information( 0, 
+	//		QString::fromStdString( Core::Application::GetApplicationNameAndVersion() ), 
+	//		QString::fromStdString( warning )  );
+	//}
 	
 
 	if ( sizeof( void * ) == 4 )
