@@ -387,13 +387,6 @@ bool MRCUtil::import_header(const std::string& header_string, MRCHeader& header)
       error_ = oss.str(); 
     }
 
-    // test
-    for (int i = 0; i < labels_list.size(); ++i)
-    {
-      std::cout << "label " << i+1 << ": [" << labels_list[i] << "]" << std::endl;
-    }
-    // test
-
     // discard first string, since it is the first part of the header
     for (int i = 1; i < labels_list.size(); ++i)
     {

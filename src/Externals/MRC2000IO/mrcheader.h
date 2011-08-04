@@ -27,7 +27,8 @@
 */
 
 /*
- * MRC file format reader: http://www2.mrc-lmb.cam.ac.uk/image2000.html
+ * MRC file format reader: http://emdatabank.org/conventions.html
+   and http://www2.mrc-lmb.cam.ac.uk/image2000.html
  * Also helpful: http://www.ccp4.ac.uk/html/maplib.html
  * Implementation follows EMAN2 and Chimera.
  */
@@ -70,12 +71,13 @@ struct MRCHeader {
   int mx;				/* 8 Number of intervals along X. */
   int my;				/* 9 Number of intervals along Y. */
   int mz;				/* 10 Number of intervals along Z. */
-  
+
   /* Cell: treat a whole 2D image as a cell */
   float xlen;			/* 11 Cell dimensions in angstroms. */
   float ylen;			/* 12 Cell dimensions in angstroms. */
   float zlen;			/* 13 Cell dimensions in angstroms. */
-  
+
+  /* Cell angles: only used by crystallographic maps */
   float alpha;		/* 14 Cell angles in degrees. */
   float beta;			/* 15 Cell angles in degrees. */
   float gamma;		/* 16 Cell angles in degrees. */
@@ -90,9 +92,10 @@ struct MRCHeader {
   
   int ispg;			    /* 23 Space group number 0 or 1 (default (images) = 0). */
   
-  int nsymbt;		  	/* 24 Number of chars used for storing symmetry operators. */
+  int nsymbt;		  	/* 24 Number of chars used for optionally storing symmetry
+                          operators (crystallographic maps only). */
   
-  int extra[MRC_SIZE_EXTRA];    /* 25-49 Extra space used for anything (0 by default). */
+  int extra[MRC_SIZE_EXTRA];    /* 25-49 Extra space used for symmetry operators, or other unspecified (0 by default). */
   
   float xorigin;	/* 50 Origin in X, Y, Z used for transformations. */
   float yorigin;	/* 51 Origin in X, Y, Z used for transformations. */
@@ -101,9 +104,9 @@ struct MRCHeader {
   char map[MRC_LONG_WORD];		  /* 53 Character string "MAP " used to distinguish file type from older formats. */
   
   int machinestamp;	/* 54 Machine stamp in CCP4 convention:
-                         big endian=0x00001111
-                         little endian=0x44440000 or 0x00004444 or 0x00004144 or 0x11111111 & 4
-                         There is an ambiguity in the specification - not reliably implemented. */
+                          big endian=0x00001111
+                          little endian=0x44440000 or 0x00004444 or 0x00004144 or 0x11111111 & 4
+                          There is an ambiguity in the specification - not reliably implemented. */
   
   float rms;			/* 55 Rms deviation of map from mean density. */
   
