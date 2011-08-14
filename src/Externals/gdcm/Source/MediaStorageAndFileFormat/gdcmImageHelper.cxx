@@ -1295,12 +1295,16 @@ void ImageHelper::SetOriginValue(DataSet & ds, const Image & image)
    && ms != MediaStorage::EnhancedCTImageStorage )
     {
     // FIXME: should I remove the ipp tag ???
-    return;
+// NUMIRA FIX: Should not ignore the origin information
+//    return;
     }
 
+// NUMIRA FIX: This code does not work properly
+/*
   if( ms == MediaStorage::EnhancedCTImageStorage
    || ms == MediaStorage::EnhancedMRImageStorage )
     {
+*/	
 /*
     (0020,9113) SQ (Sequence with undefined length #=1)     # u/l, 1 PlanePositionSequence
       (fffe,e000) na (Item with undefined length #=1)         # u/l, 1 Item
@@ -1308,7 +1312,7 @@ void ImageHelper::SetOriginValue(DataSet & ds, const Image & image)
       (fffe,e00d) na (ItemDelimitationItem)                   #   0, 0 ItemDelimitationItem
     (fffe,e0dd) na (SequenceDelimitationItem)               #   0, 0 SequenceDelimitationItem
 */
-
+/*
     const Tag tfgs(0x5200,0x9230);
 
     gdcm::Attribute<0x0020,0x0032> ipp = {{0,0,0}}; // default value
@@ -1338,7 +1342,7 @@ void ImageHelper::SetOriginValue(DataSet & ds, const Image & image)
 
     return;
     }
-
+*/
   // Image Position (Patient)
   gdcm::Attribute<0x0020,0x0032> ipp = {{0,0,0}}; // default value
   ipp.SetValue( origin[0], 0);
