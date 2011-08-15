@@ -538,6 +538,21 @@ LayerWidget::LayerWidget( QFrame* parent, LayerHandle layer ) :
 	// Add the Ui children onto the QWidget
 	this->private_->ui_.setupUi( this );
 	
+#ifdef __APPLE__
+	QList<QLabel*> children = findChildren< QLabel* >();
+	QList<QLabel*>::iterator it = children.begin();
+	QList<QLabel*>::iterator it_end = children.end();
+	
+	while( it != it_end )
+	{
+		QFont font = ( *it )->font();
+		font.setPointSize( 11 );
+		( *it )->setFont( font );
+		++it;
+	}
+#endif	
+	
+	
 	this->setUpdatesEnabled( false );
 	
 	// set some Drag and Drop stuff
