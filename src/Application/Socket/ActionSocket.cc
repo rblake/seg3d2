@@ -26,79 +26,23 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef _MSC_VER
+#pragma warning( disable: 4244 4267 )
+#endif
+
 // Boost includes
 #include <boost/asio.hpp>
+#include <boost/ref.hpp>
+
+// Core includes
+#include <Core/Utils/ConnectionHandler.h>
+#include <Core/Python/PythonInterpreter.h>
 
 // Application includes
-#include <Core/Action/Actions.h>
-#include <Core/Action/ActionSocket.h>
+#include <Application/Socket/ActionSocket.h>
 
-namespace Core
+namespace Seg3D
 {
-
-class ActionSocketContext;
-
-typedef boost::shared_ptr< ActionSocketContext > ActionSocketContextHandle;
-
-class ActionSocketContext : public ActionContext
-{
-
-	// -- Constructor/destructor --
-public:
-	// Wrap a context around an action
-	ActionSocketContext()
-	{
-	}
-
-	// Virtual destructor for memory management
-	virtual ~ActionSocketContext()
-	{
-	}
-
-	// -- Reporting functions --
-
-	virtual void report_error( const std::string& error )
-	{
-		message_ += std::string( "ERROR: " ) + error + std::string( "\r\n" );
-	}
-
-	virtual void report_warning( const std::string& warning )
-	{
-		message_ += std::string( "WARNING: " ) + warning + std::string( "\r\n" );
-	}
-
-	virtual void report_message( const std::string& message )
-	{
-		message_ += std::string( "MESSAGE: " ) + message + std::string( "\r\n" );
-	}
-
-	virtual void report_result( const ActionResultHandle& result )
-	{
-		message_ += std::string( "RESULT: " ) + result->export_to_string() + std::string( "\r\n" );
-	}
-
-	// -- Source information --
-
-	// The action is run from a script: the interface needs to be updated.
-	virtual bool from_script() const
-	{
-		return true;
-	}
-
-	// -- ActionSocket specific function --
-
-	void reset()
-	{
-		message_.clear();
-	}
-	std::string message() const
-	{
-		return message_;
-	}
-
-private:
-	std::string message_;
-};
 
 CORE_SINGLETON_IMPLEMENTATION( ActionSocket );
 
@@ -118,6 +62,17 @@ ActionSocket::~ActionSocket()
 {
 }
 
+static void WriteOutputToSocket( boost::asio::ip::tcp::socket& socket, std::string output )
+{
+	boost::asio::write( socket, boost::asio::buffer( output ) );
+}
+
+static void WritePromptToSocket( boost::asio::ip::tcp::socket& socket, std::string output )
+{
+	output = "\r\n" + output;
+	WriteOutputToSocket( socket, output );
+}
+
 void ActionSocket::run_action_socket( int portnum )
 {
 	boost::asio::io_service io_service;
@@ -125,19 +80,24 @@ void ActionSocket::run_action_socket( int portnum )
 	boost::asio::ip::tcp::acceptor acceptor( io_service, boost::asio::ip::tcp::endpoint(
 	    boost::asio::ip::tcp::v4(), portnum ) );
 
+	Core::ConnectionHandler connection_handler;
+
 	while ( 1 )
 	{
 		boost::asio::ip::tcp::socket socket( io_service );
 		acceptor.accept( socket );
 
+		// Connect to PythonInterpreter signals
+		connection_handler.add_connection( Core::PythonInterpreter::Instance()->prompt_signal_.connect( 
+			boost::bind( &WritePromptToSocket, boost::ref( socket ), _1 ) ) );
+		connection_handler.add_connection( Core::PythonInterpreter::Instance()->error_signal_.connect( 
+			boost::bind( &WriteOutputToSocket, boost::ref( socket ), _1 ) ) );
+		connection_handler.add_connection( Core::PythonInterpreter::Instance()->output_signal_.connect( 
+			boost::bind( &WriteOutputToSocket, boost::ref( socket ), _1 ) ) );
+
 		boost::asio::write( socket, boost::asio::buffer( std::string( "Welcome to Seg3D\r\n" ) ) );
 
-		std::vector< char > data( 512 );
 		boost::system::error_code read_ec;
-		std::string action;
-
-		ActionSocketContextHandle context( new ActionSocketContext );
-
 		while ( !read_ec )
 		{
 			boost::asio::streambuf buffer;
@@ -150,24 +110,18 @@ void ActionSocket::run_action_socket( int portnum )
 
 			if ( !read_ec )
 			{
-				ActionHandle action;
-				std::string error;
-				std::string usage;
-				if ( !( ActionFactory::Instance()->create_action( action_string, action, error,
-				    usage ) ) )
+				if ( action_string == "exit\r" )
 				{
-					error += "\r\n";
-					boost::asio::write( socket, boost::asio::buffer( error ) );
+					boost::asio::write( socket, boost::asio::buffer( "Goodbye!\r\n" ) );
+					socket.close();
+					break;
 				}
-				else
-				{
-					context->reset();
-					ActionDispatcher::PostAndWaitAction( action, context );
-					std::string message = context->message();
-					boost::asio::write( socket, boost::asio::buffer( message ) );
-				}
+
+				Core::PythonInterpreter::Instance()->run_string( action_string );
 			}
 		}
+
+		connection_handler.disconnect_all();
 	}
 }
 
