@@ -36,6 +36,7 @@
 
 // Core includes
 #include <Core/Utils/ConnectionHandler.h>
+#include <Core/Utils/Log.h>
 #include <Core/Python/PythonInterpreter.h>
 
 // Application includes
@@ -64,7 +65,11 @@ ActionSocket::~ActionSocket()
 
 static void WriteOutputToSocket( boost::asio::ip::tcp::socket& socket, std::string output )
 {
-	boost::asio::write( socket, boost::asio::buffer( output ) );
+	try
+	{
+		boost::asio::write( socket, boost::asio::buffer( output ) );
+	}
+	catch ( ... ) {}
 }
 
 static void WritePromptToSocket( boost::asio::ip::tcp::socket& socket, std::string output )
@@ -77,8 +82,21 @@ void ActionSocket::run_action_socket( int portnum )
 {
 	boost::asio::io_service io_service;
 
-	boost::asio::ip::tcp::acceptor acceptor( io_service, boost::asio::ip::tcp::endpoint(
-	    boost::asio::ip::tcp::v4(), portnum ) );
+	boost::asio::ip::tcp::acceptor acceptor( io_service );
+	try
+	{
+		boost::asio::ip::tcp::endpoint endpoint( boost::asio::ip::tcp::v4(), portnum );
+		acceptor.open( endpoint.protocol() );
+		acceptor.set_option( boost::asio::socket_base::reuse_address( true ) );
+		acceptor.bind( endpoint );
+		acceptor.listen();
+	}
+	catch ( ... )
+	{
+		CORE_LOG_ERROR( "Failed to open socket on port " + 
+			Core::ExportToString( portnum ) + "." );
+		return;
+	}
 
 	Core::ConnectionHandler connection_handler;
 
@@ -95,7 +113,12 @@ void ActionSocket::run_action_socket( int portnum )
 		connection_handler.add_connection( Core::PythonInterpreter::Instance()->output_signal_.connect( 
 			boost::bind( &WriteOutputToSocket, boost::ref( socket ), _1 ) ) );
 
-		boost::asio::write( socket, boost::asio::buffer( std::string( "Welcome to Seg3D\r\n" ) ) );
+		CORE_LOG_MESSAGE( "Socket connected." );
+		try
+		{
+			boost::asio::write( socket, boost::asio::buffer( std::string( "Welcome to Seg3D\r\n" ) ) );
+		}
+		catch ( ... ) {}
 
 		boost::system::error_code read_ec;
 		while ( !read_ec )
@@ -112,8 +135,12 @@ void ActionSocket::run_action_socket( int portnum )
 			{
 				if ( action_string == "exit\r" )
 				{
-					boost::asio::write( socket, boost::asio::buffer( "Goodbye!\r\n" ) );
-					socket.close();
+					try
+					{
+						boost::asio::write( socket, boost::asio::buffer( "Goodbye!\r\n" ) );
+						socket.close();
+					}
+					catch ( ... ) {}
 					break;
 				}
 
@@ -121,6 +148,7 @@ void ActionSocket::run_action_socket( int portnum )
 			}
 		}
 
+		CORE_LOG_MESSAGE( "Socket disconnected." );
 		connection_handler.disconnect_all();
 	}
 }
