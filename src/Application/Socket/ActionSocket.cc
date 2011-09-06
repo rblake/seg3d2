@@ -30,8 +30,12 @@
 #pragma warning( disable: 4244 4267 )
 #endif
 
+// STL includes
+#include <fstream>
+
 // Boost includes
 #include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/ref.hpp>
 
 // Core includes
@@ -98,12 +102,42 @@ void ActionSocket::run_action_socket( int portnum )
 		return;
 	}
 
+	portnum = acceptor.local_endpoint().port();
+
+	// Write the port number out to file
+	try
+	{
+		if ( boost::filesystem::exists( "port" ) )
+		{
+			boost::filesystem::remove( "port" );
+		}
+	}
+	catch ( ... ) 
+	{
+		CORE_LOG_ERROR( "Couldn't remove port file." );
+	}
+	std::ofstream ofile( "port_tmp" );
+	if ( ofile )
+	{
+		ofile << portnum;
+		ofile.close();
+		rename( "port_tmp", "port" );
+	}
+
 	Core::ConnectionHandler connection_handler;
+	CORE_LOG_MESSAGE( "Started listening on port " + Core::ExportToString( portnum ) );
 
 	while ( 1 )
 	{
 		boost::asio::ip::tcp::socket socket( io_service );
-		acceptor.accept( socket );
+		try
+		{
+			acceptor.accept( socket );
+		}
+		catch ( ... )
+		{
+			break;
+		}
 
 		// Connect to PythonInterpreter signals
 		connection_handler.add_connection( Core::PythonInterpreter::Instance()->prompt_signal_.connect( 
@@ -151,6 +185,8 @@ void ActionSocket::run_action_socket( int portnum )
 		CORE_LOG_MESSAGE( "Socket disconnected." );
 		connection_handler.disconnect_all();
 	}
+
+	CORE_LOG_MESSAGE( "Stopped listening on port " + Core::ExportToString( portnum ) );
 }
 
 } // end namespace Core
