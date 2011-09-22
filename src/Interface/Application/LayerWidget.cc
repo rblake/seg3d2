@@ -1318,6 +1318,9 @@ void LayerWidget::contextMenuEvent( QContextMenuEvent * event )
 	
 	qaction = export_menu->addAction( tr( "NRRD" ) );
 	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_nrrd() ) );
+
+	qaction = export_menu->addAction( tr( "MATLAB" ) );
+	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_matlab() ) );
 	
 	qaction = export_menu->addAction( tr( "PNG" ) );
 	connect( qaction, SIGNAL( triggered() ), this, SLOT( export_png() ) );
@@ -1351,6 +1354,11 @@ void LayerWidget::delete_layer_from_context_menu()
 void LayerWidget::export_nrrd()
 {
 	this->private_->export_layer( ".nrrd" );
+}
+
+void LayerWidget::export_matlab()
+{
+	this->private_->export_layer( ".mat" );
 }
 
 void LayerWidget::export_dicom()
