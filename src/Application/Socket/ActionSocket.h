@@ -26,25 +26,17 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_ACTION_ACTIONSOCKET_H
-#define CORE_ACTION_ACTIONSOCKET_H
-
-// STL includes
-#include <iostream>
+#ifndef APPLICATION_SOCKET_ACTIONSOCKET_H
+#define APPLICATION_SOCKET_ACTIONSOCKET_H
 
 // Boost includes
 #include <boost/utility.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2/signal.hpp>
+#include <boost/thread.hpp>
 
 // Core includes
 #include <Core/Utils/Singleton.h>
 
-// Application includes
-#include <Core/Action/Action.h>
-#include <Core/Action/ActionDispatcher.h>
-
-namespace Core
+namespace Seg3D
 {
 
 // CLASS ACTIONSOCKET
@@ -52,8 +44,10 @@ namespace Core
 
 // Forward declaration
 class AtionSocket;
+class ActionSocketPrivate;
+typedef boost::shared_ptr< ActionSocketPrivate > ActionSocketPrivateHandle;
 
-// Class defintion
+// Class definition
 class ActionSocket : public boost::noncopyable
 {
 	CORE_SINGLETON( ActionSocket );
@@ -73,6 +67,6 @@ private:
 
 };
 
-} // end namespace Core
+} // end namespace Seg3D
 
 #endif
