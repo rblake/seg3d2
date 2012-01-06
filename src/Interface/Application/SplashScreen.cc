@@ -1,4 +1,4 @@
- /*
+/*
  For more information, please see: http://software.sci.utah.edu
  
  The MIT License
@@ -58,6 +58,7 @@ class SplashScreenPrivate
 {
 public:
 	Ui::SplashScreen ui_;
+	bool user_interacted_;
 
 };
 
@@ -66,6 +67,7 @@ SplashScreen::SplashScreen( QWidget *parent ) :
 	QtUtils::QtCustomDialog( parent ),
 	private_( new SplashScreenPrivate )
 {
+	this->private_->user_interacted_ = false;
 	this->setAttribute( Qt::WA_DeleteOnClose, true );
 	
 	/*this->setWindowFlags( Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint );*/
@@ -148,9 +150,11 @@ void SplashScreen::unhide()
 	this->show();
 }
 
-	
 void SplashScreen::open_existing()
 {
+	// must do this to make sure a double-click on project file doesn't use this executable session
+	this->private_->user_interacted_ = true;
+
 	boost::filesystem::path current_projects_path = boost::filesystem::absolute( 
 		boost::filesystem::path( ProjectManager::Instance()-> get_current_project_folder() ) );
 
@@ -179,7 +183,6 @@ void SplashScreen::open_existing()
 		QString::fromStdString( project_type ), 
 		QString::fromStdString( current_projects_path.string() ), 
 		QString::fromStdString( project_file_type ) ) ).toStdString() ); 
-
 
 	bool is_path_extension = false;
 	for ( size_t j = 0; j < project_path_extensions.size(); j++ )
@@ -223,7 +226,7 @@ void SplashScreen::open_existing()
 			QMessageBox::critical( this, 
 				"Error reading project file",
 				"Error reading project file:\n"
-				"The project file is incomplete." );
+				"The project is incomplete." );
 			return;		
 		}
 	}
@@ -232,11 +235,10 @@ void SplashScreen::open_existing()
 
 	if( boost::filesystem::exists( full_path ) )
 	{
-		if ( ! ProjectManager::CheckProjectFile( full_path ) )
+        std::string error;
+		if ( ! ProjectManager::CheckProjectFile( full_path, error ) )
 		{
-			std::string error = std::string( "Error reading project file:\n"
-				"The project file was saved with newer version of " ) +
-				Core::Application::GetApplicationName();
+            Core::Application::GetApplicationName();
 			QMessageBox::critical( 0, 
 				"Error reading project file",
 				QString::fromStdString( error ) );
@@ -251,6 +253,9 @@ void SplashScreen::open_existing()
 
 void SplashScreen::open_recent()
 {
+	// must do this to make sure a double-click on project file doesn't use this executable session
+	this->private_->user_interacted_ = true;
+
 	QListWidgetItem* current_item = this->private_->ui_.recent_project_listwidget_->currentItem();
 	if ( current_item == 0 )
 	{
@@ -264,12 +269,12 @@ void SplashScreen::open_recent()
 		return;
 	}
 	
-	if ( ! ProjectManager::CheckProjectFile( project_file ) )
+    std::string error;
+	if ( ! ProjectManager::CheckProjectFile( project_file, error ) )
 	{
 		QMessageBox::critical( 0, 
 			"Error reading project file",
-			"Error reading project file:\n"
-			"The project file was saved with newer version of Seg3D." );
+			QString::fromStdString( error ) );
 		return;
 	}
 
@@ -281,6 +286,9 @@ void SplashScreen::open_recent()
 
 void SplashScreen::quick_open_file()
 {
+	// must do this to make sure a double-click on project file doesn't use this executable session
+	this->private_->user_interacted_ = true;
+
 	// NOTE: Need to give the project a name
 	std::string default_project_name;
 	{
@@ -326,6 +334,12 @@ void SplashScreen::populate_recent_projects()
 void SplashScreen::enable_load_recent_button( QListWidgetItem* not_used )
 {
 	this->private_->ui_.load_recent_button_->setEnabled( true );
+}
+
+
+bool SplashScreen::get_user_interacted()
+{
+	return this->private_->user_interacted_;
 }
 	
 } // end namespace Seg3D

@@ -576,7 +576,7 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
 /* Deprecated. */
 #undef png_write_init
 void PNGAPI
-png_write_init(png_structp png_ptr)
+sci_png_write_init(png_structp png_ptr)
 {
    /* We only come here via pre-1.0.7-compiled applications */
    png_write_init_2(png_ptr, "1.0.6 or earlier", 0, 0);

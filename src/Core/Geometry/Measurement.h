@@ -112,10 +112,11 @@ private:
 	bool visible_;
 
 public:
-	// User-defined notes can contain any character including line breaks, so we have to use our
-	// own delimiter to signify the end of a note for parsing.
+	// Backwards compatibility -- old code used comment delimiter
 	static const std::string COMMENT_DELIMITER_C;
 	static const Color DEFAULT_COLOR_C;
+	// The regular expression for validating a name or comment string
+	const static std::string REGEX_VALIDATOR_C;
 };
 
 inline bool Measurement::operator==( const Measurement& m ) const

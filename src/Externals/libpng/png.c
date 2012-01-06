@@ -290,7 +290,7 @@ png_destroy_info_struct(png_structp png_ptr, png_infopp info_ptr_ptr)
 #if defined(PNG_1_0_X) || defined(PNG_1_2_X)
 #undef png_info_init
 void PNGAPI
-png_info_init(png_infop info_ptr)
+sci_png_info_init(png_infop info_ptr)
 {
    /* We only come here via pre-1.0.12-compiled applications */
    png_info_init_3(&info_ptr, 0);
