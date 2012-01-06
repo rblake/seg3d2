@@ -1,6 +1,15 @@
 Release Notes
 =============
 
+Version 2.1.3
+-------------
+
+This version is a bug fix release.
+
+* The crash on single file export bug has been fixed.
+* Support for exporting segmentations as single files in DICOM, Matlab, Tiff, BMP and PNG file formats has been added.
+* Keyboard and mouse shortcut documentation has been extended.
+
 Version 2.1.0
 -------------
 
