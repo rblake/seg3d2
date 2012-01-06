@@ -1,3 +1,4 @@
+#include "sci_png_mangle.h"
 
 /* pngconf.h - machine configurable file for libpng
  *
