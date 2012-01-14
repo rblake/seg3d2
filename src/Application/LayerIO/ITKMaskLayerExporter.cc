@@ -343,8 +343,26 @@ ITKMaskLayerExporter::ITKMaskLayerExporter( std::vector< LayerHandle >& layers )
 	LayerExporter( layers ),
 	pixel_type_( Core::DataType::UCHAR_E )
 {
-	if( !layers[ 0 ] ) return;
-	this->pixel_type_ = layers[ 0 ]->get_data_type();
+	// TODO: known that first layer is null for exporting layers as single files.
+        // This is a slightly hacky fix until layers are sorted out. 
+	if ( layers[ 0 ] )
+	{
+		this->pixel_type_ = layers[ 0 ]->get_data_type();
+  	}
+        else
+	{
+		// If exporting as single file, there should always be an
+		// actual mask layer in the vector
+		if ( layers[ 1 ] )
+		{
+			this->pixel_type_ = layers[ 1 ]->get_data_type();
+		}
+		else
+		{
+			// Very unlikely, but let's be cautious anyways.
+			CORE_LOG_ERROR("Malformed layer list: first two layers are null");
+		}
+	}
 }
 
 
