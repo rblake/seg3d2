@@ -1057,19 +1057,11 @@ bool PaintTool::handle_mouse_press( ViewerHandle viewer, const Core::MouseHistor
 	int button, int buttons, int modifiers )
 {
 	// if already painting (or erasing), ignore additional mouse presses
-	if ( this->private_->painting_ && modifiers == Core::KeyModifier::NO_MODIFIER_E &&
-        this->private_->erase_ == true && button == Core::MouseButton::RIGHT_BUTTON_E) 
+	if ( this->private_->painting_ ) 
 	{
 		return true;
 	}
     
-	if ( this->private_->painting_ && modifiers == Core::KeyModifier::NO_MODIFIER_E &&
-        this->private_->erase_ == false && button == Core::MouseButton::LEFT_BUTTON_E) 
-	{
-		return true;
-	}
-    
-
 	{
 		PaintToolPrivate::lock_type lock( this->private_->get_mutex() );
 		this->private_->viewer_ = viewer;		
