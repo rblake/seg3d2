@@ -1,6 +1,17 @@
 Release Notes
 =============
 
+Version 2.1.4
+-------------
+This version is a bug fix release.
+Among the improvements made since the last release, the following issues have been fixed:
+
+* Mouse event handling in the Paint tool has been improved.
+* Crash on exit in Ubuntu has been fixed.
+* Default project location has been changed from the executable file location to a user default directory.
+* Setting volume spacing bug from imported Matlab files has been fixed.
+
+
 Version 2.1.3
 -------------
 
