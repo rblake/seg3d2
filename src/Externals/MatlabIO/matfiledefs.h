@@ -60,6 +60,11 @@
 	typedef unsigned int u_int32_t;
 	typedef signed int int32_t;
 #else
+// detect Solaris or SunOS
+// some old BSD symbols are not available on Sun platforms
+#if (defined(__SVR4) || defined(__svr4)) && (defined(sun) || defined(__sun))
+	typedef uint32_t u_int32_t;
+#endif
 	typedef signed long long int64;
 	typedef unsigned long long uint64;
 #endif
