@@ -127,28 +127,30 @@ bool MRCUtil::process_header(void* buffer, int buffer_len)
 
   // file endianness vs. host endianness
   // N.B. machine stamp field is not always implemented reliably
-  if (host_is_big_endian_)
+  //
+  // This code defaults to little endian.
+  if (this->host_is_big_endian_)
   {
     // big endian host, data read on little endian machine
     if (( (machine_stamp & MASK_LOWER_) == 0x44 ) || ( (machine_stamp & MASK_UPPER_) == 0x44000000 ))
     {
-      swap_endian_ = true;
+      this->swap_endian_ = true;
     }
     // big endian host, data read on big endian machine
     else if ( (machine_stamp &  MASK_LOWER_) == 0x11)
     {
-      swap_endian_ = false;
+      this->swap_endian_ = false;
     }
     else
     {
       // Guess endianness of data by checking upper bytes of nx:
       // assumes nx < 2^16
       char* char_buffer = reinterpret_cast<char*>(buffer);
-      swap_endian_ = true;
+      this->swap_endian_ = true;
       for (size_t j = MRC_LONG_WORD / 2; j < MRC_LONG_WORD; ++j) {
 
         if (char_buffer[j] != 0) {
-          swap_endian_ = false;
+          this->swap_endian_ = false;
           break;
         }
       }
@@ -159,22 +161,22 @@ bool MRCUtil::process_header(void* buffer, int buffer_len)
     // little endian host, data read on little endian machine
     if (( (machine_stamp & MASK_LOWER_) == 0x44 ) || ( (machine_stamp & MASK_UPPER_) == 0x44000000 ))
     {
-      swap_endian_ = false;
+      this->swap_endian_ = false;
     }
     // little endian host, data read on big endian machine
     else if ( (machine_stamp &  MASK_LOWER_) == 0x11)
     {
-      swap_endian_ = true;
+      this->swap_endian_ = true;
     }
     else
     {
       // Guess endianness of data by checking lower bytes of nx:
       // assumes nx < 2^16
       char* char_buffer = reinterpret_cast<char*>(buffer);
-      swap_endian_ = true;
+      this->swap_endian_ = true;
       for (size_t j = 0; j < MRC_LONG_WORD / 2; ++j) {
         if (char_buffer[j] != 0) {
-          swap_endian_ = false;
+          this->swap_endian_ = false;
           break;
         }
       }
@@ -182,7 +184,7 @@ bool MRCUtil::process_header(void* buffer, int buffer_len)
   }
 
   // convert header to little endian before reading
-  if (swap_endian_)
+  if (this->swap_endian_)
   {
     // code from DataBlock.cc, SwapEndian method
     unsigned char* ubuffer = reinterpret_cast<unsigned char*>(long_word_buffer);
@@ -191,7 +193,7 @@ bool MRCUtil::process_header(void* buffer, int buffer_len)
 
     size_t i = 0;
     // swap word bytes in blocks of 32 bytes in place
-    for(; i < SIZE8; ++i)
+    for(; i < SIZE8; i += 8)
     {
       tmp = ubuffer[ 0 ]; ubuffer[ 0 ] = ubuffer[ 3 ]; ubuffer[ 3 ] = tmp;
       tmp = ubuffer[ 1 ]; ubuffer[ 1 ] = ubuffer[ 2 ]; ubuffer[ 2 ] = tmp;

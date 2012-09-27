@@ -106,7 +106,15 @@ struct MRCHeader {
   int machinestamp;	/* 54 Machine stamp in CCP4 convention:
                           big endian=0x00001111
                           little endian=0x44440000 or 0x00004444 or 0x00004144 or 0x11111111 & 4
-                          There is an ambiguity in the specification - not reliably implemented. */
+                          There is an ambiguity in the specification - not reliably implemented.
+                     
+                          Machine stamp in MRC from
+                          http://emdatabank.org/mapformat.html
+                     
+                          [10] MACHST is 0x44,0x41,0x00,0x00 (written/read as 4 hex byte sequence) for
+                          little endian machines and 0x11,0x11,0x00,0x00 (written/read as 4 hex byte sequence) for
+                          big endian machines.
+                     */
   
   float rms;			/* 55 Rms deviation of map from mean density. */
   
