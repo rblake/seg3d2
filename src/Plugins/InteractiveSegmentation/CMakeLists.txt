@@ -1,0 +1,2 @@
+ADD_SUBDIRECTORY(Application)
+ADD_SUBDIRECTORY(Interface)
