@@ -1,9 +1,11 @@
-# run script using exec(open('../scripts/edge_query_script.py').read())
+# run script using exec(open('../scripts/edge_query_script.py').read()) (change to Windows path if necessary)
 
 import os, sys
 
 # must add Seg3D location to python path
 seg3d_location='/Users/aylakhan/devel/seg3d2_is/bin'
+data_dir='/Users/aylakhan/Downloads/SampleData'
+
 if not os.path.exists(seg3d_location):
   #print("Path ", seg3d_location, " to Seg3D does not exist.")
   print("Path %s to Seg3D does not exist." % seg3d_location)
@@ -14,10 +16,8 @@ sys.path.append(seg3d_location)
 import mlabraw3
 import seg3d2
 
-data_dir='/Users/aylakhan/Downloads/SampleData-1'
-
-data_layerid = importseries(filenames=os.path.join(data_dir, 'original_gray.jpg'), importer='[ITK FileSeries Importer]', mode='data')
-print(data_layerid)
+dataLayerID = importseries(filenames=os.path.join(data_dir, 'original_gray.jpg'), importer='[ITK FileSeries Importer]', mode='data')
+print(dataLayerID)
 
 session = mlabraw3.open()
 print('Matlab session opened')
@@ -36,8 +36,8 @@ while counter < 1:
 
   # assuming layer mask will always have the same name...
   # TODO: should check file for changes - checksum?
-  mask_layerid = importlayer(filename=os.path.join(data_dir, 'label_mask.mat'), importer='[Matlab Importer]', mode='single_mask')
-  print(mask_layerid)
+  maskLayerID = importlayer(filename=os.path.join(data_dir, 'label_mask.mat'), importer='[Matlab Importer]', mode='single_mask')
+  print(maskLayerID)
 
   # set up Axial view by default
   # returns bool
@@ -52,27 +52,41 @@ while counter < 1:
   verticesFromFile = []
   edges = []
 
-  pointsfile = open(os.path.join(data_dir, 'points.txt'))
-  for line in pointsfile:
+  pointsFile = open(os.path.join(data_dir, 'points.txt'))
+  for line in pointsFile:
     floats = [float(points) for points in line.split()]
     verticesFromFile.append(floats)
-
-  print("Edge query vertices from Matlab: ", verticesFromFile)
 
   if not verticesFromFile:
     print("Done")
     break
 
+  pointsFile.close()
+
+  # 2D case - add default z location
+  for pointList in verticesFromFile:
+    if len(pointList) == 2:
+      pointList.append(0)
+
+  print("Edge query vertices from Matlab: ", verticesFromFile)
+
   #toolid=opentool tooltype=edgequerytool
   #set stateid=toolid::vertices value=[[],[],[]]
   #
   # axial = 0, coronal = 1, sagittal = 2
-  #edgequery(target=layer_0, slice_type=0, slice_number=86, vertices=[[10,20,30],[10,40,50],[10,50,60]], edges=[L1,L2])
-  #edgequery(target=mask_layerid, slice_type=0, slice_number=86, vertices=verticesFromFile, edges=[])
-  #edgequery(target=mask_layerid, slice_type=0, slice_number=86, vertices=[[10,20,1],[10,40,1],[10,50,1]], edges=[])
+  # test points same as points matrix
+  #edgequery(target=maskLayerID, slice_type=0, slice_number=86, vertices=[[55,34,0],[67,165,0],[23,90,0]])
+  #edgequery(target=maskLayerID, slice_type=0, slice_number=86, vertices=verticesFromFile)
 
   # TODO: should layer be deleted?
-  #deletelayers(layers=mask_layerid)
+  #deletelayers(layers=maskLayerID)
+
+  # test
+  # selected edge label will come from edgequery tool
+  edgeLabel = 'L2'
+  edgeFile = open(os.path.join(data_dir, 'edges.txt'), 'wt')
+  edgeFile.write(edgeLabel)
+  edgeFile.close()
 
   counter=counter+1
 
