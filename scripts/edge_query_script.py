@@ -3,8 +3,8 @@
 import os, sys
 
 # must add Seg3D location to python path
-seg3d_location='/Users/aylakhan/devel/seg3d2_is/bin'
-data_dir='/Users/aylakhan/Downloads/SampleData'
+seg3d_location='/Users/ayla/scratch/seg3d2_is'
+data_dir='/Users/ayla/Downloads/SampleData'
 
 if not os.path.exists(seg3d_location):
   #print("Path ", seg3d_location, " to Seg3D does not exist.")
