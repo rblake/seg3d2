@@ -1,76 +1,103 @@
-# run script using exec(open('../scripts/test_opentool.py').read()) (change to Windows path if necessary)
+# run script using exec(open('/Users/aylakhan/devel/seg3d2_is/scripts/test_opentool.py').read()) (change to Windows path if necessary)
 
 import os
 import sys
+
+##################################################################################
+# local functions (needed before we can import packages)
+# TODO: all this should be moved to a module and incorporated into Seg3D's python in the IS branch
+
+def checkLocalPath(path):
+  if not os.path.exists(path):
+    raise ValueError("Path %s does not exist." % path)
+
+def addLocalPath(path):
+  try:
+    checkLocalPath(path)
+    if path not in sys.path:
+      sys.path.append(path)
+
+  except ValueError as err:
+    print("ValueError", err)
+    sys.exit(err)
+
+def stringEscape(s):
+  return s.replace("(","\\(").replace(")","\\)").replace(" ","\\ ")
+
+##################################################################################
+# configuration
+
 import configparser
 
-def getPointsFromFile(dir, filename):
-  pointsFile = open(os.path.join(dir, filename))
-  pointsFromFile = []
-  for line in pointsFile:
-    floats = [float(points) for points in line.split()]
-    pointsFromFile.append(floats)
+# location of both scripts and settings.ini file
+scriptsLocation='/Users/aylakhan/devel/seg3d2_is/scripts'
 
-  pointsFile.close()
+addLocalPath(scriptsLocation)
 
-  print(len(pointsFromFile))
-
-  # 2D case - add default z location (0)
-  for pointList in pointsFromFile:
-    if len(pointList) == 2:
-      pointList.append(0)
-
-  print("Edge query vertices from Matlab: ", pointsFromFile)
-  return pointsFromFile
-
-def writeLabelsToFile(dir, filename, selectedEdge):
-  # TODO: can probably find a better way to do this...
-  if selectedEdge == 0:
-    labels = '1 0'
-  elif selectedEdge == 1:
-    labels = '0 1'
-  else:
-    # exception?
-    print("Invalid edge")
-    return;
-
-  edgeFile = open(os.path.join(dir, filename), 'wt')
-  edgeFile.write(labels)
-  edgeFile.close()
-
+# import configuration from settings.ini
+# (contains file paths)
 config = configparser.ConfigParser()
-config.read('../scripts/settings.ini')
-#config.read('/Users/aylakhan/devel/seg3d2_is/scripts/settings.ini')
+config.read(os.path.join(scriptsLocation, 'settings.ini'))
 
-seg3DLocation = config.get('Seg3DSettings', 'dir')
+# where the Seg3D python scripts are located
+seg3DLocation = config.get('Seg3DScriptSettings', 'dir')
+
+# volume and mask location
 matlabDataLocation = config.get('DataSettings', 'data_dir')
-seg3DDataLocation = config.get('DataSettings', 'seg3d_data_dir')
-pointsFilename = config.get('DataSettings', 'query_file')
-labelsFilename = config.get('DataSettings', 'labels_file')
+filename = config.get('DataSettings', 'volume_file')
+volumeFilename = os.path.join(matlabDataLocation, filename)
+volumeFilename = stringEscape(volumeFilename)
 
-if not os.path.exists(seg3DLocation):
-  print("Path %s to Seg3D does not exist." % seg3DLocation)
-  sys.exit(0)
+filename = config.get('DataSettings', 'mask_file')
+maskFilename = os.path.join(matlabDataLocation, filename)
 
-if not os.path.exists(seg3DDataLocation):
-  print("Path %s to data does not exist." % seg3DDataLocation)
-  sys.exit(0)
+# location of points file read into Seg3D and labels written by Seg3d
+seg3DDataLocation = config.get('Seg3DDataSettings', 'seg3d_data_dir')
+filename = config.get('Seg3DDataSettings', 'query_file')
+pointsFilename = os.path.join(seg3DDataLocation, filename)
 
+filename = config.get('Seg3DDataSettings', 'labels_file')
+labelsFilename = os.path.join(seg3DDataLocation, filename)
+
+addLocalPath(seg3DLocation)
+
+try:
+  checkLocalPath(seg3DDataLocation)
+except ValueError as err:
+  print("ValueError", err)
+  sys.exit(err)
+
+##################################################################################
+# set up data
+
+import seg3d2utils
 import seg3d2
 
+# set up view
+result = set(stateid='view::layout', value='single')
 
-# set up Axial view by default
+# sets up Axial view (0) by default
 # returns bool
-result=set(stateid='view::active_viewer', value=0)
+result = set(stateid='view::active_viewer', value=0)
 
 # returns bool
-result=set(stateid='viewer0::view_mode', value='Axial')
+result = set(stateid='viewer0::view_mode', value='Axial')
 
-vertices = getPointsFromFile(seg3DDataLocation, pointsFilename)
+# TODO: filepaths don't work with strings (even escaped ones) yet...
 
-# TODO: get actual layerid
-activatelayer(layerid='layer_1')
-toolid=opentool(tooltype='edgequerytool')
-print(toolid)
-vertices_stateid=toolid+"::vertices"
-set(stateid=vertices_stateid, value=vertices)
+dataLayerID = seg3d2utils.importMatlabDataLayer(volumeFilename)
+
+
+
+
+maskLayerID = seg3d2utils.importMatlabSingleMaskLayer(maskFilename)
+activatelayer(layerid=maskLayerID)
+
+(vertices, z) = seg3d2utils.getPointsFromFile(pointsFilename)
+
+# tool setup
+(toolID, targetStateID, verticesStateID, edgeStateID) = seg3d2utils.openEdgeQueryTool()
+result = set(stateid=targetStateID, value=maskLayerID)
+result = set(stateid=verticesStateID, value=vertices)
+# assuming axial view here...
+result = set(stateid='viewer0::slice_number', value=z)
