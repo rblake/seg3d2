@@ -65,12 +65,14 @@ namespace Seg3D
 
 struct LineSegment
 {
-  LineSegment(const Core::Point& p1, const Core::Point& p2)
-    : p1_(p1), p2_(p2), selected_(false), hovering_(false)
+  LineSegment(const Core::Point& p1, const Core::Point& p2, const int label)
+    : p1_(p1), p2_(p2), label_(label), selected_(false), hovering_(false)
   {}  
   
   Core::Point p1_;
   Core::Point p2_;
+  
+  int label_;
   
   bool selected_;
   bool hovering_;
@@ -99,8 +101,8 @@ public:
   {
     lines_.reserve(EDGE_QUERY_SIZE);
 
-    LineSegment e1(p1, p2);
-    LineSegment e2(p2, p3);
+    LineSegment e1(p1, p2, 0);
+    LineSegment e2(p2, p3, 1);
     lines_.push_back(e1);
     lines_.push_back(e2);
   }
@@ -227,7 +229,7 @@ void EdgeQueryToolPrivate::handle_vertices_changed()
 
 void EdgeQueryToolPrivate::handle_selected_edge_changed()
 {
-  std::cout << "EdgeQueryToolPrivate::handle_selected_edge_changed(): " << this->tool_->selectedEdge_state_->get() << std::endl;
+//std::cout << "EdgeQueryToolPrivate::handle_selected_edge_changed(): " << this->tool_->selectedEdge_state_->get() << std::endl;
 	ViewerManager::Instance()->update_2d_viewers_overlay();
 }
 
@@ -793,7 +795,7 @@ bool EdgeQueryTool::handle_mouse_release( ViewerHandle viewer,
     return false;
   }
   
-  //std::cerr << "EdgeQueryTool::handle_mouse_release: selected edge=" << this->private_->edgeQuery_.selectedEdge() << std::endl;
+//std::cerr << "EdgeQueryTool::handle_mouse_release: selected edge=" << this->private_->edgeQuery_.selectedEdge() << std::endl;
 
   Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
   this->selectedEdge_state_->set(this->private_->edgeQuery_.selectedEdge());
@@ -862,6 +864,7 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
   LineSegment ls1 = this->private_->edgeQuery_.getEdge(0);
   LineSegment ls2 = this->private_->edgeQuery_.getEdge(1);
 
+
 	glBegin( GL_POINTS );
 
   double x_pos, y_pos;
@@ -927,22 +930,6 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 		ls2.p2_[ 1 ] = y_pos;
 		glVertex2d( x_pos, y_pos );
   }
-
-//  for ( size_t i = 0; i < EDGE_QUERY_SIZE; ++i)
-//  {
-//    LineSegment ls = this->private_->edgeQuery_.getEdge(i);
-//		double x_pos, y_pos;
-//
-//		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls.p1_, x_pos, y_pos );
-//		ls.p1_[ 0 ] = x_pos;
-//		ls.p1_[ 1 ] = y_pos;
-//		glVertex2d( x_pos, y_pos );
-//
-//		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls.p2_, x_pos, y_pos );
-//		ls.p2_[ 0 ] = x_pos;
-//		ls.p2_[ 1 ] = y_pos;
-//		glVertex2d( x_pos, y_pos );
-//  }
   
   glEnd();
 
