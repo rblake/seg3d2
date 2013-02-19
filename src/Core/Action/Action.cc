@@ -33,6 +33,10 @@
 #include <Core/Action/ActionParameter.h>
 #include <Core/Action/Action.h>
 
+// test
+#include <iostream>
+// test
+
 namespace Core
 {
 

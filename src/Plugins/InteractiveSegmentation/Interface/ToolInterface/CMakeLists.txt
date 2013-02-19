@@ -30,12 +30,15 @@
 # Set sources
 ##################################################
 SET(INTERFACE_TOOLINTERFACE_SRCS
+  EdgeQueryToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
+  EdgeQueryToolInterface.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_UI_SRCS
+  EdgeQueryToolInterface.ui
 )
 
 ##################################################
