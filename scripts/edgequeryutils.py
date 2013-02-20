@@ -91,9 +91,11 @@ class EdgeQueryUtils:
   def __importMatlabDataLayer(self):
     idHandle = seg3d2.importlayer(filename=self.volumeFilename, importer='[Matlab Importer]', mode='data')
     self.dataLayerID = idHandle[0]
+
     # set(..) returns bool
     result = seg3d2.set(stateid='view::layout', value='single')
     # sets up Axial view (0) by default
+    # Axial = 0, Coronal = 1, Sagittal = 2
     result = seg3d2.set(stateid='view::active_viewer', value=0)
     result = seg3d2.set(stateid='viewer0::view_mode', value='Axial')
 
