@@ -49,7 +49,7 @@ public:
   
 
 private:
-  bool process_header(void* buffer, int buffer_len);
+  bool process_header(void* header, int buffer_len);
   std::string error_;
 
   bool host_is_big_endian_;
