@@ -179,9 +179,13 @@ private Q_SLOTS:
 	void export_nrrd();
 
 	/// EXPORT_MATLAB:
-	/// dispatches an action that exports the layer as a nrrd
+	/// dispatches an action that exports the layer as a matlab
 	void export_matlab();
-		
+  
+	/// EXPORT_MRC:
+	/// dispatches an action that exports the layer as a mrc
+	void export_mrc();
+  
 	/// EXPORT_DICOM:
 	/// dispatches an action that exports the layer as a dicom
 	void export_dicom();
@@ -194,9 +198,13 @@ private Q_SLOTS:
 	/// dispatches an action that exports the layer as a bitmap
 	void export_bitmap();
 	
-	/// EXPORT_PNG:
-	/// dispatches an action that exports the layer as a png
-	void export_png();
+  /// EXPORT_PNG:
+  /// dispatches an action that exports the layer as a png
+  void export_png();
+
+  /// EXPORT_ISOSURFACE:
+  /// dispatches an action that exports the isosurface for this layer
+  void export_isosurface();
 
 private:
 	friend class LayerWidgetPrivate;
