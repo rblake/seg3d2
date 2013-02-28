@@ -21,7 +21,7 @@ class EdgeQueryUtils:
       seg3d2.activatelayer(layerid=self.maskLayerID)
 
       self.__getPointsFromFile()
-      (targetStateID, verticesStateID, edgeStateID, saveStateID) = self.__setupEdgeQueryTool()
+      (targetStateID, verticesStateID, edgesStateID, saveStateID) = self.__setupEdgeQueryTool()
 
       c = threading.Condition()
       c.acquire()
@@ -36,12 +36,8 @@ class EdgeQueryUtils:
           counter += 1
           c.wait(self.timeout)
 
-      saveEdges = seg3d2.get(stateid=saveStateID)
-
-      if saveEdges:
-        self.__writeLabelsToFile(selectedEdge)
-      else:
-        print("Timeout before edge could be selected.")
+      print("Waiting for edge query selection is done.")
+      self.__writeLabelsToFile(edgesStateID)
 
     except Exception as err:
       print(err)
@@ -71,18 +67,17 @@ class EdgeQueryUtils:
 
     print("Edge query vertices read from %s." % self.pointsFilename)
 
-  def __writeLabelsToFile(self):
-    edges = get(stateid='edgequerytool_0::edges')
+  def __writeLabelsToFile(self, stateID):
+    edges = seg3d2.get(stateid=stateID)
     l = list(edges)
     if len(l) != 5:
       raise Exception('ListError', 'Malformed edges list')
 
     self.labels = "%s %s" % (l[1], l[3])
-
     with open(self.labelsFilename, 'wt') as edgeFile:
       edgeFile.write(self.labels)
 
-    print("Saved edge labels to %s." % self.labelsFilename)
+    print("Saved %s to %s." % (self.labels, self.labelsFilename))
 
   def __importMatlabDataLayer(self):
     idHandle = seg3d2.importlayer(filename=self.volumeFilename, importer='[Matlab Importer]', mode='data')
@@ -105,7 +100,7 @@ class EdgeQueryUtils:
 
     targetStateID = self.toolID + "::target"
     verticesStateID = self.toolID + "::vertices"
-    edgeStateID = self.toolID + "::edge"
+    edgesStateID = self.toolID + "::edges"
     saveStateID = self.toolID + "::save"
 
     result = seg3d2.set(stateid=targetStateID, value=self.maskLayerID)
@@ -114,7 +109,7 @@ class EdgeQueryUtils:
     # assuming axial view here...
     z = self.vertices[0][2]
     result = seg3d2.set(stateid='viewer0::slice_number', value=z)
-    return (targetStateID, verticesStateID, edgeStateID, saveStateID)
+    return (targetStateID, verticesStateID, edgesStateID, saveStateID)
 
   def __importConfiguration(self):
     # import configuration from settings.ini

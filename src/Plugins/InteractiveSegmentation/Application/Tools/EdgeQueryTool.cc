@@ -242,7 +242,7 @@ bool EdgeQueryToolPrivate::point_in_slice( ViewerHandle viewer, const Core::Poin
   
 void EdgeQueryToolPrivate::handle_vertices_changed()
 {
-  std::cout << "EdgeQueryToolPrivate::handle_vertices_changed()" << std::endl;
+std::cout << "EdgeQueryToolPrivate::handle_vertices_changed()" << std::endl;
 
   //Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
@@ -253,8 +253,19 @@ void EdgeQueryToolPrivate::handle_vertices_changed()
  
     Core::ActionSet::Dispatch( Core::Interface::GetMouseActionContext(),
                               this->tool_->vertices_state_, points );
-   
-    
+
+    for (int i = 0; i < EDGE_QUERY_SIZE; ++i)
+    {
+      if ( this->edgeQuery_.selected(i) )
+      {
+        this->tool_->selectedEdges_state_->add(1);
+      }
+      else
+      {
+        this->tool_->selectedEdges_state_->add(0);
+      }
+    }
+
     ViewerManager::Instance()->update_2d_viewers_overlay();
     
 //    {
@@ -364,7 +375,7 @@ void EdgeQueryToolPrivate::handle_selection_changed()
 void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context, 
 								  bool save, ViewerHandle viewer )
 {
-  std::cerr << "EdgeQueryToolPrivate::execute" << std::endl;
+  //std::cerr << "EdgeQueryToolPrivate::execute" << std::endl;
 
 	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
@@ -566,7 +577,6 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
       viewer->set_cursor( Core::CursorShape::CROSS_E );
       //this->private_->edgeQuery_.unselect(i);
       this->private_->edgeQuery_.unsetHover(i);
-std::cerr << "Edge query NOT hovering over " << i << " = " << this->private_->edgeQuery_.hovering(i) << std::endl;
       continue;
     }
     
@@ -577,7 +587,6 @@ std::cerr << "Edge query NOT hovering over " << i << " = " << this->private_->ed
 
     //this->private_->edgeQuery_.select(i);
     this->private_->edgeQuery_.hover(i);
-std::cerr << "Edge query hovering over " << i << " = " << this->private_->edgeQuery_.hovering(i) << std::endl;
 
     return true;
   }
