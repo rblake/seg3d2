@@ -98,7 +98,8 @@ public:
 public:
 	Core::StatePointVectorHandle vertices_state_;
   //Core::StateStringHandle selectedEdge_state_;
-  Core::StateIntHandle selectedEdge_state_;
+  //Core::StateIntHandle selectedEdge_state_;
+  Core::StateIntVectorHandle selectedEdges_state_;
   Core::StateBoolHandle save_state_;
 
 private:

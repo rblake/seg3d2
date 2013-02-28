@@ -67,7 +67,8 @@ public:
 	bool clear_;
 	std::vector< ActionEdgeQuery::VertexCoord > vertices_;
   //std::string selectedEdge_;
-  int selectedEdge_;
+  //int selectedEdge_;
+  std::vector< int > selectedEdges_;
 	SandboxID sandbox_;
 
 	Core::MaskLayerHandle target_layer_;
@@ -83,7 +84,7 @@ ActionEdgeQuery::ActionEdgeQuery() :
 	this->add_parameter( this->private_->save_ );
 	this->add_parameter( this->private_->clear_ );
 	this->add_parameter( this->private_->vertices_ );
-	this->add_parameter( this->private_->selectedEdge_ );
+	this->add_parameter( this->private_->selectedEdges_ );
 	this->add_parameter( this->private_->sandbox_ );
 }
 
@@ -145,9 +146,7 @@ std::cerr << "vertices=" << vertices[i] << std::endl;
 		context->report_error( "The edge query has less than 3 points." );
 		return false;
 	}
-  
-std::cerr << "selected edge=" << this->private_->selectedEdge_ << std::endl;
-	
+
 	return true;
 }
 //
@@ -376,7 +375,7 @@ void ActionEdgeQuery::clear_cache()
 
 void ActionEdgeQuery::Dispatch( Core::ActionContextHandle context, 
 							  const std::string& layer_id, Core::VolumeSliceType slice_type, 
-							  size_t slice_number, bool save, const int& selectedEdge,
+							  size_t slice_number, bool save, const std::vector<int>& selectedEdges,
 							  const std::vector< VertexCoord >& vertices )
 {
 	ActionEdgeQuery* action = new ActionEdgeQuery;
@@ -385,7 +384,7 @@ void ActionEdgeQuery::Dispatch( Core::ActionContextHandle context,
 	action->private_->slice_number_ = slice_number;
 	action->private_->save_ = save;
 	action->private_->vertices_ = vertices;
-	action->private_->selectedEdge_ = selectedEdge;
+	action->private_->selectedEdges_ = selectedEdges;
 
 	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }

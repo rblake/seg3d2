@@ -39,7 +39,6 @@ class EdgeQueryUtils:
       saveEdges = seg3d2.get(stateid=saveStateID)
 
       if saveEdges:
-        selectedEdge = seg3d2.get(stateid=edgeStateID)
         self.__writeLabelsToFile(selectedEdge)
       else:
         print("Timeout before edge could be selected.")
@@ -72,16 +71,13 @@ class EdgeQueryUtils:
 
     print("Edge query vertices read from %s." % self.pointsFilename)
 
-  def __writeLabelsToFile(self, selectedEdge):
-    self.labels = ''
+  def __writeLabelsToFile(self):
+    edges = get(stateid='edgequerytool_0::edges')
+    l = list(edges)
+    if len(l) != 5:
+      raise Exception('ListError', 'Malformed edges list')
 
-    # TODO: can probably find a better way to do this...
-    if selectedEdge == 0:
-      self.labels = '1 0'
-    elif selectedEdge == 1:
-      self.labels = '0 1'
-    else:
-      raise ValueError("Invalid edge ", selectedEdge)
+    self.labels = "%s %s" % (l[1], l[3])
 
     with open(self.labelsFilename, 'wt') as edgeFile:
       edgeFile.write(self.labels)

@@ -66,7 +66,7 @@ namespace Seg3D
 struct LineSegment
 {
   LineSegment(const Core::Point& p1, const Core::Point& p2, const int label)
-    : p1_(p1), p2_(p2), label_(label), selected_(false), hovering_(false)
+    : p1_(p1), p2_(p2), label_(label), selected_(true), hovering_(false)
   {}  
   
   Core::Point p1_;
@@ -90,58 +90,86 @@ public:
   }
 
   //  bool invalidate()  { return false; }
-
-  
-  bool unselected() const
-  {
-    return (! lines_[0].selected_) && (! lines_[1].selected_);
-  }
   
   void create_edgeQuery(const Core::Point& p1, const Core::Point& p2, const Core::Point& p3)
   {
     lines_.reserve(EDGE_QUERY_SIZE);
-
+    
     LineSegment e1(p1, p2, 0);
     LineSegment e2(p2, p3, 1);
     lines_.push_back(e1);
     lines_.push_back(e2);
   }
   
-  int selectedEdge() const
+  bool allUnselected() const
   {
-    if (lines_.size() < EDGE_QUERY_SIZE)
-      return -1;
-
-    for (size_t i = 0; i < EDGE_QUERY_SIZE; ++i)
-    {
-      if ( lines_[i].selected_ ) return i;
-    }
-
-    return -1;
+    return (! lines_[0].selected_) && (! lines_[1].selected_);
   }
-
-  void unselectEdge(int index)
+  
+  bool allSelected() const
   {
-    if (index > EDGE_QUERY_SIZE - 1)
+    return ( lines_[0].selected_ && lines_[1].selected_ );
+  }
+  
+  bool selected(int index)
+  {
+    if (! validIndex(index) )
+    {
+      return false;
+    }
+    return lines_[index].selected_;
+  }
+  
+  void select(int index)
+  {
+    if (! validIndex(index) )
+    {
+      return;
+    }
+    lines_[index].selected_ = true;
+  }
+  
+  void unselect(int index)
+  {
+    if (! validIndex(index) )
     {
       return;
     }
     lines_[index].selected_ = false;
   }
-  
-  void selectEdge(int index)
+
+  void hover(int index)
   {
-    if (index > EDGE_QUERY_SIZE - 1)
+    if (! validIndex(index) )
     {
       return;
     }
+    lines_[index].hovering_ = true;
+  }
+  
+  void unsetHover(int index)
+  {
+    if (! validIndex(index) )
+    {
+      return;
+    }
+    lines_[index].hovering_ = false;
+  }
+  
+  bool hovering(int index)
+  {
+    if (! validIndex(index) )
+    {
+      return false;
+    }
+    return lines_[index].hovering_;
+  }
 
+  void clearHover()
+  {
     for (int i = 0; i < EDGE_QUERY_SIZE; ++i)
     {
-      if (i == index)
-        lines_[i].selected_ = true;
-      else
-        lines_[i].selected_ = false;
+      lines_[i].hovering_ = false;
     }
   }
   
@@ -154,6 +182,16 @@ public:
   }
   
 private:
+  bool validIndex(int index)
+  {
+    if (index > EDGE_QUERY_SIZE - 1)
+    {
+      // TODO: should throw exception?
+      return false;
+    }
+    return true;
+  }
+
   std::vector<LineSegment> lines_;
 };
 
@@ -166,7 +204,7 @@ class EdgeQueryToolPrivate
 {
 public:
 	void handle_vertices_changed();
-  void handle_selected_edge_changed();
+  void handle_selection_changed();
 //  void handle_save_changed();
 
 	void execute( Core::ActionContextHandle context, bool erase, 
@@ -227,9 +265,8 @@ void EdgeQueryToolPrivate::handle_vertices_changed()
   }
 }
 
-void EdgeQueryToolPrivate::handle_selected_edge_changed()
+void EdgeQueryToolPrivate::handle_selection_changed()
 {
-//std::cout << "EdgeQueryToolPrivate::handle_selected_edge_changed(): " << this->tool_->selectedEdge_state_->get() << std::endl;
 	ViewerManager::Instance()->update_2d_viewers_overlay();
 }
 
@@ -377,9 +414,6 @@ void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context,
 	int x, y;
 	std::vector< ActionEdgeQuery::VertexCoord > vertices_2d;
 
-  // need to actually set
-  int edge = -1;
-
 	for ( size_t i = 0; i < num_of_vertices; ++i )
 	{
 		volume_slice->project_onto_slice( vertices[ i ], world_x, world_y );
@@ -389,7 +423,8 @@ void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context,
 	}
 	
 	ActionEdgeQuery::Dispatch( context, this->tool_->target_layer_state_->get(),
-		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save, edge, vertices_2d );
+		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save,
+    this->tool_->selectedEdges_state_->get(), vertices_2d );
   
   // clear selection?
 }
@@ -406,16 +441,16 @@ EdgeQueryTool::EdgeQueryTool( const std::string& toolid ) :
 	//this->private_->moving_vertex_ = false;
 
 	this->add_state( "vertices", this->vertices_state_ );
-  this->add_state( "edge", this->selectedEdge_state_, -1 );
+  this->add_state( "edges", this->selectedEdges_state_ );
   this->add_state( "save", this->save_state_, false );
   
 	this->add_connection( this->vertices_state_->state_changed_signal_.connect(
     boost::bind( &EdgeQueryToolPrivate::handle_vertices_changed, this->private_ ) ) );
   
-	this->add_connection( this->selectedEdge_state_->state_changed_signal_.connect(
-    boost::bind( &EdgeQueryToolPrivate::handle_selected_edge_changed, this->private_ ) ) );
+	this->add_connection( this->selectedEdges_state_->state_changed_signal_.connect(
+    boost::bind( &EdgeQueryToolPrivate::handle_selection_changed, this->private_ ) ) );
 
-//	this->add_connection( this->selectedEdge_state_->state_changed_signal_.connect(
+//	this->add_connection( this->save_state_->state_changed_signal_.connect(
 //    boost::bind( &EdgeQueryToolPrivate::handle_save_changed, this->private_ ) ) );
 }
 
@@ -427,7 +462,7 @@ EdgeQueryTool::~EdgeQueryTool()
 void EdgeQueryTool::save( Core::ActionContextHandle context )
 {
   Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-std::cerr << "save=" << this->save_state_->export_to_string() << std::endl;
+//std::cerr << "save=" << this->save_state_->export_to_string() << std::endl;
   this->save_state_->set(true);
 
   this->private_->execute(context, true);
@@ -438,6 +473,8 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
                         const Core::MouseHistory& mouse_history,
                         int button, int buttons, int modifiers )
 {
+  this->private_->edgeQuery_.clearHover();
+
 	if ( viewer->is_volume_view() )
 	{
 		return false;
@@ -479,7 +516,7 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
   Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
   //    const std::vector< Core::Measurement >& measurements = this->tool_->measurements_state_->get();
     
-  bool hovering = false;
+  //bool hovering = false;
   double min_dist = DBL_MAX;
 
   for( size_t i = 0; i < EDGE_QUERY_SIZE; ++i )
@@ -527,17 +564,21 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
     if ( distance > epsilon || distance > min_dist )
     {
       viewer->set_cursor( Core::CursorShape::CROSS_E );
-      this->private_->edgeQuery_.unselectEdge(i);
-//std::cerr << "EdgeQueryTool::handle_mouse_move: selectedEdge=" << this->private_->edgeQuery_.selectedEdge() << std::endl;
+      //this->private_->edgeQuery_.unselect(i);
+      this->private_->edgeQuery_.unsetHover(i);
+std::cerr << "Edge query NOT hovering over " << i << " = " << this->private_->edgeQuery_.hovering(i) << std::endl;
       continue;
     }
     
     // Found the new closest measurement
-    hovering = true;
+    //hovering = true;
     min_dist = distance;
     viewer->set_cursor( Core::CursorShape::OPEN_HAND_E );
-    this->private_->edgeQuery_.selectEdge(i);
-//std::cerr << "EdgeQueryTool::handle_mouse_move: hovering over " << i << ", selectedEdge=" << this->private_->edgeQuery_.selectedEdge() << std::endl;
+
+    //this->private_->edgeQuery_.select(i);
+    this->private_->edgeQuery_.hover(i);
+std::cerr << "Edge query hovering over " << i << " = " << this->private_->edgeQuery_.hovering(i) << std::endl;
+
     return true;
   }
   
@@ -794,11 +835,40 @@ bool EdgeQueryTool::handle_mouse_release( ViewerHandle viewer,
   {
     return false;
   }
-  
-//std::cerr << "EdgeQueryTool::handle_mouse_release: selected edge=" << this->private_->edgeQuery_.selectedEdge() << std::endl;
 
+  // safe, but not efficient...
+  this->selectedEdges_state_->clear();
+
+  // TODO: change to bool?
   Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
-  this->selectedEdge_state_->set(this->private_->edgeQuery_.selectedEdge());
+  for (int i = 0; i < EDGE_QUERY_SIZE; ++i)
+  {
+    if ( this->private_->edgeQuery_.hovering(i) )
+    {
+      // toggle selection
+      if ( this->private_->edgeQuery_.selected(i) )
+      {
+        this->private_->edgeQuery_.unselect(i);
+        this->selectedEdges_state_->add(0);
+      }
+      else
+      {
+        this->private_->edgeQuery_.select(i);
+        this->selectedEdges_state_->add(1);
+      }
+    }
+    else
+    {
+      if ( this->private_->edgeQuery_.selected(i) )
+      {
+        this->selectedEdges_state_->add(1);
+      }
+      else
+      {
+        this->selectedEdges_state_->add(0);
+      }
+    }
+  }
 
 	return false;
 }
@@ -868,8 +938,8 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 	glBegin( GL_POINTS );
 
   double x_pos, y_pos;
-
-  if ( this->private_->edgeQuery_.selectedEdge() == 0 )
+  
+  if ( ( this->private_->edgeQuery_.selected(0) ) && ( ! this->private_->edgeQuery_.selected(1) ) )
   {
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
@@ -885,19 +955,20 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
-		ls2.p2_[ 0 ] = x_pos;
-		ls2.p2_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
+    Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
+    ls2.p2_[ 0 ] = x_pos;
+    ls2.p2_[ 1 ] = y_pos;
+    glVertex2d( x_pos, y_pos );
   }
-  else if ( this->private_->edgeQuery_.selectedEdge() == 1 )
+
+  if ( ( ! this->private_->edgeQuery_.selected(0) ) && ( this->private_->edgeQuery_.selected(1) ) )
   {
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
-		ls1.p1_[ 0 ] = x_pos;
-		ls1.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
+    Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
+    ls1.p1_[ 0 ] = x_pos;
+    ls1.p1_[ 1 ] = y_pos;
+    glVertex2d( x_pos, y_pos );
 
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
@@ -911,7 +982,28 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 		ls2.p2_[ 1 ] = y_pos;
 		glVertex2d( x_pos, y_pos );
   }
-  else
+  
+  if ( this->private_->edgeQuery_.allSelected() )
+  {
+    // white
+    glColor3f( 1.0f, 1.0f, 1.0f );
+		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
+		ls1.p1_[ 0 ] = x_pos;
+		ls1.p1_[ 1 ] = y_pos;
+		glVertex2d( x_pos, y_pos );
+    
+		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p1_, x_pos, y_pos );
+		ls2.p1_[ 0 ] = x_pos;
+		ls2.p1_[ 1 ] = y_pos;
+		glVertex2d( x_pos, y_pos );
+    
+		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
+		ls2.p2_[ 0 ] = x_pos;
+		ls2.p2_[ 1 ] = y_pos;
+		glVertex2d( x_pos, y_pos );
+  }
+  
+  if ( this->private_->edgeQuery_.allUnselected() )
   {
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
@@ -938,7 +1030,7 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
   //LineSegment ls1 = this->private_->edgeQuery_.getEdge(0);
   //LineSegment ls2 = this->private_->edgeQuery_.getEdge(1);
 
-  if ( this->private_->edgeQuery_.selectedEdge() == 0 )
+  if ( this->private_->edgeQuery_.selected(0) && ( ! this->private_->edgeQuery_.selected(1) ) )
   {
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
@@ -948,7 +1040,8 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
     glColor3f( 0.0f, 1.0f, 1.0f );
     glVertex2d( ls2.p2_.x(), ls2.p2_.y() );    
   }
-  else if ( this->private_->edgeQuery_.selectedEdge() == 1 )
+
+  if ( ( ! this->private_->edgeQuery_.selected(0) ) && this->private_->edgeQuery_.selected(1) )
   {
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
@@ -958,7 +1051,17 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
     glVertex2d( ls2.p1_.x(), ls2.p1_.y() );    
     glVertex2d( ls2.p2_.x(), ls2.p2_.y() );    
   }
-  else
+  
+  if ( this->private_->edgeQuery_.allSelected() )
+  {
+    // white
+    glColor3f( 1.0f, 1.0f, 1.0f );
+    glVertex2d( ls1.p1_.x(), ls1.p1_.y() );
+    glVertex2d( ls1.p2_.x(), ls1.p2_.y() );
+    glVertex2d( ls2.p2_.x(), ls2.p2_.y() );
+  }
+  
+  if ( this->private_->edgeQuery_.allUnselected() )
   {
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
@@ -966,7 +1069,7 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
     glVertex2d( ls1.p2_.x(), ls1.p2_.y() );
     glVertex2d( ls2.p2_.x(), ls2.p2_.y() );
   }
-
+  
   glEnd();
   
 	glPopMatrix();
