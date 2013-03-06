@@ -15,12 +15,12 @@ def processFilepath(configureParser, configSection, option, basename):
   return stringEscape(fullPath)
 
 class EdgeQueryUtils:
-  def processEdgeQuery(self):
+  def processEdgeQuery(self, iteration):
     try:
       self.__importMatlabSingleMaskLayer()
       seg3d2.activatelayer(layerid=self.maskLayerID)
 
-      self.__getPointsFromFile()
+      self.__getPointsFromFile(iteration)
       (targetStateID, verticesStateID, edgesStateID, saveStateID) = self.__setupEdgeQueryTool()
 
       c = threading.Condition()
@@ -37,7 +37,7 @@ class EdgeQueryUtils:
           c.wait(self.timeout)
 
       print("Waiting for edge query selection is done.")
-      self.__writeLabelsToFile(edgesStateID)
+      self.__writeLabelsToFile(edgesStateID, iteration)
 
     except Exception as err:
       print(err)
@@ -47,11 +47,13 @@ class EdgeQueryUtils:
       # reset ids
       self.__setTransientDefaults()
 
-  def __getPointsFromFile(self):
+  def __getPointsFromFile(self, iteration):
     if len(self.vertices) > 0:
       self.vertices = []
 
-    with open(self.pointsFilename) as pointsFile:
+    pointsFilename = "%s_%d.%s" % (self.pointsFileBasename, iteration, self.dataFileExt)
+    print("Points from ", pointsFilename)
+    with open(pointsFilename) as pointsFile:
       for line in pointsFile:
         floats = [float(points) for points in line.split()]
         self.vertices.append(floats)
@@ -65,19 +67,21 @@ class EdgeQueryUtils:
       if len(pointList) == 2:
         pointList.append(0)
 
-    print("Edge query vertices read from %s." % self.pointsFilename)
+    print("Edge query vertices read from %s." % pointsFilename)
 
-  def __writeLabelsToFile(self, stateID):
+  def __writeLabelsToFile(self, stateID, iteration):
     edges = seg3d2.get(stateid=stateID)
     l = list(edges)
     if len(l) != 5:
       raise Exception('ListError', 'Malformed edges list')
 
+    labelsFilename = "%s_%d.%s" % (self.labelsFileBasename, iteration, self.dataFileExt)
+    print("Labels to ", labelsFilename)
     self.labels = "%s %s" % (l[1], l[3])
-    with open(self.labelsFilename, 'wt') as edgeFile:
+    with open(labelsFilename, 'wt') as edgeFile:
       edgeFile.write(self.labels)
 
-    print("Saved %s to %s." % (self.labels, self.labelsFilename))
+    print("Saved %s to %s." % (self.labels, labelsFilename))
 
   def __importMatlabDataLayer(self):
     idHandle = seg3d2.importlayer(filename=self.volumeFilename, importer='[Matlab Importer]', mode='data')
@@ -130,8 +134,13 @@ class EdgeQueryUtils:
     if not os.path.exists(seg3DDataLocation):
       raise ValueError("Path %s does not exist." % seg3DDataLocation)
 
-    self.pointsFilename = processFilepath(config, 'Seg3DDataSettings', 'query_file', seg3DDataLocation)
-    self.labelsFilename = processFilepath(config, 'Seg3DDataSettings', 'labels_file', seg3DDataLocation)
+    self.pointsFileBasename = processFilepath(config, 'Seg3DDataSettings', 'query_file', seg3DDataLocation)
+    self.labelsFileBasename = processFilepath(config, 'Seg3DDataSettings', 'labels_file', seg3DDataLocation)
+    self.dataFileExt = config.get('Seg3DDataSettings', 'data_file_ext')
+
+    # Matlab config
+    self.matlabScriptsDirectory = procesFilepath(config, 'MatlabSettings', 'matlab_scripts_dir')
+    self.maxIterations = config.get('MatlabSettings', 'maxIterations')
 
   def __setTransientDefaults(self):
     self.toolID = ''
@@ -145,8 +154,10 @@ class EdgeQueryUtils:
 
     self.volumeFilename = ''
     self.maskFilename = ''
-    self.pointsFilename = ''
-    self.labelsFilename = '' 
+    self.pointsFileBasename = ''
+    self.labelsFileBasename = '' 
+    self.dataFileExt = ''
+    self.maxIterations = 0
     self.vertices = []
     self.labels = ''
 
