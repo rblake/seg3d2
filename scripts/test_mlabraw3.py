@@ -1,4 +1,4 @@
-# run script using exec(open('/Users/ayla/scratch/seg3d2_is/seg3d2_is/scripts/test_mlabraw3.py').read()) or exec(open('../scripts/test_mlabraw3.py').read()) (change to Windows path if necessary)
+# run script using exec(open('/Users/ayla/scratch/seg3d2_is/scripts/test_mlabraw3.py').read()) or exec(open('../scripts/test_mlabraw3.py').read()) (change to Windows path if necessary)
 
 import os
 import sys

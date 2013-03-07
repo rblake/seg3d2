@@ -139,8 +139,8 @@ class EdgeQueryUtils:
     self.dataFileExt = config.get('Seg3DDataSettings', 'data_file_ext')
 
     # Matlab config
-    self.matlabScriptsDirectory = procesFilepath(config, 'MatlabSettings', 'matlab_scripts_dir')
-    self.maxIterations = config.get('MatlabSettings', 'maxIterations')
+    self.matlabScriptsDirectory = stringEscape(config.get('MatlabSettings', 'matlab_scripts_dir'))
+    self.maxMatlabIterations = int(config.get('MatlabSettings', 'max_iterations'))
 
   def __setTransientDefaults(self):
     self.toolID = ''
@@ -157,7 +157,7 @@ class EdgeQueryUtils:
     self.pointsFileBasename = ''
     self.labelsFileBasename = '' 
     self.dataFileExt = ''
-    self.maxIterations = 0
+    self.maxMatlabIterations = 0
     self.vertices = []
     self.labels = ''
 
