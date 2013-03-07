@@ -18,9 +18,7 @@ License: MIT
 
 from io import StringIO
 import fcntl
-#import numpy as np
 import os
-#import scipy.io as mlabio
 import select
 import subprocess
 import sys
@@ -83,7 +81,7 @@ class MatlabPipe(object):
   To retrieve numpy data from the matlab shell use 'get'.
   """
   
-  def __init__(self, matlab_process_path='guess', matlab_version='guess'):
+  def __init__(self, matlab_process_path='guess', matlab_version='guess', timeout=10):
     """ Inits the class.
     
     matlab path should be a path to the matlab executeable. For example:
@@ -103,6 +101,7 @@ class MatlabPipe(object):
     self.command_end_string='___MATLAB_PIPE_COMMAND_ENDED___'
     self.expected_output_end = '%s\n>> ' % self.command_end_string
     self.stdout_to_read = ''
+    self.timeout = timeout
   
   def open(self, print_matlab_welcome=False, working_directory=os.getcwd()):
     """ Opens the matlab process.
@@ -156,89 +155,6 @@ class MatlabPipe(object):
     return ret
 
   
-  #def put(self, name_to_val, oned_as='row', on_new_output=None):
-  #  """ Loads a dictionary of variable names into the matlab shell.
-  #  
-  #  oned_as is the same as in scipy.io.matlab.savemat function:
-  #  oned_as : {'column', 'row'}, optional
-  #  If 'column', write 1-D numpy arrays as column vectors.
-  #  If 'row', write 1D numpy arrays as row vectors.
-  #  """
-  #  self._check_open()
-  #  # We can't give stdin to mlabio.savemat because it needs random access :(
-  #  temp = StringIO()
-  #  mlabio.savemat(temp, name_to_val, oned_as=oned_as)
-  #  temp.seek(0)
-  #  temp_str = temp.read()
-  #  temp.close()
-  #  self.process.stdin.write('load stdio;\n')
-  #  self._read_until('ack load stdio\n', on_new_output=on_new_output)
-  #  self.process.stdin.write(temp_str)
-  #  #print 'sent %d kb' % (len(temp_str) / 1024)
-  #  self._read_until('ack load finished\n', on_new_output=on_new_output)
-  #  self._sync_output(on_new_output=on_new_output)
-  
-  #def get(self,
-  #        names_to_get,
-  #        extract_numpy_scalars=True,
-  #        on_new_output=None):
-  #  """ Loads the requested variables from the matlab shell.
-  #  
-  #  names_to_get can be either a variable name, a list of variable names, or
-  #  None.
-  #  If it is a variable name, the values is returned.
-  #  If it is a list, a dictionary of variable_name -> value is returned.
-  #  If it is None, adictionary with all variables is returned.
-  #  
-  #  If extract_numpy_scalars is true, the method will convert numpy scalars
-  #  (0-dimension arrays) to a regular python variable.
-  #  """
-  #  self._check_open()
-  #  single_itme = isinstance(names_to_get, (unicode, str))
-  #  if single_itme:
-  #    names_to_get = [names_to_get]
-  #  if names_to_get == None:
-  #    self.process.stdin.write('save stdio;\n')
-  #  else:
-  #    # Make sure that we throw an excpetion if the names are not defined.
-  #    for name in names_to_get:
-  #      self.eval('%s;' % name, print_expression=False, on_new_output=on_new_output)
-  #    #print 'save(\'stdio\', \'%s\');\n' % '\', \''.join(names_to_get)
-  #    self.process.stdin.write(
-  #                             "save('stdio', '%s', '-v6');\n" % '\', \''.join(names_to_get))
-  #  # We have to read to a temp buffer because mlabio.loadmat needs
-  #  # random access :(
-  #  self._read_until('start_binary\n', on_new_output=on_new_output)
-  #  #print 'got start_binary'
-  #  temp_str = self._sync_output(on_new_output=on_new_output)
-  #  #print 'got all outout'
-  #  # Remove expected output and "\n>>"
-  #  # TODO(dani): Get rid of the unecessary copy.
-  #  # MATLAB 2010a adds an extra >> so we need to remove more spaces.
-  #  if self.matlab_version == (2010, 'a'):
-  #    temp_str = temp_str[:-len(self.expected_output_end)-6]
-  #  else:
-  #    temp_str = temp_str[:-len(self.expected_output_end)-3]
-  #  temp = StringIO(temp_str)
-  #  #print ('____')
-  #  #print len(temp_str)
-  #  #print ('____')
-  #  ret = mlabio.loadmat(temp, chars_as_strings=True, squeeze_me=True)
-  #  #print '******'
-  #  #print ret
-  #  #print '******'
-  #  temp.close()
-  #  for key in ret.iterkeys():
-  #    while ret[key].shape and ret[key].shape[-1] == 1:
-  #      ret[key] = ret[key][0]
-  #    if extract_numpy_scalars:
-  #      if isinstance(ret[key], np.ndarray) and not ret[key].shape:
-  #        ret[key] = ret[key].tolist()
-  #  #print 'done'
-  #  if single_itme:
-  #    return ret.values()[0]
-  #  return ret
-  
   def _check_open(self):
     if not self.process or self.process.returncode:
       raise MatlabConnectionError('Matlab(TM) process is not active.')
@@ -254,7 +170,7 @@ class MatlabPipe(object):
       if on_new_output: on_new_output(tail_to_remove)
       all_output.write(tail_to_remove)
 
-      if not select.select([self.process.stdout], [], [], 10)[0]:
+      if not select.select([self.process.stdout], [], [], self.timeout)[0]:
         raise MatlabConnectionError('timeout')
 
       new_output = self.process.stdout.read(65536)
@@ -287,7 +203,7 @@ class MatlabPipe(object):
       if not conn.closed:
         fcntl.fcntl(conn, fcntl.F_SETFL, flags| os.O_NONBLOCK)
       try:
-        if not select.select([conn], [], [], 10)[0]:
+        if not select.select([conn], [], [], self.timeout)[0]:
           raise Exception('timeout')
         new_output = conn.read(65536)
         #try:

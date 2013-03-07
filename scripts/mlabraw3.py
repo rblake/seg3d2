@@ -8,7 +8,6 @@ License: MIT
 """
 import os
 import sys
-import configparser
 
 is_win = sys.platform == 'win32'
 if is_win:
@@ -25,25 +24,19 @@ else:
 #MATLAB_PATH = '/usr/sci/OSX/matlab_r2011a/MATLAB_R2011a.app'
 
 
-def open(settings_dir):
-  config = configparser.ConfigParser()
-  config.read(os.path.join(settings_dir, 'settings.ini'))
-  # Matlab config
-  MATLAB_PATH = config.get('MatlabSettings', 'matlab_path')
-  shell_working_dir = config.get('MatlabSettings', 'matlab_scripts_dir')
-
+def open(matlab_scripts_dir, matlab='guess'):
   if is_win:
     ret = MatlabConnection()
     ret.open()
   else:
-    #if settings.MATLAB_PATH != 'guess':
-    #  matlab_path = settings.MATLAB_PATH + '/bin/matlab'
-    #else:
-    #  matlab_path = 'guess'
-    matlab_path = MATLAB_PATH + '/bin/matlab'
+    if matlab != 'guess':
+      matlab_path = matlab + '/bin/matlab'
+    else:
+      matlab_path = 'guess'
+
     try:
-      ret = MatlabConnection(matlab_path)
-      ret.open(print_matlab_welcome=False, working_directory=shell_working_dir)
+      ret = MatlabConnection(matlab_path, timeout=1000)
+      ret.open(print_matlab_welcome=False, working_directory=matlab_scripts_dir)
     except:
       print('Could not open matlab, is it in %s?' % matlab_path)
   return ret
