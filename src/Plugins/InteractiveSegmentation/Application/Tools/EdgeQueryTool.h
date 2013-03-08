@@ -93,6 +93,7 @@ public:
 	// -- dispatch functions --
 public:
   void save( Core::ActionContextHandle context );
+  void stop( Core::ActionContextHandle context );
 
 	// -- State Variables --
 public:
@@ -101,6 +102,7 @@ public:
   //Core::StateIntHandle selectedEdge_state_;
   Core::StateIntVectorHandle selectedEdges_state_;
   Core::StateBoolHandle save_state_;
+  Core::StateBoolHandle stop_state_;
 
 private:
 	EdgeQueryToolPrivateHandle private_;

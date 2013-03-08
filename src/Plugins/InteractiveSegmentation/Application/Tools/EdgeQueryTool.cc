@@ -207,7 +207,7 @@ public:
   void handle_selection_changed();
 //  void handle_save_changed();
 
-	void execute( Core::ActionContextHandle context, bool erase, 
+	void execute( Core::ActionContextHandle context, bool erase, bool save,
 		ViewerHandle viewer = ViewerHandle() );
   bool point_in_slice( ViewerHandle viewer, const Core::Point& world_point, 
     double& point_depth ) const;
@@ -373,7 +373,7 @@ void EdgeQueryToolPrivate::handle_selection_changed()
 //}
 	
 void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context, 
-								  bool save, ViewerHandle viewer )
+								  bool save, bool stop, ViewerHandle viewer )
 {
   //std::cerr << "EdgeQueryToolPrivate::execute" << std::endl;
 
@@ -434,7 +434,7 @@ void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context,
 	}
 	
 	ActionEdgeQuery::Dispatch( context, this->tool_->target_layer_state_->get(),
-		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save,
+		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save, stop,
     this->tool_->selectedEdges_state_->get(), vertices_2d );
   
   // clear selection?
@@ -454,6 +454,7 @@ EdgeQueryTool::EdgeQueryTool( const std::string& toolid ) :
 	this->add_state( "vertices", this->vertices_state_ );
   this->add_state( "edges", this->selectedEdges_state_ );
   this->add_state( "save", this->save_state_, false );
+  this->add_state( "stop", this->stop_state_, false );
   
 	this->add_connection( this->vertices_state_->state_changed_signal_.connect(
     boost::bind( &EdgeQueryToolPrivate::handle_vertices_changed, this->private_ ) ) );
@@ -473,12 +474,18 @@ EdgeQueryTool::~EdgeQueryTool()
 void EdgeQueryTool::save( Core::ActionContextHandle context )
 {
   Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
-//std::cerr << "save=" << this->save_state_->export_to_string() << std::endl;
   this->save_state_->set(true);
 
-  this->private_->execute(context, true);
+  this->private_->execute(context, this->save_state_->get(), this->stop_state_->get());
 }
 
+void EdgeQueryTool::stop( Core::ActionContextHandle context )
+{
+  Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+  this->stop_state_->set(true);
+  
+  this->private_->execute(context, this->save_state_->get(), this->stop_state_->get());
+}
 
 bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer, 
                         const Core::MouseHistory& mouse_history,

@@ -54,6 +54,7 @@ CORE_ACTION
   //CORE_ACTION_ARGUMENT( "clear", "Clear edge query." )
 	CORE_ACTION_ARGUMENT( "vertices", "The 2D coordinates of edge query tool vertices." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "save", "false", "Save edge query." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "stop", "true", "Stop edge query." )
   //CORE_ACTION_OPTIONAL_ARGUMENT( "edge", "-1", "Selected Edge." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "edges", "<none>", "Selected Edges." )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
@@ -91,7 +92,7 @@ public:
 //		const std::vector< VertexCoord >& vertices );
 	static void Dispatch( Core::ActionContextHandle context, 
                        const std::string& layer_id, Core::VolumeSliceType slice_type, 
-                       size_t slice_number, bool save, const std::vector<int>& selectedEdges,
+                       size_t slice_number, bool save, bool stop, const std::vector<int>& selectedEdges,
                        const std::vector< VertexCoord >& vertices );
 };
 

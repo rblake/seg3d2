@@ -164,6 +164,13 @@ QPushButton:pressed{
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="finishEdgeQueryButton">
+        <property name="text">
+         <string>Finish Edge Query Iterations</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

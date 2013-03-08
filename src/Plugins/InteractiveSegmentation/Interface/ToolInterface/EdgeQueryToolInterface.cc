@@ -76,10 +76,13 @@ bool EdgeQueryToolInterface::build_widget( QFrame* frame )
 	//Step 3 - connect the gui to the tool through the QtBridge
 	QtUtils::QtBridge::Connect( this->private_->ui_.target_mask_, tool->target_layer_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
-  
+
   QtUtils::QtBridge::Connect( this->private_->ui_.saveEdgeQueryButton, boost::bind(
     &EdgeQueryTool::save, tool, Core::Interface::GetWidgetActionContext() ) );
   
+  QtUtils::QtBridge::Connect( this->private_->ui_.finishEdgeQueryButton, boost::bind(
+    &EdgeQueryTool::stop, tool, Core::Interface::GetWidgetActionContext() ) );
+
   // Enable when edge selection has been made
   //QtUtils::QtBridge::Enable( this->private_->ui_.saveEdgeQueryButton, tool->valid_target_state_ );
 

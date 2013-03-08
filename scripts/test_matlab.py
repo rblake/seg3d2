@@ -13,6 +13,7 @@ config.read(os.path.join(dir, 'settings.ini'))
 # Matlab config
 MATLAB_PATH = config.get('MatlabSettings', 'matlab_path')
 shell_working_dir = config.get('MatlabSettings', 'matlab_scripts_dir')
+maxMatlabIterations = int(config.get('MatlabSettings', 'max_iterations'))
 
 import edgequeryutils
 import mlabraw3
@@ -24,10 +25,14 @@ eq = edgequeryutils.EdgeQueryUtils(dir)
 session = mlabraw3.open(shell_working_dir, MATLAB_PATH)
 mlabraw3.eval(session, 'UnConstSpecClust_Seg3D', log=True)
 
-for counter in range(1, eq.maxMatlabIterations):
+for counter in range(1, maxMatlabIterations):
   eq.processEdgeQuery(counter)
   matlabCommand = "ConstSpecClust_Seg3D(%d)" % counter
   mlabraw3.eval(session, matlabCommand, log=True)
 
+  if eq.stop:
+    break;
 
+
+print("Done iterating.")
 mlabraw3.close(session)

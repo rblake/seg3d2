@@ -64,10 +64,9 @@ public:
 	int slice_type_;
 	size_t slice_number_;
 	bool save_;
+  bool stop_;
 	bool clear_;
 	std::vector< ActionEdgeQuery::VertexCoord > vertices_;
-  //std::string selectedEdge_;
-  //int selectedEdge_;
   std::vector< int > selectedEdges_;
 	SandboxID sandbox_;
 
@@ -82,6 +81,7 @@ ActionEdgeQuery::ActionEdgeQuery() :
 	this->add_parameter( this->private_->slice_type_ );
 	this->add_parameter( this->private_->slice_number_ );
 	this->add_parameter( this->private_->save_ );
+	this->add_parameter( this->private_->stop_ );
 	this->add_parameter( this->private_->clear_ );
 	this->add_parameter( this->private_->vertices_ );
 	this->add_parameter( this->private_->selectedEdges_ );
@@ -375,7 +375,7 @@ void ActionEdgeQuery::clear_cache()
 
 void ActionEdgeQuery::Dispatch( Core::ActionContextHandle context, 
 							  const std::string& layer_id, Core::VolumeSliceType slice_type, 
-							  size_t slice_number, bool save, const std::vector<int>& selectedEdges,
+							  size_t slice_number, bool save, bool stop, const std::vector<int>& selectedEdges,
 							  const std::vector< VertexCoord >& vertices )
 {
 	ActionEdgeQuery* action = new ActionEdgeQuery;
@@ -383,6 +383,7 @@ void ActionEdgeQuery::Dispatch( Core::ActionContextHandle context,
 	action->private_->slice_type_ = slice_type;
 	action->private_->slice_number_ = slice_number;
 	action->private_->save_ = save;
+  action->private_->stop_ = stop;
 	action->private_->vertices_ = vertices;
 	action->private_->selectedEdges_ = selectedEdges;
 
