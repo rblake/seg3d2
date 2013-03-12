@@ -26,8 +26,6 @@ class EdgeQueryUtils:
       c = threading.Condition()
       c.acquire()
 
-      #print("max checks=%i, timeout=%d" % self.iterationMax, self.timeout)
-
       counter = 1
       with c:
         while not seg3d2.get(stateid=saveStateID):
@@ -148,7 +146,7 @@ class EdgeQueryUtils:
     self.maskLayerID = ''
 
   # import data volume in constructor
-  def __init__(self, configFileLocation, timeout=2.0, iterationMax=60):
+  def __init__(self, configFileLocation, timeout=2.0, iterationMax=1e6):
     self.configFileLocation = configFileLocation
     self.timeout = timeout
     self.iterationMax = iterationMax
