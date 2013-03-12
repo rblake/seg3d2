@@ -66,7 +66,7 @@ namespace Seg3D
 struct LineSegment
 {
   LineSegment(const Core::Point& p1, const Core::Point& p2, const int label)
-    : p1_(p1), p2_(p2), label_(label), selected_(true), hovering_(false)
+    : p1_(p1), p2_(p2), label_(label), selected_(true), hovering_(false), notInSlice_(false)
   {}  
   
   Core::Point p1_;
@@ -76,6 +76,7 @@ struct LineSegment
   
   bool selected_;
   bool hovering_;
+  bool notInSlice_;
 };
 
 class EdgeQuery
@@ -232,8 +233,10 @@ bool EdgeQueryToolPrivate::point_in_slice( ViewerHandle viewer, const Core::Poin
   double slice_depth = volume_slice->depth();
   double i_pos, j_pos;
   volume_slice->project_onto_slice( world_point, i_pos, j_pos, point_depth );
-  
-  if ( point_depth == slice_depth ) 
+
+  //std::cerr << "point_depth=" << point_depth << ", slice_depth=" << slice_depth << std::endl;
+
+  if ( point_depth == slice_depth )
   {
     return true;
   }
@@ -917,15 +920,6 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
     //std::cerr << "No EdgeQuery available!!!" << std::endl;
     return;
   }
-
-  // assumes all points are in the same slice
-  // TODO: will this always be true?
-  LineSegment ls = this->private_->edgeQuery_.getEdge(0);
-  double point_depth = 0;
-  if (! this->private_->point_in_slice( viewer, ls.p1_, point_depth ) )
-  {
-    return;
-  }
   
 //  Core::VolumeSliceHandle volume_slice = viewer->get_active_volume_slice();
 //  if ( ! volume_slice )
@@ -946,10 +940,26 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
   // cyan
 	glColor3f( 0.0f, 1.0f, 1.0f );
 	glEnable( GL_LINE_SMOOTH );
+  
+  // assumes all points are in the same slice
+  // TODO: will this always be true?
 
   LineSegment ls1 = this->private_->edgeQuery_.getEdge(0);
   LineSegment ls2 = this->private_->edgeQuery_.getEdge(1);
+  double point_depth = 0;
 
+  // TODO: see if drawing dashed line in more subdued color is a useful visual cue
+  if (! (this->private_->point_in_slice( viewer, ls1.p1_, point_depth ) && this->private_->point_in_slice( viewer, ls1.p2_, point_depth ) ) )
+  {
+    //std::cerr << "LS 1 not in slice" << std::endl;
+    ls1.notInSlice_ = true;
+  }
+  
+  if (! (this->private_->point_in_slice( viewer, ls2.p1_, point_depth ) && this->private_->point_in_slice( viewer, ls2.p2_, point_depth ) ) )
+  {
+    //std::cerr << "LS 2 not in slice" << std::endl;
+    ls2.notInSlice_ = true;
+  }
 
 	glBegin( GL_POINTS );
 
