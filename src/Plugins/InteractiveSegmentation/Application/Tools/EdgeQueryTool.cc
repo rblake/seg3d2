@@ -929,18 +929,6 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 //std::cerr << "volume slice number=" << volume_slice->get_slice_number() << std::endl;
 //std::cerr << "point z coord=" << ls.p1_.z() << std::endl;
   
-	glPushAttrib( GL_LINE_BIT | GL_POINT_BIT | GL_TRANSFORM_BIT );
-	glMatrixMode( GL_PROJECTION );
-	glPushMatrix();
-	glLoadIdentity();
-	glMultMatrixd( proj_mat.data() );
-
-	glPointSize( 6.0f );
-	glLineWidth( 4.0f );
-  // cyan
-	glColor3f( 0.0f, 1.0f, 1.0f );
-	glEnable( GL_LINE_SMOOTH );
-  
   // assumes all points are in the same slice
   // TODO: will this always be true?
 
@@ -960,6 +948,24 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
     //std::cerr << "LS 2 not in slice" << std::endl;
     ls2.notInSlice_ = true;
   }
+  
+  if (ls1.notInSlice_ && ls2.notInSlice_)
+  {
+    return;
+  }
+  
+  
+	glPushAttrib( GL_LINE_BIT | GL_POINT_BIT | GL_TRANSFORM_BIT );
+	glMatrixMode( GL_PROJECTION );
+	glPushMatrix();
+	glLoadIdentity();
+	glMultMatrixd( proj_mat.data() );
+  
+	glPointSize( 6.0f );
+	glLineWidth( 4.0f );
+  // cyan
+	glColor3f( 0.0f, 1.0f, 1.0f );
+	glEnable( GL_LINE_SMOOTH );
 
 	glBegin( GL_POINTS );
 
