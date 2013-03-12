@@ -114,8 +114,9 @@ class EdgeQueryUtils:
     result = seg3d2.set(stateid=targetStateID, value=self.maskLayerID)
     result = seg3d2.set(stateid=verticesStateID, value=self.vertices)
 
-    # assuming axial view here...
-    z = self.vertices[0][2]
+    # assuming axial (Z) view only for now...
+    # guess which slice to show using center point
+    z = self.vertices[1][2]
     result = seg3d2.set(stateid='viewer0::slice_number', value=z)
     return (targetStateID, verticesStateID, edgesStateID, saveStateID, stopStateID)
 
