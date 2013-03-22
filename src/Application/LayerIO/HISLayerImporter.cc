@@ -149,79 +149,82 @@ bool HISLayerImporterPrivate::read_header()
   std::ifstream::pos_type size = 0;
   
   std::ifstream in(this->importer_->get_filename().c_str(), std::ios::in | std::ios::binary);
-  if (! in )
+  in.exceptions( std::ifstream::badbit );
+  try
+  {
+    const size_t HEADER_SIZE = sizeof(file_header_t);
+    
+    std::cerr << "sizeof(file_header_t)=" << sizeof(file_header_t) << std::endl;
+    std::cerr << "sizeof(in_file_header)=" << sizeof(this->header_) << std::endl;
+    
+    char *headerdata = new char[HEADER_SIZE];
+    if (! headerdata)
+    {
+      this->importer_->set_error( "Error allocating data for input file" );
+      return false;
+    }
+    in.read(headerdata, HEADER_SIZE);
+    memcpy(&this->header_, headerdata, HEADER_SIZE);
+    delete [] headerdata;
+    
+    if (this->header_.TypeOfNumbers & 4)
+    {
+      std::cerr << "detected 16 bit integer" << std::endl;
+      this->data_type_ = Core::DataType::SHORT_E;
+      //type = "short";
+    }
+    else if (this->header_.TypeOfNumbers & 2)
+    {
+      //CORE_LOG_DEBUG();
+      std::cerr << "detected 64 bit float" << std::endl;
+      this->data_type_ = Core::DataType::DOUBLE_E;
+      //type = "double";
+    }
+    else if (this->header_.TypeOfNumbers & 32)
+    {
+      std::cerr << "detected 32 bit int" << std::endl;
+      this->data_type_ = Core::DataType::INT_E;
+      //type = "int";
+    }
+    else
+    {
+      std::cerr << "unknown type" << std::endl;
+      this->importer_->set_error( "Unknown file type in header (TypeOfNumbers)" );
+      return 1;
+    }
+
+    // TODO: confirm this!!!
+    Core::Point origin;
+    std::vector<size_t> dims(3);
+    dims[0] = this->header_.BRX;
+    dims[1] = this->header_.BRY;
+    dims[2] = this->header_.NrOfFrames;
+    
+    std::cerr << "header:" << std::endl << getString() << std::endl;
+
+    // TODO: spacing?
+    Core::Vector spacing(1, 1, 1);
+    Core::Transform transform(origin,
+                              Core::Vector( spacing.x(), 0.0 , 0.0 ),
+                              Core::Vector( 0.0, spacing.y(), 0.0 ),
+                              Core::Vector( 0.0, 0.0, spacing.z() ));
+    this->grid_transform_ = Core::GridTransform( dims[ 0 ], dims[ 1 ], dims[ 2 ], transform );
+    this->grid_transform_.set_originally_node_centered( false );
+    this->meta_data_.meta_data_info_ = "HIS header";
+    this->meta_data_.meta_data_ = getString();
+    
+    in.close();
+
+    this->read_header_ = true;
+    return true;
+  }
+  catch (std::ifstream::failure e)
   {
     std::ostringstream oss;
-    oss << "Failed to open file " << this->importer_->get_filename().c_str();
+    oss << "Failed to open and read file " << this->importer_->get_filename().c_str() << ".\n" << e.what();
     this->importer_->set_error( oss.str() );
-    return false;
   }
-  
-  const size_t HEADER_SIZE = sizeof(file_header_t);
-  
-  std::cerr << "sizeof(file_header_t)=" << sizeof(file_header_t) << std::endl;
-  std::cerr << "sizeof(in_file_header)=" << sizeof(this->header_) << std::endl;
-  
-  char *headerdata = new char[HEADER_SIZE];
-  if (! headerdata)
-  {
-    this->importer_->set_error( "Error allocating data for input file" );
-    return false;
-  }
-  in.read(headerdata, HEADER_SIZE);
-  memcpy(&this->header_, headerdata, HEADER_SIZE);
-  delete [] headerdata;
-  
-  if (this->header_.TypeOfNumbers & 4)
-  {
-    std::cerr << "detected 16 bit integer" << std::endl;
-    this->data_type_ = Core::DataType::SHORT_E;
-    //type = "short";
-  }
-  else if (this->header_.TypeOfNumbers & 2)
-  {
-    //CORE_LOG_DEBUG();
-    std::cerr << "detected 64 bit float" << std::endl;
-    this->data_type_ = Core::DataType::DOUBLE_E;
-    //type = "double";
-  }
-  else if (this->header_.TypeOfNumbers & 32)
-  {
-    std::cerr << "detected 32 bit int" << std::endl;
-    this->data_type_ = Core::DataType::INT_E;
-    //type = "int";
-  }
-  else
-  {
-    std::cerr << "unknown type" << std::endl;
-    this->importer_->set_error( "Unknown file type in header (TypeOfNumbers)" );
-    return 1;
-  }
-
-  // TODO: confirm this!!!
-  Core::Point origin;
-  std::vector<size_t> dims(3);
-  dims[0] = this->header_.BRX;
-  dims[1] = this->header_.BRY;
-  dims[2] = this->header_.NrOfFrames;
-  
-  std::cerr << "header:" << std::endl << getString() << std::endl;
-
-  // TODO: spacing?
-  Core::Vector spacing(1, 1, 1);
-  Core::Transform transform(origin,
-                            Core::Vector( spacing.x(), 0.0 , 0.0 ),
-                            Core::Vector( 0.0, spacing.y(), 0.0 ),
-                            Core::Vector( 0.0, 0.0, spacing.z() ));
-  this->grid_transform_ = Core::GridTransform( dims[ 0 ], dims[ 1 ], dims[ 2 ], transform );
-  this->grid_transform_.set_originally_node_centered( false );
-  this->meta_data_.meta_data_info_ = "HIS header";
-  this->meta_data_.meta_data_ = getString();
-  
-  in.close();
-
-  this->read_header_ = true;
-  return true;
+  return false;
 }
 
 
@@ -252,32 +255,35 @@ bool HISLayerImporterPrivate::read_data()
   std::ifstream::pos_type size = 0;
   
   std::ifstream in(this->importer_->get_filename().c_str(), std::ios::in | std::ios::binary);
-  if (! in )
+  in.exceptions( std::ifstream::badbit );
+  try
+  {
+    in.seekg(0, std::ios::end);
+    const size_t INSIZE = in.tellg();
+    in.seekg(0, std::ios::beg);
+
+    char *data = new char[INSIZE];
+    if (! data)
+    {
+      this->importer_->set_error( "error allocating data for input file" );
+      return false;
+    }
+    
+    in.read(data, INSIZE);    
+    in.close();
+
+    this->data_block_->set_data(&data[DATA_BLOCK_START_INDEX]);
+
+    this->read_data_ = true;
+    return true;
+  }
+  catch (std::ifstream::failure e)
   {
     std::ostringstream oss;
-    oss << "Failed to open file " << this->importer_->get_filename().c_str();
+    oss << "Failed to open and read file " << this->importer_->get_filename().c_str() << ".\n" << e.what();
     this->importer_->set_error( oss.str() );
-    return false;
   }
-  
-  in.seekg(0, std::ios::end);
-  const size_t INSIZE = in.tellg();
-  in.seekg(0, std::ios::beg);
-
-  char *data = new char[INSIZE];
-  if (! data)
-  {
-    this->importer_->set_error( "error allocating data for input file" );
-    return false;
-  }
-  
-  in.read(data, INSIZE);    
-  in.close();
-
-  this->data_block_->set_data(&data[DATA_BLOCK_START_INDEX]);
-
-  this->read_data_ = true;
-  return true;
+  return false;
 }
     
 //////////////////////////////////////////////////////////////////////////
