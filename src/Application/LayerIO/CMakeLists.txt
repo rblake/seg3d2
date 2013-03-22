@@ -53,16 +53,16 @@ SET(APPLICATION_LAYERIO_SRCS
 )
 
 SET(APPLICATION_LAYERIO_ACTIONS_SRCS
-	Actions/ActionExportLayer.h
-	Actions/ActionExportLayer.cc
-	Actions/ActionExportSegmentation.h
-	Actions/ActionExportSegmentation.cc
-	Actions/ActionExportIsosurface.h
-	Actions/ActionExportIsosurface.cc
-	Actions/ActionImportLayer.h
-	Actions/ActionImportLayer.cc
-	Actions/ActionImportSeries.h
-	Actions/ActionImportSeries.cc
+  Actions/ActionExportLayer.h
+  Actions/ActionExportLayer.cc
+  Actions/ActionExportSegmentation.h
+  Actions/ActionExportSegmentation.cc
+  Actions/ActionExportIsosurface.h
+  Actions/ActionExportIsosurface.cc
+  Actions/ActionImportLayer.h
+  Actions/ActionImportLayer.cc
+  Actions/ActionImportSeries.h
+  Actions/ActionImportSeries.cc
 )
 
 SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
@@ -70,6 +70,8 @@ SET(APPLICATION_LAYERIO_IMPORTERS_SRCS
   ITKLayerImporter.cc
   ITKSeriesLayerImporter.h
   ITKSeriesLayerImporter.cc
+  HISLayerImporter.h
+  HISLayerImporter.cc
   Matlab73LayerImporter.h
   Matlab73LayerImporter.cc
   MatlabLayerImporter.h
@@ -103,29 +105,29 @@ IF(BUILD_WITH_PYTHON)
 ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(Application_LayerIO ${APPLICATION_LAYERIO_SRCS}
-      ${APPLICATION_LAYERIO_IMPORTERS_SRCS}
-      ${APPLICATION_LAYERIO_EXPORTERS_SRCS}
-      ${APPLICATION_LAYERIO_ACTIONS_SRCS} )
-            
+  ${APPLICATION_LAYERIO_IMPORTERS_SRCS}
+  ${APPLICATION_LAYERIO_EXPORTERS_SRCS}
+  ${APPLICATION_LAYERIO_ACTIONS_SRCS} )
+    
 TARGET_LINK_LIBRARIES(Application_LayerIO
-					Core_Utils
-					Core_Geometry
-					Core_DataBlock
-					Core_Volume
-					Core_Application
-					Core_Interface
-					Core_Action
-					Core_State
-					Application_InterfaceManager
-					Application_Layer
-					${SCI_BOOST_LIBRARY}
-					${SCI_GDCM_LIBRARY}
-					${SCI_HDF5_LIBRARY}
-					${SCI_MATLABIO_LIBRARY}
-					${SCI_MRC2000IO_LIBRARY})
+  Core_Utils
+  Core_Geometry
+  Core_DataBlock
+  Core_Volume
+  Core_Application
+  Core_Interface
+  Core_Action
+  Core_State
+  Application_InterfaceManager
+  Application_Layer
+  ${SCI_BOOST_LIBRARY}
+  ${SCI_GDCM_LIBRARY}
+  ${SCI_HDF5_LIBRARY}
+  ${SCI_MATLABIO_LIBRARY}
+  ${SCI_MRC2000IO_LIBRARY})
 
 # Register actions and importers
 REGISTER_LIBRARY_AND_CLASSES(Application_LayerIO 
-      ${APPLICATION_LAYERIO_ACTIONS_SRCS}
-      ${APPLICATION_LAYERIO_IMPORTERS_SRCS}
-      ${APPLICATION_LAYERIO_EXPORTERS_SRCS})
+  ${APPLICATION_LAYERIO_ACTIONS_SRCS}
+  ${APPLICATION_LAYERIO_IMPORTERS_SRCS}
+  ${APPLICATION_LAYERIO_EXPORTERS_SRCS})
