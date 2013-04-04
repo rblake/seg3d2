@@ -51,12 +51,39 @@ class EdgeQueryUtils:
     if len(self.vertices) > 0:
       self.vertices = []
 
+    # sets up viewer 0 by default
+    result = seg3d2.set(stateid='view::active_viewer', value=0)
     pointsFilename = "%s_%d.%s" % (self.pointsFileBasename, iteration, self.dataFileExt)
+
     print("Points from ", pointsFilename)
     with open(pointsFilename) as pointsFile:
+      firstLine = True
       for line in pointsFile:
-        floats = [float(points) for points in line.split()]
-        self.vertices.append(floats)
+        if firstLine:
+          headerList = line.split()
+          for field in headerList:
+            fieldList = field.split('=', 1)
+
+            # make parsing general
+            if fieldList[0] == "sliceid":
+              sliceid = int(fieldList[1])
+              # Axial = 0, Coronal = 1, Sagittal = 2, Volume = 3
+              if sliceid < 0 or sliceid > 3:
+                print("Invalid sliceid {}. Defaulting to {} view.".format(sliceid, view_mode))
+                sliceid = 3
+
+              result = seg3d2.set(stateid='viewer0::view_mode', value=self.view_modes[sliceid])
+
+            if fieldList[0] == "index":
+              # TODO: check against size of data volume (should be exposed?)
+              index = int(fieldList[1])
+              result = seg3d2.set(stateid='viewer0::slice_number', value=index)
+
+          firstLine = False
+        else:
+          floats = [float(points) for points in line.split()]
+          print(floats)
+          self.vertices.append(floats)
 
     if len(self.vertices) < 3:
       # TODO: error class
@@ -66,6 +93,8 @@ class EdgeQueryUtils:
     for pointList in self.vertices:
       if len(pointList) == 2:
         pointList.append(0)
+
+    result = seg3d2.autoview(viewerid=0)
 
     print("Edge query vertices read from %s." % pointsFilename)
 
@@ -89,15 +118,14 @@ class EdgeQueryUtils:
 
     # set(..) returns bool
     result = seg3d2.set(stateid='view::layout', value='single')
-    # sets up Axial view (0) by default
-    # Axial = 0, Coronal = 1, Sagittal = 2
-    result = seg3d2.set(stateid='view::active_viewer', value=0)
-    result = seg3d2.set(stateid='viewer0::view_mode', value='Axial')
 
 
   def __importMatlabSingleMaskLayer(self, iteration):
     maskFilename = "%s_%d.%s" % (self.maskFileBasename, iteration, self.maskFileExt)
-    print("Points from ", maskFilename)
+    if not os.path.exists(maskFilename):
+      raise ValueError("Label mask file %s does not exist." % maskFilename)
+
+    print("Label mask from ", maskFilename)
 
     idHandle = seg3d2.importlayer(filename=maskFilename, importer='[Matlab Importer]', mode='single_mask')
     self.maskLayerID = idHandle[0]
@@ -114,10 +142,6 @@ class EdgeQueryUtils:
     result = seg3d2.set(stateid=targetStateID, value=self.maskLayerID)
     result = seg3d2.set(stateid=verticesStateID, value=self.vertices)
 
-    # assuming axial (Z) view only for now...
-    # guess which slice to show using center point
-    z = self.vertices[1][2]
-    result = seg3d2.set(stateid='viewer0::slice_number', value=z)
     return (targetStateID, verticesStateID, edgesStateID, saveStateID, stopStateID)
 
   def __importConfiguration(self):
@@ -133,6 +157,9 @@ class EdgeQueryUtils:
 
     # volume and mask(s) location
     self.volumeFilename = processFilepath(config, 'DataSettings', 'volume_file', dataLocation)
+    if not os.path.exists(self.volumeFilename):
+      raise ValueError("Data file %s does not exist." % self.volumeFilename)
+
     self.pointsFileBasename = processFilepath(config, 'DataSettings', 'query_file_base', dataLocation)
     self.labelsFileBasename = processFilepath(config, 'DataSettings', 'labels_file_base', dataLocation)
     self.dataFileExt = config.get('DataSettings', 'data_file_ext')
@@ -145,6 +172,8 @@ class EdgeQueryUtils:
   def __setTransientDefaults(self):
     self.toolID = ''
     self.maskLayerID = ''
+    self.sliceView = 'Axial'
+    self.slice = 0
 
   # import data volume in constructor
   def __init__(self, configFileLocation, timeout=2.0, iterationMax=1e6):
@@ -161,6 +190,7 @@ class EdgeQueryUtils:
     self.vertices = []
     self.labels = ''
     self.stop = False
+    self.view_modes = ['Axial', 'Coronal', 'Sagittal', 'Volume']
 
     self.__setTransientDefaults()
     self.__importConfiguration()
