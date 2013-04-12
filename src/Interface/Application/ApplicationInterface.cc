@@ -50,6 +50,9 @@
 #include <Application/ProjectManager/Actions/ActionNewProject.h>
 #include <Application/ProjectManager/Actions/ActionLoadProject.h>
 
+// Application specialization for backscatter/reconstruction project
+#include <Application/ReconstructionView/Actions/ActionCalibrationView.h>
+
 // QtUtils includes
 #include <QtUtils/Utils/QtApplication.h>
 #include <QtUtils/Utils/QtPointer.h>
@@ -140,6 +143,23 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 
 	// Tell Qt what size to start up in
 	this->resize( 1280, 720 );
+  
+  viewsToolBar = addToolBar(tr("&Views"));
+  viewsToolBar->setMovable(false);
+
+  QAction *qaction = new QAction( tr( "Calibration" ), this );
+  viewsToolBar->addAction(qaction);
+  QtUtils::QtBridge::Connect( qaction, boost::bind( &ActionCalibrationView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+
+  // test only
+  QToolButton *toolButton2 = new QToolButton();
+  toolButton2->setText("Reconstruction");
+  viewsToolBar->addWidget(toolButton2);
+  QToolButton *toolButton3 = new QToolButton();
+  toolButton3->setText("Viewer");
+  viewsToolBar->addWidget(toolButton3);
+  // test only
 	
 	// Tell Qt where to dock the toolbars
 	this->setCorner( Qt::TopLeftCorner, Qt::LeftDockWidgetArea );

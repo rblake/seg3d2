@@ -33,10 +33,9 @@
 
 SET(APPLICATION_TOOLS_SHADER_SRCS
   detail/MaskShader.frag
-  )
+)
   
-CORE_IMPORT_SHADER(APPLICATION_TOOLS_SHADER_STRING_SRCS
-					${APPLICATION_TOOLS_SHADER_SRCS})
+CORE_IMPORT_SHADER(APPLICATION_TOOLS_SHADER_STRING_SRCS ${APPLICATION_TOOLS_SHADER_SRCS})
 
 ##################################################
 # Set sources
@@ -119,12 +118,16 @@ SET(APPLICATION_TOOLS_SRCS
   PointSetFilter.cc
   SpeedlineTool.h
   SpeedlineTool.cc
-  )
+  CalibrationTool.cc
+  CalibrationTool.h
+  OpenHISFileTool.cc
+  OpenHISFileTool.h
+)
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS
   detail/MaskShader.h
   detail/MaskShader.cc
-  )
+)
   
 SET(APPLICATION_TOOLS_ACTIONS_SRCS
   Actions/ActionPaint.h
@@ -139,7 +142,7 @@ SET(APPLICATION_TOOLS_ACTIONS_SRCS
   Actions/ActionFloodFill.cc
   Actions/ActionSpeedline.h
   Actions/ActionSpeedline.cc
-  )
+)
   
 IF(BUILD_WITH_PYTHON)
   GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_Tools ${APPLICATION_TOOLS_ACTIONS_SRCS})

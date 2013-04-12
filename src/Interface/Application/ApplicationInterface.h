@@ -39,6 +39,14 @@
 #include <QtGui/QWidget>
 #include <QtCore/QPointer>
 
+// test only
+#include <QToolBar>
+#include <QToolButton>
+#include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <QtUtils/Utils/QtPointer.h>
+#include <QtUtils/Bridge/QtBridge.h>
+// test only
+
 // Boost includes
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -80,6 +88,14 @@ public:
 // 
 // 	// -- functions to handle the properties of the interface --
 private:
+  
+  // test only
+  QToolBar *viewsToolBar;
+  // test only
+  
+  
+  
+  
 	// TODO:
 	// This functions need to go to the private interface
 	void begin_progress( Core::ActionProgressHandle handle );
