@@ -135,11 +135,6 @@ bool ActionEdgeQuery::validate( Core::ActionContextHandle& context )
 	this->private_->vol_slice_ = volume_slice;
 
 	const std::vector< VertexCoord >& vertices = this->private_->vertices_;
-
-for (int i = 0; i < vertices.size(); ++i)
-{
-std::cerr << "vertices=" << vertices[i] << std::endl;
-}
 	
 	if ( vertices.size() <= 2 )
 	{
@@ -149,68 +144,6 @@ std::cerr << "vertices=" << vertices[i] << std::endl;
 
 	return true;
 }
-//
-//inline void ComputeIntersection( const ActionEdgeQuery::VertexCoord& start, 
-//	const ActionEdgeQuery::VertexCoord& end, int y, 
-//	std::vector< int >& intersections, std::vector< int >& horizontal_edges )
-//{
-//	// If the edge is horizontal, treat it as no intersection
-//	if ( end[ 1 ] == start[ 1 ] )
-//	{
-//		if ( start[ 1 ] == y )
-//		{
-//			if ( start[ 0 ] < end[ 0 ] )
-//			{
-//				horizontal_edges.push_back( static_cast< int >( start[ 0 ] ) );
-//				horizontal_edges.push_back( static_cast< int >( end[ 0 ] ) );
-//			}
-//			else
-//			{
-//				horizontal_edges.push_back( static_cast< int >( end[ 0 ] ) );
-//				horizontal_edges.push_back( static_cast< int >( start[ 0 ] ) );
-//			}
-//		}
-//		
-//		return;
-//	}
-//
-//	// If the scanline falls on one of the endpoints of the edge, then only
-//	// count in the intersection if the edge is below the scanline
-//	if ( start[ 1 ] == y )
-//	{
-//		if ( end[ 1 ] < y )
-//		{
-//			intersections.push_back( static_cast< int >( start[ 0 ] ) );
-//		}
-//		else
-//		{
-//			horizontal_edges.push_back( static_cast< int >( start[ 0 ] ) );
-//			horizontal_edges.push_back( static_cast< int >( start[ 0 ] ) );
-//		}
-//		return;
-//	}
-//
-//	if ( end[ 1 ] == y )
-//	{
-//		if ( start[ 1 ] < y )
-//		{
-//			intersections.push_back( static_cast< int >( end[ 0 ] ) );
-//		}
-//		else
-//		{
-//			horizontal_edges.push_back( static_cast< int >( end[ 0 ] ) );
-//			horizontal_edges.push_back( static_cast< int >( end[ 0 ] ) );
-//		}
-//		return;
-//	}
-//
-//	float t = ( y -start[ 1 ] ) / ( end[ 1 ] - start[ 1 ] );
-//	if ( t <= 0.0f || t >= 1.0f )
-//	{
-//		return;
-//	}
-//	intersections.push_back( Core::Round( ( 1 - t ) * start[ 0 ] + t * end[ 0 ] ) );
-//}
 
 bool ActionEdgeQuery::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
 {

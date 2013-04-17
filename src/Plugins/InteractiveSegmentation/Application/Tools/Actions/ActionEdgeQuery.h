@@ -51,11 +51,9 @@ CORE_ACTION
 	CORE_ACTION_ARGUMENT( "target", "The ID of the target mask layer." )
 	CORE_ACTION_ARGUMENT( "slice_type", "The slicing direction to be painted on." )
 	CORE_ACTION_ARGUMENT( "slice_number", "The slice number to be painted on." )
-  //CORE_ACTION_ARGUMENT( "clear", "Clear edge query." )
 	CORE_ACTION_ARGUMENT( "vertices", "The 2D coordinates of edge query tool vertices." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "save", "false", "Save edge query." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "stop", "true", "Stop edge query." )
-  //CORE_ACTION_OPTIONAL_ARGUMENT( "edge", "-1", "Selected Edge." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "edges", "<none>", "Selected Edges." )
 	CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
 	CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
@@ -87,9 +85,6 @@ private:
 	ActionEdgeQueryPrivateHandle private_;
 
 public:
-//	static void Dispatch( Core::ActionContextHandle context, const std::string& layer_id,
-//		Core::VolumeSliceType slice_type, size_t slice_number, bool erase,
-//		const std::vector< VertexCoord >& vertices );
 	static void Dispatch( Core::ActionContextHandle context, 
                        const std::string& layer_id, Core::VolumeSliceType slice_type, 
                        size_t slice_number, bool save, bool stop, const std::vector<int>& selectedEdges,

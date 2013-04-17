@@ -29,9 +29,12 @@
 // Core includes
 #include <Core/Volume/VolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
+
 #include <Core/State/Actions/ActionSetAt.h>
 #include <Core/State/Actions/ActionSet.h>
 #include <Core/Interface/Interface.h>
+
+#include <Core/DataBlock/SliceType.h>
 
 #include <Core/Utils/Lockable.h>
 
@@ -245,8 +248,6 @@ bool EdgeQueryToolPrivate::point_in_slice( ViewerHandle viewer, const Core::Poin
   
 void EdgeQueryToolPrivate::handle_vertices_changed()
 {
-std::cout << "EdgeQueryToolPrivate::handle_vertices_changed()" << std::endl;
-
   //Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
   std::vector< Core::Point > points = this->tool_->vertices_state_->get();
@@ -283,103 +284,10 @@ void EdgeQueryToolPrivate::handle_selection_changed()
 {
 	ViewerManager::Instance()->update_2d_viewers_overlay();
 }
-
-//void EdgeQueryToolPrivate::handle_save_changed()
-//{
-//  std::cout << "EdgeQueryToolPrivate::handle_save_changed()" << std::endl;
-//}
-
-//bool EdgeQueryToolPrivate::find_vertex( ViewerHandle viewer, int x, int y, int& index )
-//{
-//	// Step 1. Compute the size of a pixel in world space
-//	double x0, y0, x1, y1;
-//	viewer->window_to_world( 0, 0, x0, y0 );
-//	viewer->window_to_world( 1, 1, x1, y1 );
-//	double pixel_width = Core::Abs( x1 - x0 );
-//	double pixel_height = Core::Abs( y1 - y0 );
-//
-//	// Step 2. Compute the mouse position in world space
-//	double world_x, world_y;
-//	viewer->window_to_world( x, y, world_x, world_y );
-//
-//	// Step 3. Search for the first vertex that's within 2 pixels of current mouse position
-//	double range_x = pixel_width * 4;
-//	double range_y = pixel_height * 4;
-//	std::vector< Core::Point > vertices = this->tool_->vertices_state_->get();
-//	Core::VolumeSliceType slice_type( Core::VolumeSliceType::AXIAL_E );
-//	if ( viewer->view_mode_state_->get() == Viewer::CORONAL_C )
-//	{
-//		slice_type = Core::VolumeSliceType::CORONAL_E;
-//	}
-//	else if ( viewer->view_mode_state_->get() == Viewer::SAGITTAL_C )
-//	{
-//		slice_type = Core::VolumeSliceType::SAGITTAL_E;
-//	}
-//	
-//	for ( size_t i = 0; i < vertices.size(); ++i )
-//	{
-//		double pt_x, pt_y;
-//		Core::VolumeSlice::ProjectOntoSlice( slice_type, vertices[ i ], pt_x, pt_y );
-//		if ( Core::Abs( pt_x - world_x ) <= range_x &&
-//			Core::Abs( pt_y - world_y ) <= range_y )
-//		{
-//			index = static_cast< int >( i );
-//			return true;
-//		}
-//	}
-//
-//	index = -1;
-//	return false;
-//}
-//
-//bool EdgeQueryToolPrivate::find_closest_vertex( ViewerHandle viewer, int x, int y, int& index )
-//{
-//	// Step 1. Compute the mouse position in world space
-//	double world_x, world_y;
-//	viewer->window_to_world( x, y, world_x, world_y );
-//	
-//	// Step 2. Search for the closest vertex to the current mouse position
-//	std::vector< Core::Point > vertices = this->tool_->vertices_state_->get();
-//	Core::VolumeSliceType slice_type( Core::VolumeSliceType::AXIAL_E );
-//	if ( viewer->view_mode_state_->get() == Viewer::CORONAL_C )
-//	{
-//		slice_type = Core::VolumeSliceType::CORONAL_E;
-//	}
-//	else if ( viewer->view_mode_state_->get() == Viewer::SAGITTAL_C )
-//	{
-//		slice_type = Core::VolumeSliceType::SAGITTAL_E;
-//	}
-//	
-//	int closest_index = -1;
-//	double min_dist;
-//	for ( size_t i = 0; i < vertices.size(); ++i )
-//	{
-//		double pt_x, pt_y;
-//		Core::VolumeSlice::ProjectOntoSlice( slice_type, vertices[ i ], pt_x, pt_y );
-//		double dist_x = pt_x - world_x;
-//		double dist_y = pt_y - world_y;
-//		double distance = dist_x * dist_x + dist_y * dist_y;
-//		if ( i == 0 )
-//		{
-//			closest_index = 0;
-//			min_dist = distance;
-//		}
-//		else if ( distance < min_dist )
-//		{
-//			closest_index = static_cast< int >( i );
-//			min_dist = distance;
-//		}
-//	}
-//	
-//	index = closest_index;
-//	return index >= 0;
-//}
 	
 void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context, 
 								  bool save, bool stop, ViewerHandle viewer )
 {
-  //std::cerr << "EdgeQueryToolPrivate::execute" << std::endl;
-
 	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
 
 	if ( !this->tool_->valid_target_state_->get() )
@@ -424,23 +332,21 @@ void EdgeQueryToolPrivate::execute( Core::ActionContextHandle context,
 	{
 		return;
 	}
-	double world_x, world_y;
-	int x, y;
-	std::vector< ActionEdgeQuery::VertexCoord > vertices_2d;
-
-	for ( size_t i = 0; i < num_of_vertices; ++i )
-	{
-		volume_slice->project_onto_slice( vertices[ i ], world_x, world_y );
-		volume_slice->world_to_index( world_x, world_y, x, y );
-		vertices_2d.push_back( ActionEdgeQuery::VertexCoord( 
-			static_cast< float >( x ), static_cast< float >( y ), 0 ) );
-	}
-	
-	ActionEdgeQuery::Dispatch( context, this->tool_->target_layer_state_->get(),
-		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save, stop,
-    this->tool_->selectedEdges_state_->get(), vertices_2d );
-  
-  // clear selection?
+//	double world_x, world_y;
+//	int x, y;
+//	std::vector< ActionEdgeQuery::VertexCoord > vertices_2d;
+//
+//	for ( size_t i = 0; i < num_of_vertices; ++i )
+//	{
+//		volume_slice->project_onto_slice( vertices[ i ], world_x, world_y );
+//		volume_slice->world_to_index( world_x, world_y, x, y );
+//		vertices_2d.push_back( ActionEdgeQuery::VertexCoord( 
+//			static_cast< float >( x ), static_cast< float >( y ), 0 ) );
+//	}
+//	
+//	ActionEdgeQuery::Dispatch( context, this->tool_->target_layer_state_->get(),
+//		volume_slice->get_slice_type(), volume_slice->get_slice_number(), save, stop,
+//    this->tool_->selectedEdges_state_->get(), vertices_2d );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -523,10 +429,10 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
   }  
   
   // Compute the size of a pixel in world space
-  double x0, y0, x1, y1;
-  viewer->window_to_world( 0, 0, x0, y0 );
-  viewer->window_to_world( 1, 1, x1, y1 );
-  double pixel_width = Core::Abs( x1 - x0 );
+  double i0, j0, i1, j1;
+  viewer->window_to_world( 0, 0, i0, j0 );
+  viewer->window_to_world( 1, 1, i1, j1 );
+  double pixel_width = Core::Abs( i1 - i0 );
   double epsilon = pixel_width * 4;
   
   // Compute the mouse position in world space
@@ -540,9 +446,9 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
   //bool hovering = false;
   double min_dist = DBL_MAX;
 
-  for( size_t i = 0; i < EDGE_QUERY_SIZE; ++i )
+  for( size_t index = 0; index < EDGE_QUERY_SIZE; ++index )
   {
-    LineSegment ls = this->private_->edgeQuery_.getEdge(i);
+    LineSegment ls = this->private_->edgeQuery_.getEdge(index);
     
     Core::Point p0, p1;
     p0 = ls.p1_;
@@ -550,12 +456,12 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
     
     // Project points onto slice so that we can detect if we're hovering over a line
     // not in the current slice.
-    double p0_x, p0_y;
-    active_slice->project_onto_slice( p0, p0_x, p0_y );
-    p0 = Core::Point( p0_x, p0_y, 0 );
-    double p1_x, p1_y;
-    active_slice->project_onto_slice( p1, p1_x, p1_y );
-    p1 = Core::Point( p1_x, p1_y, 0 );
+    double p0_i, p0_j;
+    active_slice->project_onto_slice( p0, p0_i, p0_j );
+    p0 = Core::Point( p0_i, p0_j, 0 );
+    double p1_i, p1_j;
+    active_slice->project_onto_slice( p1, p1_i, p1_j );
+    p1 = Core::Point( p1_i, p1_j, 0 );
     
     // Calculate the shortest distance between the point and the line segment
     double distance = 0.0;
@@ -585,8 +491,8 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
     if ( distance > epsilon || distance > min_dist )
     {
       viewer->set_cursor( Core::CursorShape::CROSS_E );
-      //this->private_->edgeQuery_.unselect(i);
-      this->private_->edgeQuery_.unsetHover(i);
+      //this->private_->edgeQuery_.unselect(index);
+      this->private_->edgeQuery_.unsetHover(index);
       continue;
     }
     
@@ -595,8 +501,8 @@ bool EdgeQueryTool::handle_mouse_move( ViewerHandle viewer,
     min_dist = distance;
     viewer->set_cursor( Core::CursorShape::OPEN_HAND_E );
 
-    //this->private_->edgeQuery_.select(i);
-    this->private_->edgeQuery_.hover(i);
+    //this->private_->edgeQuery_.select(index);
+    this->private_->edgeQuery_.hover(index);
 
     return true;
   }
@@ -609,234 +515,14 @@ bool EdgeQueryTool::handle_mouse_press( ViewerHandle viewer,
 									  int button, int buttons, int modifiers )
 {
   // ignoring...
-//	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
-	if ( viewer->is_volume_view() )
-	{
-		return false;
-	}
-//  
-//  if (button == Core::MouseButton::LEFT_BUTTON_E)
-//  {
-//  	// May be called from application (slice changed) or interface (mouse move) thread
-//    //lock_type lock( this->get_mutex() );
-//    
-//    Core::VolumeSliceHandle active_slice = viewer->get_active_volume_slice();
-//    if( !active_slice )
-//    {
-//      return false;
-//    }
-//    
-//    // Compute the size of a pixel in world space
-//    double x0, y0, x1, y1;
-//    viewer->window_to_world( 0, 0, x0, y0 );
-//    viewer->window_to_world( 1, 1, x1, y1 );
-//    double pixel_width = Core::Abs( x1 - x0 );
-//    double epsilon = pixel_width * 4;
-//    
-//    // Compute the mouse position in world space
-//    double mouse_x, mouse_y;
-//    viewer->window_to_world( mouse_history.current_.x_, mouse_history.current_.y_, mouse_x, mouse_y );
-//    Core::Point mouse_point( mouse_x, mouse_y, 0 );
-//    
-//    Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
-////    const std::vector< Core::Measurement >& measurements = this->tool_->measurements_state_->get();
-//    
-//    std::vector< Core::Point > points = this->vertices_state_->get();
-//    
-//    
-//    bool hovering = false;
-//    double min_dist = DBL_MAX;
-////    for( size_t m_idx = 0; m_idx < measurements.size(); m_idx++ )
-//    for( size_t i = 0; i < 1; ++i )
-//    {
-////      const Core::Measurement& m = measurements[ m_idx ];
-//      
-//      // Get both measurement points
-//      Core::Point p0, p1;
-////      m.get_point( 0, p0 );
-////      m.get_point( 1, p1 );
-//
-//      
-//      p0 = points[0];
-//      p1 = points[1];
-//      
-//      // Project points onto slice so that we can detect if we're hovering over a measurement
-//      // not in the current slice.
-//      double p0_x, p0_y;
-//      active_slice->project_onto_slice( p0, p0_x, p0_y );
-//      p0 = Core::Point( p0_x, p0_y, 0 );
-//      double p1_x, p1_y;
-//      active_slice->project_onto_slice( p1, p1_x, p1_y );
-//      p1 = Core::Point( p1_x, p1_y, 0 );
-//      
-//      // Calculate the shortest distance between the point and the line segment
-//      double distance = 0.0;
-//      double l2 = ( p1 - p0 ).length2();  // i.e. |w-v|^2 -  avoid a sqrt
-//      if( l2 == 0.0 ) // p0 == p1 case
-//      {
-//        distance = ( mouse_point - p0 ).length();
-//      }
-//      else
-//      {
-//        // Consider the line extending the segment, parameterized as v + t (w - v).
-//        // We find projection of point p onto the line. 
-//        // It falls where t = [(p-v) . (w-v)] / |w-v|^2
-//        double t = Dot( mouse_point - p0, p1 - p0 ) / l2;
-//        if( t < 0.0 || t > 1.0 )
-//        {
-//          // Beyond the segment
-//          continue;
-//        }
-//        else
-//        {
-//          Core::Point projection = p0 + t * ( p1 - p0 );  // Projection falls on the segment
-//          distance = ( mouse_point - projection ).length();
-//        }	
-//      }
-//      
-//      if( distance > epsilon || distance > min_dist )
-//      {
-//        continue;
-//      }
-//      
-//      // Found the new closest measurement
-//      hovering = true;
-//      min_dist = distance;
-//      //this->hover_measurement_.index_ = static_cast< int >( m_idx );
-//      viewer->set_cursor( Core::CursorShape::OPEN_HAND_E );
-//      //this->hover_measurement_.hover_object_ = MeasurementHoverObject::LINE_E;
-//    }
-//    
-//    return hovering;
-//  }
-  
-  
-  //  if ( button == Core::MouseButton::LEFT_BUTTON_E && this->private_->vertex_index_ != -1 )
-//  {
-//    return true;
-//  }
-//
-//
-//	if ( button == Core::MouseButton::LEFT_BUTTON_E &&
-//		( modifiers == Core::KeyModifier::NO_MODIFIER_E ||
-//		modifiers == Core::KeyModifier::SHIFT_MODIFIER_E ) &&
-//		this->private_->vertex_index_ != -1 )
-//	{
-//		this->private_->moving_vertex_ = true;
-//		viewer->set_cursor( Core::CursorShape::CLOSED_HAND_E );
-//		return true;
-//	}
-//	else if ( button == Core::MouseButton::MID_BUTTON_E &&
-//			 ( modifiers == Core::KeyModifier::NO_MODIFIER_E ||
-//			  modifiers == Core::KeyModifier::SHIFT_MODIFIER_E ) )
-//	{
-//		if ( this->private_->find_closest_vertex( viewer, mouse_history.current_.x_, 
-//			mouse_history.current_.y_, this->private_->vertex_index_ ) )
-//		{
-//			this->private_->moving_vertex_ = true;
-//			viewer->set_cursor( Core::CursorShape::CLOSED_HAND_E );
-//			return true;			
-//		}
-//	}
-//	else if ( !( modifiers & Core::KeyModifier::SHIFT_MODIFIER_E ) &&
-//		button == Core::MouseButton::LEFT_BUTTON_E )
-//	{
-//		Core::VolumeSliceHandle active_slice = viewer->get_active_volume_slice();
-//		if ( active_slice && !active_slice->out_of_boundary() )
-//		{
-//			double world_x, world_y;
-//			viewer->window_to_world( mouse_history.current_.x_, 
-//				mouse_history.current_.y_, world_x, world_y );
-//			Core::Point pt;
-//			active_slice->get_world_coord( world_x, world_y,  pt );
-//			
-//			double dmin = DBL_MAX;
-//			double proj_min = DBL_MAX;
-//			std::vector<Core::Point> points = this->vertices_state_->get();
-//			
-//			size_t idx = 0;
-//			for ( size_t j = 0; j < points.size(); j++ )
-//			{
-//				size_t k = j + 1;
-//				if ( k ==  points.size() ) k = 0;
-//				
-//				Core::Vector edge_dir = points[ j ] - points[ k ];
-//				double edge_length = edge_dir.normalize();
-//				double alpha = Dot( points[ j ] - pt, points[ j ] - points[ k ] )/
-//					( edge_length * edge_length );
-//					
-//				double dist = 0.0;
-//				double proj_len = 0.0;
-//				if ( alpha < 0.0 ) 
-//				{
-//					Core::Vector dir = points[ j ] - pt;
-//					dist = dir.length2();
-//					proj_len = Core::Abs( Dot( edge_dir, dir ) );
-//				}
-//				else if ( alpha > 1.0 )
-//				{
-//					Core::Vector dir = points[ k ] - pt;
-//					dist = dir.length2();
-//					proj_len = Core::Abs( Dot( edge_dir, dir ) );
-//				}
-//				else 
-//				{
-//					dist = ( ( points[ j ] - pt ) - alpha * ( points[ j ] - points[ k ] ) ).length2();
-//				}
-//				
-//				if ( dist < dmin ||
-//					( dist == dmin && proj_len < proj_min ) )
-//				{
-//					dmin = dist;
-//					proj_min = proj_len;
-//					idx = k;
-//				}
-//			}
-//			points.insert( points.begin() + idx, pt );
-//			
-//			Core::ActionSet::Dispatch( Core::Interface::GetMouseActionContext(),
-//				this->vertices_state_, points );
-//
-//			// Set to "hovered over" state since the mouse is hovering over the new point
-//			viewer->set_cursor( Core::CursorShape::OPEN_HAND_E );
-//			this->private_->vertex_index_ = static_cast< int >( idx );
-//
-//			return true;
-//		}
-//	}
-//	else if ( modifiers == Core::KeyModifier::NO_MODIFIER_E &&
-//		button == Core::MouseButton::LEFT_BUTTON_E )
-//	{
-//		Core::VolumeSliceHandle active_slice = viewer->get_active_volume_slice();
-//		if ( active_slice && !active_slice->out_of_boundary() )
-//		{
-//			double world_x, world_y;
-//			viewer->window_to_world( mouse_history.current_.x_, 
-//				mouse_history.current_.y_, world_x, world_y );
-//			Core::Point pt;
-//			active_slice->get_world_coord( world_x, world_y,  pt );
-//			Core::ActionAdd::Dispatch( Core::Interface::GetMouseActionContext(),
-//				this->vertices_state_, pt );
-//			return true;
-//		}
-//	}
-//	else if ( modifiers == Core::KeyModifier::NO_MODIFIER_E &&
-//		button == Core::MouseButton::RIGHT_BUTTON_E )
-//	{
-//		if ( this->private_->vertex_index_ != -1 )
-//		{
-//			Core::Point pt = this->vertices_state_->get()[ this->private_->vertex_index_ ];
-//			Core::ActionRemove::Dispatch( Core::Interface::GetMouseActionContext(),
-//				this->vertices_state_, pt );
-//
-//			// Set to "not hovered over" state since the point no longer exists
-//			viewer->set_cursor( Core::CursorShape::CROSS_E );
-//			this->private_->vertex_index_ = -1;
-//
-//			return true;
-//		}		
-//	}
 
+//	Core::StateEngine::lock_type state_lock( Core::StateEngine::GetMutex() );
+//	if ( viewer->is_volume_view() )
+//	{
+//		return false;
+//	}
+  
+  // let default renderer handle mouse press event
 	return false;
 }
 
@@ -917,21 +603,11 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
   
   if (! this->private_->edgeQuery_.is_valid() )
   {
+    // TODO: debug log
     //std::cerr << "No EdgeQuery available!!!" << std::endl;
     return;
   }
   
-//  Core::VolumeSliceHandle volume_slice = viewer->get_active_volume_slice();
-//  if ( ! volume_slice )
-//  {
-//    return;
-//  }
-//std::cerr << "volume slice number=" << volume_slice->get_slice_number() << std::endl;
-//std::cerr << "point z coord=" << ls.p1_.z() << std::endl;
-  
-  // assumes all points are in the same slice
-  // TODO: will this always be true?
-
   LineSegment ls1 = this->private_->edgeQuery_.getEdge(0);
   LineSegment ls2 = this->private_->edgeQuery_.getEdge(1);
   double point_depth = 0;
@@ -963,143 +639,127 @@ void EdgeQueryTool::redraw( size_t viewer_id, const Core::Matrix& proj_mat,
   
 	glPointSize( 6.0f );
 	glLineWidth( 4.0f );
-  // cyan
-	glColor3f( 0.0f, 1.0f, 1.0f );
 	glEnable( GL_LINE_SMOOTH );
 
 	glBegin( GL_POINTS );
 
-  double x_pos, y_pos;
+  double ls1_p1_iPos, ls1_p1_jPos, ls1_p2_iPos, ls1_p2_jPos, 
+         ls2_p1_iPos, ls2_p1_jPos, ls2_p2_iPos, ls2_p2_jPos;
+
+  Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, ls1_p1_iPos, ls1_p1_jPos );
+  Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p2_, ls1_p2_iPos, ls1_p2_jPos );
+  Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p1_, ls2_p1_iPos, ls2_p1_jPos );
+  Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, ls2_p2_iPos, ls2_p2_jPos );
+
+  if (slice_type == Core::VolumeSliceType::SAGITTAL_E)
+  {
+    // y-z plane
+    ls1.p1_[ 1 ] = ls1_p1_iPos;
+    ls1.p1_[ 2 ] = ls1_p1_jPos;
+  }
+  else if (slice_type == Core::VolumeSliceType::CORONAL_E)
+  {
+    // x-z plane
+    ls1.p1_[ 0 ] = ls1_p1_iPos;
+    ls1.p1_[ 2 ] = ls1_p1_jPos;
+  }
+  else // AXIAL
+  {
+    // x-y plane
+    ls1.p1_[ 0 ] = ls1_p1_iPos;
+    ls1.p1_[ 1 ] = ls1_p1_jPos;
+  }
   
   if ( ( this->private_->edgeQuery_.selected(0) ) && ( ! this->private_->edgeQuery_.selected(1) ) )
   {
+    // draw all points from line 1 and last point of line 2
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
-		ls1.p1_[ 0 ] = x_pos;
-		ls1.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p2_, x_pos, y_pos );
-		ls1.p2_[ 0 ] = x_pos;
-		ls1.p2_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
+		glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
+		glVertex2d( ls1_p2_iPos, ls1_p2_jPos );
 
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-    Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
-    ls2.p2_[ 0 ] = x_pos;
-    ls2.p2_[ 1 ] = y_pos;
-    glVertex2d( x_pos, y_pos );
+    glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
 
-  if ( ( ! this->private_->edgeQuery_.selected(0) ) && ( this->private_->edgeQuery_.selected(1) ) )
+  else if ( ( ! this->private_->edgeQuery_.selected(0) ) && ( this->private_->edgeQuery_.selected(1) ) )
   {
+    // draw first point of line 1 and all points from line 2
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-    Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
-    ls1.p1_[ 0 ] = x_pos;
-    ls1.p1_[ 1 ] = y_pos;
-    glVertex2d( x_pos, y_pos );
+    glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
 
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p1_, x_pos, y_pos );
-		ls2.p1_[ 0 ] = x_pos;
-		ls2.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
-		ls2.p2_[ 0 ] = x_pos;
-		ls2.p2_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
+		glVertex2d( ls2_p1_iPos, ls2_p1_jPos );
+		glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
-  
-  if ( this->private_->edgeQuery_.allSelected() )
+  else
   {
-    // white
-    glColor3f( 1.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
-		ls1.p1_[ 0 ] = x_pos;
-		ls1.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-    
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p1_, x_pos, y_pos );
-		ls2.p1_[ 0 ] = x_pos;
-		ls2.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-    
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
-		ls2.p2_[ 0 ] = x_pos;
-		ls2.p2_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-  }
-  
-  if ( this->private_->edgeQuery_.allUnselected() )
-  {
-    // cyan
-    glColor3f( 0.0f, 1.0f, 1.0f );
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls1.p1_, x_pos, y_pos );
-		ls1.p1_[ 0 ] = x_pos;
-		ls1.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p1_, x_pos, y_pos );
-		ls2.p1_[ 0 ] = x_pos;
-		ls2.p1_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
-    
-		Core::VolumeSlice::ProjectOntoSlice( slice_type, ls2.p2_, x_pos, y_pos );
-		ls2.p2_[ 0 ] = x_pos;
-		ls2.p2_[ 1 ] = y_pos;
-		glVertex2d( x_pos, y_pos );
+    if ( this->private_->edgeQuery_.allSelected() )
+    {
+      // draw first point of line 1 and all points from line 2
+      // white
+      glColor3f( 1.0f, 1.0f, 1.0f );
+    }
+    else if ( this->private_->edgeQuery_.allUnselected() )
+    {
+      // draw first point of line 1 and all points from line 2
+      // cyan
+      glColor3f( 0.0f, 1.0f, 1.0f );
+    }
+    glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
+    glVertex2d( ls2_p1_iPos, ls2_p1_jPos );
+    glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
   
   glEnd();
 
 	glBegin( GL_LINE_STRIP );
 
-  //LineSegment ls1 = this->private_->edgeQuery_.getEdge(0);
-  //LineSegment ls2 = this->private_->edgeQuery_.getEdge(1);
-
   if ( this->private_->edgeQuery_.selected(0) && ( ! this->private_->edgeQuery_.selected(1) ) )
   {
+    // draw all points through all points in line 1 to last point of line 2
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
-    glVertex2d( ls1.p1_.x(), ls1.p1_.y() );
-    glVertex2d( ls1.p2_.x(), ls1.p2_.y() );
+		glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
+		glVertex2d( ls1_p2_iPos, ls1_p2_jPos );
+    
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-    glVertex2d( ls2.p2_.x(), ls2.p2_.y() );    
+    glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
 
-  if ( ( ! this->private_->edgeQuery_.selected(0) ) && this->private_->edgeQuery_.selected(1) )
+  else if ( ( ! this->private_->edgeQuery_.selected(0) ) && this->private_->edgeQuery_.selected(1) )
   {
+    // draw line segments from first point of line 1 through all points in line 2
     // cyan
     glColor3f( 0.0f, 1.0f, 1.0f );
-    glVertex2d( ls1.p1_.x(), ls1.p1_.y() );
+    glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
+    
     // white
     glColor3f( 1.0f, 1.0f, 1.0f );
-    glVertex2d( ls2.p1_.x(), ls2.p1_.y() );    
-    glVertex2d( ls2.p2_.x(), ls2.p2_.y() );    
+		glVertex2d( ls2_p1_iPos, ls2_p1_jPos );
+		glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
-  
-  if ( this->private_->edgeQuery_.allSelected() )
+  else
   {
-    // white
-    glColor3f( 1.0f, 1.0f, 1.0f );
-    glVertex2d( ls1.p1_.x(), ls1.p1_.y() );
-    glVertex2d( ls1.p2_.x(), ls1.p2_.y() );
-    glVertex2d( ls2.p2_.x(), ls2.p2_.y() );
-  }
-  
-  if ( this->private_->edgeQuery_.allUnselected() )
-  {
-    // cyan
-    glColor3f( 0.0f, 1.0f, 1.0f );
-    glVertex2d( ls1.p1_.x(), ls1.p1_.y() );
-    glVertex2d( ls1.p2_.x(), ls1.p2_.y() );
-    glVertex2d( ls2.p2_.x(), ls2.p2_.y() );
+    if ( this->private_->edgeQuery_.allSelected() )
+    {
+      // draw line segments from first point of line 1 through all points in line 2
+      // white
+      glColor3f( 1.0f, 1.0f, 1.0f );
+    }
+    else if ( this->private_->edgeQuery_.allUnselected() )
+    {
+      // draw line segments from first point of line 1 through all points in line 2
+      // cyan
+      glColor3f( 0.0f, 1.0f, 1.0f );
+    }
+    glVertex2d( ls1_p1_iPos, ls1_p1_jPos );
+    glVertex2d( ls2_p1_iPos, ls2_p1_jPos );
+    glVertex2d( ls2_p2_iPos, ls2_p2_jPos );
   }
   
   glEnd();
