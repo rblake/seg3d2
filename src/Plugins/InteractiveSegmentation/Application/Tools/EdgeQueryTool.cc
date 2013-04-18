@@ -392,6 +392,8 @@ void EdgeQueryTool::stop( Core::ActionContextHandle context )
 {
   Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
   this->stop_state_->set(true);
+  // save and end
+  this->save_state_->set(true);
   
   this->private_->execute(context, this->save_state_->get(), this->stop_state_->get());
 }
