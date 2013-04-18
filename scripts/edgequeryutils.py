@@ -58,6 +58,7 @@ class EdgeQueryUtils:
     print("Points from ", pointsFilename)
     with open(pointsFilename) as pointsFile:
       firstLine = True
+      index = 0
       for line in pointsFile:
         if firstLine:
           headerList = line.split()
@@ -68,35 +69,48 @@ class EdgeQueryUtils:
             if fieldList[0] == "sliceid":
               sliceid = int(fieldList[1])
               # Axial = 0, Coronal = 1, Sagittal = 2, Volume = 3
-              if sliceid < 0 or sliceid > 3:
-                print("Invalid sliceid {}. Defaulting to {} view.".format(sliceid, view_mode))
-                sliceid = 3
+              if sliceid < 0 or sliceid > 2:
+                invalid_sliceid = sliceid
+                sliceid = 0
+                print("Invalid sliceid {}. Defaulting to {} view.".format(invalid_sliceid, self.view_modes[sliceid]))
 
               result = seg3d2.set(stateid='viewer0::view_mode', value=self.view_modes[sliceid])
+              # 2nd and 3rd viewers in mode 1and2 are viewer3 and viewer4
+              if sliceid == 0:
+                result = seg3d2.set(stateid='viewer3::view_mode', value=self.view_modes[1])
+                result = seg3d2.set(stateid='viewer4::view_mode', value=self.view_modes[2])
+              elif sliceid == 1:
+                result = seg3d2.set(stateid='viewer3::view_mode', value=self.view_modes[0])
+                result = seg3d2.set(stateid='viewer4::view_mode', value=self.view_modes[2])
+              else:
+                result = seg3d2.set(stateid='viewer3::view_mode', value=self.view_modes[0])
+                result = seg3d2.set(stateid='viewer4::view_mode', value=self.view_modes[1])
+                
 
             if fieldList[0] == "index":
               # TODO: check against size of data volume (should be exposed?)
               index = int(fieldList[1])
-              result = seg3d2.set(stateid='viewer0::slice_number', value=index)
 
           firstLine = False
         else:
           floats = [float(points) for points in line.split()]
-          print(floats)
           self.vertices.append(floats)
 
     if len(self.vertices) < 3:
       # TODO: error class
       raise Exception('ListError', 'Points list should contain 3 points.') 
 
-    # 2D case - add default z location (0)
     for pointList in self.vertices:
       if len(pointList) == 2:
-        pointList.append(0)
+        # TODO: error class
+        raise Exception('ListError', 'Points list should contain 3D points.') 
 
     result = seg3d2.autoview(viewerid=0)
 
     print("Edge query vertices read from %s." % pointsFilename)
+    # using center point seems reasonable here...
+    result = seg3d2.pickpoint(point=self.vertices[1])
+    result = seg3d2.set(stateid='viewer0::slice_number', value=index)
 
   def __writeLabelsToFile(self, stateID, iteration):
     edges = seg3d2.get(stateid=stateID)
@@ -117,8 +131,7 @@ class EdgeQueryUtils:
     self.dataLayerID = idHandle[0]
 
     # set(..) returns bool
-    result = seg3d2.set(stateid='view::layout', value='single')
-
+    result = seg3d2.set(stateid='view::layout', value='1and2')
 
   def __importMatlabSingleMaskLayer(self, iteration):
     maskFilename = "%s_%d.%s" % (self.maskFileBasename, iteration, self.maskFileExt)
@@ -191,6 +204,7 @@ class EdgeQueryUtils:
     self.labels = ''
     self.stop = False
     self.view_modes = ['Axial', 'Coronal', 'Sagittal', 'Volume']
+    self.dataLayerID = 0
 
     self.__setTransientDefaults()
     self.__importConfiguration()
