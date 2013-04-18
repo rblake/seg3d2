@@ -110,7 +110,7 @@ class MatlabPipe(object):
       raise MatlabConnectionError('Matlab(TM) process is still active. Use close to '
                       'close it')
     self.process = subprocess.Popen(
-        [self.matlab_process_path, '-nojvm', '-nodesktop'],
+        [self.matlab_process_path, '-nojvm', '-nodesktop', '-maci'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=-1, cwd=working_directory, shell=False)
     flags = fcntl.fcntl(self.process.stdout, fcntl.F_GETFL)
     fcntl.fcntl(self.process.stdout, fcntl.F_SETFL, flags| os.O_NONBLOCK)
