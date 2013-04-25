@@ -51,7 +51,9 @@
 #include <Application/ProjectManager/Actions/ActionLoadProject.h>
 
 // Application specialization for backscatter/reconstruction project
-#include <Application/ReconstructionView/Actions/ActionCalibrationView.h>
+#include <Application/BackscatterReconstruction/Actions/ActionCalibrationView.h>
+#include <Application/BackscatterReconstruction/Actions/ActionReconstructionView.h>
+#include <Application/BackscatterReconstruction/Actions/ActionVisualizationView.h>
 
 // QtUtils includes
 #include <QtUtils/Utils/QtApplication.h>
@@ -147,19 +149,30 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
   viewsToolBar = addToolBar(tr("&Views"));
   viewsToolBar->setMovable(false);
 
-  QAction *qaction = new QAction( tr( "Calibration" ), this );
-  viewsToolBar->addAction(qaction);
-  QtUtils::QtBridge::Connect( qaction, boost::bind( &ActionCalibrationView::Dispatch,
+  QAction *qactionCalibration = new QAction( tr( "Calibration" ), this );
+  viewsToolBar->addAction(qactionCalibration);
+  QtUtils::QtBridge::Connect( qactionCalibration, boost::bind( &ActionCalibrationView::Dispatch,
     Core::Interface::GetWidgetActionContext() ) );
 
-  // test only
-  QToolButton *toolButton2 = new QToolButton();
-  toolButton2->setText("Reconstruction");
-  viewsToolBar->addWidget(toolButton2);
-  QToolButton *toolButton3 = new QToolButton();
-  toolButton3->setText("Viewer");
-  viewsToolBar->addWidget(toolButton3);
-  // test only
+  QAction *qactionReconstruction = new QAction( tr( "Reconstruction" ), this );
+  viewsToolBar->addAction(qactionReconstruction);
+  QtUtils::QtBridge::Connect( qactionReconstruction, boost::bind( &ActionReconstructionView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+  
+  QAction *qactionVisualization = new QAction( tr( "Viewer" ), this );
+  viewsToolBar->addAction(qactionVisualization);
+  QtUtils::QtBridge::Connect( qactionVisualization, boost::bind( &ActionVisualizationView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+  
+// test only
+//  QToolButton *toolButton2 = new QToolButton();
+//  toolButton2->setText("Reconstruction");
+//  viewsToolBar->addWidget(toolButton2);
+
+//  QToolButton *toolButton3 = new QToolButton();
+//  toolButton3->setText("Viewer");
+//  viewsToolBar->addWidget(toolButton3);
+// test only
 	
 	// Tell Qt where to dock the toolbars
 	this->setCorner( Qt::TopLeftCorner, Qt::LeftDockWidgetArea );

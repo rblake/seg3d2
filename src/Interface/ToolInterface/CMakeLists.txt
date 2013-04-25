@@ -70,8 +70,8 @@ SET(INTERFACE_TOOLINTERFACE_SRCS
   MeasurementToolInterface.cc
   PointSetFilterInterface.cc
   SpeedlineToolInterface.cc
-  OpenHISFileToolInterface.cc
   CalibrationToolInterface.cc
+  ReconstructionToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
@@ -117,8 +117,8 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   detail/MeasurementTextEdit.h
   PointSetFilterInterface.h
   SpeedlineToolInterface.h
-  OpenHISFileToolInterface.h
   CalibrationToolInterface.h
+  ReconstructionToolInterface.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
@@ -167,8 +167,8 @@ SET(INTERFACE_TOOLINTERFACE_UI_SRCS
   MeasurementToolInterface.ui
   PointSetFilterInterface.ui
   SpeedlineToolInterface.ui
-  OpenHISFileToolInterface.ui
   CalibrationToolInterface.ui
+  ReconstructionToolInterface.ui
 )
 
 ##################################################
@@ -214,6 +214,7 @@ TARGET_LINK_LIBRARIES(Interface_ToolInterface
                       Core_Interface
                       Core_Action
                       Application_Tool
+                      Application_LayerIO
                       QtUtils_Utils
                       QtUtils_Widgets
                       QtUtils_Bridge

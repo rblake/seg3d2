@@ -26,16 +26,18 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_CALIBRATIONTOOL_H
-#define APPLICATION_TOOLS_CALIBRATIONTOOL_H
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_CALIBRATIONTOOL_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_CALIBRATIONTOOL_H
 
-// Application includes
-#include <Application/Tool/Tool.h>
+#include <Application/Tool/SingleTargetTool.h>
 
 namespace Seg3D
 {
 
-class CalibrationTool : public Tool
+class CalibrationToolPrivate;
+typedef boost::shared_ptr< CalibrationToolPrivate > CalibrationToolPrivateHandle;
+
+class CalibrationTool : public SingleTargetTool
 {
 
 SEG3D_TOOL
@@ -52,6 +54,29 @@ SEG3D_TOOL
 public:
   CalibrationTool( const std::string& toolid );
   virtual ~CalibrationTool();
+
+	virtual void execute( Core::ActionContextHandle context );
+  
+	/// HANDLE_MOUSE_PRESS:
+	/// Called when a mouse button has been pressed.
+	virtual bool handle_mouse_press( ViewerHandle viewer, 
+                                  const Core::MouseHistory& mouse_history, 
+                                  int button, int buttons, int modifiers );
+  
+	/// HANDLE_MOUSE_MOVE:
+	/// Called when the mouse moves in a viewer.
+	virtual bool handle_mouse_move( ViewerHandle viewer, 
+                                 const Core::MouseHistory& mouse_history, 
+                                 int button, int buttons, int modifiers );
+  
+	// -- state --
+  // target is first layer
+	Core::StateLabeledOptionHandle input_b_state_;
+	Core::StateLabeledOptionHandle input_c_state_;
+	Core::StateLabeledOptionHandle input_d_state_;  
+
+private:
+	CalibrationToolPrivateHandle private_;
 };
   
 }

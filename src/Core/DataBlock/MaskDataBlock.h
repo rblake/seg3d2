@@ -42,6 +42,11 @@
 #include <Core/DataBlock/MaskDataSlice.h>
 #include <Core/DataBlock/DataBlock.h>
 
+// test
+#include <iostream>
+// test
+
+
 namespace Core
 {
 
@@ -153,6 +158,12 @@ public:
 	/// Get the mask value at a certain index
 	inline bool get_mask_at( size_t index ) const
 	{
+    if (index >= get_size())
+    {
+      std::cerr << index << " is out of range!!!" << std::endl;
+      return false;
+    }
+
 		return ( this->data_[ index ] & this->mask_value_ ) != 0;
 	}
 

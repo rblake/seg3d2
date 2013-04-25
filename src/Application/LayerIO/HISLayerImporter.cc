@@ -194,11 +194,11 @@ bool HISLayerImporterPrivate::read_header()
     }
 
     // TODO: confirm this!!!
-    Core::Point origin;
     std::vector<size_t> dims(3);
     dims[0] = this->header_.BRX;
     dims[1] = this->header_.BRY;
     dims[2] = this->header_.NrOfFrames;
+    Core::Point origin;
     
     std::cerr << "header:" << std::endl << getString() << std::endl;
 

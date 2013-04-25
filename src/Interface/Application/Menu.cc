@@ -84,10 +84,10 @@ Menu::Menu( QMainWindow* parent ) :
 
 	// Create all the menus
 	this->create_file_menu( menubar );	
-	this->create_edit_menu( menubar );
-	this->create_view_menu( menubar );
-	this->create_tool_menus( menubar );
-	this->create_window_menu( menubar );
+//	this->create_edit_menu( menubar );
+//	this->create_view_menu( menubar );
+//	this->create_tool_menus( menubar );
+//	this->create_window_menu( menubar );
 	this->create_help_menu( menubar );
 	
 	// Setup all the connections for menus
@@ -97,9 +97,9 @@ Menu::Menu( QMainWindow* parent ) :
 	{
 		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
 		
-		// Update the tags in the undo and redo buffers
-		this->update_undo_tag( UndoBuffer::Instance()->get_undo_tag() );
-		this->update_redo_tag( UndoBuffer::Instance()->get_redo_tag() );
+//		// Update the tags in the undo and redo buffers
+//		this->update_undo_tag( UndoBuffer::Instance()->get_undo_tag() );
+//		this->update_redo_tag( UndoBuffer::Instance()->get_redo_tag() );
 
 		// Update to the most recent list
 		this->set_recent_file_list();	
@@ -128,9 +128,9 @@ Menu::Menu( QMainWindow* parent ) :
 				layer->data_state_->get() != Layer::PROCESSING_C ) active_data_layer_found = true;
 		}
 
-		// Check what type of layer is active
-		this->enable_disable_mask_actions( mask_layer_found );
-		this->enable_disable_data_layer_actions( active_data_layer_found ); 
+//		// Check what type of layer is active
+//		this->enable_disable_mask_actions( mask_layer_found );
+//		this->enable_disable_data_layer_actions( active_data_layer_found ); 
 
 		// Automatically update the recent file list in the menu
 		this->add_connection( ProjectManager::Instance()->recent_projects_changed_signal_.connect( 
@@ -150,13 +150,13 @@ Menu::Menu( QMainWindow* parent ) :
 		this->add_connection( LayerManager::Instance()->layer_data_changed_signal_.connect( 
 			boost::bind( &Menu::EnableDisableLayerActions, qpointer_type( this ) ) ) );
 
-		// Automatically update the tag in the undo menu		
-		this->add_connection( UndoBuffer::Instance()->update_undo_tag_signal_.connect(
-			boost::bind( &Menu::UpdateUndoTag, qpointer_type( this ), _1 ) ) );	
-
-		// Automatically update the tag in the redo menu		
-		this->add_connection( UndoBuffer::Instance()->update_redo_tag_signal_.connect(
-			boost::bind( &Menu::UpdateRedoTag, qpointer_type( this ), _1 ) ) );	
+//		// Automatically update the tag in the undo menu		
+//		this->add_connection( UndoBuffer::Instance()->update_undo_tag_signal_.connect(
+//			boost::bind( &Menu::UpdateUndoTag, qpointer_type( this ), _1 ) ) );	
+//
+//		// Automatically update the tag in the redo menu		
+//		this->add_connection( UndoBuffer::Instance()->update_redo_tag_signal_.connect(
+//			boost::bind( &Menu::UpdateRedoTag, qpointer_type( this ), _1 ) ) );	
 			
 	}	
 }
@@ -982,11 +982,11 @@ void Menu::EnableDisableLayerActions( qpointer_type qpointer )
 		}
 	}
 	
-	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
-		&Menu::enable_disable_mask_actions, qpointer.data(), mask_layer_found ) ) );
-
-	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
-		&Menu::enable_disable_data_layer_actions, qpointer.data(), active_data_layer_found ) ) );
+//	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+//		&Menu::enable_disable_mask_actions, qpointer.data(), mask_layer_found ) ) );
+//
+//	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+//		&Menu::enable_disable_data_layer_actions, qpointer.data(), active_data_layer_found ) ) );
 }
 
 

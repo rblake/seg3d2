@@ -56,6 +56,10 @@
 #include <Application/ViewerManager/ViewerManager.h>
 #include <Application/Layer/Actions/ActionComputeIsosurface.h>
 
+// test
+#include <iostream>
+// test
+
 namespace Seg3D
 {
 
@@ -1659,7 +1663,6 @@ void Viewer::update_status_bar( int x, int y, const std::string& layer_id )
 			return;
 		}
 	}
-
 	StatusBar::Instance()->set_data_point_info( DataPointInfoHandle() );
 }
 

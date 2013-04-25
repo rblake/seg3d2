@@ -26,44 +26,51 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_ACTIONCALIBRATIONVIEW_H
-#define APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_ACTIONCALIBRATIONVIEW_H
+#ifndef INTERFACE_TOOLINTERFACE_RECONSTRUCTIONTOOLINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_RECONSTRUCTIONTOOLINTERFACE_H
 
+// Qt includes
+#include <QtCore/QPointer>
+#include <QtGui/QTableWidget>
 
-// Core includes
-#include <Core/Action/Action.h>
-#include <Core/Interface/Interface.h>
+// Boost includes
+#include <boost/shared_ptr.hpp>
 
+// Base class of the tool widget include
+#include <Interface/Application/ToolWidget.h>
 
 namespace Seg3D
 {
+  
+class ReconstructionToolInterfacePrivate;
+typedef boost::shared_ptr< ReconstructionToolInterfacePrivate > ReconstructionToolInterfacePrivateHandle;
 
-class ActionCalibrationView : public Core::Action
+
+class ReconstructionToolInterface : public ToolWidget
 {
+Q_OBJECT
   
-CORE_ACTION(
-  CORE_ACTION_TYPE( "ActionCalibrationView", "" )
-)
-  
-  // -- Constructor/Destructor --
 public:
-  ActionCalibrationView()
-  {
-  }
+  ReconstructionToolInterface();
+  virtual ~ReconstructionToolInterface();
+  virtual bool build_widget( QFrame* frame );
   
-  // -- Functions that describe action --
-public:
-  virtual bool validate( Core::ActionContextHandle& context );
-  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-  
-  // -- Dispatch this action from the interface --
-public:
-  /// DISPATCH:
-  /// Dispatch an action that saves the preferences
-  static void Dispatch( Core::ActionContextHandle context );
-  
-};
+private:
+  ReconstructionToolInterfacePrivateHandle private_;
 
+public:
+  typedef QPointer< ReconstructionToolInterface > qpointer_type;
+  
+private Q_SLOTS:
+  void triggerSetOutputDir();
+
+//  void trigger_table_update_a(const QString & text);
+//  void trigger_itemActivated( QTableWidgetItem *item );
+//  void triggerDataImport();
+
+  void triggerLabelImport();
+};
+  
 } // end namespace Seg3D
 
 #endif

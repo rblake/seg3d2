@@ -3,7 +3,7 @@
  
  The MIT License
  
- Copyright (c) 2009 Scientific Computing and Imaging Institute,
+ Copyright (c) 2013 Scientific Computing and Imaging Institute,
  University of Utah.
  
  
@@ -26,24 +26,44 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONVISUALIZATIONVIEW_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONVISUALIZATIONVIEW_H
 
-#include <Application/Tools/CalibrationTool.h>
 
-#include <Application/Tool/ToolFactory.h>
+// Core includes
+#include <Core/Action/Action.h>
+#include <Core/Interface/Interface.h>
 
-// Register the tool into the tool factory
-SCI_REGISTER_TOOL( Seg3D, CalibrationTool )
 
 namespace Seg3D
 {
 
-CalibrationTool::CalibrationTool( const std::string& toolid ) : Tool( toolid )
+class ActionVisualizationView : public Core::Action
 {
-}
 
-CalibrationTool::~CalibrationTool()
-{
-	//this->disconnect_all();
-}
+CORE_ACTION(
+  CORE_ACTION_TYPE( "ActionVisualizationView", "" )
+)
 
-}
+  // -- Constructor/Destructor --
+public:
+  ActionVisualizationView()
+  {
+  }
+  
+  // -- Functions that describe action --
+public:
+  virtual bool validate( Core::ActionContextHandle& context );
+  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+  
+  // -- Dispatch this action from the interface --
+public:
+  /// DISPATCH:
+  /// Dispatch an action that saves the preferences
+  static void Dispatch( Core::ActionContextHandle context );
+  
+};
+
+} // end namespace Seg3D
+
+#endif

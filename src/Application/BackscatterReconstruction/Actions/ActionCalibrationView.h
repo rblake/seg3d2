@@ -26,37 +26,44 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_TOOLS_OPENHISFILETOOL_H
-#define APPLICATION_TOOLS_OPENHISFILETOOL_H
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONVIEW_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONVIEW_H
 
-// Application includes
-#include <Application/Tool/Tool.h>
+
+// Core includes
+#include <Core/Action/Action.h>
+#include <Core/Interface/Interface.h>
+
 
 namespace Seg3D
 {
 
-class OpenHISFileTool : public Tool
+class ActionCalibrationView : public Core::Action
 {
-  
-SEG3D_TOOL
-(
-  SEG3D_TOOL_NAME( "OpenHISFileTool", "" )
-  SEG3D_TOOL_MENULABEL( "Open HIS File" )
-  SEG3D_TOOL_MENU( "Tools" )
-  SEG3D_TOOL_SHORTCUT_KEY( "" )
-  SEG3D_TOOL_URL( "" )
-  SEG3D_TOOL_HOTKEYS( "" )
-  SEG3D_TOOL_VERSION( "1.0" )
+
+CORE_ACTION(
+  CORE_ACTION_TYPE( "ActionCalibrationView", "" )
 )
   
+  // -- Constructor/Destructor --
 public:
-  OpenHISFileTool( const std::string& toolid );
-  virtual ~OpenHISFileTool();
-
-	/// Execute the tool and dispatch the action
-	virtual void execute( Core::ActionContextHandle context );
-};
+  ActionCalibrationView()
+  {
+  }
   
-}
+  // -- Functions that describe action --
+public:
+  virtual bool validate( Core::ActionContextHandle& context );
+  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+  
+  // -- Dispatch this action from the interface --
+public:
+  /// DISPATCH:
+  /// Dispatch an action that saves the preferences
+  static void Dispatch( Core::ActionContextHandle context );
+  
+};
+
+} // end namespace Seg3D
 
 #endif

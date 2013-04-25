@@ -45,4 +45,11 @@ OpenHISFileTool::~OpenHISFileTool()
 	//this->disconnect_all();
 }
 
+void OpenHISFileTool::execute( Core::ActionContextHandle context )
+{
+  // NOTE: Need to lock state engine as this function is run from the interface thread
+	//Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+
+}
+  
 }

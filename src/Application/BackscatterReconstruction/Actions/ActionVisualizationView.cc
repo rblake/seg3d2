@@ -26,41 +26,43 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_OPENHISFILETOOLINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_OPENHISFILETOOLINTERFACE_H
+#include <Core/Action/ActionDispatcher.h>
+#include <Core/Action/ActionFactory.h>
+#include <Core/State/Actions/ActionSet.h>
 
-// Qt includes
-#include <QtCore/QPointer>
+// Application Includes
+#include <Application/BackscatterReconstruction/Actions/ActionVisualizationView.h>
 
-// Boost includes
-#include <boost/shared_ptr.hpp>
+#include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <Application/ViewerManager/ViewerManager.h>
 
-// Base class of the tool widget include
-#include <Interface/Application/ToolWidget.h>
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, VisualizationView )
 
 namespace Seg3D
 {
   
-class OpenHISFileToolInterfacePrivate;
-typedef boost::shared_ptr< OpenHISFileToolInterfacePrivate > OpenHISFileToolInterfacePrivateHandle;
-
-
-class OpenHISFileToolInterface : public ToolWidget
-{
-Q_OBJECT
+  bool ActionVisualizationView::validate( Core::ActionContextHandle& context )
+  {
+    return true; // validated
+  }
   
-public:
-  OpenHISFileToolInterface();
-  virtual ~OpenHISFileToolInterface();
-	/// BUILD_WIDGET:
-	/// This function builds the actual GUI
-  virtual bool build_widget( QFrame* frame );
+  bool ActionVisualizationView::run( Core::ActionContextHandle& context,
+                                     Core::ActionResultHandle& result )
+  {
+    // TODO: change to tool&dock widget customization
+    Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+      ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND3_C );
+    
+    return true;
+  }
   
-private:
-  OpenHISFileToolInterfacePrivateHandle private_;
-  
-};
+  void ActionVisualizationView::Dispatch( Core::ActionContextHandle context )
+  {
+    ActionVisualizationView* action = new ActionVisualizationView;
+    Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+  }
   
 } // end namespace Seg3D
-
-#endif

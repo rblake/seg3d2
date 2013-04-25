@@ -24,60 +24,46 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
-*/
+ */
 
-
-// Core includes
-#include <Core/Interface/Interface.h>
-#include <Core/Utils/Log.h>
-
-// Qt includes
-#include <QtGui/QClipboard>
-#include <QtGui/QColorDialog>
-
-// Qt Gui Includes
-#include "ui_OpenHISFileToolInterface.h"
-
-#include <QtUtils/Bridge/QtBridge.h>
-
-// Interface Includes
-#include <Interface/ToolInterface/OpenHISFileToolInterface.h>
+#include <Core/Action/ActionDispatcher.h>
+#include <Core/Action/ActionFactory.h>
+#include <Core/State/Actions/ActionSet.h>
 
 // Application Includes
-#include <Application/Layer/LayerManager.h>
-//#include <Application/ViewerManager/Actions/ActionPickPoint.h>
+#include <Application/BackscatterReconstruction/Actions/ActionReconstructionView.h>
 
-// Core Includes
-#include <Core/State/Actions/ActionSetAt.h>
+#include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <Application/ViewerManager/ViewerManager.h>
 
-SCI_REGISTER_TOOLINTERFACE( Seg3D, OpenHISFileToolInterface )
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, ReconstructionView )
 
 namespace Seg3D
 {
   
-class OpenHISFileToolInterfacePrivate
+bool ActionReconstructionView::validate( Core::ActionContextHandle& context )
 {
-public:
-  Ui::OpenHISFileToolInterface ui_;
-  //OpenHISFileToolInterface* interface_;
-};
-
-// constructor
-OpenHISFileToolInterface::OpenHISFileToolInterface() :
-private_( new OpenHISFileToolInterfacePrivate )
-{
-  //this->private_->interface_ = this;
+  return true; // validated
 }
 
-// destructor
-OpenHISFileToolInterface::~OpenHISFileToolInterface()
+bool ActionReconstructionView::run( Core::ActionContextHandle& context,
+                                    Core::ActionResultHandle& result )
 {
-  this->disconnect_all();
-}
-
-bool OpenHISFileToolInterface::build_widget( QFrame* frame )
-{
+  // TODO: change to tool&dock widget customization
+  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
+	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "reconstructiontool" );  
+  
   return true;
+}
+
+void ActionReconstructionView::Dispatch( Core::ActionContextHandle context )
+{
+  ActionReconstructionView* action = new ActionReconstructionView;
+  Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
   
 } // end namespace Seg3D

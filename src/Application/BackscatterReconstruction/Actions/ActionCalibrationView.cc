@@ -26,52 +26,43 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_CALIBRATIONTOOLINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_CALIBRATIONTOOLINTERFACE_H
+#include <Core/Action/ActionDispatcher.h>
+#include <Core/Action/ActionFactory.h>
+#include <Core/State/Actions/ActionSet.h>
 
-// Qt includes
-#include <QtCore/QPointer>
-#include <QtGui/QTableWidget>
+// Application Includes
+#include <Application/BackscatterReconstruction/Actions/ActionCalibrationView.h>
 
-// Boost includes
-#include <boost/shared_ptr.hpp>
+#include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <Application/ViewerManager/ViewerManager.h>
 
-// Base class of the tool widget include
-#include <Interface/Application/ToolWidget.h>
+// REGISTER ACTION:
+// Define a function that registers the action. The action also needs to be
+// registered in the CMake file.
+CORE_REGISTER_ACTION( Seg3D, CalibrationView )
 
 namespace Seg3D
 {
-
-class CalibrationToolInterfacePrivate;
-typedef boost::shared_ptr< CalibrationToolInterfacePrivate > CalibrationToolInterfacePrivateHandle;
-
-class OpenHISFileToolInterfacePrivate;
-typedef boost::shared_ptr< OpenHISFileToolInterfacePrivate > OpenHISFileToolInterfacePrivateHandle;
-
-
-class CalibrationToolInterface : public ToolWidget
+  
+bool ActionCalibrationView::validate( Core::ActionContextHandle& context )
 {
-Q_OBJECT
+  return true; // validated
+}
 
-public:
-  CalibrationToolInterface();
-  virtual ~CalibrationToolInterface();
-  virtual bool build_widget( QFrame* frame );
+bool ActionCalibrationView::run( Core::ActionContextHandle& context,
+                                 Core::ActionResultHandle& result )
+{
+  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
+	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "calibrationtool" );
 
-private:
-  CalibrationToolInterfacePrivateHandle private_;
-  OpenHISFileToolInterfacePrivateHandle file_private_;
+  return true;
+}
 
-public:
-  typedef QPointer< CalibrationToolInterface > qpointer_type;
-
-private Q_SLOTS:
-//  void trigger_table_update_a(const QString & text);
-  void trigger_itemActivated( QTableWidgetItem *item );
-  void triggerDataImport();
-  void triggerLabelImport();
-};
-
+void ActionCalibrationView::Dispatch( Core::ActionContextHandle context )
+{
+  ActionCalibrationView* action = new ActionCalibrationView;
+	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+}
+  
 } // end namespace Seg3D
-
-#endif

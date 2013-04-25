@@ -26,40 +26,44 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#include <Core/Action/ActionDispatcher.h>
-#include <Core/Action/ActionFactory.h>
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
 
-// Application Includes
-#include <Application/ReconstructionView/Actions/ActionCalibrationView.h>
 
-#include <Application/ToolManager/Actions/ActionOpenTool.h>
+// Core includes
+#include <Core/Action/Action.h>
+#include <Core/Interface/Interface.h>
 
-// REGISTER ACTION:
-// Define a function that registers the action. The action also needs to be
-// registered in the CMake file.
-CORE_REGISTER_ACTION( Seg3D, CalibrationView )
 
 namespace Seg3D
 {
   
-bool ActionCalibrationView::validate( Core::ActionContextHandle& context )
+class ActionReconstructionView : public Core::Action
 {
-  return true; // validated
-}
-
-bool ActionCalibrationView::run( Core::ActionContextHandle& context,
-                                 Core::ActionResultHandle& result )
-{
-	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "openhisfiletool" );
-	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "calibrationtool" );
-
-  return true;
-}
-
-void ActionCalibrationView::Dispatch( Core::ActionContextHandle context )
-{
-  ActionCalibrationView* action = new ActionCalibrationView;
-	Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
-}
+  
+CORE_ACTION(
+  CORE_ACTION_TYPE( "ActionReconstructionView", "" )
+)
+  
+  // -- Constructor/Destructor --
+public:
+  ActionReconstructionView()
+  {
+  }
+  
+  // -- Functions that describe action --
+public:
+  virtual bool validate( Core::ActionContextHandle& context );
+  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+  
+  // -- Dispatch this action from the interface --
+public:
+  /// DISPATCH:
+  /// Dispatch an action that saves the preferences
+  static void Dispatch( Core::ActionContextHandle context );
+  
+};
   
 } // end namespace Seg3D
+
+#endif

@@ -1,4 +1,3 @@
-
 #
 #  For more information, please see: http://software.sci.utah.edu
 # 
@@ -31,33 +30,52 @@
 # Set sources
 ##################################################
 
-SET(APPLICATION_RECONSTRUCTIONVIEW_SRCS
+SET(APPLICATION_BACKSCATTERRECONSTRUCTION_SRCS
+  CalibrationTool.cc
+  CalibrationTool.h
+  ReconstructionTool.cc
+  ReconstructionTool.h
 )
 
-SET(APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_SRCS
+SET(APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_SRCS
   Actions/ActionCalibrationView.cc
   Actions/ActionCalibrationView.h
+  Actions/ActionReconstructionView.cc
+  Actions/ActionReconstructionView.h
+  Actions/ActionVisualizationView.cc
+  Actions/ActionVisualizationView.h
 )
 
 IF(BUILD_WITH_PYTHON)
-  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER Application_ReconstructionView ${APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_SRCS})
-  SET(APPLICATION_RECONSTRUCTIONVIEW_SRCS ${APPLICATION_RECONSTRUCTIONVIEW_SRCS} ${PYTHON_WRAPPER})
+  GENERATE_ACTION_PYTHON_WRAPPER(PYTHON_WRAPPER
+    Application_BackscatterReconstruction ${APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_SRCS})
+  SET(APPLICATION_BACKSCATTERRECONSTRUCTION_NOREGISTER_SRCS ${PYTHON_WRAPPER})
 ENDIF(BUILD_WITH_PYTHON)
 
-CORE_ADD_LIBRARY(Application_ReconstructionView ${APPLICATION_RECONSTRUCTIONVIEW_SRCS}
-            ${APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_SRCS} )
+CORE_ADD_LIBRARY(Application_BackscatterReconstruction
+  ${APPLICATION_BACKSCATTERRECONSTRUCTION_NOREGISTER_SRCS}
+  ${APPLICATION_BACKSCATTERRECONSTRUCTION_SRCS}
+  ${APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_SRCS} )
             
-TARGET_LINK_LIBRARIES(Application_ReconstructionView
-                      Core_Utils
-                      Core_EventHandler
-                      Core_Application
-                      Core_Interface
-                      Core_Action
-                      Core_State
-                      ${SCI_BOOST_LIBRARY}
-)
+
+TARGET_LINK_LIBRARIES(Application_BackscatterReconstruction
+  Core_Utils
+  Core_Application
+  Core_Interface
+  Core_Action
+  Core_State
+  Core_Geometry
+  Application_Clipboard
+  Application_Filters
+  Application_Tool
+  Application_ToolManager
+  Application_ViewerManager
+  ${SCI_BOOST_LIBRARY}
+  ${SCI_ITK_LIBRARIES})
+
 
 # Register action classes
-REGISTER_LIBRARY_AND_CLASSES(Application_ReconstructionView
-                    ${APPLICATION_RECONSTRUCTIONVIEW_ACTIONS_SRCS})
+REGISTER_LIBRARY_AND_CLASSES(Application_BackscatterReconstruction
+  ${APPLICATION_BACKSCATTERRECONSTRUCTION_SRCS}
+  ${APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_SRCS})
 

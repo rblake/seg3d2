@@ -34,7 +34,7 @@
 #endif 
 
 // Application includes
-#include <Application/LayerIO/LayerSingleFileImporter.h>
+#include <Application/LayerIO/LayerFileSeriesImporter.h>
 #include <Application/LayerIO/LayerIO.h>
 
 namespace Seg3D
@@ -44,7 +44,7 @@ namespace Seg3D
 class HISLayerImporterPrivate;
 typedef boost::shared_ptr<HISLayerImporterPrivate> HISLayerImporterPrivateHandle;  
 
-class HISLayerImporter : public LayerSingleFileImporter
+class HISLayerImporter : public LayerFileSeriesImporter
 {
   SEG3D_IMPORTER_TYPE( "HIS Importer", ".his;.HIS", 80 )
 
