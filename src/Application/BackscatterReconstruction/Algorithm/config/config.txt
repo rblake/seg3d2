@@ -1,0 +1,66 @@
+source location: 0, 0, 0.4064
+source direction: 0, 0, -1
+source cutoff: 20
+source frac at cutoff: 0.99
+
+detector center: 0.381636, 0, 0.39119
+detector forward: -0.731363, -0.00534016, -0.681967
+detector right: 0.000484049, 0.999965, -0.00834936
+detector up: -0.681988, 0.00643653, 0.731335
+
+#detector size: 0.205, 0.205
+detector size: 0.179375, 0.179375 # 64 pixel border
+detector samples: 16, 16
+
+volume samples: 15, 15, 5
+volume size: 0.30, 0.30, 0.1016
+
+volume center: 0, 0, 0
+
+detector gain: 1
+detector offset: 0
+
+
+
+#detector collimator ratio: 15
+detector collimator ratio: 1000
+
+detector collimator focal length: -2
+
+projection angle: 0
+projection angle: 10
+projection angle: 20
+projection angle: 30
+projection angle: 40
+projection angle: 50
+projection angle: 60
+projection angle: 70
+projection angle: 80
+projection angle: 90
+projection angle: 100
+projection angle: 110
+projection angle: 120
+projection angle: 130
+projection angle: 140
+projection angle: 150
+projection angle: 160
+projection angle: 170
+projection angle: 180
+projection angle: 190
+projection angle: 200
+projection angle: 210
+projection angle: 220
+projection angle: 230
+projection angle: 240
+projection angle: 250
+projection angle: 260
+projection angle: 270
+projection angle: 280
+projection angle: 290
+projection angle: 300
+projection angle: 310
+projection angle: 320
+projection angle: 330
+projection angle: 340
+projection angle: 350
+
