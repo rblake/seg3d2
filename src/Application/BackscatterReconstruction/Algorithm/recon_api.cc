@@ -1,15 +1,30 @@
 
 #include <Application/BackscatterReconstruction/Algorithm/recon_api.h>
 
+#include <boost/thread.hpp>
 
 namespace BackscatterReconstruction
 {
+
+boost::thread* reconstructionThread;
+
+void dummyCalibrationRunnable(int time)
+{
+}
   
-  
+void dummyReconstructionRunnable(int time)
+{
+}
+
+void dummyMaterialGetter(int time)
+{
+}
+
 // calibration - segment image stack of calibration pattern to find disks
 void CalibrationSegment(const ReconImageVolumeType::Pointer images,
                         ReconMaterialIdVolumeType::Pointer diskIds)
 {
+  boost::thread calibrationThread(dummyCalibrationRunnable, 30);
 }
 
 
@@ -20,6 +35,7 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
                             const char *initialGeometryConfigFile,
                             const char *outputGeometryConfigFile)
 {
+  boost::thread calibrationThread(dummyCalibrationRunnable, 45);
 }
 
 
@@ -29,6 +45,9 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const char *geometryConfigFile,
                          int iterations)
 {
+  delete reconstructionThread;
+  reconstructionThread = new boost::thread(dummyCalibrationRunnable, 45);
+  //reconstructionThread->detach();
 }
 
 // reconstruction - stop it if it's currently running
@@ -40,6 +59,7 @@ void ReconstructionAbort()
 // reconstruction - get the latest reconstructed volume material ids, can be called any time during reconstruction
 void ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume)
 {
+  boost::thread reconstructionThread(dummyMaterialGetter, 45);
 }
 
 }

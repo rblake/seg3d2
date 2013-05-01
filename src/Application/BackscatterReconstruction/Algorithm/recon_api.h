@@ -1,9 +1,6 @@
 
 #include <itkImage.h>
 
-namespace BackscatterReconstruction
-{
-
 typedef itk::Image<float, 3> ReconImageVolumeType;
 typedef itk::Image<unsigned char, 3> ReconMaterialIdVolumeType;
 
@@ -20,7 +17,7 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
                             const char *outputGeometryConfigFile);
 
 
-// reconstruction - start a thread internally so this returns immediately
+// reconstruction - don't return until reconstruction is completed
 void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const ReconMaterialIdVolumeType::Pointer initialGuess, // possibly NULL
                          const char *geometryConfigFile,
@@ -33,4 +30,3 @@ void ReconstructionAbort();
 // reconstruction - get the latest reconstructed volume material ids, can be called any time during reconstruction
 void ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume);
 
-}
