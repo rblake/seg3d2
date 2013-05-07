@@ -66,6 +66,7 @@ public:
 
 private Q_SLOTS:
   void triggerSetOutputDir();
+  void triggerDataImport();
   void triggerLabelImport();
 };
   

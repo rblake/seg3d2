@@ -83,6 +83,7 @@ public:
   Ui::ReconstructionToolInterface ui_;
   ReconstructionToolInterface* interface_;  
 
+  void importImageStack();
   void importLabelNrrd();
   void setOutputDirectory();
 };
@@ -103,6 +104,96 @@ void ReconstructionToolInterfacePrivate::setOutputDirectory()
   }
 }
 
+  
+  
+void ReconstructionToolInterfacePrivate::importImageStack()
+{
+  bfs::path current_file_folder = ProjectManager::Instance()->get_current_file_folder();
+  
+  // Bring up the file dialog
+  QString filtername;
+  QStringList file_list;
+  
+  // Get the importer list from the LayerIO system
+  std::vector< std::string > importer_types = LayerIO::Instance()->get_file_series_importer_types();
+  
+  QString filters;
+  for ( size_t j = 0; j < importer_types.size(); j++ )
+  {
+    // TODO: .his and .tif only
+    if ( j == 0 )
+    {
+      filters = QString::fromStdString( importer_types[ j ] );
+      continue;
+    }
+    filters = filters + ";;" + QString::fromStdString( importer_types[ j ] );
+  }
+  
+  // Use native dialog
+  // TODO: not likely to be needed on Linux, but if so, test this!!!
+  file_list = QFileDialog::getOpenFileNames( 0, "Select image from stack... ",
+                                            current_file_folder.string().c_str(), filters, &filtername );
+  
+  // TODO: basically copied from LayerIOFunctions...
+  // Make common utility function or just use .his and ITK .tif importers...
+  if( file_list.size() == 0 )
+  {
+    // log no files selected
+    return;
+  }
+  
+  // Convert the filenames into STL strings
+  std::vector< std::string > filenames( file_list.size() );
+  for ( int j = 0; j < file_list.size(); j++ )
+  {
+    filenames[ j ] = file_list.at( j ).toStdString();
+  }
+  
+  // Find all the filenames that are associated with this series
+  if ( !( LayerIO::FindFileSeries( filenames ) ) )
+  {
+    QMessageBox message_box;
+    message_box.setWindowTitle( "Import Layer Error" );
+    message_box.addButton( QMessageBox::Ok );
+    message_box.setIcon( QMessageBox::Critical );
+    message_box.setText( "Could not resolve filenames." );
+    message_box.exec();	
+    return;
+  }
+  
+  std::string importer_name = filtername.toStdString();
+  
+  LayerImporterHandle importer;
+  if( ! ( LayerIO::Instance()->create_file_series_importer( filenames, importer, 
+                                                           importer_name ) ) )
+  {
+    // If we are unable to create an importer we pop up an error message box
+    std::string error_message = std::string( "ERROR: No importer is available for file '" ) + 
+    file_list.at( 0 ).toStdString() + std::string( "'." );
+    
+    QMessageBox message_box;
+    message_box.setWindowTitle( "Import Layer Error" );
+    message_box.addButton( QMessageBox::Ok );
+    message_box.setIcon( QMessageBox::Critical );
+    message_box.setText( QString::fromStdString( error_message ) );
+    message_box.exec();
+    QString fileStem( bfs::path( file_list.at( 0 ).toStdString() ).stem().string().c_str() );
+    return;
+  }
+  else
+  {
+    // If we are able to create an importer, we then need to figure out which files are part
+    // of the series.
+    
+    // We add the importer to the importers vector, in this case we only have a single
+    // importer in the vector.
+    std::vector< LayerImporterHandle > importers( 1, importer );
+    
+    LayerImporterWidget layer_import_dialog( importers, 0 );
+    layer_import_dialog.exec();
+  }  
+}
+  
 
 void ReconstructionToolInterfacePrivate::importLabelNrrd()
 {
@@ -230,6 +321,12 @@ void ReconstructionToolInterface::triggerLabelImport()
   this->private_->importLabelNrrd();
 }
 
+
+void ReconstructionToolInterface::triggerDataImport()
+{
+  this->private_->importImageStack();
+}
+  
 void ReconstructionToolInterface::update_progress_bar( double progress )
 {
   this->private_->ui_.progress_bar_->setValue(progress);
@@ -261,7 +358,7 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
   connect( this->private_->ui_.setDirButton, SIGNAL( clicked() ), this, SLOT( triggerSetOutputDir() ) );
 
   // TODO: make tool and action for this for scripting (take filepath, filter)
-  //connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
+  connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
   connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
  
 	ToolHandle base_tool_ = tool();
@@ -276,6 +373,8 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
     boost::bind( &ReconstructionToolInterface::UpdateProgress, qpointer_type( this ), _1 ) ) );
 
 	this->private_->ui_.iterationsCombo->set_description( "Iterations" );
+  // Finish button disabled and hidden until can be hooked up to appropriate algorithm function
+  this->private_->ui_.stop_button_->hide();
   
   return true;
 }
