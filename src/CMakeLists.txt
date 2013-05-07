@@ -244,6 +244,16 @@ ELSE(CMAKE_BUILD_TYPE MATCHES "Debug")
   SET(SEG3D_DEBUG_VERSION "\"\"")
 ENDIF(CMAKE_BUILD_TYPE MATCHES "Debug")
 
+
+# TODO: for final project
+#FIND_PACKAGE(CUDA REQUIRED)
+FIND_PACKAGE(CUDA)
+# TODO: remove in final project
+IF(CUDA_FOUND)
+  SET(CUDA_VERBOSE_BUILD ON)
+ENDIF(CUDA_FOUND)
+
+
 ###########################################
 # Check for "XInitThreads" on X-window
 # systems.

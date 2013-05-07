@@ -6,10 +6,10 @@
 
 #include <itkImage.h>
 
-#include "vec3.h"
-#include "geometry.h"
-#include "parallel.h"
-#include "material.h"
+#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
+#include <Application/BackscatterReconstruction/Algorithm/geometry.h>
+#include <Application/BackscatterReconstruction/Algorithm/parallel.h>
+#include <Application/BackscatterReconstruction/Algorithm/material.h>
 
 using std::vector;
 using std::pair;

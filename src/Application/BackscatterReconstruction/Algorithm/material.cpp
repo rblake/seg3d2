@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "material.h"
+#include <Application/BackscatterReconstruction/Algorithm/material.h>
 
 #ifndef WIN32
 #define sscanf_s sscanf

@@ -25,14 +25,14 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
  */
+
 #ifdef _WIN32
-
-#include <windows.h>
-
+#  include <windows.h>
 #endif
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 // Application includes
 #include <Application/LayerIO/HISLayerImporter.h>
@@ -80,7 +80,8 @@ SEG3D_REGISTER_IMPORTER( Seg3D, HISLayerImporter );
 
 namespace Seg3D
 {
-  class HISLayerImporterPrivate : public boost::noncopyable
+
+class HISLayerImporterPrivate : public boost::noncopyable
 {
 public:
   HISLayerImporterPrivate()
@@ -138,6 +139,345 @@ private:
     << this->header_.TypeOfNumbers;
     return oss.str();
   }
+
+  void postprocessDataCorrections()
+  {
+//    // quick check to make sure data block got created
+//    if (! this->data_block_)
+//    {
+//      CORE_LOG_WARNING("Data block not initialize. Not attempting postprocessing data corrections.");
+//      return;
+//    }
+//    
+//    if (! (this->data_block_->get_nx() == 1024 || this->data_block_->get_ny() == 1024) )
+//    {
+//      CORE_LOG_WARNING("Data slices not 1024x1024. Not attempting postprocessing data corrections.");
+//      return;
+//    }
+//
+//    const size_t width = 1024, height = 1024, depth = this->data_block_->get_nz();
+//
+//    // remove stuck pixels
+//    std::vector<int> mask(1024*1024, 0);
+//    mask[1024*12+49] = 1;
+//    mask[1024*32+24] = 1;
+//    mask[1024*12+82] = 1;
+//    mask[1024*29+211] = 1;
+//    mask[1024*19+243] = 1;
+//    mask[1024*20+335] = 1;
+//    mask[1024*50+460] = 1;
+//    mask[1024*41+712] = 1;
+//    mask[1024*22+803] = 1;
+//    mask[1024*52+57] = 1;
+//    mask[1024*72+49] = 1;
+//    mask[1024*76+111] = 1;
+//    mask[1024*122+60] = 1;
+//    mask[1024*101+120] = 1;
+//    mask[1024*93+145] = 1;
+//    mask[1024*120+133] = 1;
+//    mask[1024*131+147] = 1;
+//    mask[1024*77+265] = 1;
+//    mask[1024*79+458] = 1;
+//    mask[1024*164+574] = 1;
+//    mask[1024*182+611] = 1;
+//    mask[1024*191+727] = 1;
+//    mask[1024*151+908] = 1;
+//    mask[1024*168+284] = 1;
+//    mask[1024*189+289] = 1;
+//    mask[1024*217+325] = 1;
+//    mask[1024*268+24] = 1;
+//    mask[1024*260+46] = 1;
+//    mask[1024*257+130] = 1;
+//    mask[1024*292+192] = 1;
+//    mask[1024*292+193] = 1;
+//    mask[1024*310+59] = 1;
+//    mask[1024*286+249] = 1;
+//    mask[1024*253+333] = 1;
+//    mask[1024*217+325] = 1;
+//    mask[1024*229+310] = 1;
+//    mask[1024*212+377] = 1;
+//    mask[1024*296+571] = 1;
+//    mask[1024*330+593] = 1;
+//    mask[1024*422+686] = 1;
+//    mask[1024*409+716] = 1;
+//    mask[1024*431+727] = 1;
+//    mask[1024*432+727] = 1;
+//    mask[1024*401+780] = 1;
+//    mask[1024*379+998] = 1;
+//    mask[1024*485+579] = 1;
+//    mask[1024*475+613] = 1;
+//    mask[1024*500+597] = 1;
+//    mask[1024*532+658] = 1;
+//    mask[1024*544+681] = 1;
+//    mask[1024*603+816] = 1;
+//    mask[1024*593+982] = 1;
+//    mask[1024*772+29] = 1;
+//    mask[1024*763+140] = 1;
+//    mask[1024*781+113] = 1;
+//    mask[1024*802+18] = 1;
+//    mask[1024*804+146] = 1;
+//    mask[1024*846+11] = 1;
+//    mask[1024*858+188] = 1;
+//    mask[1024*890+58] = 1;
+//    mask[1024*936+61] = 1;
+//    mask[1024*953+59] = 1;
+//    mask[1024*970+56] = 1;
+//    mask[1024*985+17] = 1;
+//    mask[1024*994+17] = 1;
+//    mask[1024*1002+29] = 1;
+//    mask[1024*1011+157] = 1;
+//    mask[1024*994+202] = 1;
+//    mask[1024*964+204] = 1;
+//    mask[1024*583+104] = 1;
+//    mask[1024*1023+93] = 1;
+//    mask[1024*661+78] = 1;
+//    mask[1024*611+174] = 1;
+//    mask[1024*642+199] = 1;
+//    mask[1024*642+205] = 1;
+//    mask[1024*656+260] = 1;
+//    mask[1024*707+257] = 1;
+//    mask[1024*571+412] = 1;
+//    mask[1024*584+405] = 1;
+//    mask[1024*756+546] = 1;
+//    mask[1024*737+639] = 1;
+//    mask[1024*724+801] = 1;
+//    mask[1024*724+802] = 1;
+//    mask[1024*723+802] = 1;
+//    mask[1024*728+844] = 1;
+//    mask[1024*729+844] = 1;
+//    mask[1024*730+844] = 1;
+//    mask[1024*741+972] = 1;
+//    mask[1024*825+979] = 1;
+//    mask[1024*775+949] = 1;
+//    mask[1024*776+949] = 1;
+//    mask[1024*777+949] = 1;
+//    mask[1024*871+802] = 1;
+//    mask[1024*872+802] = 1;
+//    mask[1024*871+936] = 1;
+//    mask[1024*872+936] = 1;
+//    mask[1024*871+937] = 1;
+//    mask[1024*872+937] = 1;
+//    mask[1024*882+836] = 1;
+//    mask[1024*883+836] = 1;
+//    mask[1024*990+823] = 1;
+//    mask[1024*884+732] = 1;
+//    mask[1024*819+788] = 1;
+//    mask[1024*940+995] = 1;
+//    mask[1024*511+195] = 1;
+//    mask[1024*512+195] = 1;
+//    mask[1024*337+18] = 1;
+//    mask[1024*352+27] = 1;
+//    mask[1024*332+117] = 1;
+//    mask[1024*404+177] = 1;
+//    mask[1024*144+13] = 1;
+//    mask[1024*84+85] = 1;
+//    mask[1024*151+48] = 1;
+//    mask[1024*151+78] = 1;
+//    mask[1024*171+95] = 1;
+//    mask[1024*172+99] = 1;
+//    mask[1024*217+41] = 1;
+//    mask[1024*223+119] = 1;
+//    mask[1024*241+101] = 1;
+//    mask[1024*258+115] = 1;
+//    mask[1024*280+136] = 1;
+//    mask[1024*330+166] = 1;
+//    mask[1024*229+212] = 1;
+//    mask[1024*177+159] = 1;
+//    mask[1024*19+167] = 1;
+//    mask[1024*15+197] = 1;
+//    mask[1024*46+244] = 1;
+//    mask[1024*348+307] = 1;
+//    mask[1024*325+375] = 1;
+//    mask[1024*426+385] = 1;
+//    mask[1024*436+402] = 1;
+//    mask[1024*532+311] = 1;
+//    mask[1024*537+352] = 1;
+//    mask[1024*622+93] = 1;
+//    mask[1024*617+106] = 1;
+//    mask[1024*687+220] = 1;
+//    mask[1024*705+250] = 1;
+//    mask[1024*707+256] = 1;
+//
+//    for (int y=707; y<=712; y++)
+//      mask[1024*y+257] = 1;
+//
+//    mask[1024*622+93] = 1;
+//    mask[1024*617+106] = 1;
+//    mask[1024*311+715] = 1;
+//    mask[1024*229+212] = 1;
+//    mask[1024*223+119] = 1;
+//    mask[1024*217+41] = 1;
+//    mask[1024*177+159] = 1;
+//    mask[1024*392+99] = 1;
+//    mask[1024*403+71] = 1;
+//    mask[1024*282+133] = 1;
+//    mask[1024*299+140] = 1;
+//    mask[1024*242+281] = 1;
+//    mask[1024*241+301] = 1;
+//    mask[1024*206+348] = 1;
+//    mask[1024*181+611] = 1;
+//    mask[1024*266+750] = 1;
+//    mask[1024*375+838] = 1;
+//    mask[1024*376+838] = 1;
+//    mask[1024*922+545] = 1;
+//    mask[1024*932+536] = 1;
+//    mask[1024*909+612] = 1;
+//    mask[1024*913+871] = 1;
+//    mask[1024*817+838] = 1;
+//    mask[1024*380+588] = 1;
+//    mask[1024*437+499] = 1;
+//    mask[1024*459+504] = 1;
+//    mask[1024*181+611] = 1;
+//    mask[1024*125+735] = 1;
+//    mask[1024*116+778] = 1;
+//    mask[1024*49+460] = 1;
+//    mask[1024*206+348] = 1;
+//    mask[1024*170+318] = 1;
+//    mask[1024*140+322] = 1;
+//    mask[1024*136+281] = 1;
+//    mask[1024*142+201] = 1;
+//    mask[1024*180+166] = 1;
+//    mask[1024*132+135] = 1;
+//    mask[1024*163+85] = 1;
+//    mask[1024*82+83] = 1;
+//    mask[1024*84+36] = 1;
+//    mask[1024*2+148] = 1;
+//    mask[1024*843+62] = 1;
+//    mask[1024*794+42] = 1;
+//    mask[1024*769+22] = 1;
+//    mask[1024*747+29] = 1;
+//    mask[1024*680+28] = 1;
+//    mask[1024*691+58] = 1;
+//    mask[1024*550+85] = 1;
+//    mask[1024*526+114] = 1;
+//    mask[1024*507+188] = 1;
+//    mask[1024*833+373] = 1;
+//    mask[1024*941+992] = 1;
+//    mask[1024*691+540] = 1;
+//    mask[1024*679+524] = 1;
+//    mask[1024*422+687] = 1;
+//    mask[1024*1023+473] = 1;
+//    
+//    for (int r = 728; r < 1024; r++)
+//      mask[1024*r+845] = 1;
+//
+//    for (int r = 775; r < 1024; r++)
+//      mask[1024*r+950] = 1;
+//    
+//    if (this->data_type_ == Core::DataType::SHORT_E)
+//    {
+//      short* images = reinterpret_cast<short*>(this->data_block_->get_data());
+//    }
+//    else if (this->data_type_ == Core::DataType::DOUBLE_E)
+//    {
+//      double* images = reinterpret_cast<double*>(this->data_block_->get_data());
+//    }
+//    else if (this->data_type_ == Core::DataType::INT_E)
+//    {
+//      int* images = reinterpret_cast<int*>(this->data_block_->get_data());
+//    }
+//    else
+//    {
+//      float* images = reinterpret_cast<float*>(this->data_block_->get_data());
+//    }
+//    
+//    for (int p=0; p < depth; p++)
+//    {
+//      for (int xy=0; xy < width*height; xy++)
+//      {
+//        if (mask[xy]) {
+//          int x = xy%width;
+//          int y = xy/width;
+//          
+//          if (this->data_type_ == Core::DataType::SHORT_E)
+//          {
+//            short* images = reinterpret_cast<short*>(this->data_block_->get_data());
+//          }
+//          else if (this->data_type_ == Core::DataType::DOUBLE_E)
+//          {
+//            double* images = reinterpret_cast<double*>(this->data_block_->get_data());
+//          }
+//          else if (this->data_type_ == Core::DataType::INT_E)
+//          {
+//            int* images = reinterpret_cast<int*>(this->data_block_->get_data());
+//          }
+//          else
+//          {
+//            float* images = reinterpret_cast<float*>(this->data_block_->get_data());
+//          }
+//          int nv = 0;
+//          int ni = 0;
+//          if (x > 0 && mask[xy-1] == 0)
+//          {
+//            nv += images[p*width*height + xy-1];
+//            ni++;
+//          }
+//          
+//          if (x < width-1 && mask[xy+1] == 0)
+//          {
+//            nv += images[p*width*height + xy+1];
+//            ni++;
+//          }
+//          
+//          if (y > 0 && mask[xy-width] == 0)
+//          {
+//            nv += images[p*width*height + xy-width];
+//            ni++;
+//          }
+//          
+//          if (y < height-1 && mask[xy+width] == 0)
+//          {
+//            nv += images[p*width*height + xy+width];
+//            ni++;
+//          }
+//          
+//          if (ni>0)
+//            images[p*width*height + xy] = nv / ni;
+//        }
+//      }
+//    }
+//    
+//    
+//    // rotate 90 degrees
+//    for (int p=0; p < depth; p++)
+//    {
+//      int d = width;
+//      for (int y = 0; y < d/2; y++)
+//      {
+//        for (int x = 0; x < d/2; x++)
+//        {
+//          if (this->data_type_ == Core::DataType::SHORT_E)
+//          {
+//            short vals[4];
+//          }
+//          else if (this->data_type_ == Core::DataType::DOUBLE_E)
+//          {
+//            double vals[4];
+//          }
+//          else if (this->data_type_ == Core::DataType::INT_E)
+//          {
+//            int vals[4];
+//          }
+//          else
+//          {
+//            float vals[4];
+//          }
+//          
+//          vals[0] = images[p*width*height + y*width+x];
+//          vals[1] = images[p*width*height + x*width+(d-y-1)];
+//          vals[2] = images[p*width*height + (d-y-1)*width+(d-x-1)];
+//          vals[3] = images[p*width*height + (d-x-1)*width+y];
+//          
+//          images[p*width*height + y*width+x] = vals[1];
+//          images[p*width*height + x*width+(d-y-1)] = vals[2];
+//          images[p*width*height + (d-y-1)*width+(d-x-1)] = vals[3];
+//          images[p*width*height + (d-x-1)*width+y] = vals[0];
+//        }
+//      }
+//    }
+//    CORE_LOG_MESSAGE("Postprocessing data corrections done.");
+  }
+
 };
 
 bool HISLayerImporterPrivate::read_header()
@@ -197,11 +537,9 @@ bool HISLayerImporterPrivate::read_header()
     std::vector<size_t> dims(3);
     dims[0] = this->header_.BRX;
     dims[1] = this->header_.BRY;
-    dims[2] = this->header_.NrOfFrames;
+    dims[2] = this->importer_->get_filenames().size();
     Core::Point origin;
     
-    std::cerr << "header:" << std::endl << getString() << std::endl;
-
     // TODO: spacing?
     Core::Vector spacing(1, 1, 1);
     Core::Transform transform(origin,
@@ -238,7 +576,7 @@ bool HISLayerImporterPrivate::read_data()
     this->importer_->set_error( "Failed to read header of HIS file." );
     return false;
   }
-
+  
   // Generate a new data block
   this->data_block_ = Core::StdDataBlock::New( this->grid_transform_.get_nx(), 
                                                this->grid_transform_.get_ny(),
@@ -246,44 +584,72 @@ bool HISLayerImporterPrivate::read_data()
                                                this->data_type_ );
   
   // We need to check if we could allocate the destination datablock
-  if ( !this->data_block_ )
+  if ( ! this->data_block_ )
   {
     this->importer_->set_error( "Could not allocate enough memory to read HIS file." );
     return false;
   }
-
-  std::ifstream::pos_type size = 0;
   
-  std::ifstream in(this->importer_->get_filename().c_str(), std::ios::in | std::ios::binary);
-  in.exceptions( std::ifstream::badbit );
+  std::vector<std::string> filenames = this->importer_->get_filenames();
+  const size_t FRAME_COUNT = this->grid_transform_.get_nz();
+
+  std::ifstream in(filenames[0].c_str(), std::ios::in | std::ios::binary);
+  in.seekg(0, std::ios::end);
+  const size_t INSIZE = in.tellg();
+  in.seekg(0, std::ios::beg);
+
+  char* data = reinterpret_cast<char*>(this->data_block_->get_data());
+  char *buffer = new char[INSIZE];
+  if (! buffer)
+  {
+    this->importer_->set_error( "error allocating buffer" );
+    return false;
+  }
+  
+  std::ifstream inInitial(filenames[0].c_str(), std::ios::in | std::ios::binary);
+  inInitial.exceptions( std::ifstream::badbit );
   try
   {
-    in.seekg(0, std::ios::end);
-    const size_t INSIZE = in.tellg();
-    in.seekg(0, std::ios::beg);
-
-    char *data = new char[INSIZE];
-    if (! data)
-    {
-      this->importer_->set_error( "error allocating data for input file" );
-      return false;
-    }
-    
-    in.read(data, INSIZE);    
-    in.close();
-
-    this->data_block_->set_data(&data[DATA_BLOCK_START_INDEX]);
-
-    this->read_data_ = true;
-    return true;
+    memset(buffer, 0, INSIZE);
+    inInitial.read(buffer, INSIZE);    
+    inInitial.close();
+    memcpy(data, &buffer[DATA_BLOCK_START_INDEX], INSIZE);
   }
   catch (std::ifstream::failure e)
   {
     std::ostringstream oss;
-    oss << "Failed to open and read file " << this->importer_->get_filename().c_str() << ".\n" << e.what();
+    oss << "Failed to open and read file " << filenames[0] << ".\n" << e.what();
     this->importer_->set_error( oss.str() );
+
+    return false;
   }
-  return false;
+  
+  for (size_t i = 1; i < FRAME_COUNT; ++i)
+  {    
+    std::ifstream in(filenames[i].c_str(), std::ios::in | std::ios::binary);
+    in.exceptions( std::ifstream::badbit );
+    try
+    {
+      memset(buffer, 0, INSIZE);
+      in.read(buffer, INSIZE);    
+      in.close();
+      memcpy(data+(INSIZE*i), &buffer[DATA_BLOCK_START_INDEX], INSIZE);
+    }
+    catch (std::ifstream::failure e)
+    {
+      std::ostringstream oss;
+      oss << "Failed to open and read file " << filenames[i] << ".\n" << e.what();
+      this->importer_->set_error( oss.str() );
+
+      return false;
+    }
+  }
+  delete [] buffer;
+
+  postprocessDataCorrections();
+  
+  this->read_data_ = true;
+  return true;
 }
     
 //////////////////////////////////////////////////////////////////////////
@@ -319,7 +685,7 @@ bool HISLayerImporter::get_file_info( LayerImporterFileInfoHandle& info )
   {
     // In case something failed, recover from here and let the user
     // deal with the error. 
-    this->set_error( "HIS Importer crashed while reading file." );
+    this->set_error( "HIS Series Importer crashed while reading file." );
     return false;
   }
   
@@ -345,7 +711,7 @@ bool HISLayerImporter::get_file_data( LayerImporterFileDataHandle& data )
   {
     // In case something failed, recover from here and let the user
     // deal with the error. 
-    this->set_error( "HIS Importer crashed when reading file." );
+    this->set_error( "HIS Series Importer crashed when reading file." );
     return false;
   }
   
