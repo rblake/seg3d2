@@ -28,7 +28,9 @@
 
 #include <Core/Action/ActionDispatcher.h>
 #include <Core/Action/ActionFactory.h>
+
 #include <Core/State/Actions/ActionSet.h>
+#include <Core/State/StateLabeledOption.h>
 
 // Application Includes
 #include <Application/BackscatterReconstruction/Actions/ActionCalibrationView.h>
@@ -52,8 +54,6 @@ bool ActionCalibrationView::validate( Core::ActionContextHandle& context )
 bool ActionCalibrationView::run( Core::ActionContextHandle& context,
                                  Core::ActionResultHandle& result )
 {
-  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
 	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "calibrationtool" );
 
   return true;

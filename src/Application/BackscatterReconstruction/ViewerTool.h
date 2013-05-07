@@ -26,49 +26,40 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
-#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_VIEWERTOOL_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_VIEWERTOOL_H
 
-
-// Core includes
-#include <Core/Action/Action.h>
-#include <Core/Interface/Interface.h>
-
+#include <Application/Tool/SingleTargetTool.h>
+#include <Application/ViewerManager/ViewerManager.h>
 
 namespace Seg3D
 {
   
-class ActionReconstructionView : public Core::Action
+//class ViewerToolPrivate;
+//typedef boost::shared_ptr< ViewerToolPrivate > ViewerToolPrivateHandle;
+
+class ViewerTool : public SingleTargetTool
 {
   
-CORE_ACTION(
-  CORE_ACTION_TYPE( "ActionReconstructionView", "" )
-  CORE_ACTION_OPTIONAL_ARGUMENT("outputDir", "", "Algorithm output directory.")
-  CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "50", "Number of iterations to perform." )
-  CORE_ACTION_CHANGES_PROJECT_DATA()
-)
+  SEG3D_TOOL
+  (
+   SEG3D_TOOL_NAME( "ViewerTool", "" )
+   SEG3D_TOOL_MENULABEL( "Viewer" )
+   SEG3D_TOOL_MENU( "Tools" )
+   SEG3D_TOOL_SHORTCUT_KEY( "" )
+   SEG3D_TOOL_URL( "" )
+   SEG3D_TOOL_HOTKEYS( "" )
+   SEG3D_TOOL_VERSION( "1.0" )
+   )
   
-  // -- Constructor/Destructor --
 public:
-  ActionReconstructionView();
-
-  // -- Functions that describe action --
-public:
-  virtual bool validate( Core::ActionContextHandle& context );
-  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+  ViewerTool( const std::string& toolid );
+  virtual ~ViewerTool();
   
-  // -- Dispatch this action from the interface --
-public:
-  /// DISPATCH:
-  /// Dispatch an action that saves the preferences
-  static void Dispatch( Core::ActionContextHandle context );
-
-private:
-  int iterations_;
-  std::string outputDir_;
-  
+  virtual void execute( Core::ActionContextHandle context );    
+  virtual void activate();    
 };
   
-} // end namespace Seg3D
+}
 
 #endif

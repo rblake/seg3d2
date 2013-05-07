@@ -56,27 +56,32 @@ public:
   virtual ~ReconstructionTool();
   
   virtual void execute( Core::ActionContextHandle context );
-//    
-//    /// HANDLE_MOUSE_PRESS:
-//    /// Called when a mouse button has been pressed.
-//    virtual bool handle_mouse_press( ViewerHandle viewer, 
-//                                    const Core::MouseHistory& mouse_history, 
-//                                    int button, int buttons, int modifiers );
-//    
-//    /// HANDLE_MOUSE_MOVE:
-//    /// Called when the mouse moves in a viewer.
-//    virtual bool handle_mouse_move( ViewerHandle viewer, 
-//                                   const Core::MouseHistory& mouse_history, 
-//                                   int button, int buttons, int modifiers );
-//    
-//    // -- state --
-//    // target is first layer
-//    Core::StateLabeledOptionHandle input_b_state_;
-//    Core::StateLabeledOptionHandle input_c_state_;
-//    Core::StateLabeledOptionHandle input_d_state_;  
-//    
-//  private:
-//    ReconstructionToolPrivateHandle private_;
+	/// ACTIVATE:
+	/// Activate a tool: this tool is set as the active tool and hence it should
+	/// setup the right mouse tools in the viewers.
+	virtual void activate();
+  
+	/// UPDATE_PROGRESS:
+	/// Update the progress bar associated with this layer
+	void update_progress( double amount, double progress_start = 0.0f, double progress_amount = 1.0f );	
+  
+	/// UPDATE_PROGRESS_SIGNAL:
+	/// When new information on progress is available this signal is triggered. If this signal is 
+	/// triggered it should end with a value 1.0 indicating that progress reporting has finished.
+	/// Progress is measured between 0.0 and 1.0.
+	typedef boost::signals2::signal< void (double) > update_progress_signal_type;
+	update_progress_signal_type update_progress_signal_;
+  
+	/// Whether to show the progress bar
+	Core::StateBoolHandle show_progress_bar_state_;
+  
+	/// Number of iterations
+	Core::StateRangedIntHandle iterations_state_;
+  
+	Core::StateStringHandle outputDirectory_state_;	
+
+private:
+  ReconstructionToolPrivateHandle private_;
 };
   
 }

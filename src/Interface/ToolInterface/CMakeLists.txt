@@ -72,6 +72,7 @@ SET(INTERFACE_TOOLINTERFACE_SRCS
   SpeedlineToolInterface.cc
   CalibrationToolInterface.cc
   ReconstructionToolInterface.cc
+  ViewerToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
@@ -119,6 +120,7 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   SpeedlineToolInterface.h
   CalibrationToolInterface.h
   ReconstructionToolInterface.h
+  ViewerToolInterface.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
@@ -169,6 +171,7 @@ SET(INTERFACE_TOOLINTERFACE_UI_SRCS
   SpeedlineToolInterface.ui
   CalibrationToolInterface.ui
   ReconstructionToolInterface.ui
+  ViewerToolInterface.ui
 )
 
 ##################################################

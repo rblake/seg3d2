@@ -26,47 +26,44 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
-#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
+#ifndef INTERFACE_TOOLINTERFACE_VIEWERTOOLINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_VIEWERTOOLINTERFACE_H
 
+// Qt includes
+#include <QtCore/QPointer>
+#include <QtGui/QTableWidget>
 
-// Core includes
-#include <Core/Action/Action.h>
-#include <Core/Interface/Interface.h>
+// Boost includes
+#include <boost/shared_ptr.hpp>
 
+// Base class of the tool widget include
+#include <Interface/Application/ToolWidget.h>
 
 namespace Seg3D
 {
-  
-class ActionReconstructionView : public Core::Action
+
+class ViewerToolInterfacePrivate;
+typedef boost::shared_ptr< ViewerToolInterfacePrivate > ViewerToolInterfacePrivateHandle;
+
+
+class ViewerToolInterface : public ToolWidget
 {
+Q_OBJECT
   
-CORE_ACTION(
-  CORE_ACTION_TYPE( "ActionReconstructionView", "" )
-  CORE_ACTION_OPTIONAL_ARGUMENT("outputDir", "", "Algorithm output directory.")
-  CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "50", "Number of iterations to perform." )
-  CORE_ACTION_CHANGES_PROJECT_DATA()
-)
+public:
+  ViewerToolInterface();
+  virtual ~ViewerToolInterface();
+  virtual bool build_widget( QFrame* frame );
   
-  // -- Constructor/Destructor --
-public:
-  ActionReconstructionView();
-
-  // -- Functions that describe action --
-public:
-  virtual bool validate( Core::ActionContextHandle& context );
-  virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-  
-  // -- Dispatch this action from the interface --
-public:
-  /// DISPATCH:
-  /// Dispatch an action that saves the preferences
-  static void Dispatch( Core::ActionContextHandle context );
-
 private:
-  int iterations_;
-  std::string outputDir_;
+  ViewerToolInterfacePrivateHandle private_;
   
+public:
+  typedef QPointer< ViewerToolInterface > qpointer_type;
+  
+private Q_SLOTS:
+  //void triggerDataImport();
+  void triggerLabelImport();
 };
   
 } // end namespace Seg3D

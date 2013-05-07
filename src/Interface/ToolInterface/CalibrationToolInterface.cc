@@ -57,6 +57,8 @@
 
 // Application Includes
 #include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerGroup.h>
+
 #include <Application/LayerIO/LayerIO.h>
 //#include <Application/ViewerManager/Actions/ActionPickPoint.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
@@ -238,7 +240,6 @@ void OpenHISFileToolInterfacePrivate::importLabelNrrd()
   }
   else
   {
-    
     // List of importers to use
     std::vector< LayerImporterHandle > importers;
     
@@ -301,10 +302,6 @@ CalibrationToolInterface::~CalibrationToolInterface()
   this->disconnect_all();
 }
 
-//void CalibrationToolInterface::trigger_table_update(const QString & text)
-//{
-//}
-
 void CalibrationToolInterface::triggerDataImport()
 {
   this->file_private_->importImageStack();
@@ -314,22 +311,56 @@ void CalibrationToolInterface::triggerLabelImport()
 {
   this->file_private_->importLabelNrrd();
 }
-  
+
 void CalibrationToolInterface::trigger_itemActivated( QTableWidgetItem *item )
 {
-  std::cerr << item->text().toStdString() << std::endl;
-  LayerHandle layerHandle = LayerManager::Instance()->find_layer_by_name(item->text().toStdString(), -1);
-  if (layerHandle)
+  LayerHandle activeLayer = LayerManager::Instance()->get_active_layer();
+  if (! activeLayer)
   {
-    int color_index =  dynamic_cast< MaskLayer* >( layerHandle.get() )->color_state_->get();
-    Core::Color color = PreferencesManager::Instance()->color_states_[ color_index ]->get();
-    int r = static_cast< int >( color.r() );
-    int g = static_cast< int >( color.g() );
-    int b = static_cast< int >( color.b() );
-    std::cerr << "color index=" << color_index << ", rgb=(" << r << ", " << g << ", " << b << ")" << std::endl;
-    
-    ActionActivateLayer::Dispatch( Core::Interface::GetWidgetActionContext(), layerHandle->get_layer_id() );
+    CORE_LOG_DEBUG("No active layer");
+    return;
   }
+
+  LayerHandle layerHandle = LayerManager::Instance()->find_layer_by_name(activeLayer->get_layer_name(), -1);
+  if (! layerHandle)
+  {
+    CORE_LOG_MESSAGE("Could not get layer by name.");
+    return;
+  }
+
+  //LayerGroupHandle layerGroupHandle = layerHandle->get_layer_group();
+  //std::cerr << "layerid=" << layerHandle->get_layer_id() << ", " << layerGroupHandle->
+  
+  QTableWidget *table = item->tableWidget();
+  QList<QTableWidgetItem*> items = table->findItems( tr(activeLayer->get_layer_name().c_str()),
+                                                    Qt::MatchFixedString|Qt::MatchCaseSensitive );
+  if (items.size() > 0)
+  {
+    for (int i = 0; i < items.size(); ++i)
+    {
+      QTableWidgetItem* listItem = items[i];
+      int listItemRow = listItem->row();
+      // reset other items
+      QTableWidgetItem *layerItem = table->item(listItemRow, 1);
+      layerItem->setText( tr("") );
+      QTableWidgetItem *colorItem = table->item(listItemRow, 2);
+      colorItem->setBackground(Qt::white);
+    }
+  }
+
+  int row = item->row();
+  QTableWidgetItem *layerItem = table->item(row, 1);
+  layerItem->setText( tr(activeLayer->get_layer_name().c_str()) );
+
+  int color_index =  dynamic_cast< MaskLayer* >( layerHandle.get() )->color_state_->get();
+  Core::Color color = PreferencesManager::Instance()->color_states_[ color_index ]->get();
+  QTableWidgetItem *colorItem = table->item(row, 2);
+  colorItem->setBackground(QBrush(QColor::fromRgb(color.r(), color.g(), color.b())));
+
+  // Update tool state
+	ToolHandle base_tool_ = tool();
+	CalibrationTool* tool = dynamic_cast< CalibrationTool* > ( base_tool_.get() );
+  tool->save( Core::Interface::GetWidgetActionContext(), row, activeLayer->get_layer_id() );
 }
 
 bool CalibrationToolInterface::build_widget( QFrame* frame )
@@ -337,48 +368,42 @@ bool CalibrationToolInterface::build_widget( QFrame* frame )
   this->private_->ui_.setupUi( frame );
 //	this->private_->ui_.horizontalLayout_5->setAlignment( Qt::AlignHCenter );
 
-  // test
   this->private_->ui_.labelTableWidget->setRowCount(4);
   this->private_->ui_.labelTableWidget->setColumnCount(3);
   QStringList tableHeader;
-  tableHeader << "ID" << "Label Name" << "";
+  tableHeader << "ID" << "Label Name" << "Mask Layer";
   this->private_->ui_.labelTableWidget->setHorizontalHeaderLabels(tableHeader);
   this->private_->ui_.labelTableWidget->verticalHeader()->setVisible(false);
   this->private_->ui_.labelTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
   this->private_->ui_.labelTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
   this->private_->ui_.labelTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+  this->private_->ui_.labelTableWidget->setSelectionMode(QAbstractItemView::NoSelection);
   this->private_->ui_.labelTableWidget->setShowGrid(false);
 
-  QTableWidgetItem *layer1 = new QTableWidgetItem(tr("calib_point_ids"));
-  this->private_->ui_.labelTableWidget->setItem(0, 1, layer1);
   QTableWidgetItem *index1 = new QTableWidgetItem(tr("1"));
   this->private_->ui_.labelTableWidget->setItem(0, 0, index1);
-  QTableWidgetItem *color1 = new QTableWidgetItem(tr(" "));
-  color1->setBackground(QBrush(QColor::fromRgb(255, 175, 78)));
+  QTableWidgetItem *layer1 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(0, 1, layer1);
+  QTableWidgetItem *color1 = new QTableWidgetItem();
   this->private_->ui_.labelTableWidget->setItem(0, 2, color1);
-
-  QTableWidgetItem *layer2 = new QTableWidgetItem(tr("calib_point_ids_1"));
-  this->private_->ui_.labelTableWidget->setItem(1, 1, layer2);
   QTableWidgetItem *index2 = new QTableWidgetItem(tr("2"));
   this->private_->ui_.labelTableWidget->setItem(1, 0, index2);
+  QTableWidgetItem *layer2 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(1, 1, layer2);
   QTableWidgetItem *color2 = new QTableWidgetItem();
-  QBrush brush2(QColor::fromRgb(116, 255, 122));
-  color2->setBackground(QBrush(QColor::fromRgb(116, 255, 122)));
   this->private_->ui_.labelTableWidget->setItem(1, 2, color2);
-  
-//  QTableWidgetItem *layer3 = new QTableWidgetItem(tr("calib_point_ids_2"));
-//  this->private_->ui_.labelTableWidget->setItem(2, 1, layer3);
   QTableWidgetItem *index3 = new QTableWidgetItem(tr("3"));
   this->private_->ui_.labelTableWidget->setItem(2, 0, index3);
-//  QTableWidgetItem *color3 = new QTableWidgetItem();
-//  color3->setBackground(QBrush(QColor::fromRgb(143, 214, 255)));
-//  this->private_->ui_.labelTableWidget->setItem(2, 2, color3);
-
-//  QTableWidgetItem *layer4 = new QTableWidgetItem(tr("calib_point_ids_3"));
-//  this->private_->ui_.labelTableWidget->setItem(3, 1, layer4);
+  QTableWidgetItem *layer3 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(2, 1, layer3);
+  QTableWidgetItem *color3 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(2, 2, color3);
 //  QTableWidgetItem *index4 = new QTableWidgetItem(tr("4"));
 //  this->private_->ui_.labelTableWidget->setItem(3, 0, index4);
-  // test
+//  QTableWidgetItem *layer4 = new QTableWidgetItem();
+//  this->private_->ui_.labelTableWidget->setItem(3, 1, layer4);
+//  QTableWidgetItem *color4 = new QTableWidgetItem();
+//  this->private_->ui_.labelTableWidget->setItem(3, 2, color4);
   
 	//Step 2 - get a pointer to the tool
 	ToolHandle base_tool_ = tool();

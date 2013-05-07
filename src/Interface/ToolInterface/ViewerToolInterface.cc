@@ -37,7 +37,10 @@
 // Qt includes
 #include <QtGui/QFileDialog>
 #include <QtGui/QMessageBox>
-#include <QtCore/QString>
+#include <QtGui/QClipboard>
+#include <QtGui/QColorDialog>
+#include <QtGui/QBrush>
+#include <QtGui/QColor>
 
 // Qt Gui Includes
 #include <QtUtils/Bridge/QtBridge.h>
@@ -47,21 +50,19 @@
 #include <Core/State/Actions/ActionSet.h>
 
 // Interface Includes
-#include <Interface/ToolInterface/ReconstructionToolInterface.h>
+#include <Interface/ToolInterface/ViewerToolInterface.h>
 #include <Interface/Application/LayerImporterWidget.h>
 
-#include "ui_ReconstructionToolInterface.h"
+#include "ui_ViewerToolInterface.h"
 
 // Application Includes
 #include <Application/Layer/LayerManager.h>
 #include <Application/LayerIO/LayerIO.h>
-//#include <Application/ViewerManager/Actions/ActionPickPoint.h>
 #include <Application/PreferencesManager/PreferencesManager.h>
 #include <Application/ProjectManager/ProjectManager.h>
 
 #include <Application/Layer/Actions/ActionActivateLayer.h>
 
-#include <Application/BackscatterReconstruction/ReconstructionTool.h>
 
 // Core Includes
 #include <Core/State/Actions/ActionSetAt.h>
@@ -70,41 +71,24 @@
 #include <iostream>
 // test
 
-SCI_REGISTER_TOOLINTERFACE( Seg3D, ReconstructionToolInterface )
+SCI_REGISTER_TOOLINTERFACE( Seg3D, ViewerToolInterface )
 
 namespace bfs=boost::filesystem;
 
 namespace Seg3D
 {
 
-class ReconstructionToolInterfacePrivate
+class ViewerToolInterfacePrivate
 {
 public:
-  Ui::ReconstructionToolInterface ui_;
-  ReconstructionToolInterface* interface_;  
-
+  Ui::ViewerToolInterface ui_;
+  ViewerToolInterface* interface_;
+  
+  //void importImageStack();
   void importLabelNrrd();
-  void setOutputDirectory();
 };
 
-void ReconstructionToolInterfacePrivate::setOutputDirectory()
-{
-  // propagate to tool state
-  QDir outputDir = QDir( QFileDialog::getExistingDirectory ( interface_, 
-    interface_->tr( "Choose Output Directory" ), this->ui_.outputDirLineEdit->text(), 
-    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks ) );
-  if( outputDir.exists() )
-  {
-    this->ui_.outputDirLineEdit->setText( outputDir.canonicalPath() );
-  }
-  else
-  {
-    this->ui_.outputDirLineEdit->setText( "" );
-  }
-}
-
-
-void ReconstructionToolInterfacePrivate::importLabelNrrd()
+void ViewerToolInterfacePrivate::importLabelNrrd()
 {
   bfs::path current_file_folder = ProjectManager::Instance()->get_current_file_folder();
   
@@ -163,7 +147,6 @@ void ReconstructionToolInterfacePrivate::importLabelNrrd()
   }
   else
   {
-    
     // List of importers to use
     std::vector< LayerImporterHandle > importers;
     
@@ -203,79 +186,40 @@ void ReconstructionToolInterfacePrivate::importLabelNrrd()
     layer_import_dialog.exec();
   }
 }
-  
 
 // constructor
-ReconstructionToolInterface::ReconstructionToolInterface() :
-private_( new ReconstructionToolInterfacePrivate )
+ViewerToolInterface::ViewerToolInterface() :
+private_( new ViewerToolInterfacePrivate )
 {
-    this->private_->interface_ = this;
+  this->private_->interface_ = this;
 }
 
 // destructor
-ReconstructionToolInterface::~ReconstructionToolInterface()
+ViewerToolInterface::~ViewerToolInterface()
 {
   this->disconnect_all();
 }
 
+//void ViewerToolInterface::triggerDataImport()
+//{
+//  this->private_->importImageStack();
+//}
 
-void ReconstructionToolInterface::triggerSetOutputDir()
-{
-  this->private_->setOutputDirectory();
-}
-
-
-void ReconstructionToolInterface::triggerLabelImport()
+void ViewerToolInterface::triggerLabelImport()
 {
   this->private_->importLabelNrrd();
 }
 
-void ReconstructionToolInterface::update_progress_bar( double progress )
-{
-  this->private_->ui_.progress_bar_->setValue(progress);
-}
-
-void ReconstructionToolInterface::UpdateProgress( qpointer_type qpointer, double progress )
-{
-  // Hand it off to the right thread
-  if( !( Core::Interface::IsInterfaceThread() ) )
-  {
-    Core::Interface::Instance()->post_event(
-      boost::bind( &ReconstructionToolInterface::UpdateProgress, qpointer, progress) );
-    return;	
-  }
-  
-  // When we are finally on the interface thread run this code:
-  if ( qpointer.data() && !QCoreApplication::closingDown() )
-  {
-    qpointer->update_progress_bar( progress );
-//    qpointer->parent_->update();
-  }
-}
-
-bool ReconstructionToolInterface::build_widget( QFrame* frame )
+bool ViewerToolInterface::build_widget( QFrame* frame )
 {
   this->private_->ui_.setupUi( frame );
+  //	this->private_->ui_.horizontalLayout_5->setAlignment( Qt::AlignHCenter );
   
   // TODO: make tool and action for this for scripting (take filepath, filter)
-  connect( this->private_->ui_.setDirButton, SIGNAL( clicked() ), this, SLOT( triggerSetOutputDir() ) );
-
+//  connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
+  
   // TODO: make tool and action for this for scripting (take filepath, filter)
-  //connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
   connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
- 
-	ToolHandle base_tool_ = tool();
-	ReconstructionTool* tool = dynamic_cast< ReconstructionTool* > ( base_tool_.get() );
-
-	QtUtils::QtBridge::Connect( this->private_->ui_.iterationsCombo, tool->iterations_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.outputDirLineEdit, tool->outputDirectory_state_, true );
-	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
-    &Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
-  
-  this->add_connection( tool->update_progress_signal_.connect(
-    boost::bind( &ReconstructionToolInterface::UpdateProgress, qpointer_type( this ), _1 ) ) );
-
-	this->private_->ui_.iterationsCombo->set_description( "Iterations" );
   
   return true;
 }

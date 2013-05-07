@@ -43,7 +43,13 @@ CORE_REGISTER_ACTION( Seg3D, ReconstructionView )
 
 namespace Seg3D
 {
-  
+
+ActionReconstructionView::ActionReconstructionView()
+{
+  this->add_parameter( this->iterations_ );
+  this->add_parameter( this->outputDir_ );
+}
+
 bool ActionReconstructionView::validate( Core::ActionContextHandle& context )
 {
   return true; // validated
@@ -53,8 +59,6 @@ bool ActionReconstructionView::run( Core::ActionContextHandle& context,
                                     Core::ActionResultHandle& result )
 {
   // TODO: change to tool&dock widget customization
-  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-    ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
 	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "reconstructiontool" );  
   
   return true;

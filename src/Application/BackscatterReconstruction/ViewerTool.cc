@@ -3,7 +3,7 @@
  
  The MIT License
  
- Copyright (c) 2013 Scientific Computing and Imaging Institute,
+ Copyright (c) 2009 Scientific Computing and Imaging Institute,
  University of Utah.
  
  
@@ -26,49 +26,51 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_RECONSTRUCTIONTOOLINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_RECONSTRUCTIONTOOLINTERFACE_H
 
-// Qt includes
-#include <QtCore/QPointer>
-#include <QtGui/QTableWidget>
+#include <Application/BackscatterReconstruction/ViewerTool.h>
+#include <Application/Tool/ToolFactory.h>
 
-// Boost includes
-#include <boost/shared_ptr.hpp>
+#include <Application/Layer/Layer.h>
+#include <Application/Layer/LayerGroup.h>
+#include <Application/Layer/LayerManager.h>
 
-// Base class of the tool widget include
-#include <Interface/Application/ToolWidget.h>
+#include <Core/Viewer/Mouse.h>
+
+#include <Core/Volume/DataVolumeSlice.h>
+#include <Core/Volume/MaskVolumeSlice.h>
+
+// test
+#include <iostream>
+// test
+
+// Register the tool into the tool factory
+SCI_REGISTER_TOOL( Seg3D, ViewerTool )
 
 namespace Seg3D
 {
-  
-class ReconstructionToolInterfacePrivate;
-typedef boost::shared_ptr< ReconstructionToolInterfacePrivate > ReconstructionToolInterfacePrivateHandle;
 
-
-class ReconstructionToolInterface : public ToolWidget
+ViewerTool::ViewerTool( const std::string& toolid ) :
+SingleTargetTool( Core::VolumeType::MASK_E, toolid ) /*, private_( new ViewerToolPrivate )*/
 {
-Q_OBJECT
+}
+
+ViewerTool::~ViewerTool()
+{
+  //this->disconnect_all();
+}
+
+void ViewerTool::execute( Core::ActionContextHandle context )
+{
+  // do nothing
+}
+
+void ViewerTool::activate()
+{
+  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+                            ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND3_C );
+  ViewerHandle viewer = ViewerManager::Instance()->get_viewer(0);
+  viewer->view_mode_state_->set(Viewer::VOLUME_C);
+}
   
-public:
-  ReconstructionToolInterface();
-  virtual ~ReconstructionToolInterface();
-  virtual bool build_widget( QFrame* frame );
-	void update_progress_bar( double progress );
 
-private:
-  ReconstructionToolInterfacePrivateHandle private_;
-
-public:
-  typedef QPointer< ReconstructionToolInterface > qpointer_type;
-  
-  static void UpdateProgress( qpointer_type qpointer, double progress );
-
-private Q_SLOTS:
-  void triggerSetOutputDir();
-  void triggerLabelImport();
-};
-  
-} // end namespace Seg3D
-
-#endif
+}

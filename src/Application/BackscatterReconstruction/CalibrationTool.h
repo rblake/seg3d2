@@ -68,12 +68,21 @@ public:
 	virtual bool handle_mouse_move( ViewerHandle viewer, 
                                  const Core::MouseHistory& mouse_history, 
                                  int button, int buttons, int modifiers );
+
+	/// ACTIVATE:
+	/// Activate a tool: this tool is set as the active tool and hence it should
+	/// setup the right mouse tools in the viewers.
+	virtual void activate();
+
+  void save( Core::ActionContextHandle context, int index, std::string layerid );
   
 	// -- state --
-  // target is first layer
-	Core::StateLabeledOptionHandle input_b_state_;
-	Core::StateLabeledOptionHandle input_c_state_;
-	Core::StateLabeledOptionHandle input_d_state_;  
+  // target_layer_state_ is selected layer
+//	Core::StateLabeledOptionHandle input_a_state_;
+//	Core::StateLabeledOptionHandle input_b_state_;
+//	Core::StateLabeledOptionHandle input_c_state_;
+//	Core::StateLabeledOptionHandle input_d_state_;  
+  Core::StateIntVectorHandle calibrationSet_state_;
 
 private:
 	CalibrationToolPrivateHandle private_;

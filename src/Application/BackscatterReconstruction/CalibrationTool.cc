@@ -33,11 +33,14 @@
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/LayerGroup.h>
 #include <Application/Layer/LayerManager.h>
+#include <Application/ViewerManager/ViewerManager.h>
 
 #include <Core/Viewer/Mouse.h>
 
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
+
+#include <vector>
 
 // test
 #include <iostream>
@@ -53,13 +56,16 @@ class CalibrationToolPrivate : public Core::RecursiveLockable
 {
 public:
   CalibrationTool* calibration_tool_;
+  std::vector<LayerHandle> layers;
+	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
 
 	ViewerHandle viewer_;
-
-	int center_x_;
-	int center_y_;
 };
 
+void CalibrationToolPrivate::handle_layer_group_insert( LayerHandle layerHandle, bool newGroup )
+{
+  std::cerr << "layer handle=" << layerHandle->get_layer_name() << ", " << layerHandle->get_layer_id() << ", new group created=" << newGroup << std::endl;
+}
 
 
 CalibrationTool::CalibrationTool( const std::string& toolid ) :
@@ -67,20 +73,32 @@ CalibrationTool::CalibrationTool( const std::string& toolid ) :
   private_( new CalibrationToolPrivate )
 {
 	// Create an empty list of label options
-	std::vector< LayerIDNamePair > empty_list( 1, std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
+//	std::vector< LayerIDNamePair > empty_list( 1, std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
 
-	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
-	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E );
-	this->add_state( "input_d", this->input_d_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_extra_layer_input( this->input_d_state_, Core::VolumeType::MASK_E );
+//	this->add_state( "input_a", this->input_a_state_, Tool::NONE_OPTION_C, empty_list );
+//	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
+//	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
+//	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
+//	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
+//	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E );
+//	this->add_state( "input_d", this->input_d_state_, Tool::NONE_OPTION_C, empty_list );
+//	this->add_extra_layer_input( this->input_d_state_, Core::VolumeType::MASK_E );
+  this->add_state( "calibrationSet", this->calibrationSet_state_ );
+
+	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
+    boost::bind( &CalibrationToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
 }
 
 CalibrationTool::~CalibrationTool()
 {
-	//this->disconnect_all();
+  this->disconnect_all();
 }
+
+void CalibrationTool::save( Core::ActionContextHandle context, int index, std::string layerid )
+{
+  std::cerr << "CalibrationTool::save: " << index << ", " << layerid << std::endl;
+}
+  
 
 bool CalibrationTool::handle_mouse_press( ViewerHandle viewer,  const Core::MouseHistory& mouse_history,
                                          int button, int buttons, int modifiers )
@@ -163,7 +181,7 @@ bool CalibrationTool::handle_mouse_move( ViewerHandle viewer, const Core::MouseH
 //    }
 
     const std::string& target_layer_id = this->target_layer_state_->get();
-    std::cerr << "target_layer_id=" << target_layer_id << std::endl;
+//std::cerr << "target_layer_id=" << target_layer_id << std::endl;
     Core::VolumeSliceHandle volumeSliceHandle = viewer->get_volume_slice( target_layer_id );
     
     if (! volumeSliceHandle)
@@ -206,12 +224,21 @@ bool CalibrationTool::handle_mouse_move( ViewerHandle viewer, const Core::MouseH
   
 void CalibrationTool::execute( Core::ActionContextHandle context )
 {
+std::cerr << "CalibrationTool::execute" << std::endl;
   // action for saving data goes here...
-  for (int i = 0; i < 1000; ++i)
+  for (int i = 0; i < 100000; ++i)
   {
     // do nothing
   }
+std::cerr << "CalibrationTool::execute done" << std::endl;
 }
 
+void CalibrationTool::activate()
+{
+  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+                            ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
+  ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
+  viewer->view_mode_state_->set(Viewer::AXIAL_C);
+}
 
 }

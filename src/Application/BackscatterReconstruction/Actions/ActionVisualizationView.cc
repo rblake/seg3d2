@@ -44,25 +44,24 @@ CORE_REGISTER_ACTION( Seg3D, VisualizationView )
 namespace Seg3D
 {
   
-  bool ActionVisualizationView::validate( Core::ActionContextHandle& context )
-  {
-    return true; // validated
-  }
+bool ActionVisualizationView::validate( Core::ActionContextHandle& context )
+{
+  return true; // validated
+}
+
+bool ActionVisualizationView::run( Core::ActionContextHandle& context,
+                                   Core::ActionResultHandle& result )
+{
+  // TODO: change to tool&dock widget customization
+  ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "viewertool" );
   
-  bool ActionVisualizationView::run( Core::ActionContextHandle& context,
-                                     Core::ActionResultHandle& result )
-  {
-    // TODO: change to tool&dock widget customization
-    Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-      ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_1AND3_C );
-    
-    return true;
-  }
-  
-  void ActionVisualizationView::Dispatch( Core::ActionContextHandle context )
-  {
-    ActionVisualizationView* action = new ActionVisualizationView;
-    Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
-  }
+  return true;
+}
+
+void ActionVisualizationView::Dispatch( Core::ActionContextHandle context )
+{
+  ActionVisualizationView* action = new ActionVisualizationView;
+  Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+}
   
 } // end namespace Seg3D
