@@ -50,7 +50,7 @@
 #include <Core/State/Actions/ActionSet.h>
 
 // Interface Includes
-#include <Interface/ToolInterface/CalibrationToolInterface.h>
+#include <Interface/BackscatterReconstruction/CalibrationToolInterface.h>
 #include <Interface/Application/LayerImporterWidget.h>
 
 #include "ui_CalibrationToolInterface.h"
@@ -90,6 +90,7 @@ public:
   CalibrationToolInterface* interface_;
   
   void importImageStack();
+  void importDataNrrd();
   void importLabelNrrd();
 };
 
@@ -280,6 +281,106 @@ void OpenHISFileToolInterfacePrivate::importLabelNrrd()
   }
 }
 
+// for testing
+void OpenHISFileToolInterfacePrivate::importDataNrrd()
+{
+  bfs::path current_file_folder = ProjectManager::Instance()->get_current_file_folder();
+  
+  // Bring up the file dialog
+  QString filtername;
+  QStringList file_list;
+  
+  // Get the importer list from the LayerIO system
+  std::vector< std::string > importer_types = LayerIO::Instance()->get_single_file_importer_types();
+  
+  QString filters;
+  for ( size_t j = 0; j < importer_types.size(); j++ )
+  {
+    // TODO: .nrrd only
+    if ( j == 0 )
+    {
+      filters = QString::fromStdString( importer_types[ j ] );
+      continue;
+    }
+    filters = filters + ";;" + QString::fromStdString( importer_types[ j ] );
+  }
+  
+  // Use native dialog
+  // TODO: not likely to be needed on Linux, but if so, test this!!!
+  file_list = QFileDialog::getOpenFileNames( 0, "Select labels file ",
+                                            current_file_folder.string().c_str(), filters, &filtername );
+  
+  // TODO: basically copied from LayerIOFunctions...
+  // Make common utility function or just use .his and ITK .tif importers...
+  if( file_list.size() == 0 )
+  {
+    // log no files selected
+    return;
+  }
+  
+  std::string importer_name = filtername.toStdString();
+  
+  LayerImporterHandle importer;
+  // TODO: specialize to just masks?
+  if( ! ( LayerIO::Instance()->create_single_file_importer( file_list.at( 0 ).toStdString(), importer, 
+                                                           importer_name ) ) )
+  {
+    // If we are unable to create an importer we pop up an error message box
+    std::string error_message = std::string( "ERROR: No importer is available for file '" ) + 
+    file_list.at( 0 ).toStdString() + std::string( "'." );
+    
+    QMessageBox message_box;
+    message_box.setWindowTitle( "Import Layer Error" );
+    message_box.addButton( QMessageBox::Ok );
+    message_box.setIcon( QMessageBox::Critical );
+    message_box.setText( QString::fromStdString( error_message ) );
+    message_box.exec();
+    QString fileStem( bfs::path( file_list.at( 0 ).toStdString() ).stem().string().c_str() );
+    //ui_.fileNameLabel->setText( fileStem );
+    return;
+  }
+  else
+  {
+    // List of importers to use
+    std::vector< LayerImporterHandle > importers;
+    
+    // Loop over all the selected files and generate an importer for them
+    for( int i = 0; i < file_list.size(); ++i )
+    {
+      LayerImporterHandle importer;
+      std::string error;
+      
+      // Create a new importer
+      if( ! ( LayerIO::Instance()->create_single_file_importer( file_list.at( i ).toStdString(), 
+                                                               importer, error, importer_name ) ) )
+      {
+        // Failed to create the importer, and warn the user explicitly
+        std::string error_message = std::string( "ERROR: No importer is available for file '" ) 
+        + file_list.at( i ).toStdString() + std::string( "'. " ) + error;
+        
+        QMessageBox message_box;
+        message_box.setWindowTitle( "Import Layer Error" );
+        message_box.addButton( QMessageBox::Ok );
+        message_box.setIcon( QMessageBox::Critical );
+        message_box.setText( QString::fromStdString( error_message ) );
+        
+        // Send message box to Qt
+        message_box.exec();
+        return;
+      }
+      else
+      {
+        // Add the importer to the list of all the importers that need to be handled
+        importers.push_back( importer );
+      }
+    }
+    
+    // Open the importer dialog that issues the action to import the data file(s)
+    LayerImporterWidget layer_import_dialog( importers, 0 );
+    layer_import_dialog.exec();
+  }
+}
+  
 class CalibrationToolInterfacePrivate
 {
 public:
@@ -304,7 +405,8 @@ CalibrationToolInterface::~CalibrationToolInterface()
 
 void CalibrationToolInterface::triggerDataImport()
 {
-  this->file_private_->importImageStack();
+  //this->file_private_->importImageStack();
+  this->file_private_->importDataNrrd();
 }
   
 void CalibrationToolInterface::triggerLabelImport()

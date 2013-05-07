@@ -70,9 +70,6 @@ SET(INTERFACE_TOOLINTERFACE_SRCS
   MeasurementToolInterface.cc
   PointSetFilterInterface.cc
   SpeedlineToolInterface.cc
-  CalibrationToolInterface.cc
-  ReconstructionToolInterface.cc
-  ViewerToolInterface.cc
 )
 
 SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
@@ -118,9 +115,6 @@ SET(INTERFACE_TOOLINTERFACE_MOC_SRCS
   detail/MeasurementTextEdit.h
   PointSetFilterInterface.h
   SpeedlineToolInterface.h
-  CalibrationToolInterface.h
-  ReconstructionToolInterface.h
-  ViewerToolInterface.h
 )
 
 SET(INTERFACE_TOOLINTERFACE_NO_MOC_SRCS
@@ -169,9 +163,6 @@ SET(INTERFACE_TOOLINTERFACE_UI_SRCS
   MeasurementToolInterface.ui
   PointSetFilterInterface.ui
   SpeedlineToolInterface.ui
-  CalibrationToolInterface.ui
-  ReconstructionToolInterface.ui
-  ViewerToolInterface.ui
 )
 
 ##################################################

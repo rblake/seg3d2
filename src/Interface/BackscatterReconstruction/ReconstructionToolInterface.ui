@@ -107,7 +107,7 @@ QPushButton:pressed{
             </size>
            </property>
            <property name="text">
-            <string>Load Images</string>
+            <string>Load Image Files</string>
            </property>
           </widget>
          </item>
@@ -120,7 +120,7 @@ QPushButton:pressed{
             </size>
            </property>
            <property name="text">
-            <string>Load Labels</string>
+            <string>Load Initial Reconstruction (optional)</string>
            </property>
           </widget>
          </item>
@@ -153,6 +153,16 @@ QPushButton:pressed{
       </property>
       <item>
        <widget class="QtUtils::QtSliderIntCombo" name="iterationsCombo" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QtUtils::QtSliderIntCombo" name="measurementScaleCombo" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -226,7 +236,7 @@ QPushButton:pressed{
          </size>
         </property>
         <property name="text">
-         <string>Run Filter</string>
+         <string>Run Reconstruction</string>
         </property>
        </widget>
       </item>

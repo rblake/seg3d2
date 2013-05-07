@@ -3,7 +3,7 @@
 # 
 #  The MIT License
 # 
-#  Copyright (c) 2009 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2013 Scientific Computing and Imaging Institute,
 #  University of Utah.
 # 
 #  
@@ -28,3 +28,4 @@
 
 ADD_SUBDIRECTORY(Application)
 ADD_SUBDIRECTORY(ToolInterface)
+ADD_SUBDIRECTORY(BackscatterReconstruction)

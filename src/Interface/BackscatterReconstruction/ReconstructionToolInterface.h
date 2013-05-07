@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_TOOLINTERFACE_VIEWERTOOLINTERFACE_H
-#define INTERFACE_TOOLINTERFACE_VIEWERTOOLINTERFACE_H
+#ifndef INTERFACE_BACKSCATTERRECONSTRUCTION_RECONSTRUCTIONTOOLINTERFACE_H
+#define INTERFACE_BACKSCATTERRECONSTRUCTION_RECONSTRUCTIONTOOLINTERFACE_H
 
 // Qt includes
 #include <QtCore/QPointer>
@@ -41,28 +41,32 @@
 
 namespace Seg3D
 {
+  
+class ReconstructionToolInterfacePrivate;
+typedef boost::shared_ptr< ReconstructionToolInterfacePrivate > ReconstructionToolInterfacePrivateHandle;
 
-class ViewerToolInterfacePrivate;
-typedef boost::shared_ptr< ViewerToolInterfacePrivate > ViewerToolInterfacePrivateHandle;
 
-
-class ViewerToolInterface : public ToolWidget
+class ReconstructionToolInterface : public ToolWidget
 {
 Q_OBJECT
   
 public:
-  ViewerToolInterface();
-  virtual ~ViewerToolInterface();
+  ReconstructionToolInterface();
+  virtual ~ReconstructionToolInterface();
   virtual bool build_widget( QFrame* frame );
-  
+	void update_progress_bar( double progress );
+
 private:
-  ViewerToolInterfacePrivateHandle private_;
-  
+  ReconstructionToolInterfacePrivateHandle private_;
+
 public:
-  typedef QPointer< ViewerToolInterface > qpointer_type;
+  typedef QPointer< ReconstructionToolInterface > qpointer_type;
   
+  static void UpdateProgress( qpointer_type qpointer, double progress );
+
 private Q_SLOTS:
-  //void triggerDataImport();
+  void triggerSetOutputDir();
+  void triggerDataImport();
   void triggerLabelImport();
 };
   

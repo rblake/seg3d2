@@ -47,7 +47,7 @@
 #include <Core/State/Actions/ActionSet.h>
 
 // Interface Includes
-#include <Interface/ToolInterface/ReconstructionToolInterface.h>
+#include <Interface/BackscatterReconstruction/ReconstructionToolInterface.h>
 #include <Interface/Application/LayerImporterWidget.h>
 
 #include "ui_ReconstructionToolInterface.h"

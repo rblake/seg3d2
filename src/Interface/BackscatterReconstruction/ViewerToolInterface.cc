@@ -50,7 +50,7 @@
 #include <Core/State/Actions/ActionSet.h>
 
 // Interface Includes
-#include <Interface/ToolInterface/ViewerToolInterface.h>
+#include <Interface/BackscatterReconstruction/ViewerToolInterface.h>
 #include <Interface/Application/LayerImporterWidget.h>
 
 #include "ui_ViewerToolInterface.h"
