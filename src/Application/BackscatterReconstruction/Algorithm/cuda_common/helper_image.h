@@ -20,8 +20,9 @@
 #include <algorithm>
 
 #include <assert.h>
-#include <exception.h>
 #include <math.h>
+
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/exception.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a < b) ? a : b)
@@ -30,7 +31,7 @@
 #define MAX(a,b) ((a > b) ? a : b)
 #endif
 
-#include <helper_string.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_string.h>
 
 // namespace unnamed (internal)
 namespace

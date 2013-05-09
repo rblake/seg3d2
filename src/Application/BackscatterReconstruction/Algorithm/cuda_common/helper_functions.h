@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <string>
 #include <assert.h>
-#include <exception.h>
 #include <math.h>
 
 #include <fstream>
@@ -31,8 +30,9 @@
 #include <algorithm>
 
 // includes, timer, string parsing, image helpers
-#include <helper_timer.h>   // helper functions for timers
-#include <helper_string.h>  // helper functions for string parsing
-#include <helper_image.h>   // helper functions for image compare, dump, data comparisons
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_timer.h>   // helper functions for timers
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_string.h>  // helper functions for string parsing
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_image.h>   // helper functions for image compare, dump, data comparisons
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/exception.h>
 
 #endif //  HELPER_FUNCTIONS_H

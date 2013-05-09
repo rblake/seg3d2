@@ -11,9 +11,9 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 
-#include "cuda_common/helper_functions.h"
-#include "cuda_common/helper_cuda.h"
-#include "cuda_common/cutil_math.h"
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_functions.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_cuda.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/cutil_math.h>
 
 // material volumes in the collection
 float4 *cudaVolumeLinearCurrent = NULL;

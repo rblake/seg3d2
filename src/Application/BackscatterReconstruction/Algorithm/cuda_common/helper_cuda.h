@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <helper_string.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_string.h>
 
 //#include <string>
 //#include <iostream>
