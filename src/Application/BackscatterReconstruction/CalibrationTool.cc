@@ -41,6 +41,7 @@
 
 #include <Core/Geometry/Point.h>
 #include <Core/Viewer/Mouse.h>
+#include <Core/State/Actions/ActionSetAt.h>
 
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
@@ -115,8 +116,7 @@ CalibrationTool::~CalibrationTool()
 void CalibrationTool::save( Core::ActionContextHandle context, int index, std::string layerid )
 {
   std::cerr << "CalibrationTool::save: " << index << ", " << layerid << std::endl;
-  // check if in vector
-  this->calibrationSet_state_->set_at(index, layerid);
+  Core::ActionSetAt::Dispatch( context, this->calibrationSet_state_, index, layerid );
 }
   
 

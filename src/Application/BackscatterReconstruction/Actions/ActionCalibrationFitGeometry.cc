@@ -69,9 +69,12 @@ public:
     boost::filesystem::path algorithm_work_dir;
     boost::filesystem::path algorithm_config_file;    
     boost::filesystem::path algorithm_geometry_file;
-    Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
-                                                        algorithm_config_file,
-                                                        algorithm_geometry_file);
+    if(! Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
+           algorithm_config_file, algorithm_geometry_file) )
+	{
+      this->report_error("Failed to get algorithm config information.");
+      return;
+	}
     
     // Retrieve the image as an itk image from the underlying data structure
     // NOTE: This only does wrapping and does not regenerate the data.
