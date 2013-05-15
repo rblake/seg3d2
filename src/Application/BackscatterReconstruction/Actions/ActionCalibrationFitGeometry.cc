@@ -126,6 +126,10 @@ public:
           // set disk IDs from 1 to 3
           diskIds->GetBufferPointer()[j] = (i+1);
         }
+        else
+        {
+          diskIds->GetBufferPointer()[j] = 0;
+        }
       }
     }
 
@@ -182,7 +186,7 @@ bool ActionCalibrationFitGeometry::run( Core::ActionContextHandle& context,
   boost::shared_ptr<CalibrationFitGeometryAlgo> algo( new CalibrationFitGeometryAlgo );
   
   // Copy the parameters over to the algorithm that runs the filter
-  algo->set_sandbox( this->sandbox_ );
+  //algo->set_sandbox( this->sandbox_ );
   algo->calibrationSet_ = this->calibrationSet_;
 
   // Find the handle to the layer

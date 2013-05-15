@@ -55,9 +55,9 @@ class ActionCalibrationFitGeometry : public LayerAction
 CORE_ACTION(
   CORE_ACTION_TYPE( "ActionCalibrationFitGeometry", "" )
   CORE_ACTION_ARGUMENT( "layerid", "The ID of the target layer." )
-  CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "calibrationSet", "<none>", "Calibration set." )
-  CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
+  //CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+  //CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
   CORE_ACTION_CHANGES_PROJECT_DATA()
 )
   
@@ -67,7 +67,7 @@ public:
   {
     this->add_layer_id( this->target_layer_ );
     this->add_parameter( this->calibrationSet_ );
-    this->add_parameter( this->sandbox_ );
+    //this->add_parameter( this->sandbox_ );
   }
   
   // -- Functions that describe action --
