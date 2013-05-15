@@ -215,7 +215,7 @@ QComboBox::icon{
                 <widget class="QComboBox" name="viewer_mode_">
                  <property name="minimumSize">
                   <size>
-                   <width>82</width>
+                   <width>100</width>
                    <height>0</height>
                   </size>
                  </property>
@@ -594,7 +594,7 @@ QComboBox::icon{
                  </property>
                  <item>
                   <property name="text">
-                   <string notr="true">Sagittal</string>
+                   <string notr="true">X Axis</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../../Resources/QtResources.qrc">
@@ -603,7 +603,7 @@ QComboBox::icon{
                  </item>
                  <item>
                   <property name="text">
-                   <string notr="true">Coronal</string>
+                   <string notr="true">Y Axis</string>
                   </property>
                   <property name="icon">
                    <iconset>
@@ -613,7 +613,7 @@ QComboBox::icon{
                  </item>
                  <item>
                   <property name="text">
-                   <string notr="true">Axial</string>
+                   <string notr="true">Z Axis</string>
                   </property>
                   <property name="icon">
                    <iconset>

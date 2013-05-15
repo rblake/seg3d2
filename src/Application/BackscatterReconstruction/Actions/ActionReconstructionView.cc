@@ -46,8 +46,6 @@ namespace Seg3D
 
 ActionReconstructionView::ActionReconstructionView()
 {
-  this->add_parameter( this->iterations_ );
-  this->add_parameter( this->outputDir_ );
 }
 
 bool ActionReconstructionView::validate( Core::ActionContextHandle& context )

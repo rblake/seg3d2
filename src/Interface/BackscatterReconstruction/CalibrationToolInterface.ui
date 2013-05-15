@@ -77,7 +77,7 @@ QPushButton:pressed{
          </size>
         </property>
         <property name="title">
-         <string>Calibration Images</string>
+         <string>Calibration Data</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -112,7 +112,7 @@ QPushButton:pressed{
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="openLabelsButton">
+          <widget class="QPushButton" name="segmentButton">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -120,7 +120,7 @@ QPushButton:pressed{
             </size>
            </property>
            <property name="text">
-            <string>Load Labels</string>
+            <string>Segment Images</string>
            </property>
           </widget>
          </item>
@@ -156,11 +156,23 @@ QPushButton:pressed{
       </item>
       <item>
        <widget class="QLabel" name="imageLabel">
+        <property name="minimumSize">
+         <size>
+          <width>264</width>
+          <height>166</height>
+         </size>
+        </property>
         <property name="frameShape">
-         <enum>QFrame::Box</enum>
+         <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap resource="../../Resources/QtResources.qrc">:/Images/CalibrationGuide.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -182,6 +194,8 @@ QPushButton:pressed{
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../Resources/QtResources.qrc"/>
+ </resources>
  <connections/>
 </ui>

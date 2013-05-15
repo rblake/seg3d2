@@ -26,29 +26,50 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
-#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONFITGEOMETRY_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONFITGEOMETRY_H
 
 
-// Core includes
-#include <Core/Action/Action.h>
+#include <Core/Application/Application.h>
+#include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
+
+#include <Application/Layer/Layer.h>
+#include <Application/Layer/DataLayer.h> 
+#include <Application/Layer/MaskLayer.h> 
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
+
+#include <boost/smart_ptr.hpp>
+
+#include <string>
+#include <vector>
 
 
 namespace Seg3D
 {
   
-class ActionReconstructionView : public Core::Action
+class ActionCalibrationFitGeometry : public LayerAction
 {
   
 CORE_ACTION(
-  CORE_ACTION_TYPE( "ActionReconstructionView", "" )
+  CORE_ACTION_TYPE( "ActionCalibrationFitGeometry", "" )
+  CORE_ACTION_ARGUMENT( "layerid", "The ID of the target layer." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "calibrationSet", "<none>", "Calibration set." )
+  CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
+  CORE_ACTION_CHANGES_PROJECT_DATA()
 )
   
   // -- Constructor/Destructor --
 public:
-  ActionReconstructionView();
-
+  ActionCalibrationFitGeometry()
+  {
+    this->add_layer_id( this->target_layer_ );
+    this->add_parameter( this->calibrationSet_ );
+    this->add_parameter( this->sandbox_ );
+  }
+  
   // -- Functions that describe action --
 public:
   virtual bool validate( Core::ActionContextHandle& context );
@@ -58,7 +79,14 @@ public:
 public:
   /// DISPATCH:
   /// Dispatch an action that saves the preferences
-  static void Dispatch( Core::ActionContextHandle context );
+  static void Dispatch( Core::ActionContextHandle context,
+                        const std::string& target_layer,
+                        const std::vector< std::string >& calibrationSet );
+  
+private:
+  std::string target_layer_;
+  std::vector< std::string > calibrationSet_;
+  SandboxID sandbox_;
 };
   
 } // end namespace Seg3D

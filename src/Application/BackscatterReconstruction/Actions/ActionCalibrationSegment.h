@@ -26,29 +26,42 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
-#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONRECONSTRUCTIONVIEW_H
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONSEGMENT_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_ACTIONCALIBRATIONSEGMENT_H
 
 
-// Core includes
-#include <Core/Action/Action.h>
+#include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
 
+#include <Application/Layer/Layer.h>
+#include <Application/Layer/DataLayer.h> 
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerAction.h>
+
+#include <boost/smart_ptr.hpp> 
 
 namespace Seg3D
 {
   
-class ActionReconstructionView : public Core::Action
+class ActionCalibrationSegment : public LayerAction
 {
   
 CORE_ACTION(
-  CORE_ACTION_TYPE( "ActionReconstructionView", "" )
+  CORE_ACTION_TYPE( "ActionCalibrationSegment", "" )
+  CORE_ACTION_ARGUMENT( "layerid", "The ID of the target layer." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+  CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
+  CORE_ACTION_CHANGES_PROJECT_DATA()
 )
   
   // -- Constructor/Destructor --
 public:
-  ActionReconstructionView();
-
+  ActionCalibrationSegment()
+  {
+    this->add_layer_id( this->target_layer_ );
+		this->add_parameter( this->sandbox_ );
+  }
+  
   // -- Functions that describe action --
 public:
   virtual bool validate( Core::ActionContextHandle& context );
@@ -58,7 +71,11 @@ public:
 public:
   /// DISPATCH:
   /// Dispatch an action that saves the preferences
-  static void Dispatch( Core::ActionContextHandle context );
+  static void Dispatch( Core::ActionContextHandle context, std::string target_layer );
+
+private:
+  std::string target_layer_;
+	SandboxID sandbox_;
 };
   
 } // end namespace Seg3D

@@ -365,6 +365,7 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
 	ReconstructionTool* tool = dynamic_cast< ReconstructionTool* > ( base_tool_.get() );
 
 	QtUtils::QtBridge::Connect( this->private_->ui_.iterationsCombo, tool->iterations_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.measurementScaleCombo, tool->measurementScale_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.outputDirLineEdit, tool->outputDirectory_state_, true );
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
     &Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
@@ -373,6 +374,7 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
     boost::bind( &ReconstructionToolInterface::UpdateProgress, qpointer_type( this ), _1 ) ) );
 
 	this->private_->ui_.iterationsCombo->set_description( "Iterations" );
+	this->private_->ui_.measurementScaleCombo->set_description( "Measurement Scale (mm)" );
   // Finish button disabled and hidden until can be hooked up to appropriate algorithm function
   this->private_->ui_.stop_button_->hide();
   

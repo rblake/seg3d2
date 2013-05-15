@@ -3,7 +3,7 @@
  
  The MIT License
  
- Copyright (c) 2009 Scientific Computing and Imaging Institute,
+ Copyright (c) 2013 Scientific Computing and Imaging Institute,
  University of Utah.
  
  
@@ -55,7 +55,7 @@ ToolsDockWidget::ToolsDockWidget( QWidget *parent ) :
 {
 	// Update the title and where this window can be docked
 	setAllowedAreas( Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea );
-	setWindowTitle( "Tools/Filters" );
+	setWindowTitle( "Tools" );
 
 	this->setMinimumSize( QSize( 300, 300 ) );
 	this->tool_dock_widget_contents_ = new QWidget();

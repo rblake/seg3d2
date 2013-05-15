@@ -76,6 +76,10 @@
 #include <iostream>
 // test
 
+#define ID_INDEX        0
+#define COLOR_INDEX     1
+#define MASK_NAME_INDEX 2
+
 SCI_REGISTER_TOOLINTERFACE( Seg3D, CalibrationToolInterface )
 
 namespace bfs=boost::filesystem;
@@ -405,8 +409,8 @@ CalibrationToolInterface::~CalibrationToolInterface()
 
 void CalibrationToolInterface::triggerDataImport()
 {
-  //this->file_private_->importImageStack();
-  this->file_private_->importDataNrrd();
+  this->file_private_->importImageStack();
+  //this->file_private_->importDataNrrd();
 }
   
 void CalibrationToolInterface::triggerLabelImport()
@@ -422,7 +426,6 @@ void CalibrationToolInterface::trigger_itemActivated( QTableWidgetItem *item )
     CORE_LOG_DEBUG("No active layer");
     return;
   }
-
   LayerHandle layerHandle = LayerManager::Instance()->find_layer_by_name(activeLayer->get_layer_name(), -1);
   if (! layerHandle)
   {
@@ -430,8 +433,11 @@ void CalibrationToolInterface::trigger_itemActivated( QTableWidgetItem *item )
     return;
   }
 
-  //LayerGroupHandle layerGroupHandle = layerHandle->get_layer_group();
-  //std::cerr << "layerid=" << layerHandle->get_layer_id() << ", " << layerGroupHandle->
+  if ( layerHandle->get_type() != Core::VolumeType::MASK_E )
+  {
+    CORE_LOG_DEBUG("Not a mask layer");
+    return;
+  }
   
   QTableWidget *table = item->tableWidget();
   QList<QTableWidgetItem*> items = table->findItems( tr(activeLayer->get_layer_name().c_str()),
@@ -443,22 +449,22 @@ void CalibrationToolInterface::trigger_itemActivated( QTableWidgetItem *item )
       QTableWidgetItem* listItem = items[i];
       int listItemRow = listItem->row();
       // reset other items
-      QTableWidgetItem *layerItem = table->item(listItemRow, 1);
-      layerItem->setText( tr("") );
-      QTableWidgetItem *colorItem = table->item(listItemRow, 2);
+      QTableWidgetItem *colorItem = table->item(listItemRow, COLOR_INDEX);
       colorItem->setBackground(Qt::white);
+      QTableWidgetItem *layerItem = table->item(listItemRow, MASK_NAME_INDEX);
+      layerItem->setText( tr("") );
     }
   }
 
   int row = item->row();
-  QTableWidgetItem *layerItem = table->item(row, 1);
-  layerItem->setText( tr(activeLayer->get_layer_name().c_str()) );
-
   int color_index =  dynamic_cast< MaskLayer* >( layerHandle.get() )->color_state_->get();
   Core::Color color = PreferencesManager::Instance()->color_states_[ color_index ]->get();
-  QTableWidgetItem *colorItem = table->item(row, 2);
+  QTableWidgetItem *colorItem = table->item(row, COLOR_INDEX);
   colorItem->setBackground(QBrush(QColor::fromRgb(color.r(), color.g(), color.b())));
-
+  
+  QTableWidgetItem *layerItem = table->item(row, MASK_NAME_INDEX);
+  layerItem->setText( tr(activeLayer->get_layer_name().c_str()) );
+  
   // Update tool state
 	ToolHandle base_tool_ = tool();
 	CalibrationTool* tool = dynamic_cast< CalibrationTool* > ( base_tool_.get() );
@@ -473,65 +479,45 @@ bool CalibrationToolInterface::build_widget( QFrame* frame )
   this->private_->ui_.labelTableWidget->setRowCount(4);
   this->private_->ui_.labelTableWidget->setColumnCount(3);
   QStringList tableHeader;
-  tableHeader << "ID" << "Label Name" << "Mask Layer";
+  tableHeader << "ID" <<  "Mask Layer" << "Label Name";
   this->private_->ui_.labelTableWidget->setHorizontalHeaderLabels(tableHeader);
   this->private_->ui_.labelTableWidget->verticalHeader()->setVisible(false);
   this->private_->ui_.labelTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
   this->private_->ui_.labelTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-  this->private_->ui_.labelTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
   this->private_->ui_.labelTableWidget->setSelectionMode(QAbstractItemView::NoSelection);
+  //this->private_->ui_.labelTableWidget->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
+  this->private_->ui_.labelTableWidget->setColumnWidth(0,  20);
   this->private_->ui_.labelTableWidget->setShowGrid(false);
 
   QTableWidgetItem *index1 = new QTableWidgetItem(tr("1"));
-  this->private_->ui_.labelTableWidget->setItem(0, 0, index1);
-  QTableWidgetItem *layer1 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(0, 1, layer1);
+  this->private_->ui_.labelTableWidget->setItem(0, ID_INDEX, index1);
   QTableWidgetItem *color1 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(0, 2, color1);
+  this->private_->ui_.labelTableWidget->setItem(0, COLOR_INDEX, color1);
+  QTableWidgetItem *layer1 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(0, MASK_NAME_INDEX, layer1);
   QTableWidgetItem *index2 = new QTableWidgetItem(tr("2"));
-  this->private_->ui_.labelTableWidget->setItem(1, 0, index2);
-  QTableWidgetItem *layer2 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(1, 1, layer2);
+  this->private_->ui_.labelTableWidget->setItem(1, ID_INDEX, index2);
   QTableWidgetItem *color2 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(1, 2, color2);
+  this->private_->ui_.labelTableWidget->setItem(1, COLOR_INDEX, color2);
+  QTableWidgetItem *layer2 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(1, MASK_NAME_INDEX, layer2);
   QTableWidgetItem *index3 = new QTableWidgetItem(tr("3"));
-  this->private_->ui_.labelTableWidget->setItem(2, 0, index3);
-  QTableWidgetItem *layer3 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(2, 1, layer3);
+  this->private_->ui_.labelTableWidget->setItem(2, ID_INDEX, index3);
   QTableWidgetItem *color3 = new QTableWidgetItem();
-  this->private_->ui_.labelTableWidget->setItem(2, 2, color3);
-//  QTableWidgetItem *index4 = new QTableWidgetItem(tr("4"));
-//  this->private_->ui_.labelTableWidget->setItem(3, 0, index4);
-//  QTableWidgetItem *layer4 = new QTableWidgetItem();
-//  this->private_->ui_.labelTableWidget->setItem(3, 1, layer4);
-//  QTableWidgetItem *color4 = new QTableWidgetItem();
-//  this->private_->ui_.labelTableWidget->setItem(3, 2, color4);
+  this->private_->ui_.labelTableWidget->setItem(2, COLOR_INDEX, color3);
+  QTableWidgetItem *layer3 = new QTableWidgetItem();
+  this->private_->ui_.labelTableWidget->setItem(2, MASK_NAME_INDEX, layer3);
   
 	//Step 2 - get a pointer to the tool
 	ToolHandle base_tool_ = tool();
 	CalibrationTool* tool = dynamic_cast< CalibrationTool* > ( base_tool_.get() );
   
 	//Step 3 - connect the gui to the tool through the QtBridge
-//	QtUtils::QtBridge::Connect( this->private_->ui_.input_a_, tool->target_layer_state_ );
-//	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
-//
-//	QtUtils::QtBridge::Connect( this->private_->ui_.input_b_, tool->input_b_state_ );
-//	QtUtils::QtBridge::Connect( this->private_->ui_.input_c_, tool->input_c_state_ );
-//	QtUtils::QtBridge::Connect( this->private_->ui_.input_d_, tool->input_d_state_ );
-
-//	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
-
-//	{
-//		Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );	
-//		this->private_->ui_.input_a_->setDisabled( tool->use_active_layer_state_->get() );
-//    
-//		this->connect( this->private_->ui_.use_active_layer_, SIGNAL( toggled( bool ) ),
-//                  this->private_->ui_.input_a_, SLOT( setDisabled( bool ) ) );
-//	}
-
-  //connect( this->private_->ui_.input_a_, SIGNAL( currentIndexChanged(const QString & text) ), this, SLOT( trigger_table_update_a(const QString &) ) );
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
     &Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.segmentButton, boost::bind(
+    &CalibrationTool::segment, tool, Core::Interface::GetWidgetActionContext() ) );
   
   connect(this->private_->ui_.labelTableWidget, SIGNAL( itemClicked( QTableWidgetItem * ) ),
     this, SLOT( trigger_itemActivated( QTableWidgetItem * ) ) );
@@ -539,8 +525,8 @@ bool CalibrationToolInterface::build_widget( QFrame* frame )
   // TODO: make tool and action for this for scripting (take filepath, filter)
   connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
   
-  // TODO: make tool and action for this for scripting (take filepath, filter)
-  connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
+//  // TODO: make tool and action for this for scripting (take filepath, filter)
+//  connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
   
   return true;
 }

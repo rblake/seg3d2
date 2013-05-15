@@ -162,7 +162,7 @@ QPushButton:pressed{
        </widget>
       </item>
       <item>
-       <widget class="QtUtils::QtSliderIntCombo" name="measurementScaleCombo" native="true">
+       <widget class="QtUtils::QtSliderDoubleCombo" name="measurementScaleCombo" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -359,6 +359,12 @@ QPushButton:pressed{
    <class>QtUtils::QtSliderIntCombo</class>
    <extends>QWidget</extends>
    <header location="global">QtUtils/Widgets/QtSliderIntCombo.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QtUtils::QtSliderDoubleCombo</class>
+   <extends>QWidget</extends>
+   <header location="global">QtUtils/Widgets/QtSliderDoubleCombo.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -251,6 +251,68 @@ bool Application::get_user_directory( boost::filesystem::path& user_dir, bool co
 #endif
 }
 
+bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_dir,
+                                       boost::filesystem::path& algorithm_config_file,
+                                       boost::filesystem::path& algorithm_output_geom_file)
+{
+  boost::filesystem::path user_dir;
+  
+  if (! get_user_directory(user_dir) )
+  {
+		CORE_LOG_ERROR( std::string( "Could not get user directory to set up algorithm directory." ) );
+    return false;
+  }
+
+  boost::filesystem::path algorithm_dir = user_dir / "backscatter_reconstruction";
+  if (! boost::filesystem::exists( algorithm_dir ) )
+  {
+    if (! boost::filesystem::create_directory(algorithm_dir))
+    {
+      CORE_LOG_ERROR( std::string( "Could not create algorithm directory. Defaulting to user directory." ) );
+      algorithm_dir = user_dir;
+      algorithm_work_dir = user_dir;
+    }
+  }
+  CORE_LOG_MESSAGE( std::string( "Created algorithm directory" ) );
+
+  algorithm_work_dir = algorithm_dir / "work";
+
+  if (! boost::filesystem::exists( algorithm_work_dir ) )
+  {
+    if (! boost::filesystem::create_directory(algorithm_work_dir))
+    {
+      CORE_LOG_ERROR( std::string( "Could not create algorithm work directory. Defaulting to user directory." ) );
+      algorithm_work_dir = algorithm_dir;
+    }
+  }
+  CORE_LOG_MESSAGE( std::string( "Created algorithm work directory" ) );
+
+#if defined(__APPLE__)
+  boost::filesystem::path executable_path = "TurnerInnovations.app/Contents/MacOS";
+#elif defined (_WIN32)
+  boost::filesystem::path executable_path = boost::filesystem::current_path() / "bin";
+#else
+  boost::filesystem::path executable_path = boost::filesystem::current_path();
+#endif
+  boost::filesystem::path config_file = executable_path / "config.txt";
+  if (! boost::filesystem::exists( config_file ) )
+  {
+    CORE_LOG_ERROR( std::string( "Could not find config.txt file." ) );
+    return false;
+  }
+
+  algorithm_config_file = algorithm_dir / "config.txt";
+  
+  if ( boost::filesystem::exists(algorithm_config_file) )
+  {
+    boost::filesystem::remove(algorithm_config_file);
+  }
+  boost::filesystem::copy_file(config_file, algorithm_config_file);
+  algorithm_output_geom_file = algorithm_work_dir / "calib_config.txt";
+  
+  return true;
+}
+  
 bool Application::get_user_desktop_directory( boost::filesystem::path& user_desktop_dir )
 {
 #ifdef _WIN32

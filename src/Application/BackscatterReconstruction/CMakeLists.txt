@@ -40,10 +40,16 @@ SET(APPLICATION_BACKSCATTERRECONSTRUCTION_SRCS
 )
 
 SET(APPLICATION_BACKSCATTERRECONSTRUCTION_ACTIONS_SRCS
+  Actions/ActionCalibrationFitGeometry.cc
+  Actions/ActionCalibrationFitGeometry.h
+  Actions/ActionCalibrationSegment.cc
+  Actions/ActionCalibrationSegment.h
   Actions/ActionCalibrationView.cc
   Actions/ActionCalibrationView.h
   Actions/ActionReconstructionView.cc
   Actions/ActionReconstructionView.h
+  Actions/ActionReconstructionTool.cc
+  Actions/ActionReconstructionTool.h
   Actions/ActionVisualizationView.cc
   Actions/ActionVisualizationView.h
 )
@@ -72,6 +78,7 @@ TARGET_LINK_LIBRARIES(Application_BackscatterReconstruction
   Application_Tool
   Application_ToolManager
   Application_ViewerManager
+  Application_BackscatterReconstruction_Algorithm
   ${SCI_BOOST_LIBRARY}
   ${SCI_ITK_LIBRARIES})
 

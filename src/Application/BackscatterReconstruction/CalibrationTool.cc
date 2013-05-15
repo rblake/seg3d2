@@ -28,13 +28,18 @@
 
 
 #include <Application/BackscatterReconstruction/CalibrationTool.h>
+#include <Application/BackscatterReconstruction/Actions/ActionCalibrationSegment.h>
+#include <Application/BackscatterReconstruction/Actions/ActionCalibrationFitGeometry.h>
+
 #include <Application/Tool/ToolFactory.h>
 
 #include <Application/Layer/Layer.h>
 #include <Application/Layer/LayerGroup.h>
 #include <Application/Layer/LayerManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
+#include <Application/ViewerManager/Actions/ActionPickPoint.h>
 
+#include <Core/Geometry/Point.h>
 #include <Core/Viewer/Mouse.h>
 
 #include <Core/Volume/DataVolumeSlice.h>
@@ -55,8 +60,7 @@ namespace Seg3D
 class CalibrationToolPrivate : public Core::RecursiveLockable
 {
 public:
-  CalibrationTool* calibration_tool_;
-  std::vector<LayerHandle> layers;
+  CalibrationTool* tool_;
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
 
 	ViewerHandle viewer_;
@@ -65,6 +69,22 @@ public:
 void CalibrationToolPrivate::handle_layer_group_insert( LayerHandle layerHandle, bool newGroup )
 {
   std::cerr << "layer handle=" << layerHandle->get_layer_name() << ", " << layerHandle->get_layer_id() << ", new group created=" << newGroup << std::endl;
+  if (layerHandle->get_type() == Core::VolumeType::DATA_E)
+  {
+    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
+    Core::Point p; // (0, 0, 0) by default
+    ActionPickPoint::Dispatch( Core::Interface::GetWidgetActionContext(), p );
+  }
+  else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
+  {
+    if (newGroup)
+    {
+      CORE_LOG_WARNING("Inserting layers from new group");
+      return;
+    }
+    
+    this->tool_->maskLayers_state_->add(layerHandle->get_layer_id());
+  }
 }
 
 
@@ -72,19 +92,17 @@ CalibrationTool::CalibrationTool( const std::string& toolid ) :
   SingleTargetTool( Core::VolumeType::MASK_E, toolid ),
   private_( new CalibrationToolPrivate )
 {
-	// Create an empty list of label options
-//	std::vector< LayerIDNamePair > empty_list( 1, std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
+  this->private_->tool_ = this;
 
-//	this->add_state( "input_a", this->input_a_state_, Tool::NONE_OPTION_C, empty_list );
-//	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
-//	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
-//	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
-//	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
-//	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E );
-//	this->add_state( "input_d", this->input_d_state_, Tool::NONE_OPTION_C, empty_list );
-//	this->add_extra_layer_input( this->input_d_state_, Core::VolumeType::MASK_E );
+  this->add_state( "input_data_id", this->input_data_id_, "<none>" );
   this->add_state( "calibrationSet", this->calibrationSet_state_ );
+  // should have 3 layer entries and be found in maskLayers
+  this->calibrationSet_state_->add("<none>");
+  this->calibrationSet_state_->add("<none>");
+  this->calibrationSet_state_->add("<none>");
 
+  this->add_state( "maskLayers", this->maskLayers_state_ );
+  
 	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
     boost::bind( &CalibrationToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
 }
@@ -97,6 +115,8 @@ CalibrationTool::~CalibrationTool()
 void CalibrationTool::save( Core::ActionContextHandle context, int index, std::string layerid )
 {
   std::cerr << "CalibrationTool::save: " << index << ", " << layerid << std::endl;
+  // check if in vector
+  this->calibrationSet_state_->set_at(index, layerid);
 }
   
 
@@ -181,7 +201,6 @@ bool CalibrationTool::handle_mouse_move( ViewerHandle viewer, const Core::MouseH
 //    }
 
     const std::string& target_layer_id = this->target_layer_state_->get();
-//std::cerr << "target_layer_id=" << target_layer_id << std::endl;
     Core::VolumeSliceHandle volumeSliceHandle = viewer->get_volume_slice( target_layer_id );
     
     if (! volumeSliceHandle)
@@ -224,19 +243,47 @@ bool CalibrationTool::handle_mouse_move( ViewerHandle viewer, const Core::MouseH
   
 void CalibrationTool::execute( Core::ActionContextHandle context )
 {
-std::cerr << "CalibrationTool::execute" << std::endl;
-  // action for saving data goes here...
-  for (int i = 0; i < 100000; ++i)
+  if (this->input_data_id_->get() == "<none>")
   {
-    // do nothing
+    LayerHandle activeLayer = LayerManager::Instance()->get_active_layer();
+    if (! activeLayer)
+    {
+      CORE_LOG_DEBUG("No active layer");
+      return;
+    }
+    LayerGroupHandle groupHandle = activeLayer->get_layer_group();
+    if (! groupHandle->has_a_valid_layer() )
+    {
+      CORE_LOG_DEBUG("Could not find a valid layer in this group");
+      return;
+    }
+    std::vector< LayerHandle > layers;
+    groupHandle->get_layers( layers );
+    for (size_t i = 0; i < layers.size(); ++i)
+    {
+      if ( layers[i]->get_type() == Core::VolumeType::DATA_E )
+      {
+        this->input_data_id_->set( layers[i]->get_layer_id() );
+        break;
+      }
+    }
   }
-std::cerr << "CalibrationTool::execute done" << std::endl;
+
+  ActionCalibrationFitGeometry::Dispatch( context,
+                                          this->input_data_id_->get(),
+                                          this->calibrationSet_state_->get() );	
+}
+
+void CalibrationTool::segment( Core::ActionContextHandle context )
+{
+  ActionCalibrationSegment::Dispatch( context, this->input_data_id_->get() );	
 }
 
 void CalibrationTool::activate()
 {
   Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-                            ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
+                             ViewerManager::Instance()->layout_state_,
+                             ViewerManager::VIEW_SINGLE_C );
   ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
   viewer->view_mode_state_->set(Viewer::AXIAL_C);
 }

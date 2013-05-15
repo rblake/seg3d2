@@ -163,14 +163,14 @@ void PreferencesManager::initialize_states()
 	this->add_state( "slice_step_multiplier", this->slice_step_multiplier_state_, 8 );
 	this->add_state( "add_dicom_headers", this->export_dicom_headers_state_, false );
 	
-	this->add_state( "axis_labels_option", this->axis_labels_option_state_, "sca", 
+	this->add_state( "axis_labels_option", this->axis_labels_option_state_, "xyz", 
 		"sca=Sagittal/Coronal/Axial|sct=Sagittal/Coronal/Transverse|"
 		"xyz=X Axis/Y Axis/Z Axis|custom=Custom" );
 	this->axis_labels_option_state_->set_session_priority( Core::StateBase::DEFAULT_LOAD_E + 1 );
 
-	this->add_state( "x_axis_label", this->x_axis_label_state_, "Sagittal" );
-	this->add_state( "y_axis_label", this->y_axis_label_state_, "Coronal" );
-	this->add_state( "z_axis_label", this->z_axis_label_state_, "Axial" );
+	this->add_state( "x_axis_label", this->x_axis_label_state_, "X Axis" );
+	this->add_state( "y_axis_label", this->y_axis_label_state_, "Y Axis" );
+	this->add_state( "z_axis_label", this->z_axis_label_state_, "Z Axis" );
 	
 	this->add_state( "enable_undo", this->enable_undo_state_, true );
 	

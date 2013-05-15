@@ -76,7 +76,12 @@ public:
 	Core::StateBoolHandle show_progress_bar_state_;
   
 	/// Number of iterations
+  Core::StateStringHandle input_data_id_;
+
+  Core::StateStringVectorHandle initialGuessSet_state_;
+
 	Core::StateRangedIntHandle iterations_state_;
+	Core::StateRangedDoubleHandle measurementScale_state_;
   
 	Core::StateStringHandle outputDirectory_state_;	
 

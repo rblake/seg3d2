@@ -148,6 +148,7 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
   
   viewsToolBar = addToolBar(tr("&Views"));
   viewsToolBar->setMovable(false);
+  viewsToolBar->setFloatable(false);
 
   QAction *qactionCalibration = new QAction( tr( "Calibration" ), this );
   viewsToolBar->addAction(qactionCalibration);

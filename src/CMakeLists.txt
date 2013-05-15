@@ -79,7 +79,7 @@ SET(SEG3D_PATCH_VERSION 5 CACHE INTERNAL "Patch version number" FORCE)
 # APPLICATION Information
 ###########################################
 
-SET(APPLICATION_NAME "Seg3D2" CACHE INTERNAL "Name of the application" FORCE)
+SET(APPLICATION_NAME "TurnerInnovations" CACHE INTERNAL "Name of the application" FORCE)
 SET(APPLICATION_EXTENSION ".s3d" CACHE INTERNAL "Name of the extension" FORCE)
 SET(APPLICATION_URL "www.seg3d.org" CACHE INTERNAL "URL where more information can be found" FORCE)
 SET(APPLICATION_VENDOR "SCI" CACHE INTERNAL "Who generated the applicatio" FORCE)

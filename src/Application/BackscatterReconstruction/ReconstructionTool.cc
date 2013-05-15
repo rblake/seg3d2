@@ -28,6 +28,8 @@
 
 
 #include <Application/BackscatterReconstruction/ReconstructionTool.h>
+#include <Application/BackscatterReconstruction/Actions/ActionReconstructionTool.h>
+
 #include <Application/Tool/ToolFactory.h>
 
 #include <Application/Layer/Layer.h>
@@ -55,13 +57,23 @@ class ReconstructionToolPrivate
 {
 public:
   void handleOutputDirChanged();
+	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
 
   ReconstructionTool* tool_;
 };
-
+  
+void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHandle, bool newGroup )
+{
+  if (layerHandle->get_type() == Core::VolumeType::DATA_E)
+  {
+    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
+  }
+}
+  
 void ReconstructionToolPrivate::handleOutputDirChanged() 
 {
-  std::cerr << "handleOutputDirChanged(): " << tool_->outputDirectory_state_->export_to_string() << std::endl;
+  std::string dir = tool_->outputDirectory_state_->export_to_string();
+  if (dir == "[[]]" || dir == "[]") tool_->outputDirectory_state_->set("");
 }
 
 ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
@@ -70,21 +82,18 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 {
 	this->private_->tool_ = this;
 
-//  // Create an empty list of label options
-//  std::vector< LayerIDNamePair > empty_list( 1, std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
-//  
-//  this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
-//  this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E );
-//  this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
-//  this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E );
-//  this->add_state( "input_d", this->input_d_state_, Tool::NONE_OPTION_C, empty_list );
-//  this->add_extra_layer_input( this->input_d_state_, Core::VolumeType::MASK_E );
-	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
-  
 	// add number of iterations
-	this->add_state( "iterations", this->iterations_state_, 20, 1, 100, 1 );
+  this->add_state( "input_data_id", this->input_data_id_, "<none>" );
+	this->add_state( "iterations", this->iterations_state_, 3, 1, 100, 1 );
+	this->add_state( "measurementScale", this->measurementScale_state_, 5.0, 1.0, 10.0, 0.1 );
+  this->add_state( "initialGuessSet", this->initialGuessSet_state_ );
+
+	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
+
   this->add_connection( this->outputDirectory_state_->state_changed_signal_.connect(
     boost::bind( &ReconstructionToolPrivate::handleOutputDirChanged, this->private_ ) ) );
+	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
+    boost::bind( &ReconstructionToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
 }
 
 ReconstructionTool::~ReconstructionTool()
@@ -100,18 +109,52 @@ void ReconstructionTool::update_progress( double amount, double progress_start, 
 
 void ReconstructionTool::execute( Core::ActionContextHandle context )
 {
-  // action for saving data goes here...
-  for (int i = 0; i < 100; ++i)
+  if (this->input_data_id_->get() == "<none>")
+  {
+    LayerHandle activeLayer = LayerManager::Instance()->get_active_layer();
+    if (! activeLayer)
+    {
+      CORE_LOG_DEBUG("No active layer");
+      return;
+    }
+    LayerGroupHandle groupHandle = activeLayer->get_layer_group();
+    if (! groupHandle->has_a_valid_layer() )
+    {
+      CORE_LOG_DEBUG("Could not find a valid layer in this group");
+      return;
+    }
+    std::vector< LayerHandle > layers;
+    groupHandle->get_layers( layers );
+    for (size_t i = 0; i < layers.size(); ++i)
+    {
+      if ( layers[i]->get_type() == Core::VolumeType::DATA_E )
+      {
+        this->input_data_id_->set( layers[i]->get_layer_id() );
+        break;
+      }
+    }
+  }
+     
+  ActionReconstructionTool::Dispatch( context,
+                                     this->input_data_id_->get(),
+                                     this->outputDirectory_state_->get(),
+                                     this->initialGuessSet_state_->get(),
+                                     iterations_state_->get(),
+                                     measurementScale_state_->get() );
+  // fake something happening
+  for (int i = 0; i < 10; ++i)
   {
     this->update_progress(static_cast<double>(i));
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   }
+  this->update_progress(static_cast<double>(100));
 }
 
 void ReconstructionTool::activate()
 {
   Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
-                            ViewerManager::Instance()->layout_state_, ViewerManager::VIEW_SINGLE_C );
+                             ViewerManager::Instance()->layout_state_,
+                             ViewerManager::VIEW_SINGLE_C );
   ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
   viewer->view_mode_state_->set(Viewer::AXIAL_C);
 }

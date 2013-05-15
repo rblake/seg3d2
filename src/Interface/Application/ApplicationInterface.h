@@ -88,13 +88,7 @@ public:
 // 
 // 	// -- functions to handle the properties of the interface --
 private:
-  
-  // test only
   QToolBar *viewsToolBar;
-  // test only
-  
-  
-  
   
 	// TODO:
 	// This functions need to go to the private interface

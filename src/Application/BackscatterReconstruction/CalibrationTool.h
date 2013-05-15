@@ -75,14 +75,14 @@ public:
 	virtual void activate();
 
   void save( Core::ActionContextHandle context, int index, std::string layerid );
+	void segment( Core::ActionContextHandle context );
   
 	// -- state --
   // target_layer_state_ is selected layer
-//	Core::StateLabeledOptionHandle input_a_state_;
-//	Core::StateLabeledOptionHandle input_b_state_;
-//	Core::StateLabeledOptionHandle input_c_state_;
-//	Core::StateLabeledOptionHandle input_d_state_;  
-  Core::StateIntVectorHandle calibrationSet_state_;
+
+  Core::StateStringHandle input_data_id_;
+  Core::StateStringVectorHandle calibrationSet_state_;
+  Core::StateStringVectorHandle maskLayers_state_;
 
 private:
 	CalibrationToolPrivateHandle private_;
