@@ -20,6 +20,7 @@ class Material {
 public:
 
   bool InitFromFile(const char *fname, float lowKeV, float highKeV);
+  bool InitFromString(const char *s, float lowKeV, float highKeV);
 
   float GetDensity() const { return mDensity; }
   float GetMassAttenuationCoefficient() const { return mMassAttenuationCoefficient; }

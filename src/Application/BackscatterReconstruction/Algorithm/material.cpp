@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include <Application/BackscatterReconstruction/Algorithm/material.h>
+#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
 
 #ifndef WIN32
 #define sscanf_s sscanf
@@ -22,6 +23,21 @@ bool Material::InitFromFile(const char *fname, float lowKeV, float highKeV) {
     return false;
   }
 
+
+  vector<char> str;
+  char line[1024];
+  while (file.getline(line, 1024)) {
+    for (int i=0; i<strlen(line); i++)
+      str.push_back(line[i]);
+    str.push_back('\n');
+  }
+
+  file.close();
+  return InitFromString(&str[0], lowKeV, highKeV);
+}
+
+
+bool Material::InitFromString(const char *s, float lowKeV, float highKeV) {
   bool hasMolecularWeight = false;
   bool hasScatterFactors = false;
   bool hasAttenuation = false;
@@ -30,8 +46,15 @@ bool Material::InitFromFile(const char *fname, float lowKeV, float highKeV) {
 
   vector<float> chi, F, S;
 
-  char line[1024];
-  while (file.getline(line, 1024)) {
+  vector<char> str;
+  for (int i=0; i<strlen(s); i++)
+    str.push_back(s[i]);
+  str.push_back(0);
+
+  for (char *line = strtok(&str[0], "\n");
+       line!=NULL;
+       line = strtok(NULL, "\n")) {
+  
     if (strlen(line) < 1) continue;
     if (line[0] == '#') continue;
 
@@ -67,7 +90,6 @@ bool Material::InitFromFile(const char *fname, float lowKeV, float highKeV) {
       hasDensity = true;
     }
   }
-  file.close();
 
 
   // make sure we read everything
@@ -110,6 +132,7 @@ bool Material::InitFromFile(const char *fname, float lowKeV, float highKeV) {
 
   return true;
 }
+
 
 
 float Material::GetScatterFactor(float ncostheta) const {
@@ -169,27 +192,13 @@ float Material::Interpolate(const vector<float> &xs,
   int lowI = 0;
   int highI = 0;
 
-  // extrapolate to low values
-  if (x <= xs.front()) {
-    lowI = 0;
-    highI = 1;
-  }
-
-  // extrapolate to high values
-  else if (x >= xs.back()) {
-    for (highI=1; highI<(int)xs.size(); highI++) {
-      if (xs[highI] > x) {
-        lowI = highI-1;
-        break;
-      }
+  // this will extrapolate low and high values
+  for (highI=1; highI<(int)xs.size()-1; highI++) {
+    if (xs[highI] > x) {
+      break;
     }
   }
-
-  // linear interpolate
-  else {
-    lowI = (int)xs.size()-2;
-    highI = lowI+1;
-  }
+  lowI = highI-1;
 
 
   float alpha = (x-xs[lowI]) / (xs[highI]-xs[lowI]);

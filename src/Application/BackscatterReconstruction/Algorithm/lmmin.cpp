@@ -25,7 +25,7 @@
 #include <math.h>
 #include <float.h>
 #include <iostream>
-#include <Application/BackscatterReconstruction/Algorithm/lmmin.h>
+#include "lmmin.h"
 #define _LMDIF
 
 /* *********************** high-level interface **************************** */

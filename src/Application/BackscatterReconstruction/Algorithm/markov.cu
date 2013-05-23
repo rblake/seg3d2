@@ -228,6 +228,7 @@ __global__ void castSourceRays(const float *cudaSourceScale,
 
   float3 volOrigin = cudaSourceRayVolOrigin[rayIndex];
   float3 volDir = cudaSourceRayVolDir[rayIndex];
+  volDir = volDir / length(volDir);
   float tmin = cudaSourceRayTMin[rayIndex];
   float tmax = cudaSourceRayTMax[rayIndex];
 
@@ -242,7 +243,6 @@ __global__ void castSourceRays(const float *cudaSourceScale,
 
   float volLength = length(volP1-volP0);
   int numSteps = volLength / voxelStepSize + 1;
-  numSteps = 5;
 
 
   float lastInterfaceT = tmin;
@@ -311,8 +311,7 @@ __global__ void castSourceRays(const float *cudaSourceScale,
                                
 
 
-void MarkovContext::CudaComputeSourceAttenuation(int collectionSize,
-                                                 vector< vector<float> > *sourceAttenuationCollection) const {
+void MarkovContext::CudaComputeSourceAttenuation(int collectionSize) const {
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -390,24 +389,23 @@ void MarkovContext::CudaComputeSourceAttenuation(int collectionSize,
     copyParams.kind     = cudaMemcpyDeviceToDevice;
     checkCudaErrors(cudaMemcpy3DAsync(&copyParams));
   }
+}
 
 
+void MarkovContext::CudaGetSourceAttenuation(int collectionSize,
+                                             vector< vector<float> > &sourceAttenuationCollection) const {
   // copy results back 
-  if (sourceAttenuationCollection) {
+  vector<float> outputData(collectionSize * mGeometry.GetTotalVolumeNodeSamples());
+  checkCudaErrors(cudaMemcpy(&outputData[0],
+                             cudaSourceAttenuationCollection,
+                             collectionSize * mGeometry.GetTotalVolumeNodeSamples()*sizeof(float),
+                             cudaMemcpyDeviceToHost));
 
-    // Allocate mem for the result on host side
-    vector<float> outputData(collectionSize * mGeometry.GetTotalVolumeNodeSamples());
-    checkCudaErrors(cudaMemcpy(&outputData[0],
-                               cudaSourceAttenuationCollection,
-                               collectionSize * mGeometry.GetTotalVolumeNodeSamples()*sizeof(float),
-                               cudaMemcpyDeviceToHost));
-
-    sourceAttenuationCollection->resize(collectionSize);
-    for (int c=0; c<collectionSize; c++) {
-      (*sourceAttenuationCollection)[c].resize(mCurrentVolumeSourceAttenuation.size());
-      for (int i=0; i<mCurrentVolumeSourceAttenuation.size(); i++)
-        (*sourceAttenuationCollection)[c][i] = outputData[c*mGeometry.GetTotalVolumeNodeSamples() + i];
-    }
+  sourceAttenuationCollection.resize(collectionSize);
+  for (int c=0; c<collectionSize; c++) {
+    sourceAttenuationCollection[c].resize(mCurrentVolumeSourceAttenuation.size());
+    for (int i=0; i<mCurrentVolumeSourceAttenuation.size(); i++)
+      sourceAttenuationCollection[c][i] = outputData[c*mGeometry.GetTotalVolumeNodeSamples() + i];
   }
 }
 
@@ -481,14 +479,13 @@ __global__ void prioritizeDetectorRays(const float3 *cudaDetectorRayWorldOrigin,
     }
   }
 
-  //hit = true;
+  //  hit = true;
 
   if (hit)
     cudaRayPriority[idx] = 1;//(cudaDetectorRayTMax[idx] - cudaDetectorRayTMin[idx]);
   else
     cudaRayPriority[idx] = 0;
 
-  cudaRayPriority[idx] = 0;
   cudaRayIds[idx] = idx;
 }
 
@@ -612,6 +609,7 @@ __device__ void castDetectorRay(int rayIndex, int combo,
                             sampleScatterFactor(lastMat.x, 0.5f*(1+ncosScatterAngle)) *
                             attenuationFactor);
 
+
       sumDetectorAttenuation += voxelAttenuation;
 
       // store info for next step
@@ -671,7 +669,6 @@ __device__ void castDetectorRay(int rayIndex, int combo,
   forwardProjection += (tdist *
                         (0.5 * (1+sampleScatterFactor(lastMat.x, ncosScatterAngle))) *
                         attenuationFactor);
-
 
 
 
@@ -741,7 +738,7 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
                                             float *cudaForwardProjectionCollection) {
 
   unsigned int gx = blockIdx.x*blockDim.x + threadIdx.x;
-  if (gx>=detectorDim.z*collectionSize)
+  if (gx>=detectorDim.x*detectorDim.y*detectorDim.z*collectionSize)
     return;
 
   //unsigned int rayIndexIndex = gx % (detectorDim.x*detectorDim.y*detectorDim.z);
@@ -781,8 +778,7 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
 
 
 
-void MarkovContext::CudaForwardProject(int collectionSize,
-                                       vector< vector<float> > *forwardProjectionCollection) const {
+void MarkovContext::CudaForwardProject(int collectionSize) const {
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -822,30 +818,12 @@ void MarkovContext::CudaForwardProject(int collectionSize,
                                              sourcePosition,
                                              mVoxelStepSize,
                                              cudaForwardProjectionCollection);
-
-
-  // copy results back
-  if (forwardProjectionCollection) {
-    vector<float> outputData(collectionSize * mGeometry.GetTotalProjectionSamples());
-    checkCudaErrors(cudaMemcpy(&outputData[0],
-                               cudaForwardProjectionCollection,
-                               collectionSize * mGeometry.GetTotalProjectionSamples()*sizeof(float),
-                               cudaMemcpyDeviceToHost));
-
-    forwardProjectionCollection->resize(collectionSize);
-    for (int c=0; c<collectionSize; c++) {
-      (*forwardProjectionCollection)[c].resize(mGeometry.GetTotalProjectionSamples());
-      for (int i=0; i<mGeometry.GetTotalProjectionSamples(); i++)
-        (*forwardProjectionCollection)[c][i] = outputData[c*mGeometry.GetTotalProjectionSamples() + i];
-    }
-  }
 }
 
 
 
 void MarkovContext::CudaUpdateForwardProjection(int collectionSize,
-                                                const Cone &attenChangeCone,
-                                                vector< vector<float> > *forwardProjectionCollection) const {
+                                                const Cone &attenChangeCone) const {
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -888,8 +866,8 @@ void MarkovContext::CudaUpdateForwardProjection(int collectionSize,
   // sort rays by priority
   thrust::device_ptr<unsigned int> thrustIds = thrust::device_pointer_cast(cudaRayIds);
   thrust::device_ptr<float> thrustPriorities = thrust::device_pointer_cast(cudaRayPriority);
-  //thrust::sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
-  thrust::stable_sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
+  thrust::sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
+  //thrust::stable_sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
 
   /*
   vector<float> priorities(mGeometry.GetTotalProjectionSamples());
@@ -935,22 +913,23 @@ void MarkovContext::CudaUpdateForwardProjection(int collectionSize,
                                                      sourcePosition,
                                                      mVoxelStepSize,
                                                      cudaForwardProjectionCollection);
+}
 
 
+void MarkovContext::CudaGetForwardProjection(int collectionSize,
+                                             vector< vector<float> > &forwardProjectionCollection) const {
   // copy results back
-  if (forwardProjectionCollection) {
-    vector<float> outputData(collectionSize * mGeometry.GetTotalProjectionSamples());
-    checkCudaErrors(cudaMemcpy(&outputData[0],
-                               cudaForwardProjectionCollection,
-                               collectionSize * mGeometry.GetTotalProjectionSamples()*sizeof(float),
-                               cudaMemcpyDeviceToHost));
+  vector<float> outputData(collectionSize * mGeometry.GetTotalProjectionSamples());
+  checkCudaErrors(cudaMemcpy(&outputData[0],
+                             cudaForwardProjectionCollection,
+                             collectionSize * mGeometry.GetTotalProjectionSamples()*sizeof(float),
+                             cudaMemcpyDeviceToHost));
 
-    forwardProjectionCollection->resize(collectionSize);
-    for (int c=0; c<collectionSize; c++) {
-      (*forwardProjectionCollection)[c].resize(mGeometry.GetTotalProjectionSamples());
-      for (int i=0; i<mGeometry.GetTotalProjectionSamples(); i++)
-        (*forwardProjectionCollection)[c][i] = outputData[c*mGeometry.GetTotalProjectionSamples() + i];
-    }
+  forwardProjectionCollection.resize(collectionSize);
+  for (int c=0; c<collectionSize; c++) {
+    forwardProjectionCollection[c].resize(mGeometry.GetTotalProjectionSamples());
+    for (int i=0; i<mGeometry.GetTotalProjectionSamples(); i++)
+      forwardProjectionCollection[c][i] = outputData[c*mGeometry.GetTotalProjectionSamples() + i];
   }
 }
 
@@ -1062,12 +1041,10 @@ void MarkovContext::CudaAcceptNextConfig(int c) const {
                                   cudaForwardProjectionCollection + c*mGeometry.GetTotalProjectionSamples(),
                                   sizeof(float)*mGeometry.GetTotalProjectionSamples(),
                                   cudaMemcpyDeviceToDevice));
-
 }
 
 
 void MarkovContext::CudaSetCurrentVolume(const vector<unsigned char> &matids) const {
-
 
   // setup individual channels per material
   vector<float4> volumeData(mGeometry.GetTotalVolumeNodeSamples());
@@ -1080,7 +1057,6 @@ void MarkovContext::CudaSetCurrentVolume(const vector<unsigned char> &matids) co
     }
   }
 
-  
   checkCudaErrors(cudaMemcpy(cudaVolumeLinearCurrent,
                              &volumeData[0],
                              sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples(),
@@ -1196,7 +1172,6 @@ void MarkovContext::CudaSetVolumeCollection(const GibbsProposal &proposal) const
       cudaArray = &cudaVolumeArray22;
       break;
     }
-
 
     // copy data to 3D array
     cudaMemcpy3DParms copyParams = {0};

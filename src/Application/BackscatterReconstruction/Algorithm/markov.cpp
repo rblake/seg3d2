@@ -1,7 +1,7 @@
 
 #include <Application/BackscatterReconstruction/Algorithm/markov.h>
 
-//#define USE_CUDA 1
+//#define USE_CUDA
 
 MarkovContext::MarkovContext(const Geometry &g, const vector<Material> &materials,
                              int samplesPerPixel, float voxelStepSize, float energyRegularizationWeight)
@@ -164,6 +164,14 @@ void MarkovContext::GetCurrentVolume(ByteVolumeType::Pointer vol) {
   size.SetElement(2, mGeometry.GetVolumeNodeSamplesZ());
   vol->SetRegions(ByteVolumeType::RegionType(size));
   vol->Allocate();
+
+  Vec3f voxelSize;
+  mGeometry.GetVoxelDimensionsNode(voxelSize);
+  ByteVolumeType::SpacingType spacing;
+  spacing[0] = voxelSize[0];
+  spacing[1] = voxelSize[1];
+  spacing[2] = voxelSize[2];
+
 
   for (size_t vi=0; vi<mCurrentVolumeReconstruction.size(); vi++) {
     vol->GetBufferPointer()[vi] = mCurrentVolumeReconstruction[vi];
@@ -667,19 +675,8 @@ void MarkovContext::ComputeSourceAttenuation() {
   CudaSetCurrentVolume(mCurrentVolumeReconstruction);
   CudaSetVolumeCollection(GibbsProposal(-1,-1));
 
-  // test that we set the volumes correctly
-  vector< vector<unsigned char> > volCollection;
-  CudaGetVolumeCollection(volCollection);
-  for (int c=0; c<volCollection.size(); c++) {
-    for (int i=0; i<volCollection[c].size(); i++) {
-      if (volCollection[c][i] != mCurrentVolumeReconstruction[i]) {
-        std::cerr<<"volume collection not set correctly!"<<std::endl;
-      }
-    }
-  }
-
-
-  CudaComputeSourceAttenuation(1, &sourceAttenuationCollection);
+  CudaComputeSourceAttenuation(1);
+  CudaGetSourceAttenuation(1, sourceAttenuationCollection);
 
 #endif
 
@@ -941,7 +938,9 @@ void MarkovContext::ComputeForwardProjection() {
 #else
 
   vector< vector<float> > forwardProjectionCollection;
-  CudaForwardProject(1, &forwardProjectionCollection);
+  CudaForwardProject(1);
+  CudaGetForwardProjection(1, forwardProjectionCollection);
+
   mCurrentForwardProjection = forwardProjectionCollection[0];
 
 #endif
@@ -1138,7 +1137,7 @@ void MarkovContext::UpdateForwardProjectionCollectionParallel(int nt, int id, PA
 double MarkovContext::ComputeTotalError(const vector<unsigned char> &volumeReconstruction,
                                         const vector<float> &forwardProjection) const {
 
-  return ComputeProjectionError(forwardProjection) + ComputeRegularizationError(volumeReconstruction);
+  return ComputeProjectionError(forwardProjection) + ComputeFullRegularizationError(volumeReconstruction);
 }
 
 
@@ -1151,16 +1150,140 @@ double MarkovContext::ComputeProjectionError(const vector<float> &forwardProject
   return projError * mGeometry.GetDetectorPixelArea();
 }
 
+void MarkovContext::UpdateRegularizationNeighborCounts(const vector<unsigned char> &volumeReconstruction,
+                                                       const GibbsProposal &proposal, int c,
+                                                       const Vec3i &prevCounts,
+                                                       Vec3i &newCounts) const {
 
-double MarkovContext::ComputeRegularizationError(const vector<unsigned char> &volumeReconstruction) const {
+  Vec3i stride(mGeometry.GetVolumeNodeStrideX(),
+               mGeometry.GetVolumeNodeStrideY(),
+               mGeometry.GetVolumeNodeStrideZ());
+  Vec3i volumeSamples(mGeometry.GetVolumeNodeSamplesX(),
+                      mGeometry.GetVolumeNodeSamplesY(),
+                      mGeometry.GetVolumeNodeSamplesZ());
+               
+  newCounts = prevCounts;
 
-  int disagreements_x = 0;
+  // single voxel proposal
+  if (proposal.second < 0) {
+    int x,y,z;
+    mGeometry.VolumeIndexToNodeCoord(proposal.first, x, y, z);
+    Vec3i xyz(x,y,z);
+
+    unsigned char oldVal = volumeReconstruction[proposal.first];
+    unsigned char newVal = c%NUM_MATERIALS;
+
+    for (int axis=0; axis<3; axis++) {
+      // remove previous disagreements
+      if (xyz[axis]>0 && oldVal!=volumeReconstruction[proposal.first - stride[axis]])
+        newCounts[axis]--;
+      if (xyz[axis]<volumeSamples[axis]-1 && oldVal!=volumeReconstruction[proposal.first + stride[axis]])
+        newCounts[axis]--;
+
+      // add new disagreements
+      if (xyz[axis]>0 && newVal!=volumeReconstruction[proposal.first - stride[axis]])
+        newCounts[axis]++;
+      if (xyz[axis]<volumeSamples[axis]-1 && newVal!=volumeReconstruction[proposal.first + stride[axis]])
+        newCounts[axis]++;
+    }
+  }
+
+
+  // two voxel proposal
+  else {
+    int x,y,z;
+    mGeometry.VolumeIndexToNodeCoord(proposal.first, x, y, z);
+    Vec3i xyz1(x,y,z);
+
+    mGeometry.VolumeIndexToNodeCoord(proposal.second, x, y, z);
+    Vec3i xyz2(x,y,z);
+
+    unsigned char oldVal1 = volumeReconstruction[proposal.first];
+    unsigned char oldVal2 = volumeReconstruction[proposal.second];
+    unsigned char newVal1 = c%NUM_MATERIALS;
+    unsigned char newVal2 = c/NUM_MATERIALS;
+
+    // proposals are neighbors in x
+    int paxis = -1;
+    if (proposal.second == proposal.first+mGeometry.GetVolumeNodeStrideX())
+      paxis = 0;
+    else if (proposal.second == proposal.first+mGeometry.GetVolumeNodeStrideY())
+      paxis = 1;
+    else if (proposal.second == proposal.first+mGeometry.GetVolumeNodeStrideZ())
+      paxis = 2;
+    else
+      std::cerr<<"error updating regularization - strange proposal!!!"<<std::endl;
+
+
+    for (int axis=0; axis<3; axis++) {
+
+      // axis along which the two proposals are adjacent
+      if (axis == paxis) {
+        // remove previous disagreements
+        if (xyz1[axis]>0 && oldVal1!=volumeReconstruction[proposal.first - stride[axis]])
+          newCounts[axis]--;
+        if (oldVal1 != oldVal2)
+          newCounts[axis]--;
+        if (xyz2[axis]<volumeSamples[axis]-1 && oldVal2!=volumeReconstruction[proposal.second + stride[axis]])
+          newCounts[axis]--;
+
+        // add new disagreements
+        if (xyz1[axis]>0 && newVal1!=volumeReconstruction[proposal.first - stride[axis]])
+          newCounts[axis]++;
+        if (newVal1 != newVal2)
+          newCounts[axis]++;
+        if (xyz2[axis]<volumeSamples[axis]-1 && newVal2!=volumeReconstruction[proposal.second + stride[axis]])
+          newCounts[axis]++;
+      }
+
+      // one of the axis along which the two proposals are not adjacent
+      else {
+        // remove previous disagreements
+        if (xyz1[axis]>0 && oldVal1!=volumeReconstruction[proposal.first - stride[axis]])
+          newCounts[axis]--;
+        if (xyz1[axis]<volumeSamples[axis]-1 && oldVal1!=volumeReconstruction[proposal.first + stride[axis]])
+          newCounts[axis]--;
+        if (xyz2[axis]>0 && oldVal2!=volumeReconstruction[proposal.second - stride[axis]])
+          newCounts[axis]--;
+        if (xyz2[axis]<volumeSamples[axis]-1 && oldVal2!=volumeReconstruction[proposal.second + stride[axis]])
+          newCounts[axis]--;
+
+        // add new disagreements
+        if (xyz1[axis]>0 && newVal1!=volumeReconstruction[proposal.first - stride[axis]])
+          newCounts[axis]++;
+        if (xyz1[axis]<volumeSamples[axis]-1 && newVal1!=volumeReconstruction[proposal.first + stride[axis]])
+          newCounts[axis]++;
+        if (xyz2[axis]>0 && newVal2!=volumeReconstruction[proposal.second - stride[axis]])
+          newCounts[axis]++;
+        if (xyz2[axis]<volumeSamples[axis]-1 && newVal2!=volumeReconstruction[proposal.second + stride[axis]])
+          newCounts[axis]++;
+      }
+    }
+
+  }
+  
+}
+
+
+double MarkovContext::ComputeRegularizationErrorFromCounts(const Vec3i &counts) const {
+  Vec3f voxelDim;
+  mGeometry.GetVoxelDimensionsCell(voxelDim);
+  return (mEnergyRegularizationWeight * (counts[0] * voxelDim[1]*voxelDim[2] +
+                                         counts[1] * voxelDim[0]*voxelDim[2] + 
+                                         counts[2] * voxelDim[0]*voxelDim[1]));
+}
+
+
+void MarkovContext::ComputeFullRegularizationCounts(const vector<unsigned char> &volumeReconstruction,
+                                                    Vec3i &counts) const {
+
+  counts = Vec3i(0,0,0);
   for (int z=0; z<mGeometry.GetVolumeNodeSamplesZ(); z++) {
     for (int y=0; y<mGeometry.GetVolumeNodeSamplesY(); y++) {
       for (int x=0; x<mGeometry.GetVolumeNodeSamplesX()-1; x++) {
         if (volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x,y,z)] != 
             volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x+1,y,z)])
-          disagreements_x++;
+          counts[0]++;
       }
     }
   }
@@ -1171,7 +1294,7 @@ double MarkovContext::ComputeRegularizationError(const vector<unsigned char> &vo
       for (int x=0; x<mGeometry.GetVolumeNodeSamplesX(); x++) {
         if (volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x,y,z)] != 
             volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x,y+1,z)])
-          disagreements_y++;
+          counts[1]++;
       }
     }
   }
@@ -1182,17 +1305,20 @@ double MarkovContext::ComputeRegularizationError(const vector<unsigned char> &vo
       for (int x=0; x<mGeometry.GetVolumeNodeSamplesX(); x++) {
         if (volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x,y,z)] != 
             volumeReconstruction[mGeometry.VolumeNodeCoordToIndex(x,y,z+1)])
-          disagreements_z++;
+          counts[2]++;
       }
     }
   }
 
-  Vec3f voxelDim;
-  mGeometry.GetVoxelDimensionsCell(voxelDim);
-  return (mEnergyRegularizationWeight * (disagreements_x * voxelDim[1]*voxelDim[2] +
-                                         disagreements_y * voxelDim[0]*voxelDim[2] + 
-                                         disagreements_z * voxelDim[0]*voxelDim[1]));
 }
+
+double MarkovContext::ComputeFullRegularizationError(const vector<unsigned char> &volumeReconstruction) const {
+  Vec3i counts;
+  ComputeFullRegularizationCounts(volumeReconstruction, counts);
+  return ComputeRegularizationErrorFromCounts(counts);
+}
+
+
 
 
 
@@ -1239,7 +1365,6 @@ void MarkovContext::GetGibbsIterationProposals(vector<GibbsProposal> &proposals)
 
         if (z!=mGeometry.GetVolumeNodeSamplesZ()-1)
           proposals.push_back(GibbsProposal(v1, mGeometry.VolumeNodeCoordToIndex(x,y,z+1)));
-
       }
     }
   }
@@ -1315,7 +1440,8 @@ void MarkovContext::ProposalToVolumeCollection(const vector<unsigned char> &curr
 }
 
 
-int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, float temp, const GibbsProposal &proposal,
+int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, float temp, 
+                             const GibbsProposal &proposal, const Vec3i &baseRegularizationCounts,
                              const vector<unsigned char> &currentVolumeReconstruction,
                              const vector<float> &currentVolumeSourceAttenuation,
                              const vector<float> &currentForwardProjection,
@@ -1331,6 +1457,7 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
                              volumeReconstructionCollection, changeCone);
 
   int numConfigs = volumeReconstructionCollection.size();
+
 
 #ifndef USE_CUDA
   // compute source attenuation of each potential change
@@ -1397,8 +1524,7 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   // compute errors of each potential change
   matErrors.resize(numConfigs);
   for (int c=0; c<numConfigs; c++) {
-    matErrors[c] = ComputeTotalError(volumeReconstructionCollection[c],
-                                     forwardProjectionCollection[c]);
+    matErrors[c] = ComputeProjectionError(forwardProjectionCollection[c]);
   }
 
 
@@ -1408,8 +1534,8 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   //CudaSetCurrentVolume(currentVolumeReconstruction);
   CudaSetVolumeCollection(proposal);
 
-  /*
   // test that we set the volumes correctly
+  /*
   vector< vector<unsigned char> > volCollection;
   CudaGetVolumeCollection(volCollection);
   for (int c=0; c<volCollection.size(); c++) {
@@ -1423,7 +1549,7 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   */
 
 
-  CudaComputeSourceAttenuation(numConfigs, NULL);
+  CudaComputeSourceAttenuation(numConfigs);
 
 
 
@@ -1444,32 +1570,19 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   */
 
   // copy projections back to host and compute errors on cpu
-  CudaForwardProject(numConfigs, &forwardProjectionCollection);
-  //CudaUpdateForwardProjection(numConfigs, attenChangeCone, &forwardProjectionCollection);
+  CudaForwardProject(numConfigs);
+  //CudaUpdateForwardProjection(numConfigs, attenChangeCone);
+  CudaGetForwardProjection(numConfigs, forwardProjectionCollection);
 
   matErrors.resize(numConfigs);
   for (int c=0; c<numConfigs; c++) {
-    //    matErrors[c] = ComputeTotalError(volumeReconstructionCollection[c],
-    //                                     forwardProjectionCollection[c]);
-    matErrors[c] = ComputeProjectionError(forwardProjectionCollection[c])
-      + ComputeRegularizationError(volumeReconstructionCollection[c]);
+    matErrors[c] = ComputeProjectionError(forwardProjectionCollection[c]);
   }
-
-  /*
-  static int counter=0;
-  counter++;
-  if (counter==1000) {
-    CudaShutdown();
-    exit(0);
-  }
-  */
-  //return 0;
-
-
 
   // test update vs complete recompute
   /*
-  CudaForwardProject(numConfigs, &forwardProjectionCollection);
+  CudaForwardProject(numConfigs);
+  CudaGetForwardProjection(numConfigs, forwardProjectionCollection);
   vector< vector<float> > uforwardProjectionCollection;
   CudaUpdateForwardProjection(numConfigs, currentForwardProjection, attenChangeCone, &uforwardProjectionCollection);
   for (int c=0; c<numConfigs; c++) {
@@ -1483,6 +1596,26 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
 
 
 #endif
+
+
+  static int counter=0;
+  counter++;
+  if (counter==1000) {
+    CudaShutdown();
+    exit(0);
+  }
+  //return 0;
+
+
+  // add regularization error
+  for (int i=0; i<volumeReconstructionCollection.size(); i++) {
+    Vec3i icounts;
+    UpdateRegularizationNeighborCounts(currentVolumeReconstruction,
+                                       proposal, i,
+                                       baseRegularizationCounts,
+                                       icounts);
+    matErrors[i] += ComputeRegularizationErrorFromCounts(icounts);
+  }
 
 
   // normalize probabilities, convert to cumulative probabilites
@@ -1600,7 +1733,12 @@ void MarkovContext::GibbsIterParallel(int nt, int id, PARALLEL_CRITICAL_SECTION 
     forwardProjectionCollection[i].resize(mGeometry.GetTotalProjectionSamples());
   }
 
-  while (1) {
+
+  Vec3i baseRegularizationCounts;
+  ComputeFullRegularizationCounts(currentVolumeReconstruction, baseRegularizationCounts);
+
+  extern bool reconApiAbort;
+  while (!reconApiAbort) {
     int _vi = -1;
     ParallelEnterCriticalSection(mutex);
     if (workToken < proposals.size()) {
@@ -1634,12 +1772,18 @@ void MarkovContext::GibbsIterParallel(int nt, int id, PARALLEL_CRITICAL_SECTION 
 
       int currentConfig = currentVolumeReconstruction[vi] + mMaterials.size()*currentVolumeReconstruction[vi2];
 
-      int nextConfig = GibbsEval(threadPool ? &threadPool[id] : NULL, numSubThreads, temp, proposals[_vi],
+      int nextConfig = GibbsEval(threadPool ? &threadPool[id] : NULL, numSubThreads, temp,
+                                 proposals[_vi], baseRegularizationCounts,
                                  currentVolumeReconstruction,
                                  currentVolumeSourceAttenuation,
                                  currentForwardProjection,
                                  sourceAttenuationCollection, forwardProjectionCollection,
                                  matErrors, matProbs);
+
+      UpdateRegularizationNeighborCounts(currentVolumeReconstruction,
+                                         proposals[_vi], nextConfig,
+                                         baseRegularizationCounts,
+                                         baseRegularizationCounts);
 
 
       std::cerr<<id<<" "<<_vi<<" "<<vi<<" "<<vi2<<" "<<temp<<" "<<matErrors[nextConfig]<<
@@ -1653,6 +1797,9 @@ void MarkovContext::GibbsIterParallel(int nt, int id, PARALLEL_CRITICAL_SECTION 
 #ifdef USE_CUDA
       CudaAcceptNextConfig(nextConfig);
 #endif
+
+      extern double reconApiProgress;
+      reconApiProgress += mProgressIncrement;
 
 
       bool proposalDone = true;
@@ -1704,6 +1851,8 @@ void MarkovContext::Gibbs(int numThreads, int numSubThreads, int niter, float st
     // create a voxel permutation
     vector<GibbsProposal> proposals;
     GetGibbsIterationProposals(proposals);
+
+    mProgressIncrement = 1.0 / (niter * proposals.size());
 
     volatile int syncToken=0, workToken=0;
     ParallelExecutor(numThreads, 

@@ -21,12 +21,15 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const ReconMaterialIdVolumeType::Pointer initialGuess, // possibly NULL
                          const char *geometryConfigFile,
-                         int iterations);
+                         const float voxelSizeCM[3],
+                         int iterations,
+                         ReconMaterialIdVolumeType::Pointer finalReconVolume);
 
 // reconstruction - stop it if it's currently running
 void ReconstructionAbort();
 
 
 // reconstruction - get the latest reconstructed volume material ids, can be called any time during reconstruction
-void ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume);
+// returns a normalized progress value in the range [0,1]
+double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume);
 

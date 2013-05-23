@@ -97,6 +97,8 @@ public:
   float GetDetectorPixelArea() const { return ((mDetectorSize[0]/ mDetectorSamples[0]) *
                                                (mDetectorSize[1]/ mDetectorSamples[1])); }
 
+  void SetVoxelSize(const Vec3f &size);
+
 
   template <typename T>
   Vec3<T> GetRotatedPoint(const Vec3<T> &vec, int i) const { return RotateVector(vec, mProjectionAngles[i]); }

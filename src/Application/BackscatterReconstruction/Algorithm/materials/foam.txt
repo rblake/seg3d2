@@ -1,0 +1,43 @@
+"\
+\n\
+# 20H 10C 2N 3O, H=1.00794, C=12.0107, N=14.0067, O=15.9994     \n\
+molecular weight: 6.17935     \n\
+\n\
+# mass attenuation coefficient, m^2/g     \n\
+# http://physics.nist.gov/cgi-bin/ffast/ffast.pl?Formula=H20C10N2O3&gtype=3&range=S&lower=40&upper=65&density=&frames=no     \n\
+# 0.22463 cm^2/g at 45 keV     \n\
+# 0.19717 cm^2/g at 60 keV     \n\
+mass attenuation coefficient: 0.000022463     \n\
+\n\
+\n\
+#density     \n\
+# g / m^3     \n\
+# NASA foam facts: 2.4 lbs / ft^3 = 38444 g/m^3     \n\
+# Yongshen's report: 0.03 g/cm^3     \n\
+# Arturo calculated 0.039 g/cm^3 from sample     \n\
+density: 38444     \n\
+\n\
+\n\
+# scattering     \n\
+scatter: 0.25000, 1.67637, 1.92829     \n\
+scatter: 0.30000, 1.39242, 2.17818     \n\
+scatter: 0.40000, 1.02623, 2.48147     \n\
+scatter: 0.50000, 0.83282, 2.64358     \n\
+scatter: 0.60000, 0.72522, 2.75055     \n\
+scatter: 0.70000, 0.65642, 2.83626     \n\
+scatter: 0.80000, 0.60302, 2.91178     \n\
+scatter: 0.90000, 0.55594, 2.97954     \n\
+scatter: 1.00000, 0.51176, 3.04037     \n\
+scatter: 1.25000, 0.40987, 3.16091     \n\
+scatter: 1.50000, 0.32171, 3.24149     \n\
+scatter: 2.00000, 0.19410, 3.32327     \n\
+scatter: 2.50000, 0.11778, 3.35325     \n\
+scatter: 3.00000, 0.06545, 3.36417     \n\
+scatter: 3.50000, 0.04727, 3.36836     \n\
+scatter: 4.00000, 0.03383, 3.37003     \n\
+scatter: 5.00000, 0.00996, 3.37063     \n\
+scatter: 6.00000, 0.00803, 3.37133     \n\
+scatter: 7.00000, 0.00460, 3.37141     \n\
+scatter: 8.00000, 0.00317, 3.37143     \n\
+scatter: 10.0000, 0.00121, 3.37143     \n\
+"

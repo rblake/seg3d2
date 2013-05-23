@@ -2,6 +2,24 @@
 #include <Application/BackscatterReconstruction/Algorithm/markov.h>
 #include <Application/BackscatterReconstruction/Algorithm/calibration.h>
 #include <Application/BackscatterReconstruction/Algorithm/recon_api.h>
+#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
+
+char *matVacuumText =
+#include "materials/foam.txt"
+;
+
+char *matFoamText =
+#include "materials/foam.txt"
+;
+
+char *matAluminumText =
+#include "materials/foam.txt"
+;
+
+char *matLeadText =
+#include "materials/foam.txt"
+;
+
 
 
 // calibration - segment image stack of calibration pattern to find disks
@@ -92,13 +110,7 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
   // fit the detector position
   //
 
-  vector<Vec3f> cpoints;
-  cpoints.push_back(Vec3f( 0.03175,-0.03175, 0));
-  cpoints.push_back(Vec3f(-0.03175, 0.03175, 0));
-  cpoints.push_back(Vec3f(-0.03175,-0.03175, 0));
-
-
-  // do the linear algebra
+  RECON_CALIB_PATTERN_DEF(cpoints);
   Vec3f baseCenter, baseX, baseY, baseZ;
   CalibrateDetector(geometry, proj_i, point_i, point_x, point_y, cpoints,
                     baseCenter, baseX, baseY, baseZ);
@@ -110,24 +122,127 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 }
 
 
+
+
 // reconstruction - don't return until reconstruction is completed
+bool reconApiAbort = false;
+bool reconRunning = false;
+MarkovContext *reconMarkovContext = NULL;
+Geometry *reconGeometry = NULL;
+vector<Material> reconMaterials;
+double reconApiProgress = 0;
+
 void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const ReconMaterialIdVolumeType::Pointer initialGuess, // possibly NULL
                          const char *geometryConfigFile,
-                         int iterations) {
+                         const float voxelSizeCM[3],
+                         int iterations,
+                         ReconMaterialIdVolumeType::Pointer finalReconVolume) {
+  int samplesPerPixel = 1;
+  float voxelStepSize = RECON_VOXEL_STEP_SIZE;
+  int niter = iterations;
+  float regWeight = RECON_REGULARIZATION_WEIGHT;
+  float startTemp = RECON_TEMP_START;
+  float endTemp = RECON_TEMP_END;
+  int numThreads = 1;
+  int numSubThreads = 1;
 
+
+  if (reconRunning) {
+    std::cerr<<"ReconstructionStart(): reconstruction already running!"<<std::endl;
+    return;
+  }
+  reconRunning = true;
+  reconApiProgress = 0;
+
+  // cleanup if we're rerunning
+  if (reconMarkovContext) {
+    delete reconMarkovContext;  reconMarkovContext=NULL;
+    delete reconGeometry;  reconGeometry=NULL;
+  }
+
+
+  // initialize materials - only need to do this once
+  if (reconMaterials.empty()) {
+    reconMaterials.resize(3);
+    reconMaterials[0].InitFromString(matVacuumText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
+    reconMaterials[1].InitFromString(matFoamText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
+    reconMaterials[2].InitFromString(matAluminumText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
+  }
+
+  // load geometry
+  reconGeometry = new Geometry();
+  reconGeometry->LoadFromFile(geometryConfigFile);
+  reconGeometry->SetVoxelSize(Vec3f(voxelSizeCM[0]/100,
+                                    voxelSizeCM[1]/100,
+                                    voxelSizeCM[2]/100));
+
+
+  ReconImageVolumeType::SizeType projSize = images->GetLargestPossibleRegion().GetSize();
+  if (projSize[0] != reconGeometry->GetDetectorSamplesWidth() ||
+      projSize[1] != reconGeometry->GetDetectorSamplesHeight() ||
+      projSize[2] != reconGeometry->GetNumProjectionAngles()) {
+    std::cerr<<"input forward projection dimensions do not match geometry configuration file!"<<std::endl;
+
+    delete reconGeometry;  reconGeometry=NULL;
+    return;
+  }
+
+  reconMarkovContext = new MarkovContext(*reconGeometry, reconMaterials, samplesPerPixel, voxelStepSize, regWeight);
+  reconMarkovContext->SetBaselineProjection(images);
+
+
+  // initialize reconstruciton
+  if (initialGuess.IsNull()) {
+    reconMarkovContext->FindInitialGuess();
+  }
+
+  else {
+    ByteVolumeType::SizeType initvolumeSize = initialGuess->GetLargestPossibleRegion().GetSize();
+
+    if (initvolumeSize[0] != reconGeometry->GetVolumeNodeSamplesX() ||
+        initvolumeSize[1] != reconGeometry->GetVolumeNodeSamplesY() ||
+        initvolumeSize[2] != reconGeometry->GetVolumeNodeSamplesZ()) {
+      std::cerr<<"initial volume dimensions do not match geometry configuration file!"<<std::endl;
+      delete reconMarkovContext;  reconMarkovContext=NULL;
+      delete reconGeometry;  reconGeometry=NULL;
+      return;
+    }
+
+    reconMarkovContext->SetCurrentVolume(initialGuess);
+  }
+
+
+  // run reconstruction
+  reconApiAbort = false;
+  reconMarkovContext->Gibbs(numThreads, numSubThreads, niter, startTemp, endTemp);
+
+
+  // save output
+  reconMarkovContext->GetCurrentVolume(finalReconVolume);
+
+
+  // don't cleanup the context / geometry since we may still call ReconstructionGetMaterialVolume()
+  reconRunning = true;
 }
 
 
 
 // reconstruction - stop it if it's currently running
 void ReconstructionAbort() {
-
+  reconApiAbort = true;
 }
 
 
 // reconstruction - get the latest reconstructed volume material ids, can be called any time during reconstruction
-void ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume) {
+double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume) {
+  if (!reconMarkovContext) {
+    std::cerr<<"ReconstructionGetMaterialVolume(): no reconstruction to get results from!"<<std::endl;
+  }
+  else {
+    reconMarkovContext->GetCurrentVolume(reconVolume);
+  }
 
+  return reconApiProgress;
 }
 

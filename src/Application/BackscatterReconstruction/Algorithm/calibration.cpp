@@ -9,13 +9,57 @@
 //#include <gsl/gsl_linalg.h>
 
 void SegmentCalibPoints(int detWidth, int detHeight, int detAngles,
-                        const vector<float> &volume,
+                        const vector<float> &_volume,
                         vector<unsigned char> &ids,
                         int numPoints,
                         int maskSize,
                         int idSize,
                         int border,
                         bool dark) {
+
+  //
+  // smooth each image
+  //
+  int blur = 20;
+  vector<float> svolume(_volume.size());
+  vector<float> volume(_volume.size());
+
+  // vertical blur
+  for (int p=0; p<detAngles; p++) {
+    for (int x=0; x<detWidth; x++) {
+      for (int y=0; y<detHeight; y++) {
+        int n=0;
+        float val=0;
+        for (int yy=std::max(0,y-blur);
+             yy<=std::min(detHeight-1,y+blur);
+             yy++) {
+          val += _volume[p*detWidth*detHeight + yy*detWidth + x];
+          n++;
+        }
+
+        svolume[p*detWidth*detHeight + y*detWidth + x] = val / n;
+      }
+    }
+  }
+
+  // horizontal blur
+  for (int p=0; p<detAngles; p++) {
+    for (int y=0; y<detHeight; y++) {
+      for (int x=0; x<detWidth; x++) {
+        int n=0;
+        float val=0;
+        for (int xx=std::max(0,x-blur);
+             xx<=std::min(detWidth-1,x+blur);
+             xx++) {
+          val += svolume[p*detWidth*detHeight + y*detWidth + xx];
+          n++;
+        }
+
+        volume[p*detWidth*detHeight + y*detWidth + x] = val / n;
+      }
+    }
+  }
+
 
   int totalSamples = detWidth * detHeight * detAngles;
 

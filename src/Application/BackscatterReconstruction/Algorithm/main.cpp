@@ -19,6 +19,7 @@
 #include "markov.h"
 #include "calibration.h"
 #include "material.h"
+#include "recon_params.h"
 
 // include this stuff for poisson distributed variables!
 #include "nr3.h"
@@ -28,9 +29,6 @@
 
 #include <tiff.h>
 #include <tiffio.h>
-
-#define XRAY_ENERGY_LOW  45
-#define XRAY_ENERGY_HIGH 45
 
 
 typedef itk::RGBPixel<float> RGBPixelType;
@@ -839,10 +837,10 @@ int GenerateSynthetic(int argc, char **argv) {
         if (worldcoord[2] < -0.5*5.39/100)
           mat = 2;
 
-        if ((worldcoord[0] < -0.1525 ||
+        if ((/*worldcoord[0] < -0.1525 ||
              worldcoord[0] >  0.1525 ||
              worldcoord[1] < -0.1525 ||
-             worldcoord[1] >  0.1525 ||
+             worldcoord[1] >  0.1525 ||*/
              worldcoord[2] >  0.5*5.39/100 ||
              iz < highestAlZ))
           mat = 0;
@@ -1706,7 +1704,7 @@ int ProjectionsToNrrd(int argc, char **argv) {
 
 
   // remove 64 pixel border - do it in place
-  int border = 64;
+  int border = 0;
   int nwidth = width - border*2;
   int nheight = height - border*2;
   for (int p=0; p<geometry.GetNumProjectionAngles(); p++) {

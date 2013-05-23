@@ -422,6 +422,13 @@ float Geometry::GetSourceIntensityThroughPoint(const Vec3f &pos) const {
 }
 
 
+void Geometry::SetVoxelSize(const Vec3f &size) {
+  for (int i=0; i<3; i++) {
+    mVolumeSamples[i] = (int)(((mVolumeBounds[1][i] - mVolumeBounds[0][i]) / size[i]) + 0.5);
+  }
+}
+
+
 void Geometry::GetDetectorRay(int p, int x, int y, bool centered,
                               Vec3f &origin, Vec3f &dir) const {
 

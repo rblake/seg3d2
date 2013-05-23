@@ -1,0 +1,36 @@
+"\
+\n\
+molecular weight: 207.2     \n\
+\n\
+# 45KeV     \n\
+# http://pml.nist.gov/PhysRefData/XrayMassCoef/ElemTab/z82.html: (14.36 +8.041)*0.5 cm^2/g = 11.2005     \n\
+mass attenuation coefficient: 0.00112005     \n\
+\n\
+\n\
+\n\
+#density     \n\
+# g / m^3     \n\
+# wikipedia says 2.7 g / cm^3     \n\
+density: 2700000     \n\
+\n\
+# scattering     \n\
+scatter: 0.25000, 65.27000, 12.96400     \n\
+scatter: 0.30000, 61.45300, 15.36800	     \n\
+scatter: 0.40000, 54.42300, 19.96400	     \n\
+scatter: 0.50000, 48.45900, 24.33700	     \n\
+scatter: 0.60000, 43.52900, 28.40800	     \n\
+scatter: 0.70000, 39.41500, 32.02000	     \n\
+scatter: 0.80000, 35.85600, 35.12100	     \n\
+scatter: 0.90000, 32.66200, 37.79000     \n\
+scatter: 1.00000, 29.74100, 40.15100     \n\
+scatter: 1.25000, 23.60400, 45.27700     \n\
+scatter: 1.50000, 19.26000, 49.71300     \n\
+scatter: 2.00000, 14.59200, 56.99300     \n\
+scatter: 2.50000, 11.98400, 62.33500     \n\
+scatter: 3.00000, 9.83500, 66.10800      \n\
+scatter: 3.50000, 7.68670, 68.82900      \n\
+scatter: 4.00000, 6.68530, 70.88500      \n\
+scatter: 5.00000, 4.68250, 73.85800      \n\
+scatter: 6.00000, 3.87140, 75.95600      \n\
+"
+

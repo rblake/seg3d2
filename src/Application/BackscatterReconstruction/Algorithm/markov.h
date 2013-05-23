@@ -98,7 +98,8 @@ public:
 
 
   // run Gibbs sampler
-  int GibbsEval(ParallelThreadPool *threadPool, int numThreads, float temp, const GibbsProposal &proposal,
+  int GibbsEval(ParallelThreadPool *threadPool, int numThreads, float temp, 
+                const GibbsProposal &proposal, const Vec3i &baseRegularizationCounts,
                 const vector<unsigned char> &currentVolumeReconstruction,
                 const vector<float> &currentVolumeSourceAttenuation,
                 const vector<float> &currentForwardProjection,
@@ -125,7 +126,15 @@ private:
   double ComputeTotalError(const vector<unsigned char> &volumeReconstruction,
                            const vector<float> &forwardProjection) const;
   double ComputeProjectionError(const vector<float> &forwardProjection) const;
-  double ComputeRegularizationError(const vector<unsigned char> &volumeReconstruction) const;
+
+  void ComputeFullRegularizationCounts(const vector<unsigned char> &volumeReconstruction, Vec3i &counts) const;
+  double ComputeFullRegularizationError(const vector<unsigned char> &volumeReconstruction) const;
+  double ComputeRegularizationErrorFromCounts(const Vec3i &counts) const;
+  void UpdateRegularizationNeighborCounts(const vector<unsigned char> &volumeReconstruction,
+                                          const GibbsProposal &proposal, int c,
+                                          const Vec3i &prevCounts,
+                                          Vec3i &newCounts) const;
+                                          
 
   // get a list of intervals corresponding to marching the given ray through the volume
   bool GetRayVoxelIntersections(const vector< vector<unsigned char> > &volumeReconstructionCollection, 
@@ -157,14 +166,15 @@ private:
   void CudaGetVolumeCollection(vector< vector<unsigned char> > &volumeCollection) const;
   void CudaAcceptNextConfig(int c) const;
 
-  void CudaComputeSourceAttenuation(int collectionSize,
-                                    vector< vector<float> > *sourceAttenuationCollection) const;
+  void CudaComputeSourceAttenuation(int collectionSize) const;
+  void CudaGetSourceAttenuation(int collectionSize,
+                                vector< vector<float> > &sourceAttenuationCollection) const;
 
-  void CudaForwardProject(int collectionSize,
-                          vector< vector<float> > *forwardProjectionCollection) const;
+  void CudaForwardProject(int collectionSize) const;
   void CudaUpdateForwardProjection(int collectionSize,
-                                   const Cone &attenChangeCone,
-                                   vector< vector<float> > *forwardProjectionCollection) const;
+                                   const Cone &attenChangeCone) const;
+  void CudaGetForwardProjection(int collectionSize,
+                                vector< vector<float> > &forwardProjectionCollection) const;
 
   void CudaGetProjectionError(int collectionSize, vector<float> &errors) const;
 
@@ -174,6 +184,8 @@ private:
 
   const int mSamplesPerPixel;
   const float mVoxelStepSize;
+
+  float mProgressIncrement;
 
   // energy regularization weight
   const float mEnergyRegularizationWeight;

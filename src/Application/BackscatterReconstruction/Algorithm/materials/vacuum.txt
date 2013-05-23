@@ -1,0 +1,38 @@
+"\
+\n\
+# Vacuum     \n\
+molecular weight: 0     \n\
+\n\
+# mass attenuation coefficient     \n\
+# m^2/g     \n\
+mass attenuation coefficient: 0     \n\
+\n\
+\n\
+# density     \n\
+# g / m^3     \n\
+density: 0     \n\
+\n\
+\n\
+# scattering     \n\
+scatter: 0.25000, 0, 0     \n\
+scatter: 0.30000, 0, 0     \n\
+scatter: 0.40000, 0, 0     \n\
+scatter: 0.50000, 0, 0     \n\
+scatter: 0.60000, 0, 0     \n\
+scatter: 0.70000, 0, 0     \n\
+scatter: 0.80000, 0, 0     \n\
+scatter: 0.90000, 0, 0     \n\
+scatter: 1.00000, 0, 0     \n\
+scatter: 1.25000, 0, 0     \n\
+scatter: 1.50000, 0, 0     \n\
+scatter: 2.00000, 0, 0     \n\
+scatter: 2.50000, 0, 0     \n\
+scatter: 3.00000, 0, 0     \n\
+scatter: 3.50000, 0, 0     \n\
+scatter: 4.00000, 0, 0     \n\
+scatter: 5.00000, 0, 0     \n\
+scatter: 6.00000, 0, 0     \n\
+scatter: 7.00000, 0, 0     \n\
+scatter: 8.00000, 0, 0     \n\
+scatter: 10.0000, 0, 0     \n\
+"
