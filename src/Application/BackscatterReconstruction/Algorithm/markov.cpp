@@ -1,7 +1,7 @@
 
 #include <Application/BackscatterReconstruction/Algorithm/markov.h>
 
-//#define USE_CUDA
+//#define USE_CUDA 1
 
 MarkovContext::MarkovContext(const Geometry &g, const vector<Material> &materials,
                              int samplesPerPixel, float voxelStepSize, float energyRegularizationWeight)
@@ -1595,8 +1595,6 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   */
 
 
-#endif
-
 
   static int counter=0;
   counter++;
@@ -1605,6 +1603,8 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
     exit(0);
   }
   //return 0;
+
+#endif
 
 
   // add regularization error

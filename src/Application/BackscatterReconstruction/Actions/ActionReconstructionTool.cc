@@ -40,6 +40,8 @@
 #include <Application/Filters/ITKFilter.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
+#include <boost/date_time/posix_time/conversion.hpp>
 
 // REGISTER ACTION:
 // Define a function that registers the action. The action also needs to be
@@ -48,6 +50,35 @@ CORE_REGISTER_ACTION( Seg3D, ReconstructionTool )
 
 namespace Seg3D
 {
+
+class ReconstructionProgressRunnable : public Core::Runnable
+{
+  ActionReconstructionTool::callback_type callback_;
+  double last_progress_;
+
+public:
+  ReconstructionProgressRunnable(ActionReconstructionTool::callback_type callback)
+    : callback_(callback), last_progress_(-1.0) {}
+
+  virtual void run()
+  {
+    ITKFilter::UCHAR_IMAGE_TYPE::Pointer reconVolum;
+    double progress = ReconstructionGetMaterialVolume(reconVolum);
+    while (last_progress_ != progress) // TODO: not sure if this holds...
+    {
+      // TODO: call from worker thread...
+      if ( this->callback_ != 0 )
+      {
+        std::cerr << "Run callback" << std::endl;
+        Core::Application::PostEvent( boost::bind( this->callback_, progress, 0, 1.0 ) );
+      }
+      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+      last_progress_ = progress;
+    }
+    Core::Application::PostEvent( boost::bind( this->callback_, 100.0, 0, 1.0 ) );
+  }
+};
+
 
 class ReconstructionToolAlgo : public ITKFilter
 {  
@@ -60,6 +91,7 @@ public:
   std::string outputDir_;
   double measurementScale_;
   int iterations_;
+  ActionReconstructionTool::callback_type callback_;
   
 public:
   // RUN:
@@ -77,18 +109,26 @@ public:
                                                         algorithm_config_file,
                                                         algorithm_geometry_file);
     
-		Core::ITKImageDataT<float>::Handle image; 
-		this->get_itk_image_from_layer<float>( this->src_layer_, image );
+    Core::ITKImageDataT<float>::Handle image; 
+    this->get_itk_image_from_layer<float>( this->src_layer_, image );
     
-    // null for now...
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess = ITKFilter::UCHAR_IMAGE_TYPE::New();  
+    // TODO: get mask layer
+    ITKFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess = ITKFilter::UCHAR_IMAGE_TYPE::New();
+    ITKFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume;
+
+    // TODO: hardcoded until GUI specs are provided
+    float voxelSizeCM[3] = { 0.5, 0.5, 0.5 };
 
     // TODO: not implemented, so returns immediately
     ReconstructionStart(image->get_image(),
                         initialGuess,
                         algorithm_config_file.string().c_str(),
-                        iterations_);
-    // TODO: will have to bind tool signal to API function
+                        voxelSizeCM,
+                        iterations_,
+                        finalReconVolume);
+
+    // TODO: set up resulting volume
+
   }
   SCI_END_ITK_RUN()
   
@@ -140,46 +180,51 @@ ActionReconstructionTool::ActionReconstructionTool()
 bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
                                     Core::ActionResultHandle& result )
 {
-	// Create algorithm
-	boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo );
-  
-	// Copy the parameters over to the algorithm that runs the filter
-	algo->set_sandbox( this->sandbox_ );
+  // Create algorithm
+  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo );
+
+  // Copy the parameters over to the algorithm that runs the filter
+  algo->set_sandbox( this->sandbox_ );
 
   // Set up parameters
   algo->outputDir_ = this->outputDir_;
   algo->initialGuessSet_ = this->initalGuessSet_;
   algo->measurementScale_ = this->measurementScale_;
   algo->iterations_ = this->iterations_;
+  algo->callback_ = this->callback_;
+
+  // Find the handle to the layer
+  algo->src_layer_ = LayerManager::FindLayer( this->target_layer_, this->sandbox_ );
+  // Check if layer really exists
+  if ( ! algo->src_layer_ ) return false;
   
-	// Find the handle to the layer
-	algo->src_layer_ = LayerManager::FindLayer( this->target_layer_, this->sandbox_ );
-	// Check if layer really exists
-	if ( ! algo->src_layer_ ) return false;
-  
-	// Lock the src layer, so it cannot be used else where
-	if ( ! ( algo->lock_for_use( algo->src_layer_ ) ) )
-	{
-		return false;
-	}
+  // Lock the src layer, so it cannot be used else where
+  if ( ! ( algo->lock_for_use( algo->src_layer_ ) ) )
+  {
+    return false;
+  }
   
   // TODO: set up destination layers once output is known
   
-	// If the action is run from a script (provenance is a special case of script),
-	// return a notifier that the script engine can wait on.
-	if ( context->source() == Core::ActionSource::SCRIPT_E ||
-      context->source() == Core::ActionSource::PROVENANCE_E )
-	{
-		context->report_need_resource( algo->get_notifier() );
-	}
+  // If the action is run from a script (provenance is a special case of script),
+  // return a notifier that the script engine can wait on.
+  if ( context->source() == Core::ActionSource::SCRIPT_E ||
+       context->source() == Core::ActionSource::PROVENANCE_E )
+  {
+    context->report_need_resource( algo->get_notifier() );
+  }
+
+  // Build the undo-redo record
+  algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+
+  // Start the filter on a separate thread.
+  Core::Runnable::Start( algo );
   
-	// Build the undo-redo record
-	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
+  boost::shared_ptr<ReconstructionProgressRunnable> progress(
+    new ReconstructionProgressRunnable(this->callback_) );
+  Core::Runnable::Start( progress );
   
-	// Start the filter on a separate thread.
-	Core::Runnable::Start( algo );
-  
-	return true;
+  return true;
 }
 
 void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
@@ -187,7 +232,7 @@ void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
                                          std::string outputDir,
                                          const std::vector< std::string >& initialGuessSet,
                                          int iterations,
-                                         double measurementScale )
+                                         double measurementScale, callback_type callback )
 {
   ActionReconstructionTool* action = new ActionReconstructionTool;
   
@@ -196,10 +241,19 @@ void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
   action->initalGuessSet_ = initialGuessSet;
   action->iterations_ = iterations;
   action->measurementScale_ = measurementScale;
+  action->callback_ = callback;
+
   // hack to force sandbox reset before running algorithm
   action->sandbox_ = -1;
 
   Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
-  
+
+void ActionReconstructionTool::clear_cache()
+{
+  std::cerr << "ActionReconstructionTool::clear_cache()" << std::endl;
+  // Reset the callback so it won't be holding any handles
+  this->callback_ = 0;
+}
+
 } // end namespace Seg3D

@@ -65,7 +65,9 @@ public:
 		Core::ITKImageDataT<float>::Handle image; 
 		this->get_itk_image_from_layer<float>( this->src_layer_, image );
     
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer diskIds = ITKFilter::UCHAR_IMAGE_TYPE::New();  
+    // size set in SegmentCalibPoints
+    std::vector<unsigned char> diskIds;
+    
     CalibrationSegment(image->get_image(), diskIds);
 
     for (size_t i = 0; i < LAYER_COUNT; ++i)
@@ -77,7 +79,7 @@ public:
 
       for (size_t j = 0; j < maskDataBlock->get_size(); j++ )
       {
-        if ( diskIds->GetBufferPointer()[j] == (i+1) )
+        if ( diskIds[j] == (i+1) )
         {
           maskDataBlock->set_mask_at(j);
         }

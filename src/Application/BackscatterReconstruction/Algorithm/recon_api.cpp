@@ -24,51 +24,37 @@ char *matLeadText =
 
 // calibration - segment image stack of calibration pattern to find disks
 void CalibrationSegment(const ReconImageVolumeType::Pointer images,
-                        ReconMaterialIdVolumeType::Pointer diskIds) {
+                        std::vector<unsigned char>& diskIds) {
 
 
   ReconImageVolumeType::SizeType inSize = images->GetLargestPossibleRegion().GetSize();
 
-  // create output volume
-  ReconMaterialIdVolumeType::SizeType size;
-  size.SetElement(0, inSize[0]);
-  size.SetElement(1, inSize[1]);
-  size.SetElement(2, inSize[2]);
-  diskIds->SetRegions(ByteVolumeType::RegionType(size));
-  diskIds->Allocate();
-
-
   // copy input into vector
   vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
-  for (size_t i=0; i<forward.size(); i++) {
+  for (size_t i=0; i<forward.size(); i++)
+  {
     forward[i] = images->GetBufferPointer()[i];
   }
 
 
   // do the segmentation
-  vector<unsigned char> ids;
   int numPoints = 3;
   int maskSize = 14 * inSize[0] / 64;
   int idSize = 6 * inSize[0] / 64;
   int border = 10 * inSize[0] / 64;
   bool dark = false;
   SegmentCalibPoints(inSize[0], inSize[1], inSize[2],
-                     forward, ids, numPoints, maskSize, idSize, border, dark);
-
-
-  // copy result back
-  for (size_t i=0; i<ids.size(); i++) {
-    diskIds->GetBufferPointer()[i] = ids[i];
-  }
+                     forward, diskIds, numPoints, maskSize, idSize, border, dark);
 }
 
 
 // calibration - given images and disk id masks (after mapping to match calibration pattern), fit detector geometry
 void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
-                            const ReconMaterialIdVolumeType::Pointer diskIds,
+                            const std::vector<unsigned char>& maskv,
                             const char *workDirectory,
                             const char *initialGeometryConfigFile,
-                            const char *outputGeometryConfigFile) {
+                            const char *outputGeometryConfigFile)
+{
 
   // read geometry configuration
   Geometry geometry;
@@ -83,15 +69,10 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 
   // copy input into vectors
   vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
-  for (size_t i=0; i<forward.size(); i++) {
+  for (size_t i=0; i<forward.size(); i++)
+  {
     forward[i] = images->GetBufferPointer()[i];
   }
-
-  vector<unsigned char> maskv(inSize[0]*inSize[1]*inSize[2]);
-  for (size_t i=0; i<maskv.size(); i++) {
-    maskv[i] = diskIds->GetBufferPointer()[i];
-  }
-
 
   // run localization
   vector<int> proj_i, point_i;
@@ -137,7 +118,8 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const char *geometryConfigFile,
                          const float voxelSizeCM[3],
                          int iterations,
-                         ReconMaterialIdVolumeType::Pointer finalReconVolume) {
+                         ReconMaterialIdVolumeType::Pointer finalReconVolume)
+{
   int samplesPerPixel = 1;
   float voxelStepSize = RECON_VOXEL_STEP_SIZE;
   int niter = iterations;
@@ -148,22 +130,27 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
   int numSubThreads = 1;
 
 
-  if (reconRunning) {
-    std::cerr<<"ReconstructionStart(): reconstruction already running!"<<std::endl;
+  if (reconRunning)
+  {
+    std::cerr << "ReconstructionStart(): reconstruction already running!" << std::endl;
     return;
   }
   reconRunning = true;
   reconApiProgress = 0;
 
   // cleanup if we're rerunning
-  if (reconMarkovContext) {
-    delete reconMarkovContext;  reconMarkovContext=NULL;
-    delete reconGeometry;  reconGeometry=NULL;
+  if (reconMarkovContext)
+  {
+    delete reconMarkovContext;
+    reconMarkovContext = 0;
+    delete reconGeometry;
+    reconGeometry = 0;
   }
 
 
   // initialize materials - only need to do this once
-  if (reconMaterials.empty()) {
+  if (reconMaterials.empty())
+  {
     reconMaterials.resize(3);
     reconMaterials[0].InitFromString(matVacuumText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
     reconMaterials[1].InitFromString(matFoamText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
@@ -175,16 +162,19 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
   reconGeometry->LoadFromFile(geometryConfigFile);
   reconGeometry->SetVoxelSize(Vec3f(voxelSizeCM[0]/100,
                                     voxelSizeCM[1]/100,
-                                    voxelSizeCM[2]/100));
-
+                                    voxelSizeCM[2]/100));  
 
   ReconImageVolumeType::SizeType projSize = images->GetLargestPossibleRegion().GetSize();
   if (projSize[0] != reconGeometry->GetDetectorSamplesWidth() ||
       projSize[1] != reconGeometry->GetDetectorSamplesHeight() ||
-      projSize[2] != reconGeometry->GetNumProjectionAngles()) {
-    std::cerr<<"input forward projection dimensions do not match geometry configuration file!"<<std::endl;
+      projSize[2] != reconGeometry->GetNumProjectionAngles())
+  {
 
-    delete reconGeometry;  reconGeometry=NULL;
+    std::cerr << "input forward projection dimensions do not match geometry configuration file!" << std::endl;
+
+    delete reconGeometry;
+    reconGeometry = 0;
+    reconRunning = false;
     return;
   }
 
@@ -193,19 +183,24 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
 
 
   // initialize reconstruciton
-  if (initialGuess.IsNull()) {
+  if (initialGuess.IsNull())
+  {
     reconMarkovContext->FindInitialGuess();
   }
-
-  else {
+  else
+  {
     ByteVolumeType::SizeType initvolumeSize = initialGuess->GetLargestPossibleRegion().GetSize();
 
     if (initvolumeSize[0] != reconGeometry->GetVolumeNodeSamplesX() ||
         initvolumeSize[1] != reconGeometry->GetVolumeNodeSamplesY() ||
-        initvolumeSize[2] != reconGeometry->GetVolumeNodeSamplesZ()) {
-      std::cerr<<"initial volume dimensions do not match geometry configuration file!"<<std::endl;
-      delete reconMarkovContext;  reconMarkovContext=NULL;
-      delete reconGeometry;  reconGeometry=NULL;
+        initvolumeSize[2] != reconGeometry->GetVolumeNodeSamplesZ())
+    {
+      std::cerr << "initial volume dimensions do not match geometry configuration file!" << std::endl;
+      delete reconMarkovContext;
+      reconMarkovContext = 0;
+      delete reconGeometry;
+      reconGeometry = 0;
+      reconRunning = false;
       return;
     }
 
@@ -235,11 +230,14 @@ void ReconstructionAbort() {
 
 
 // reconstruction - get the latest reconstructed volume material ids, can be called any time during reconstruction
-double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume) {
-  if (!reconMarkovContext) {
-    std::cerr<<"ReconstructionGetMaterialVolume(): no reconstruction to get results from!"<<std::endl;
+double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume)
+{
+  if (!reconMarkovContext)
+  {
+    std::cerr << "ReconstructionGetMaterialVolume(): no reconstruction to get results from!" << std::endl;
   }
-  else {
+  else
+  {
     reconMarkovContext->GetCurrentVolume(reconVolume);
   }
 

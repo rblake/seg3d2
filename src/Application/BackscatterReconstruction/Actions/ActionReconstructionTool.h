@@ -66,17 +66,22 @@ public:
 public:
   virtual bool validate( Core::ActionContextHandle& context );
   virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
+  virtual void clear_cache();
+  
+  typedef boost::function< void ( double, double, double ) > callback_type;
   
   // -- Dispatch this action from the interface --
 public:
   /// DISPATCH:
-  /// Dispatch an action that saves the preferences
+  /// Dispatch an action
   static void Dispatch( Core::ActionContextHandle context,
                         std::string target_layer,
                         std::string outputDir,
                         const std::vector< std::string >& initialGuessSet,
                         int iterations,
-                        double measurementScale );
+                        double measurementScale, callback_type callback = 0 );
+  
+  static void Abort( Core::ActionContextHandle context );
   
 private:
   std::string target_layer_;
@@ -85,6 +90,7 @@ private:
   std::string outputDir_;
   std::vector< std::string > initalGuessSet_;
   SandboxID sandbox_;
+  callback_type callback_;
 };
   
 } // end namespace Seg3D

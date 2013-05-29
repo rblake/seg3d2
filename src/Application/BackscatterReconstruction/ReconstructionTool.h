@@ -37,6 +37,10 @@ namespace Seg3D
 class ReconstructionToolPrivate;
 typedef boost::shared_ptr< ReconstructionToolPrivate > ReconstructionToolPrivateHandle;
 
+class ReconstructionTool;
+typedef boost::shared_ptr< ReconstructionTool > ReconstructionToolHandle;
+typedef boost::weak_ptr< ReconstructionTool > ReconstructionToolWeakHandle;
+
 class ReconstructionTool : public SingleTargetTool
 {
   
@@ -61,16 +65,17 @@ public:
 	/// setup the right mouse tools in the viewers.
 	virtual void activate();
   
-	/// UPDATE_PROGRESS:
-	/// Update the progress bar associated with this layer
-	void update_progress( double amount, double progress_start = 0.0f, double progress_amount = 1.0f );	
-  
 	/// UPDATE_PROGRESS_SIGNAL:
 	/// When new information on progress is available this signal is triggered. If this signal is 
 	/// triggered it should end with a value 1.0 indicating that progress reporting has finished.
 	/// Progress is measured between 0.0 and 1.0.
 	typedef boost::signals2::signal< void (double) > update_progress_signal_type;
 	update_progress_signal_type update_progress_signal_;
+	
+	/// ABORT_SIGNAL:
+	/// Trigger an abort signal for the current filter
+	typedef boost::signals2::signal< void() > abort_signal_type;
+	abort_signal_type abort_signal_;
   
 	/// Whether to show the progress bar
 	Core::StateBoolHandle show_progress_bar_state_;

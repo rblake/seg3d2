@@ -4,14 +4,16 @@
 typedef itk::Image<float, 3> ReconImageVolumeType;
 typedef itk::Image<unsigned char, 3> ReconMaterialIdVolumeType;
 
+// TODO: helper classes would be better here, especially to manage status
+// variables and to do cleanup on error
 
 // calibration - segment image stack of calibration pattern to find disks
 void CalibrationSegment(const ReconImageVolumeType::Pointer images,
-                        ReconMaterialIdVolumeType::Pointer diskIds);
+                        std::vector<unsigned char>& diskIds);
 
 // calibration - given images and disk id masks (after mapping to match calibration pattern), fit detector geometry
 void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
-                            const ReconMaterialIdVolumeType::Pointer diskIds,
+                            const std::vector<unsigned char>& maskv,
                             const char *workDirectory,
                             const char *initialGeometryConfigFile,
                             const char *outputGeometryConfigFile);

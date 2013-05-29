@@ -81,7 +81,6 @@ public:
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
     
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer diskIds = ITKFilter::UCHAR_IMAGE_TYPE::New();
     ITKFilter::FLOAT_IMAGE_TYPE::SizeType inSize = image->get_image()->GetLargestPossibleRegion().GetSize();
     
     DataLayerHandle data_layer = boost::dynamic_pointer_cast<DataLayer>( this->src_layer_ );
@@ -91,14 +90,9 @@ public:
       this->report_error("ITK region size does not match data volume size");
       return;
     }
-    
-    ITKFilter::UCHAR_IMAGE_TYPE::SizeType size;
-    size.SetElement(0, inSize[0]);
-    size.SetElement(1, inSize[1]);
-    size.SetElement(2, inSize[2]);
-    diskIds->SetRegions(ITKFilter::UCHAR_IMAGE_TYPE::RegionType(size));
-    diskIds->Allocate();
 
+    std::vector<unsigned char> maskv(inSize[0] * inSize[1] * inSize[2]);
+    
     for (size_t i = 0; i < this->calibrationSet_.size(); ++i)
     {
       LayerHandle layer = LayerManager::FindLayer( this->calibrationSet_[i], this->get_sandbox() );
@@ -124,17 +118,17 @@ public:
         if (dataBlock->get_mask_at(j))
         {
           // set disk IDs from 1 to 3
-          diskIds->GetBufferPointer()[j] = (i+1);
+          maskv[j] = (i+1);
         }
         else
         {
-          diskIds->GetBufferPointer()[j] = 0;
+          maskv[j] = 0;
         }
       }
     }
 
     CalibrationFitGeometry(image->get_image(),
-                           diskIds,
+                           maskv,
                            algorithm_work_dir.string().c_str(),
                            algorithm_config_file.string().c_str(),
                            algorithm_geometry_file.string().c_str());

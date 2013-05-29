@@ -56,8 +56,13 @@ namespace Seg3D
 class ReconstructionToolPrivate
 {
 public:
+  ReconstructionToolPrivate() {}
+  ~ReconstructionToolPrivate() {}
+
   void handleOutputDirChanged();
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
+  
+	void update_progress( double amount, double progress_start = 0.0f, double progress_amount = 1.0f );
 
   ReconstructionTool* tool_;
 };
@@ -96,14 +101,15 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
     boost::bind( &ReconstructionToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
 }
 
+void ReconstructionToolPrivate::update_progress( double amount, double progress_start, double progress_amount )
+{
+  std::cerr << "ReconstructionToolPrivate::update_progress: " << amount << std::endl;
+  this->tool_->update_progress_signal_( progress_start + amount * progress_amount );
+}
+
 ReconstructionTool::~ReconstructionTool()
 {
   this->disconnect_all();
-}
-
-void ReconstructionTool::update_progress( double amount, double progress_start, double progress_amount )
-{
-  this->update_progress_signal_( progress_start + amount * progress_amount );
 }
   
 
@@ -136,18 +142,12 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
   }
      
   ActionReconstructionTool::Dispatch( context,
-                                     this->input_data_id_->get(),
-                                     this->outputDirectory_state_->get(),
-                                     this->initialGuessSet_state_->get(),
-                                     iterations_state_->get(),
-                                     measurementScale_state_->get() );
-  // fake something happening
-  for (int i = 0; i < 10; ++i)
-  {
-    this->update_progress(static_cast<double>(i));
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  }
-  this->update_progress(static_cast<double>(100));
+    this->input_data_id_->get(),
+    this->outputDirectory_state_->get(),
+    this->initialGuessSet_state_->get(),
+    iterations_state_->get(),
+    measurementScale_state_->get(),
+    boost::bind( &ReconstructionToolPrivate::update_progress, this->private_, _1, _2, _3 ) );
 }
 
 void ReconstructionTool::activate()
