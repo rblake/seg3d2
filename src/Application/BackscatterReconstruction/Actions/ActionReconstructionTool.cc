@@ -69,7 +69,7 @@ public:
   virtual void run()
   {
     // TODO: temporary? See TODO below...
-    double scale = 1000;
+    double scale = 100;
     while (! stop_ )
     {
       ITKFilter::UCHAR_IMAGE_TYPE::Pointer reconVolum = ITKFilter::UCHAR_IMAGE_TYPE::New();
@@ -178,8 +178,8 @@ public:
       }
     }
 
-    // allocated by algorithm
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume;
+    // allocated by algorithm?
+    ITKFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume = ITKFilter::UCHAR_IMAGE_TYPE::New();
 
     float voxelSizeCM[3] = { this->xyVoxelSizeScale_, this->xyVoxelSizeScale_, this->zVoxelSizeScale_ };
     
@@ -195,7 +195,19 @@ public:
                         finalReconVolume);
     progress->stop();
 
-    
+	ITKFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume->GetLargestPossibleRegion().GetSize();
+	std::cerr << outSize[0] << ", " << outSize[1] << ", " << outSize[2] << std::endl;
+    if (outSize[0] * outSize[1] * outSize[2] != srcVolumeHandle->get_size())
+	{
+	  std::ostringstream oss;
+	  oss << "ITK region size (" <<
+        outSize[0] << ", " << outSize[1] << ", " << outSize[2] <<
+        ") does not match data volume size ("
+        << srcVolumeHandle->get_nx() << ", " << srcVolumeHandle->get_ny() << ", " << srcVolumeHandle->get_nz() << ")";
+	  this->report_error(oss.str());
+	  return;
+	}
+
     for (size_t i = 0; i < LAYER_COUNT; ++i)
     {
       MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->dst_layer_[ i ] );
@@ -370,6 +382,10 @@ void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
   action->sandbox_ = -1;
 
   Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+}
+void ActionReconstructionTool::Abort()
+{
+  ReconstructionAbort();
 }
 
 void ActionReconstructionTool::clear_cache()

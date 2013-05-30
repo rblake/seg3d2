@@ -84,8 +84,8 @@ public:
                         double xyVoxelSizeScale,
                         double zVoxelSizeScale,
                         callback_type callback = 0 );
-  
-  static void Abort( Core::ActionContextHandle context );
+
+  static void Abort();
   
 private:
   std::string target_layer_;

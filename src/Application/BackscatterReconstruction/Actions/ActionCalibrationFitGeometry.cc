@@ -87,7 +87,12 @@ public:
     Core::VolumeHandle srcVolumeHandle = data_layer->get_volume();
     if ( inSize[0] * inSize[1] * inSize[2] != srcVolumeHandle->get_size())
     {
-      this->report_error("ITK region size does not match data volume size");
+      std::ostringstream oss;
+      oss << "ITK region size ("
+        << inSize[0] << ", " << inSize[1] << ", " << inSize[2]
+        << ") does not match data volume size ("
+        << srcVolumeHandle->get_nx() << ", " << srcVolumeHandle->get_ny() << ", " << srcVolumeHandle->get_nz() << ")";
+      this->report_error(oss.str());
       return;
     }
 
