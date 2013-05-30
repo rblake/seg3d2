@@ -257,7 +257,7 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
 {
   boost::filesystem::path user_dir;
   
-  if (! get_user_directory(user_dir) )
+  if (! get_user_directory(user_dir, true) )
   {
 		CORE_LOG_ERROR( std::string( "Could not get user directory to set up algorithm directory." ) );
     return false;
@@ -291,13 +291,19 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
   boost::filesystem::path executable_path = "TurnerInnovations.app/Contents/MacOS";
 #elif defined (_WIN32)
   boost::filesystem::path executable_path = boost::filesystem::current_path() / "bin";
+  if (! boost::filesystem::exists( executable_path ) )
+  {
+    executable_path = boost::filesystem::current_path();
+  }
 #else
   boost::filesystem::path executable_path = boost::filesystem::current_path();
 #endif
   boost::filesystem::path config_file = executable_path / "config.txt";
   if (! boost::filesystem::exists( config_file ) )
   {
-    CORE_LOG_ERROR( std::string( "Could not find config.txt file." ) );
+    std::ostringstream oss;
+    oss << "Could not find file " << config_file;
+    CORE_LOG_ERROR( oss.str() );
     return false;
   }
 
