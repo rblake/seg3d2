@@ -33,7 +33,10 @@
 // Application Includes
 #include <Application/BackscatterReconstruction/Actions/ActionVisualizationView.h>
 
+#include <Application/ToolManager/ToolManager.h>
 #include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <Application/ToolManager/Actions/ActionActivateTool.h>
+
 #include <Application/ViewerManager/ViewerManager.h>
 
 // REGISTER ACTION:
@@ -52,8 +55,28 @@ bool ActionVisualizationView::validate( Core::ActionContextHandle& context )
 bool ActionVisualizationView::run( Core::ActionContextHandle& context,
                                    Core::ActionResultHandle& result )
 {
-  // TODO: change to tool&dock widget customization
-  ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "viewertool" );
+  ToolManager::tool_list_type openTools = ToolManager::Instance()->tool_list();
+  ToolManager::tool_list_type::iterator it = openTools.begin();
+  ToolManager::tool_list_type::iterator itEnd = openTools.end();
+  bool toolFound = false;
+  while ( it != itEnd )
+  {
+    std::string toolid = it->first;
+    std::size_t pos = toolid.find_last_of("_");
+    if (pos != std::string::npos)
+    {
+      if ( toolid.substr(0, pos) == "viewertool")
+      {
+        ActionActivateTool::Dispatch( Core::Interface::GetWidgetActionContext(), toolid );
+        toolFound = true;
+        break;
+      }
+    }
+    ++it;
+  }
+  
+  if (! toolFound)
+    ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "viewertool" );
   
   return true;
 }

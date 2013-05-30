@@ -49,6 +49,7 @@
 #include <Application/ProjectManager/Actions/ActionSaveSession.h>
 #include <Application/ProjectManager/Actions/ActionNewProject.h>
 #include <Application/ProjectManager/Actions/ActionLoadProject.h>
+#include <Application/ToolManager/ToolManager.h>
 
 // Application specialization for backscatter/reconstruction project
 #include <Application/BackscatterReconstruction/Actions/ActionCalibrationView.h>
@@ -81,6 +82,7 @@
 #include <Interface/Application/ProvenanceDockWidget.h>
 #include <Interface/Application/ViewerInterface.h>
 #include <Interface/Application/SaveProjectAsWizard.h>
+#include <Interface/Application/StyleSheet.h>
 
 #ifdef BUILD_WITH_PYTHON
 #include <Interface/Application/PythonConsoleWidget.h>
@@ -146,34 +148,42 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 	// Tell Qt what size to start up in
 	this->resize( 1280, 720 );
   
-  viewsToolBar = addToolBar(tr("&Views"));
-  viewsToolBar->setMovable(false);
-  viewsToolBar->setFloatable(false);
-
-  QAction *qactionCalibration = new QAction( tr( "Calibration" ), this );
-  viewsToolBar->addAction(qactionCalibration);
-  QtUtils::QtBridge::Connect( qactionCalibration, boost::bind( &ActionCalibrationView::Dispatch,
-    Core::Interface::GetWidgetActionContext() ) );
-
-  QAction *qactionReconstruction = new QAction( tr( "Reconstruction" ), this );
-  viewsToolBar->addAction(qactionReconstruction);
-  QtUtils::QtBridge::Connect( qactionReconstruction, boost::bind( &ActionReconstructionView::Dispatch,
-    Core::Interface::GetWidgetActionContext() ) );
+  this->toolBar_ = addToolBar(tr("&Views"));
+  this->toolBar_->setMovable(false);
+  this->toolBar_->setFloatable(false);
   
-  QAction *qactionVisualization = new QAction( tr( "Viewer" ), this );
-  viewsToolBar->addAction(qactionVisualization);
-  QtUtils::QtBridge::Connect( qactionVisualization, boost::bind( &ActionVisualizationView::Dispatch,
-    Core::Interface::GetWidgetActionContext() ) );
-  
-// test only
-//  QToolButton *toolButton2 = new QToolButton();
-//  toolButton2->setText("Reconstruction");
-//  viewsToolBar->addWidget(toolButton2);
+  this->toolActionGroup_ = new QActionGroup( this );
 
-//  QToolButton *toolButton3 = new QToolButton();
-//  toolButton3->setText("Viewer");
-//  viewsToolBar->addWidget(toolButton3);
-// test only
+  this->qactionCalibration_ = new QAction( tr( "Calibration" ), this );  
+  this->qactionCalibration_->setCheckable(true);
+  this->qactionCalibration_->setEnabled(true);
+  this->qactionCalibration_->setObjectName( tr( "Calibration" ) );
+  QtUtils::QtBridge::Connect( this->qactionCalibration_, boost::bind( &ActionCalibrationView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+  this->toolActionGroup_->addAction(this->qactionCalibration_);
+
+  this->qactionReconstruction_ = new QAction( tr( "Reconstruction" ), this );
+  this->qactionReconstruction_->setCheckable(true);
+  this->qactionReconstruction_->setEnabled(true);
+  this->qactionReconstruction_->setObjectName( tr( "Reconstruction" ) );
+  QtUtils::QtBridge::Connect( this->qactionReconstruction_, boost::bind( &ActionReconstructionView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+  this->toolActionGroup_->addAction(this->qactionReconstruction_);
+  
+  this->qactionVisualization_ = new QAction( tr( "Viewer" ), this );
+  this->qactionVisualization_->setCheckable(true);
+  this->qactionVisualization_->setEnabled(true);
+  this->qactionVisualization_->setObjectName( tr( "Viewer" ) );
+
+  QtUtils::QtBridge::Connect(this->qactionVisualization_, boost::bind( &ActionVisualizationView::Dispatch,
+    Core::Interface::GetWidgetActionContext() ) );
+
+  this->toolActionGroup_->addAction(this->qactionVisualization_);
+
+  this->toolBar_->addActions(this->toolActionGroup_->actions());
+
+	this->add_connection( ToolManager::Instance()->activate_tool_signal_.connect( 
+    boost::bind( &ApplicationInterface::HandleCustomToolActivate, qpointer_type( this ), _1 ) ) );
 	
 	// Tell Qt where to dock the toolbars
 	this->setCorner( Qt::TopLeftCorner, Qt::LeftDockWidgetArea );
@@ -315,7 +325,11 @@ ApplicationInterface::ApplicationInterface( std::string file_to_view_on_open ) :
 		this->center_seg3d_gui_on_screen( this->private_->splash_screen_ );
 	}
 }
-
+//void ApplicationInterface::actionEvent( QAction* action )
+//{
+//  std::cerr << "ApplicationInterface::actionEvent: " << action->objectName().toStdString() << std::endl;
+//}
+  
 ApplicationInterface::~ApplicationInterface()
 {
 	this->disconnect_all();
@@ -598,10 +612,17 @@ void ApplicationInterface::HandleReportProgress( qpointer_type qpointer, Core::A
 		boost::bind( &ApplicationInterface::report_progress, qpointer.data(), handle ) ) );
 }
 
+void ApplicationInterface::HandleCustomToolActivate( qpointer_type qpointer, ToolHandle tool )
+{
+  std::string toolid = tool->toolid();
+	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
+    &ApplicationInterface::handle_custom_tool, qpointer.data(), toolid ) ) );
+}
+  
 void ApplicationInterface::SetFullScreen( qpointer_type qpointer, bool full_screen, Core::ActionSource source )
 {
 	Core::Interface::PostEvent( QtUtils::CheckQtPointer( qpointer, boost::bind(
-	    &ApplicationInterface::set_full_screen, qpointer.data(), full_screen ) ) );
+	  &ApplicationInterface::set_full_screen, qpointer.data(), full_screen ) ) );
 }
 
 void ApplicationInterface::SetProjectName( qpointer_type qpointer, std::string project_name, Core::ActionSource source )
@@ -676,6 +697,38 @@ void ApplicationInterface::handle_osx_file_open_event (std::string filename)
 		filename = this->find_project_file ( filename );
  
 		this->open_initial_project (filename);
+  }
+}
+
+void ApplicationInterface::handle_custom_tool( std::string toolid )
+{
+  std::size_t pos = toolid.find_last_of("_");
+  
+  if (pos == std::string::npos)
+  {
+    return;
+  }
+  
+  if ( ( toolid.substr(0, pos) == "calibrationtool") && ( ! qactionCalibration_->isChecked() ) )
+  {
+    qactionCalibration_->setChecked(true);
+
+    qactionReconstruction_->setChecked(false);
+    qactionVisualization_->setChecked(false);
+  }
+  else if ( ( toolid.substr(0, pos) == "reconstructiontool") && ( ! qactionReconstruction_->isChecked() ) )
+  {
+    qactionReconstruction_->setChecked(true);
+
+    qactionCalibration_->setChecked(false);
+    qactionVisualization_->setChecked(false);
+  }
+  else if ( ( toolid.substr(0, pos) == "viewertool") && ( ! qactionVisualization_->isChecked() ) )
+  {
+    qactionVisualization_->setChecked(true);
+
+    qactionCalibration_->setChecked(false);
+    qactionReconstruction_->setChecked(false);
   }
 }
 

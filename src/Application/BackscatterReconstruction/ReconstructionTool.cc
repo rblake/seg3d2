@@ -74,6 +74,16 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
   {
     this->tool_->input_data_id_->set(layerHandle->get_layer_id());
   }
+  else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
+  {
+    if (newGroup)
+    {
+      CORE_LOG_WARNING("Inserting layers from new group");
+      return;
+    }
+    
+    this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
+  }
 }
   
 void ReconstructionToolPrivate::handleOutputDirChanged() 

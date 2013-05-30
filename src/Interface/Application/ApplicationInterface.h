@@ -55,6 +55,8 @@
 // Application Interface components. 
 #include <Application/InterfaceManager/InterfaceManager.h>
 
+#include <Application/Tool/ToolFWD.h>
+
 #include <Core/Action/Actions.h>
 #include <Core/Utils/ConnectionHandler.h>
 
@@ -88,7 +90,11 @@ public:
 // 
 // 	// -- functions to handle the properties of the interface --
 private:
-  QToolBar *viewsToolBar;
+  QPointer< QToolBar > toolBar_;
+  QPointer< QActionGroup > toolActionGroup_;
+  QPointer< QAction > qactionCalibration_;
+  QPointer< QAction > qactionReconstruction_;
+  QPointer< QAction > qactionVisualization_;
   
 	// TODO:
 	// This functions need to go to the private interface
@@ -125,6 +131,8 @@ private:
 	/// HANDLE_OSX_FILE_OPEN_EVENT:
 	/// Open a file via OS X file associations
 	void handle_osx_file_open_event ( std::string filename );
+  
+  void handle_custom_tool( std::string toolid );
 
 	/// FILE_PROJECT_FILE:
 	/// Finds the project file within a bundle directory, or returns the project file if already given
@@ -193,6 +201,8 @@ public:
 	/// UPDATEPROJECTCONNECTIONS
 	/// Update the connections to the current project
 	static void UpdateProjectConnections( qpointer_type qpointer );
+  
+  static void HandleCustomToolActivate( qpointer_type qpointer, ToolHandle tool );
 };
 
 } //end namespace

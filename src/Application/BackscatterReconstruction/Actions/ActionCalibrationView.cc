@@ -35,7 +35,10 @@
 // Application Includes
 #include <Application/BackscatterReconstruction/Actions/ActionCalibrationView.h>
 
+#include <Application/ToolManager/ToolManager.h>
 #include <Application/ToolManager/Actions/ActionOpenTool.h>
+#include <Application/ToolManager/Actions/ActionActivateTool.h>
+
 #include <Application/ViewerManager/ViewerManager.h>
 
 // REGISTER ACTION:
@@ -54,7 +57,28 @@ bool ActionCalibrationView::validate( Core::ActionContextHandle& context )
 bool ActionCalibrationView::run( Core::ActionContextHandle& context,
                                  Core::ActionResultHandle& result )
 {
-	ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "calibrationtool" );
+  ToolManager::tool_list_type openTools = ToolManager::Instance()->tool_list();
+  ToolManager::tool_list_type::iterator it = openTools.begin();
+  ToolManager::tool_list_type::iterator itEnd = openTools.end();
+  bool toolFound = false;
+  while ( it != itEnd )
+  {
+    std::string toolid = it->first;
+    std::size_t pos = toolid.find_last_of("_");
+    if (pos != std::string::npos)
+    {
+      if ( toolid.substr(0, pos) == "calibrationtool")
+      {
+        ActionActivateTool::Dispatch( Core::Interface::GetWidgetActionContext(), toolid );
+        toolFound = true;
+        break;
+      }
+    }
+    ++it;
+  }
+  
+  if (! toolFound)
+    ActionOpenTool::Dispatch( Core::Interface::GetWidgetActionContext(), "calibrationtool" );
 
   return true;
 }

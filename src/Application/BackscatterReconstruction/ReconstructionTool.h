@@ -78,7 +78,7 @@ public:
 	reset_progress_signal_type reset_progress_signal_;
 	
 	/// ABORT_SIGNAL:
-	/// Trigger an abort signal for the current filter
+	/// Trigger an abort signal
 	typedef boost::signals2::signal< void() > abort_signal_type;
 	abort_signal_type abort_signal_;
   

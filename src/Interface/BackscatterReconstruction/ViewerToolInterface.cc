@@ -213,11 +213,7 @@ void ViewerToolInterface::triggerLabelImport()
 bool ViewerToolInterface::build_widget( QFrame* frame )
 {
   this->private_->ui_.setupUi( frame );
-  //	this->private_->ui_.horizontalLayout_5->setAlignment( Qt::AlignHCenter );
-  
-  // TODO: make tool and action for this for scripting (take filepath, filter)
-//  connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
-  
+
   // TODO: make tool and action for this for scripting (take filepath, filter)
   connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
   

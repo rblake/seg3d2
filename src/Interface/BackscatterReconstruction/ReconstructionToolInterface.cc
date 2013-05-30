@@ -397,7 +397,7 @@ void ReconstructionToolInterfacePrivate::importLabelNrrd()
 ReconstructionToolInterface::ReconstructionToolInterface() :
 private_( new ReconstructionToolInterfacePrivate )
 {
-    this->private_->interface_ = this;
+  this->private_->interface_ = this;
 }
 
 // destructor
@@ -424,7 +424,22 @@ void ReconstructionToolInterface::triggerDataImport()
   //this->private_->importImageStack();
   this->private_->importDataNrrd();
 }
-  
+
+void ReconstructionToolInterface::triggerAbort()
+{
+//  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+//                            this->private_->layer_->show_progress_bar_state_, false );
+//  Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+//                            this->private_->layer_->show_abort_message_state_, true );
+//  
+//  // Text for when the abort button has been pressed
+//  this->private_->ui_.abort_text_->setText( "Waiting for process to abort ..." );
+//  this->private_->layer_->abort_signal_();
+  ToolHandle base_tool_ = tool();
+  ReconstructionTool* tool = dynamic_cast< ReconstructionTool* > ( base_tool_.get() );
+  tool->abort_signal_();
+}
+
 void ReconstructionToolInterface::update_progress_bar( double progress )
 {
   this->private_->ui_.progress_bar_->setValue(progress);
@@ -479,8 +494,9 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
   connect( this->private_->ui_.setDirButton, SIGNAL( clicked() ), this, SLOT( triggerSetOutputDir() ) );
 
   // TODO: make tool and action for this for scripting (take filepath, filter)
-  connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
-  connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );
+  this->connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
+  this->connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );  
+	this->connect( this->private_->ui_.abort_button_, SIGNAL ( pressed() ), this, SLOT( triggerAbort() ) );
 
   ToolHandle base_tool_ = tool();
   ReconstructionTool* tool = dynamic_cast< ReconstructionTool* > ( base_tool_.get() );
