@@ -5,6 +5,8 @@
 #include <iostream>
 #include <Application/BackscatterReconstruction/Algorithm/vec3.h>
 
+// TODO: exits have to be replaced
+
 #define COSTHETA_EPS 0.01f
 #define MINDIST_EPS 0.001f
 

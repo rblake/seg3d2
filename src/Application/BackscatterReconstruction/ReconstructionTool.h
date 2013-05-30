@@ -71,6 +71,11 @@ public:
 	/// Progress is measured between 0.0 and 1.0.
 	typedef boost::signals2::signal< void (double) > update_progress_signal_type;
 	update_progress_signal_type update_progress_signal_;
+
+	/// RESET_PROGRESS_SIGNAL:
+  /// Reset progress bar.
+	typedef boost::signals2::signal< void () > reset_progress_signal_type;
+	reset_progress_signal_type reset_progress_signal_;
 	
 	/// ABORT_SIGNAL:
 	/// Trigger an abort signal for the current filter
@@ -86,7 +91,8 @@ public:
   Core::StateStringVectorHandle initialGuessSet_state_;
 
 	Core::StateRangedIntHandle iterations_state_;
-	Core::StateRangedDoubleHandle measurementScale_state_;
+	Core::StateRangedDoubleHandle xyVoxelSizeScale_state_;
+	Core::StateRangedDoubleHandle zVoxelSizeScale_state_;
   
 	Core::StateStringHandle outputDirectory_state_;	
 

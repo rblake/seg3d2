@@ -104,6 +104,8 @@ public:
         return;
       }
 
+      // TODO: lock layer?
+
       Core::MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( layer );
       Core::MaskVolumeHandle volumeHandle = mask_layer->get_mask_volume();
       if ( volumeHandle->get_size() != srcVolumeHandle->get_size() )

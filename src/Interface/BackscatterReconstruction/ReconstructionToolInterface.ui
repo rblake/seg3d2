@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>355</width>
-    <height>264</height>
+    <width>358</width>
+    <height>283</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -162,7 +162,17 @@ QPushButton:pressed{
        </widget>
       </item>
       <item>
-       <widget class="QtUtils::QtSliderDoubleCombo" name="measurementScaleCombo" native="true">
+       <widget class="QtUtils::QtSliderDoubleCombo" name="xyVoxelSizeCombo" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QtUtils::QtSliderDoubleCombo" name="zVoxelSizeCombo" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
           <horstretch>0</horstretch>

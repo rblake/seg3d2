@@ -30,7 +30,7 @@ void CalibrationSegment(const ReconImageVolumeType::Pointer images,
   ReconImageVolumeType::SizeType inSize = images->GetLargestPossibleRegion().GetSize();
 
   // copy input into vector
-  vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
+  std::vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
   for (size_t i=0; i<forward.size(); i++)
   {
     forward[i] = images->GetBufferPointer()[i];
@@ -68,23 +68,23 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
   ReconImageVolumeType::SizeType inSize = images->GetLargestPossibleRegion().GetSize();
 
   // copy input into vectors
-  vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
+  std::vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
   for (size_t i=0; i<forward.size(); i++)
   {
     forward[i] = images->GetBufferPointer()[i];
   }
 
   // run localization
-  vector<int> proj_i, point_i;
-  vector<float> point_x, point_y;
-  vector<float> residuals;
+  std::vector<int> proj_i, point_i;
+  std::vector<float> point_x, point_y;
+  std::vector<float> residuals;
   LocalizeCalibPoints(inSize[0], inSize[1], inSize[2],
                       forward, maskv,
                       proj_i, point_i, point_x, point_y,
                       residuals,
                       false);
 
-  std::cerr<<"found "<<proj_i.size()<<"points"<<std::endl;
+  std::cerr << "found " << proj_i.size() << " points" << std::endl;
 
 
   // 
@@ -108,9 +108,9 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 // reconstruction - don't return until reconstruction is completed
 bool reconApiAbort = false;
 bool reconRunning = false;
-MarkovContext *reconMarkovContext = NULL;
-Geometry *reconGeometry = NULL;
-vector<Material> reconMaterials;
+MarkovContext *reconMarkovContext = 0;
+Geometry *reconGeometry = 0;
+std::vector<Material> reconMaterials;
 double reconApiProgress = 0;
 
 void ReconstructionStart(const ReconImageVolumeType::Pointer images,
@@ -170,7 +170,11 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
       projSize[2] != reconGeometry->GetNumProjectionAngles())
   {
 
-    std::cerr << "input forward projection dimensions do not match geometry configuration file!" << std::endl;
+    std::cerr << "input forward projection dimensions ( "
+      << projSize[0] << ", " << projSize[1] << ", " << projSize[2] << " ) do not match geometry configuration file ( "
+      << reconGeometry->GetDetectorSamplesWidth() << ", "
+      << reconGeometry->GetDetectorSamplesHeight() << ", "
+      << reconGeometry->GetNumProjectionAngles() << " )!" << std::endl;
 
     delete reconGeometry;
     reconGeometry = 0;
@@ -194,8 +198,12 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
     if (initvolumeSize[0] != reconGeometry->GetVolumeNodeSamplesX() ||
         initvolumeSize[1] != reconGeometry->GetVolumeNodeSamplesY() ||
         initvolumeSize[2] != reconGeometry->GetVolumeNodeSamplesZ())
-    {
-      std::cerr << "initial volume dimensions do not match geometry configuration file!" << std::endl;
+    {      
+      std::cerr << "initial volume dimensions ( "
+        << initvolumeSize[0] << ", " << initvolumeSize[1] << ", " << initvolumeSize[2] << " ) do not match geometry configuration file ( "
+        << reconGeometry->GetVolumeNodeSamplesX() << ", "
+        << reconGeometry->GetVolumeNodeSamplesY() << ", "
+        << reconGeometry->GetVolumeNodeSamplesZ() << " )!" << std::endl;
       delete reconMarkovContext;
       reconMarkovContext = 0;
       delete reconGeometry;
@@ -225,6 +233,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer images,
 
 // reconstruction - stop it if it's currently running
 void ReconstructionAbort() {
+  std::cerr << "ReconstructionAbort()" << std::endl;
   reconApiAbort = true;
 }
 
@@ -239,6 +248,7 @@ double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconV
   else
   {
     reconMarkovContext->GetCurrentVolume(reconVolume);
+    std::cerr << "ReconstructionGetMaterialVolume(): progress=" << reconApiProgress << std::endl;
   }
 
   return reconApiProgress;

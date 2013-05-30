@@ -55,6 +55,7 @@ public:
   virtual ~ReconstructionToolInterface();
   virtual bool build_widget( QFrame* frame );
 	void update_progress_bar( double progress );
+	void reset_progress_bar();
 
 private:
   ReconstructionToolInterfacePrivateHandle private_;
@@ -63,6 +64,7 @@ public:
   typedef QPointer< ReconstructionToolInterface > qpointer_type;
   
   static void UpdateProgress( qpointer_type qpointer, double progress );
+  static void ResetProgress( qpointer_type qpointer );
 
 private Q_SLOTS:
   void triggerSetOutputDir();

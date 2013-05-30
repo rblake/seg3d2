@@ -1,3 +1,6 @@
+#ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ALGORITHM_RECON_API_H
+#define APPLICATION_BACKSCATTERRECONSTRUCTION_ALGORITHM_RECON_API_H
+
 
 #include <itkImage.h>
 
@@ -6,6 +9,8 @@ typedef itk::Image<unsigned char, 3> ReconMaterialIdVolumeType;
 
 // TODO: helper classes would be better here, especially to manage status
 // variables and to do cleanup on error
+
+// TODO: add Seg3D log output
 
 // calibration - segment image stack of calibration pattern to find disks
 void CalibrationSegment(const ReconImageVolumeType::Pointer images,
@@ -35,3 +40,4 @@ void ReconstructionAbort();
 // returns a normalized progress value in the range [0,1]
 double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconVolume);
 
+#endif

@@ -48,33 +48,52 @@
 // registered in the CMake file.
 CORE_REGISTER_ACTION( Seg3D, ReconstructionTool )
 
+// TODO: need more systematic way to check number of layers
+#define LAYER_COUNT 2
+
 namespace Seg3D
 {
 
 class ReconstructionProgressRunnable : public Core::Runnable
 {
   ActionReconstructionTool::callback_type callback_;
-  double last_progress_;
+  long msTimeInterval_;
+  bool stop_;
 
 public:
-  ReconstructionProgressRunnable(ActionReconstructionTool::callback_type callback)
-    : callback_(callback), last_progress_(-1.0) {}
+  ReconstructionProgressRunnable(ActionReconstructionTool::callback_type callback, long msTimeInterval=500)
+    : callback_(callback), msTimeInterval_(msTimeInterval), stop_(false) {}
+  
+  void stop() { stop_ = true; }
 
   virtual void run()
   {
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer reconVolum;
-    double progress = ReconstructionGetMaterialVolume(reconVolum);
-    while (last_progress_ != progress) // TODO: not sure if this holds...
+    // TODO: temporary? See TODO below...
+    double scale = 1000;
+    while (! stop_ )
     {
-      // TODO: call from worker thread...
+      ITKFilter::UCHAR_IMAGE_TYPE::Pointer reconVolum = ITKFilter::UCHAR_IMAGE_TYPE::New();
+      double progress = ReconstructionGetMaterialVolume(reconVolum);
       if ( this->callback_ != 0 )
       {
-        std::cerr << "Run callback" << std::endl;
-        Core::Application::PostEvent( boost::bind( this->callback_, progress, 0, 1.0 ) );
+        // TODO: using scale temporarily because progress values are < 0.01
+        // before reconstruction either exits or crashes
+        Core::Application::PostEvent( boost::bind( this->callback_, progress*scale, 0, 1.0 ) );
       }
-      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
-      last_progress_ = progress;
+      // test
+//      ITKFilter::UCHAR_IMAGE_TYPE::SizeType sizes = reconVolum->GetLargestPossibleRegion().GetSize();
+//      const size_t SIZE = sizes[0] * sizes[1] * sizes[2];
+//      for (size_t i = 0; i < SIZE; ++i)
+//      {
+//        if (reconVolum->GetBufferPointer()[i] != 0)
+//        {
+//          printf("reconVolum[%lu]=%hhu\n", i, reconVolum->GetBufferPointer()[i]);
+//        }
+//      }
+
+      boost::this_thread::sleep(boost::posix_time::milliseconds(msTimeInterval_));
     }
+    // make sure progress bar completes
     Core::Application::PostEvent( boost::bind( this->callback_, 100.0, 0, 1.0 ) );
   }
 };
@@ -85,11 +104,13 @@ class ReconstructionToolAlgo : public ITKFilter
 
 public:
   LayerHandle src_layer_;
+  std::vector< LayerHandle > initialGuessSet_;
+
   std::vector<LayerHandle> dst_layer_;
 
-  std::vector< std::string > initialGuessSet_;
   std::string outputDir_;
-  double measurementScale_;
+  double xyVoxelSizeScale_;
+  double zVoxelSizeScale_;
   int iterations_;
   ActionReconstructionTool::callback_type callback_;
   
@@ -108,26 +129,95 @@ public:
     Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
                                                         algorithm_config_file,
                                                         algorithm_geometry_file);
+    std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
+      << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
     
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
+    ITKFilter::FLOAT_IMAGE_TYPE::SizeType inSize = image->get_image()->GetLargestPossibleRegion().GetSize();
+
+    DataLayerHandle data_layer = boost::dynamic_pointer_cast<DataLayer>( this->src_layer_ );
+    Core::VolumeHandle srcVolumeHandle = data_layer->get_volume();
     
-    // TODO: get mask layer
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess = ITKFilter::UCHAR_IMAGE_TYPE::New();
+    ITKFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess;
+
+    if (this->initialGuessSet_.size() > 0)
+    {
+      initialGuess = ITKFilter::UCHAR_IMAGE_TYPE::New();
+      ITKFilter::UCHAR_IMAGE_TYPE::SizeType size;
+      size.SetElement(0, inSize[0]);
+      size.SetElement(1, inSize[1]);
+      size.SetElement(2, inSize[2]);
+      initialGuess->SetRegions(ITKFilter::UCHAR_IMAGE_TYPE::RegionType(size));
+      initialGuess->Allocate();
+
+      // TODO: ordering of mask labels?
+      for (size_t i = 0; i < this->initialGuessSet_.size(); ++i)
+      {
+        Core::MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->initialGuessSet_[i] );
+        Core::MaskVolumeHandle volumeHandle = mask_layer->get_mask_volume();
+        if ( volumeHandle->get_size() != srcVolumeHandle->get_size() )
+        {
+          this->report_error("Mask size does not match data volume size");
+          return;
+        }
+        Core::MaskDataBlockHandle dataBlock = volumeHandle->get_mask_data_block();
+        
+        for (size_t j = 0; j < volumeHandle->get_size(); j++)
+        {
+          if (dataBlock->get_mask_at(j))
+          {
+            // set disk IDs from 1 onwards
+            initialGuess->GetBufferPointer()[j] = (i+1);
+          }
+          else
+          {
+            initialGuess->GetBufferPointer()[j] = 0;
+          }
+        }
+      }
+    }
+
+    // allocated by algorithm
     ITKFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume;
 
-    // TODO: hardcoded until GUI specs are provided
-    float voxelSizeCM[3] = { 0.5, 0.5, 0.5 };
+    float voxelSizeCM[3] = { this->xyVoxelSizeScale_, this->xyVoxelSizeScale_, this->zVoxelSizeScale_ };
+    
+    boost::shared_ptr<ReconstructionProgressRunnable> progress(
+      new ReconstructionProgressRunnable(this->callback_) );
+    Core::Runnable::Start( progress );
 
-    // TODO: not implemented, so returns immediately
     ReconstructionStart(image->get_image(),
                         initialGuess,
                         algorithm_config_file.string().c_str(),
                         voxelSizeCM,
                         iterations_,
                         finalReconVolume);
+    progress->stop();
 
-    // TODO: set up resulting volume
+    
+    for (size_t i = 0; i < LAYER_COUNT; ++i)
+    {
+      MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->dst_layer_[ i ] );
+      Core::MaskDataBlockHandle maskDataBlock;
+      Core::MaskDataBlockManager::Create( this->dst_layer_[ i ]->get_grid_transform(), maskDataBlock );
+      Core::MaskVolumeHandle mask_volume( new Core::MaskVolume(this->dst_layer_[ i ]->get_grid_transform(), maskDataBlock ) );
+      
+      for (size_t j = 0; j < maskDataBlock->get_size(); j++ )
+      {
+        if ( finalReconVolume->GetBufferPointer()[j] == (i+1) )
+        {
+          maskDataBlock->set_mask_at(j);
+        }
+      }
+      
+      if (! this->dispatch_insert_mask_volume_into_layer( this->dst_layer_[ i ], mask_volume ) )
+      {
+        std::ostringstream oss;
+        oss << "Could not insert mask volume " << this->dst_layer_[ i ]->get_layer_id() << " into layer";
+        this->report_error(oss.str());
+      }
+    }
 
   }
   SCI_END_ITK_RUN()
@@ -170,10 +260,11 @@ bool ActionReconstructionTool::validate( Core::ActionContextHandle& context )
 ActionReconstructionTool::ActionReconstructionTool()
 {
   this->add_layer_id( this->target_layer_ );
+  this->add_parameter( this->initalGuessSet_ );
   this->add_parameter( this->iterations_ );
   this->add_parameter( this->outputDir_ );
-  this->add_parameter( this->measurementScale_ );
-  this->add_parameter( this->initalGuessSet_ );
+  this->add_parameter( this->xyVoxelSizeScale_ );
+  this->add_parameter( this->zVoxelSizeScale_ );
   this->add_parameter( this->sandbox_ );
 }
 
@@ -188,8 +279,8 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
 
   // Set up parameters
   algo->outputDir_ = this->outputDir_;
-  algo->initialGuessSet_ = this->initalGuessSet_;
-  algo->measurementScale_ = this->measurementScale_;
+  algo->xyVoxelSizeScale_ = this->xyVoxelSizeScale_;
+  algo->zVoxelSizeScale_ = this->zVoxelSizeScale_;
   algo->iterations_ = this->iterations_;
   algo->callback_ = this->callback_;
 
@@ -204,7 +295,40 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
     return false;
   }
   
-  // TODO: set up destination layers once output is known
+  for (size_t i = 0; i < this->initalGuessSet_.size(); ++i)
+  {
+    LayerHandle maskLayer = LayerManager::FindLayer( this->initalGuessSet_[i], this->sandbox_ );
+    if (maskLayer)
+    {
+      algo->initialGuessSet_.push_back(maskLayer);
+    }
+  }
+
+  // Lock the mask layers, so it cannot be used else where
+  for (size_t i = 0; i < algo->initialGuessSet_.size(); ++i)
+  {
+    if ( ! ( algo->lock_for_use( algo->initialGuessSet_[i] ) ) )
+    {
+      return false;
+    }
+  }
+
+	algo->dst_layer_.resize( LAYER_COUNT+1 );
+	
+	// Create the destination layer, which will show progress
+	std::vector< std::string > dst_layer_ids( LAYER_COUNT+1 );
+  // hardcoded...
+	for ( size_t j = 0; j < LAYER_COUNT;  j++ )
+	{
+		algo->create_and_lock_mask_layer_from_layer( algo->src_layer_, algo->dst_layer_[ j ] );
+		dst_layer_ids.push_back( algo->dst_layer_[ j ]->get_layer_id() );
+	}
+	
+	// Return the id of the destination layer.
+	if ( algo->dst_layer_.size() > 0 )
+	{
+		result = Core::ActionResultHandle( new Core::ActionResult( dst_layer_ids ) );
+	}
   
   // If the action is run from a script (provenance is a special case of script),
   // return a notifier that the script engine can wait on.
@@ -216,31 +340,30 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
 
   // Build the undo-redo record
   algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
-
+  
   // Start the filter on a separate thread.
   Core::Runnable::Start( algo );
-  
-  boost::shared_ptr<ReconstructionProgressRunnable> progress(
-    new ReconstructionProgressRunnable(this->callback_) );
-  Core::Runnable::Start( progress );
   
   return true;
 }
 
 void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
                                          std::string target_layer,
-                                         std::string outputDir,
                                          const std::vector< std::string >& initialGuessSet,
+                                         std::string outputDir,
                                          int iterations,
-                                         double measurementScale, callback_type callback )
+                                         double xyVoxelSizeScale,
+                                         double zVoxelSizeScale,
+                                         callback_type callback )
 {
   ActionReconstructionTool* action = new ActionReconstructionTool;
   
   action->target_layer_ = target_layer;
-  action->outputDir_ = outputDir;
   action->initalGuessSet_ = initialGuessSet;
+  action->outputDir_ = outputDir;
   action->iterations_ = iterations;
-  action->measurementScale_ = measurementScale;
+  action->xyVoxelSizeScale_ = xyVoxelSizeScale;
+  action->zVoxelSizeScale_ = zVoxelSizeScale;
   action->callback_ = callback;
 
   // hack to force sandbox reset before running algorithm

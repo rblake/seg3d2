@@ -50,11 +50,13 @@ class ActionReconstructionTool : public LayerAction
 CORE_ACTION(
   CORE_ACTION_TYPE( "ActionReconstructionTool", "" )
   CORE_ACTION_ARGUMENT( "layerid", "The ID of the target layer." )
-  CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "initialGuessSet", "<none>", "Calibration set." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "outputDir", "", "Algorithm output directory." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "3", "Number of iterations to perform." )
-  CORE_ACTION_OPTIONAL_ARGUMENT( "measurementScale", "5", "Measurement scale in mm." )
-  CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )	
+  CORE_ACTION_OPTIONAL_ARGUMENT( "xyVoxelSizeScale", "0.5", "Voxel scale in the XY plane." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "zVoxelSizeScale", "0.5", "Voxel scale in the Z plane." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
+  CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )
   CORE_ACTION_CHANGES_PROJECT_DATA()
 )
   
@@ -76,19 +78,22 @@ public:
   /// Dispatch an action
   static void Dispatch( Core::ActionContextHandle context,
                         std::string target_layer,
-                        std::string outputDir,
                         const std::vector< std::string >& initialGuessSet,
+                        std::string outputDir,
                         int iterations,
-                        double measurementScale, callback_type callback = 0 );
+                        double xyVoxelSizeScale,
+                        double zVoxelSizeScale,
+                        callback_type callback = 0 );
   
   static void Abort( Core::ActionContextHandle context );
   
 private:
   std::string target_layer_;
-  int iterations_;
-  double measurementScale_;
-  std::string outputDir_;
   std::vector< std::string > initalGuessSet_;
+  int iterations_;
+  double xyVoxelSizeScale_;
+  double zVoxelSizeScale_;
+  std::string outputDir_;
   SandboxID sandbox_;
   callback_type callback_;
 };

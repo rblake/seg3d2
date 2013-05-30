@@ -63,6 +63,7 @@ public:
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
   
 	void update_progress( double amount, double progress_start = 0.0f, double progress_amount = 1.0f );
+  void reset_progress();
 
   ReconstructionTool* tool_;
 };
@@ -90,9 +91,9 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 	// add number of iterations
   this->add_state( "input_data_id", this->input_data_id_, "<none>" );
 	this->add_state( "iterations", this->iterations_state_, 3, 1, 100, 1 );
-	this->add_state( "measurementScale", this->measurementScale_state_, 5.0, 1.0, 10.0, 0.1 );
+	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.01, 10.0, 0.01 );
+	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.01, 10.0, 0.01 );
   this->add_state( "initialGuessSet", this->initialGuessSet_state_ );
-
 	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
 
   this->add_connection( this->outputDirectory_state_->state_changed_signal_.connect(
@@ -105,6 +106,12 @@ void ReconstructionToolPrivate::update_progress( double amount, double progress_
 {
   std::cerr << "ReconstructionToolPrivate::update_progress: " << amount << std::endl;
   this->tool_->update_progress_signal_( progress_start + amount * progress_amount );
+}
+  
+void ReconstructionToolPrivate::reset_progress()
+{
+  std::cerr << "ReconstructionToolPrivate::reset_progress" << std::endl;
+  this->tool_->reset_progress_signal_();
 }
 
 ReconstructionTool::~ReconstructionTool()
@@ -140,13 +147,16 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
       }
     }
   }
-     
+
+  this->private_->reset_progress();
+
   ActionReconstructionTool::Dispatch( context,
     this->input_data_id_->get(),
-    this->outputDirectory_state_->get(),
     this->initialGuessSet_state_->get(),
+    this->outputDirectory_state_->get(),
     iterations_state_->get(),
-    measurementScale_state_->get(),
+    xyVoxelSizeScale_state_->get(),
+    zVoxelSizeScale_state_->get(),
     boost::bind( &ReconstructionToolPrivate::update_progress, this->private_, _1, _2, _3 ) );
 }
 
