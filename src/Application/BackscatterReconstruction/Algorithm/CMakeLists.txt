@@ -44,7 +44,8 @@ IF(CUDA_FOUND)
     gradient.h
     cone.h
     recon_api.cpp
-    recon_api.h)
+    recon_api.h
+    recon_params.h)
 
   SET_TARGET_PROPERTIES(Application_BackscatterReconstruction_Algorithm
     PROPERTIES
@@ -73,7 +74,8 @@ ELSE(CUDA_FOUND)
     gradient.h
     cone.h
     recon_api.cpp
-    recon_api.h)
+    recon_api.h
+    recon_params.h)
 ENDIF(CUDA_FOUND)
 
 TARGET_LINK_LIBRARIES(Application_BackscatterReconstruction_Algorithm
