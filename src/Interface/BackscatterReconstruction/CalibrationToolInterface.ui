@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>300</width>
-    <height>512</height>
+    <width>312</width>
+    <height>610</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -159,7 +159,7 @@ QPushButton:pressed{
         <property name="minimumSize">
          <size>
           <width>264</width>
-          <height>166</height>
+          <height>264</height>
          </size>
         </property>
         <property name="frameShape">
