@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
+#include "vec3.h"
 
 using std::vector;
 

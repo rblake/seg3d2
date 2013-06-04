@@ -1,7 +1,6 @@
 #ifndef APPLICATION_BACKSCATTERRECONSTRUCTION_ALGORITHM_RECON_API_H
 #define APPLICATION_BACKSCATTERRECONSTRUCTION_ALGORITHM_RECON_API_H
 
-
 #include <itkImage.h>
 
 typedef itk::Image<float, 3> ReconImageVolumeType;
@@ -18,7 +17,7 @@ void CalibrationSegment(const ReconImageVolumeType::Pointer images,
 
 // calibration - given images and disk id masks (after mapping to match calibration pattern), fit detector geometry
 void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
-                            const std::vector<unsigned char>& maskv,
+                            const std::vector<unsigned char>& diskIds,
                             const char *workDirectory,
                             const char *initialGeometryConfigFile,
                             const char *outputGeometryConfigFile);

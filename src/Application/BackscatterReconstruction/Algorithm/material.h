@@ -13,7 +13,7 @@ using std::vector;
 #endif
 
 
-#define MATERIAL_ANGULAR_SAMPLES 1024
+#define MATERIAL_ANGULAR_SAMPLES 64
 
 
 class Material {

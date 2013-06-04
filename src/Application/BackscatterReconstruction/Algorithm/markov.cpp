@@ -1,7 +1,7 @@
 
-#include <Application/BackscatterReconstruction/Algorithm/markov.h>
+#include "markov.h"
 
-//#define USE_CUDA 1
+#define USE_CUDA
 
 MarkovContext::MarkovContext(const Geometry &g, const vector<Material> &materials,
                              int samplesPerPixel, float voxelStepSize, float energyRegularizationWeight)
@@ -270,6 +270,8 @@ void MarkovContext::FindInitialGuess() {
     }
   }
 
+  //best_al = 2;
+  //best_foam = mGeometry.GetVolumeNodeSamplesZ() - 4;
   std::cerr<<"best: "<<best_al<<" "<<best_foam<<" "<<best_v<<std::endl;
 
   // reset to best combination
@@ -1595,16 +1597,17 @@ int MarkovContext::GibbsEval(ParallelThreadPool *threadPool, int numThreads, flo
   */
 
 
+#endif
 
+  /*
   static int counter=0;
   counter++;
   if (counter==1000) {
     CudaShutdown();
     exit(0);
   }
+  */
   //return 0;
-
-#endif
 
 
   // add regularization error

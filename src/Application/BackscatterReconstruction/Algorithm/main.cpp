@@ -1748,7 +1748,7 @@ int ProjectionsToNrrd(int argc, char **argv) {
   // compute median intensities
   vector<float> medians;
   for (int p=0; p<geometry.GetNumProjectionAngles(); p++) {
-    vector<float> sim;// = images[p];
+    vector<float> sim;
     for (int y=0; y<geometry.GetDetectorSamplesHeight(); y++) {
       float fy = 2*((y+0.5) / geometry.GetDetectorSamplesHeight() - 0.5);
       for (int x=0; x<geometry.GetDetectorSamplesWidth(); x++) {
@@ -1766,7 +1766,6 @@ int ProjectionsToNrrd(int argc, char **argv) {
     std::cerr<<p<<", "<<medians.back()<<std::endl;
   }
 
-#if 0
   // normalize images to have same median value
   float avemedian = 0;
   for (int p=0; p<geometry.GetNumProjectionAngles(); p++) {
@@ -1783,6 +1782,7 @@ int ProjectionsToNrrd(int argc, char **argv) {
   }
 
 
+#if 0
   // try to adjust for vertical background gradient
   float etop = 540;
   float ebottom = 480;

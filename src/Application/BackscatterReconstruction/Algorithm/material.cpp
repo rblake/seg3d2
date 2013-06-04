@@ -1,8 +1,8 @@
 
 #include <string.h>
 
-#include <Application/BackscatterReconstruction/Algorithm/material.h>
-#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
+#include "material.h"
+#include "recon_params.h"
 
 #ifndef WIN32
 #define sscanf_s sscanf
@@ -31,6 +31,8 @@ bool Material::InitFromFile(const char *fname, float lowKeV, float highKeV) {
       str.push_back(line[i]);
     str.push_back('\n');
   }
+  str.push_back(0);
+
 
   file.close();
   return InitFromString(&str[0], lowKeV, highKeV);
@@ -117,6 +119,7 @@ bool Material::InitFromString(const char *s, float lowKeV, float highKeV) {
   for (int thetai=0; thetai<numAngularSamples; thetai++) {
     float theta = (float)M_PI * thetai/(numAngularSamples-1.0f);
     mScatterCrossSection.push_back(ComputeCrossSection(chi, F, S, theta, lowKeV, highKeV));
+    //printf("%g %g\n", theta, mScatterCrossSection.back());
   }
 
   for (int i=0; i<numAngularSamples; i++) {
@@ -128,7 +131,13 @@ bool Material::InitFromString(const char *s, float lowKeV, float highKeV) {
                                (avagadro / mMolecularWeight) * mDensity);
     else
       mScatterFactor.push_back(0);
+
+    //printf("%g %g\n", theta, mScatterFactor.back());
   }
+
+  //printf("\n");
+
+  
 
   return true;
 }

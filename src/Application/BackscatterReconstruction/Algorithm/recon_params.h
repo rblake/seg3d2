@@ -10,8 +10,8 @@
 #define RECON_TEMP_END 8.4e-13
 
 // high and low xray energies (KeV) - scattering factors are averaged across the range
-#define XRAY_ENERGY_LOW  10
-#define XRAY_ENERGY_HIGH 10
+#define XRAY_ENERGY_LOW  45
+#define XRAY_ENERGY_HIGH 45
 
 // the positions of the disks in the calibration pattern
 #define RECON_CALIB_PATTERN_DEF(name)             \

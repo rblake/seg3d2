@@ -9,7 +9,7 @@
 #endif
 
 
-#include <Application/BackscatterReconstruction/Algorithm/geometry.h>
+#include "geometry.h"
 
 bool Geometry::LoadFromFile(const char *fname) {
   std::ifstream f;
