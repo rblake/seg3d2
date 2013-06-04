@@ -96,7 +96,7 @@ public:
       return;
     }
 
-    std::vector<unsigned char> maskv(inSize[0] * inSize[1] * inSize[2]);
+    std::vector<unsigned char> maskv(inSize[0] * inSize[1] * inSize[2], 0);
     
     for (size_t i = 0; i < this->calibrationSet_.size(); ++i)
     {
@@ -126,10 +126,6 @@ public:
         {
           // set disk IDs from 1 to 3
           maskv[j] = (i+1);
-        }
-        else
-        {
-          maskv[j] = 0;
         }
       }
     }
