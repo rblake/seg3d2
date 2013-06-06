@@ -58,6 +58,7 @@ bool ResampleImages(const ReconImageVolumeType::Pointer imagesIn,
       }
     }
   }
+  return true;
 }
                     
 
@@ -221,6 +222,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
   // resize projections to reconstruction size
   ReconImageVolumeType::Pointer images = ReconImageVolumeType::New();
   if (!ResampleImages(_images, images, *reconGeometry)) {
+    std::cerr<<"resize projections to reconstruction size failed!"<<std::endl;
     delete reconGeometry;  reconGeometry=NULL;
     return;
   }
