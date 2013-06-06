@@ -1,7 +1,7 @@
 
-#include "markov.h"
+#include <Application/BackscatterReconstruction/Algorithm/markov.h>
 
-#define USE_CUDA
+//#define USE_CUDA
 
 MarkovContext::MarkovContext(const Geometry &g, const vector<Material> &materials,
                              int samplesPerPixel, float voxelStepSize, float energyRegularizationWeight)

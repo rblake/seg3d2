@@ -1,8 +1,8 @@
 
-#include "markov.h"
-#include "calibration.h"
-#include "recon_api.h"
-#include "recon_params.h"
+#include <Application/BackscatterReconstruction/Algorithm/markov.h>
+#include <Application/BackscatterReconstruction/Algorithm/calibration.h>
+#include <Application/BackscatterReconstruction/Algorithm/recon_api.h>
+#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
 
 char *matVacuumText =
 #include "materials/foam.txt"
