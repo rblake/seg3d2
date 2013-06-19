@@ -61,6 +61,7 @@ public:
 
   void handleOutputDirChanged();
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
+	void handle_abort();
   
 	void update_progress( double amount, double progress_start = 0.0f, double progress_amount = 1.0f );
   void reset_progress();
@@ -85,7 +86,13 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
     this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
   }
 }
-  
+
+void ReconstructionToolPrivate::handle_abort()
+{
+  std::cerr << "Abort called" << std::endl;
+  ActionReconstructionTool::Abort();
+}
+
 void ReconstructionToolPrivate::handleOutputDirChanged() 
 {
   std::string dir = tool_->outputDirectory_state_->export_to_string();
@@ -101,8 +108,8 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 	// add number of iterations
   this->add_state( "input_data_id", this->input_data_id_, "<none>" );
 	this->add_state( "iterations", this->iterations_state_, 3, 1, 100, 1 );
-	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.01, 10.0, 0.01 );
-	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.01, 10.0, 0.01 );
+	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
+	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
   this->add_state( "initialGuessSet", this->initialGuessSet_state_ );
 	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
 
@@ -110,6 +117,8 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
     boost::bind( &ReconstructionToolPrivate::handleOutputDirChanged, this->private_ ) ) );
 	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
     boost::bind( &ReconstructionToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
+	this->add_connection( this->abort_signal_.connect(
+    boost::bind( &ReconstructionToolPrivate::handle_abort, this->private_ ) ) );
 }
 
 void ReconstructionToolPrivate::update_progress( double amount, double progress_start, double progress_amount )

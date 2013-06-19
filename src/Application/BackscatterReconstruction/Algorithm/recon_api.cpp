@@ -211,7 +211,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
     reconMaterials[1].InitFromString(matFoamText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
     reconMaterials[2].InitFromString(matAluminumText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
   }
-
+  
   // load geometry
   reconGeometry = new Geometry();
   reconGeometry->LoadFromFile(geometryConfigFile);
@@ -280,6 +280,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
 
 // reconstruction - stop it if it's currently running
 void ReconstructionAbort() {
+std::cerr << "ReconstructionAbort()" << std::endl;
   reconApiAbort = true;
 }
 

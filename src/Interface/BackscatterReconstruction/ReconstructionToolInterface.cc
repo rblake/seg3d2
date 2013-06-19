@@ -43,6 +43,7 @@
 #include <QtUtils/Bridge/QtBridge.h>
 
 // Core Includes
+#include <Core/Application/Application.h>
 #include <Core/Utils/Log.h>
 #include <Core/State/Actions/ActionSet.h>
 
@@ -90,11 +91,27 @@ public:
 
 void ReconstructionToolInterfacePrivate::setOutputDirectory()
 {
+  QDir currentDir( this->ui_.outputDirLineEdit->text() );
+  std::cerr << "currentDir=" << currentDir.canonicalPath().toStdString() << std::endl;
+  QString dir;
+  if  ( currentDir.exists() )
+  {
+    dir = currentDir.canonicalPath();
+    std::cerr << "dir=" << dir.toStdString() << std::endl;
+  }
+  else
+  {
+    boost::filesystem::path user_dir;
+    Core::Application::Instance()->get_user_directory( user_dir, true );
+    dir = QString::fromStdString( user_dir.string() );
+    std::cerr << "dir=" << dir.toStdString() << std::endl;
+  }
+
   // propagate to tool state
   QDir outputDir = QDir( QFileDialog::getExistingDirectory ( interface_, 
-    interface_->tr( "Choose Output Directory" ), this->ui_.outputDirLineEdit->text(), 
+    interface_->tr( "Choose Output Directory" ), dir, 
     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks ) );
-  if( outputDir.exists() )
+  if ( outputDir.exists() )
   {
     this->ui_.outputDirLineEdit->setText( outputDir.canonicalPath() );
   }

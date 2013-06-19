@@ -30,6 +30,11 @@
 #include <Core/Action/ActionDispatcher.h>
 #include <Core/Action/ActionFactory.h>
 #include <Core/State/Actions/ActionSet.h>
+#include <Core/Utils/Log.h>
+
+#include <Core/DataBlock/ITKDataBlock.h>
+#include <Core/DataBlock/ITKImageData.h>
+#include <Core/DataBlock/MaskDataBlockManager.h>
 
 // Application Includes
 #include <Application/BackscatterReconstruction/Actions/ActionReconstructionTool.h>
@@ -37,7 +42,11 @@
 
 #include <Application/ToolManager/Actions/ActionOpenTool.h>
 #include <Application/ViewerManager/ViewerManager.h>
-#include <Application/Filters/ITKFilter.h>
+#include <Application/Layer/LayerManager.h>
+#include <Application/Layer/LayerMetaData.h>
+
+//#include <Application/Filters/ITKFilter.h>
+//#include <Application/BackscatterReconstruction/Filters/ReconstructionFilter.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -48,71 +57,26 @@
 // registered in the CMake file.
 CORE_REGISTER_ACTION( Seg3D, ReconstructionTool )
 
-// TODO: need more systematic way to check number of layers
-#define LAYER_COUNT 2
-
 namespace Seg3D
 {
 
-class ReconstructionProgressRunnable : public Core::Runnable
-{
-  ActionReconstructionTool::callback_type callback_;
-  long msTimeInterval_;
-  bool stop_;
-
-public:
-  ReconstructionProgressRunnable(ActionReconstructionTool::callback_type callback, long msTimeInterval=500)
-    : callback_(callback), msTimeInterval_(msTimeInterval), stop_(false) {}
-  
-  void stop() { stop_ = true; }
-
-  virtual void run()
-  {
-    // TODO: temporary? See TODO below...
-    double scale = 100;
-    while (! stop_ )
-    {
-      ITKFilter::UCHAR_IMAGE_TYPE::Pointer reconVolum = ITKFilter::UCHAR_IMAGE_TYPE::New();
-      double progress = ReconstructionGetMaterialVolume(reconVolum);
-      if ( this->callback_ != 0 )
-      {
-        // TODO: using scale temporarily because progress values are < 0.01
-        // before reconstruction either exits or crashes
-        Core::Application::PostEvent( boost::bind( this->callback_, progress*scale, 0, 1.0 ) );
-      }
-      // test
-//      ITKFilter::UCHAR_IMAGE_TYPE::SizeType sizes = reconVolum->GetLargestPossibleRegion().GetSize();
-//      const size_t SIZE = sizes[0] * sizes[1] * sizes[2];
-//      for (size_t i = 0; i < SIZE; ++i)
-//      {
-//        if (reconVolum->GetBufferPointer()[i] != 0)
-//        {
-//          printf("reconVolum[%lu]=%hhu\n", i, reconVolum->GetBufferPointer()[i]);
-//        }
-//      }
-
-      boost::this_thread::sleep(boost::posix_time::milliseconds(msTimeInterval_));
-    }
-    // make sure progress bar completes
-    Core::Application::PostEvent( boost::bind( this->callback_, 100.0, 0, 1.0 ) );
-  }
-};
-
-
-class ReconstructionToolAlgo : public ITKFilter
+class ReconstructionToolAlgo : public ReconstructionFilter
 {  
 
 public:
   LayerHandle src_layer_;
   std::vector< LayerHandle > initialGuessSet_;
 
-  std::vector<LayerHandle> dst_layer_;
+//  std::vector<LayerHandle> dst_layer_;
 
   std::string outputDir_;
   double xyVoxelSizeScale_;
   double zVoxelSizeScale_;
   int iterations_;
-  ActionReconstructionTool::callback_type callback_;
+
+  ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback, int layerCount)
+    : ReconstructionFilter(callback, layerCount)
+  {}
   
 public:
   // RUN:
@@ -129,26 +93,27 @@ public:
     Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
                                                         algorithm_config_file,
                                                         algorithm_geometry_file);
-    std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
-      << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
+
+std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
+  << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
     
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
-    ITKFilter::FLOAT_IMAGE_TYPE::SizeType inSize = image->get_image()->GetLargestPossibleRegion().GetSize();
+    ReconstructionFilter::FLOAT_IMAGE_TYPE::SizeType inSize = image->get_image()->GetLargestPossibleRegion().GetSize();
 
     DataLayerHandle data_layer = boost::dynamic_pointer_cast<DataLayer>( this->src_layer_ );
     Core::VolumeHandle srcVolumeHandle = data_layer->get_volume();
     
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess;
+    ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer initialGuess;
 
     if (this->initialGuessSet_.size() > 0)
     {
-      initialGuess = ITKFilter::UCHAR_IMAGE_TYPE::New();
-      ITKFilter::UCHAR_IMAGE_TYPE::SizeType size;
+      initialGuess = ReconstructionFilter::UCHAR_IMAGE_TYPE::New();
+      ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType size;
       size.SetElement(0, inSize[0]);
       size.SetElement(1, inSize[1]);
       size.SetElement(2, inSize[2]);
-      initialGuess->SetRegions(ITKFilter::UCHAR_IMAGE_TYPE::RegionType(size));
+      initialGuess->SetRegions(ReconstructionFilter::UCHAR_IMAGE_TYPE::RegionType(size));
       initialGuess->Allocate();
 
       // TODO: ordering of mask labels?
@@ -170,67 +135,67 @@ public:
             // set disk IDs from 1 onwards
             initialGuess->GetBufferPointer()[j] = (i+1);
           }
-          else
-          {
-            initialGuess->GetBufferPointer()[j] = 0;
-          }
         }
       }
     }
 
-    // allocated by algorithm?
-    ITKFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume = ITKFilter::UCHAR_IMAGE_TYPE::New();
-
     float voxelSizeCM[3] = { this->xyVoxelSizeScale_, this->xyVoxelSizeScale_, this->zVoxelSizeScale_ };
-    
-    boost::shared_ptr<ReconstructionProgressRunnable> progress(
-      new ReconstructionProgressRunnable(this->callback_) );
-    Core::Runnable::Start( progress );
 
+    Layer::filter_key_type key = this->get_key();
+    SandboxID sandbox = this->get_sandbox();
+    this->start_progress();
+
+    int test_iteration_count = 0;
     ReconstructionStart(image->get_image(),
                         initialGuess,
                         algorithm_config_file.string().c_str(),
                         voxelSizeCM,
-                        iterations_,
-                        finalReconVolume);
-    progress->stop();
+                        /*iterations_*/ test_iteration_count,
+                        get_recon_volume());
 
-	ITKFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume->GetLargestPossibleRegion().GetSize();
-	std::cerr << outSize[0] << ", " << outSize[1] << ", " << outSize[2] << std::endl;
-    if (outSize[0] * outSize[1] * outSize[2] != srcVolumeHandle->get_size())
-	{
-	  std::ostringstream oss;
-	  oss << "ITK region size (" <<
-        outSize[0] << ", " << outSize[1] << ", " << outSize[2] <<
-        ") does not match data volume size ("
-        << srcVolumeHandle->get_nx() << ", " << srcVolumeHandle->get_ny() << ", " << srcVolumeHandle->get_nz() << ")";
-	  this->report_error(oss.str());
-	  return;
-	}
-
-    for (size_t i = 0; i < LAYER_COUNT; ++i)
-    {
-      MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->dst_layer_[ i ] );
-      Core::MaskDataBlockHandle maskDataBlock;
-      Core::MaskDataBlockManager::Create( this->dst_layer_[ i ]->get_grid_transform(), maskDataBlock );
-      Core::MaskVolumeHandle mask_volume( new Core::MaskVolume(this->dst_layer_[ i ]->get_grid_transform(), maskDataBlock ) );
-      
-      for (size_t j = 0; j < maskDataBlock->get_size(); j++ )
-      {
-        if ( finalReconVolume->GetBufferPointer()[j] == (i+1) )
-        {
-          maskDataBlock->set_mask_at(j);
-        }
-      }
-      
-      if (! this->dispatch_insert_mask_volume_into_layer( this->dst_layer_[ i ], mask_volume ) )
-      {
-        std::ostringstream oss;
-        oss << "Could not insert mask volume " << this->dst_layer_[ i ]->get_layer_id() << " into layer";
-        this->report_error(oss.str());
-      }
-    }
-
+    this->stop_progress();
+    
+//    ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume->GetLargestPossibleRegion().GetSize();
+//std::cerr << "Output ITK image size: " << outSize[0] << ", " << outSize[1] << ", " << outSize[2] << std::endl;
+//    const size_t SIZE = outSize[0] * outSize[1] * outSize[2];
+//    if (SIZE == 0)
+//    {
+//      CORE_LOG_WARNING("Reconstruction mask size is 0.");
+//      return;
+//    }
+//    Core::DataBlockHandle finalReconDataBlock = Core::ITKDataBlock::New(finalReconVolume.GetPointer());
+//    Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
+//      new Core::ITKUCharImageData(finalReconDataBlock) );
+//
+//    MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dst_layer_[ 0 ] );
+//    Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(finalReconVolume.GetPointer());
+//    Core::ITKUCharImageDataHandle outImage = Core::ITKUCharImageDataHandle(
+//      new Core::ITKUCharImageData(dataBlock) );
+//    
+//    this->dst_layer_[0]->set_grid_transform(outImage->get_grid_transform(), false);
+//    
+//    Core::MaskDataBlockHandle maskDataBlock;
+//    if (!( Core::MaskDataBlockManager::Convert( dataBlock, outImage->get_grid_transform(), maskDataBlock ) ) )
+//    {
+//      CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+//    }
+//    Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
+//
+//    for (size_t j = 0; j < maskDataBlock->get_size(); j++ )
+//    {
+//      // test - insert all
+//      if ( finalReconVolume->GetBufferPointer()[j] > 0 )
+//      {
+//        maskDataBlock->set_mask_at(j);
+//      }
+//    }
+//    
+//    if (! this->dispatch_insert_mask_volume_into_layer( this->dst_layer_[ 0 ], maskVolume ) )
+//    {
+//      std::ostringstream oss;
+//      oss << "Could not insert mask volume " << this->dst_layer_[ 0 ]->get_layer_id() << " into layer";
+//      this->report_error(oss.str());
+//    }
   }
   SCI_END_ITK_RUN()
   
@@ -283,8 +248,10 @@ ActionReconstructionTool::ActionReconstructionTool()
 bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
                                     Core::ActionResultHandle& result )
 {
+  // TODO: more systematic way to know number of masks in output?
+  const int LAYER_COUNT = 2;
   // Create algorithm
-  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo );
+  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo(this->callback_, LAYER_COUNT) );
 
   // Copy the parameters over to the algorithm that runs the filter
   algo->set_sandbox( this->sandbox_ );
@@ -294,7 +261,6 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
   algo->xyVoxelSizeScale_ = this->xyVoxelSizeScale_;
   algo->zVoxelSizeScale_ = this->zVoxelSizeScale_;
   algo->iterations_ = this->iterations_;
-  algo->callback_ = this->callback_;
 
   // Find the handle to the layer
   algo->src_layer_ = LayerManager::FindLayer( this->target_layer_, this->sandbox_ );
@@ -324,23 +290,6 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
       return false;
     }
   }
-
-	algo->dst_layer_.resize( LAYER_COUNT+1 );
-	
-	// Create the destination layer, which will show progress
-	std::vector< std::string > dst_layer_ids( LAYER_COUNT+1 );
-  // hardcoded...
-	for ( size_t j = 0; j < LAYER_COUNT;  j++ )
-	{
-		algo->create_and_lock_mask_layer_from_layer( algo->src_layer_, algo->dst_layer_[ j ] );
-		dst_layer_ids.push_back( algo->dst_layer_[ j ]->get_layer_id() );
-	}
-	
-	// Return the id of the destination layer.
-	if ( algo->dst_layer_.size() > 0 )
-	{
-		result = Core::ActionResultHandle( new Core::ActionResult( dst_layer_ids ) );
-	}
   
   // If the action is run from a script (provenance is a special case of script),
   // return a notifier that the script engine can wait on.
@@ -352,7 +301,7 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
 
   // Build the undo-redo record
   algo->create_undo_redo_and_provenance_record( context, this->shared_from_this() );
-  
+
   // Start the filter on a separate thread.
   Core::Runnable::Start( algo );
   
@@ -366,7 +315,7 @@ void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
                                          int iterations,
                                          double xyVoxelSizeScale,
                                          double zVoxelSizeScale,
-                                         callback_type callback )
+                                         ReconstructionFilter::progress_callback callback )
 {
   ActionReconstructionTool* action = new ActionReconstructionTool;
   
@@ -383,10 +332,17 @@ void ActionReconstructionTool::Dispatch( Core::ActionContextHandle context,
 
   Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
+
 void ActionReconstructionTool::Abort()
 {
   ReconstructionAbort();
 }
+
+//void ActionReconstructionTool::Test(MaskLayerHandle layer, Core::MaskVolumeHandle mask, ProvenanceID prov_id, Layer::filter_key_type key, SandboxID sandbox)
+//{
+//  LayerManager::DispatchInsertMaskVolumeIntoLayer( layer, mask, prov_id, key, sandbox );
+//}
+
 
 void ActionReconstructionTool::clear_cache()
 {

@@ -481,7 +481,9 @@ LayerFilter::LayerFilter() :
 
 LayerFilter::~LayerFilter()
 {
+std::cerr << "LayerFilter::~LayerFilter() begin" << std::endl;
 	this->private_->finalize();
+std::cerr << "LayerFilter::~LayerFilter() end" << std::endl;
 }
 
 void LayerFilter::raise_abort()
@@ -791,6 +793,34 @@ bool LayerFilter::create_and_lock_mask_layer_from_layer( LayerHandle src_layer,
 	return true;
 }
 
+bool LayerFilter::create_and_lock_mask_layer_from_layer( const Core::GridTransform& grid_trans, LayerHandle src_layer, 
+                                                        LayerHandle& dst_layer, std::string dst_layer_name )
+{
+  // Generate a new name for the filter
+  std::string name = this->get_layer_prefix() + "_" + dst_layer_name;
+  
+  // Create the layer in creating mode
+  if ( !( LayerManager::CreateAndLockMaskLayer( grid_trans,
+    name, dst_layer, src_layer->get_meta_data(), this->private_->key_, this->private_->sandbox_ ) ) )
+  {
+    dst_layer.reset();
+    this->report_error( "Could not allocate enough memory." );
+    return false;
+  }
+  
+  // Record that the layer is locked
+  this->private_->created_layers_.push_back( dst_layer );
+  
+  dst_layer->set_filter_handle( this->shared_from_this() );
+  
+  // Hook up the abort signal from the layer
+  this->connect_abort( dst_layer );
+  this->connect_stop( dst_layer );
+  
+  // Success
+  return true;
+}
+
 bool LayerFilter::create_and_lock_mask_layer( const Core::GridTransform& grid_trans, 
 											LayerHandle src_layer, LayerHandle& dst_layer )
 {
@@ -905,6 +935,7 @@ bool LayerFilter::dispatch_insert_mask_volume_into_layer( LayerHandle layer,
 
 void LayerFilter::run()
 {
+std::cerr << "LayerFilter::run() begin" << std::endl;
 	// NOTE: Running too many filters in parallel can cause a huge surge in memory
 	// hence we restrict the maximum number of filters can run simultaneously.
 
@@ -930,6 +961,7 @@ void LayerFilter::run()
 	boost::mutex::scoped_lock lock( this->private_->mutex_ );	
 	this->private_->done_ = true;
 	this->private_->filter_done_.notify_all();
+std::cerr << "LayerFilter::run() end" << std::endl;
 }
 
 

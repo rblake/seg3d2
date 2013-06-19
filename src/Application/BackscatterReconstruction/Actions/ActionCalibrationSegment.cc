@@ -155,7 +155,7 @@ bool ActionCalibrationSegment::run( Core::ActionContextHandle& context,
 	
 	// Create the destination layer, which will show progress
 	std::vector< std::string > dst_layer_ids( LAYER_COUNT+1 );
-  // hardcoded...
+  // number of layers are hardcoded...
 	for ( size_t j = 0; j < LAYER_COUNT;  j++ )
 	{
 		algo->create_and_lock_mask_layer_from_layer( algo->src_layer_, algo->dst_layer_[ j ] );

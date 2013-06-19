@@ -39,11 +39,14 @@
 #include <Application/Layer/LayerManager.h>
 #include <Application/Layer/LayerAction.h>
 
+#include <Application/BackscatterReconstruction/Filters/ReconstructionFilter.h>
+
 #include <boost/smart_ptr.hpp> 
 
 namespace Seg3D
 {
-  
+
+
 class ActionReconstructionTool : public LayerAction
 {
   
@@ -70,8 +73,6 @@ public:
   virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
   virtual void clear_cache();
   
-  typedef boost::function< void ( double, double, double ) > callback_type;
-  
   // -- Dispatch this action from the interface --
 public:
   /// DISPATCH:
@@ -83,9 +84,11 @@ public:
                         int iterations,
                         double xyVoxelSizeScale,
                         double zVoxelSizeScale,
-                        callback_type callback = 0 );
+                        ReconstructionFilter::progress_callback callback = 0 );
 
   static void Abort();
+
+//  static void Test(MaskLayerHandle layer, Core::MaskVolumeHandle mask, ProvenanceID prov_id, Layer::filter_key_type key, SandboxID sandbox);
   
 private:
   std::string target_layer_;
@@ -95,7 +98,7 @@ private:
   double zVoxelSizeScale_;
   std::string outputDir_;
   SandboxID sandbox_;
-  callback_type callback_;
+  ReconstructionFilter::progress_callback callback_;
 };
   
 } // end namespace Seg3D

@@ -175,6 +175,9 @@ public:
 	bool create_and_lock_mask_layer( const Core::GridTransform& grid_trans, 
 		LayerHandle src_layer, LayerHandle& dst_layer );
 
+  bool create_and_lock_mask_layer_from_layer( const Core::GridTransform& grid_trans, LayerHandle src_layer, 
+    LayerHandle& dst_layer, std::string dst_layer_name );
+
 	/// DISPATCH_UNLOCK_LAYER:
 	/// Schedule a layer to be unlocked.
 	bool dispatch_unlock_layer( LayerHandle layer );
