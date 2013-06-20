@@ -50,6 +50,8 @@ namespace Seg3D
 {
   
 const std::string ReconstructionFilter::TMP_LAYER_NAME("TemporaryReconstruction");
+const std::string ReconstructionFilter::TMP_LAYER_META_INFO("TemporaryReconstructionMaskLayer");
+const std::string ReconstructionFilter::DEST_LAYER_META_INFO("ReconstructionOutputMaskLayer");
 
 class ReconstructionFilterProgress : public Core::Runnable
 {
@@ -107,6 +109,8 @@ std::cerr << "Temp ITK image size: " << sizes[0] << ", " << sizes[1] << ", " << 
         if (! tmpLayer_ && ! layerCreateFlag_)
         {
           LayerMetaData metadata;
+          metadata.meta_data_info_ = ReconstructionFilter::TMP_LAYER_META_INFO;
+          metadata.meta_data_ = ReconstructionFilter::TMP_LAYER_NAME;
           Core::Application::PostEvent( boost::bind(
             &LayerManager::CreateAndLockMaskLayer, tmp_image->get_grid_transform(),
             ReconstructionFilter::TMP_LAYER_NAME, tmpLayer_,
@@ -199,19 +203,36 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
   lock_type lock( this->get_mutex() );
 
   std::cerr << "Detected " << layerHandle->get_layer_id() << ", " << layerHandle->get_layer_name() << std::endl;
-  if (layerHandle->get_layer_name() == ReconstructionFilter::TMP_LAYER_NAME)
+  if (layerHandle->get_layer_name() == ReconstructionFilter::TMP_LAYER_NAME &&
+      layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::TMP_LAYER_META_INFO)
   {
     this->progress_->tmpLayer_ = layerHandle;
-  }
 
-  if (newGroup)
-  {
-    for (int i = 0; i < this->layerCount_; ++i)
+    if (newGroup)
     {
-      LayerMetaData metadata;
-      Core::Application::PostEvent( boost::bind(
-        &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), "test", 
-        this->dstLayers_[i], metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+      for (int i = 0; i < this->layerCount_; ++i)
+      {
+        LayerMetaData metadata;
+        metadata.meta_data_info_ = ReconstructionFilter::DEST_LAYER_META_INFO;
+        std::ostringstream oss;
+        oss << i;
+        metadata.meta_data_ = oss.str();
+
+        Core::Application::PostEvent( boost::bind(
+          &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), "test", 
+          this->dstLayers_[i], metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+      }
+    }
+  }
+  else if (layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::DEST_LAYER_META_INFO)
+  {
+    std::istringstream iss(layerHandle->get_meta_data().meta_data_);
+    int index;
+    iss >> index;
+std::cerr << "Got index " << index << std::endl;
+    if (index >= 0 && index < this->layerCount_)
+    {
+      this->dstLayers_[index] = layerHandle;
     }
   }
 }
@@ -221,15 +242,46 @@ void ReconstructionFilterPrivate::finalize()
 std::cerr << "ReconstructionFilterPrivate::finalize() begin" << std::endl;
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume_->GetLargestPossibleRegion().GetSize();
-  std::cerr << "Output ITK image size: " << outSize[0] << ", " << outSize[1] << ", " << outSize[2] << std::endl;
-  const size_t SIZE = outSize[0] * outSize[1] * outSize[2];
 
-  for (size_t i = 0; i < SIZE; ++i)
+  const size_t SIZE = outSize[0] * outSize[1] * outSize[2];
+  if (SIZE > 0)
   {
-    if ( finalReconVolume_->GetBufferPointer()[i] > 0 )
+    Core::DataBlockHandle finalReconDataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
+    Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
+      new Core::ITKUCharImageData(finalReconDataBlock) );
+
+    for (size_t i = 0; i < this->layerCount_; ++i)
     {
-      fprintf(stderr, "recon volume mask at %lu = %hhu\n", i, finalReconVolume_->GetBufferPointer()[i]);
+      MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dstLayers_[ i ] );
+
+      Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
+      Core::ITKUCharImageDataHandle outImage = Core::ITKUCharImageDataHandle(
+        new Core::ITKUCharImageData(dataBlock) );
+      
+      Core::MaskDataBlockHandle maskDataBlock;
+      if (! ( Core::MaskDataBlockManager::Convert( dataBlock, outImage->get_grid_transform(), maskDataBlock ) ) )
+      {
+        CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+      }
+
+      Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
+      for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
+      {
+        if ( this->finalReconVolume_->GetBufferPointer()[j] == (i+1) )
+        {
+          maskDataBlock->set_mask_at(j);
+        }
+      }
+
+      // not bothering with provenance here...
+      Core::Application::PostEvent( boost::bind(
+        &LayerManager::DispatchInsertMaskVolumeIntoLayer, maskLayer, maskVolume, -1,
+        this->filter_->get_key(), this->filter_->get_sandbox() ) );
     }
+  }
+  else
+  {
+    CORE_LOG_WARNING("Reconstruction mask size is 0.");
   }
 
   if ( tmpLayer_ )
@@ -239,7 +291,7 @@ std::cerr << "ReconstructionFilterPrivate::finalize() begin" << std::endl;
     tmpLayer_.reset();
   }    
   this->disconnect_all();
-  std::cerr << "ReconstructionFilterPrivate::finalize() end" << std::endl;
+std::cerr << "ReconstructionFilterPrivate::finalize() end" << std::endl;
 }
 
 ReconstructionFilter::ReconstructionFilter(progress_callback callback, int layerCount) :

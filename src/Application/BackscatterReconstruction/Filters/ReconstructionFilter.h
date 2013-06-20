@@ -72,6 +72,8 @@ public:
   typedef boost::function< void ( double, double, double ) > progress_callback;
   
   static const std::string TMP_LAYER_NAME;
+  static const std::string TMP_LAYER_META_INFO;
+  static const std::string DEST_LAYER_META_INFO;
   
 public:
   ReconstructionFilter(progress_callback callback, int layerCount);
