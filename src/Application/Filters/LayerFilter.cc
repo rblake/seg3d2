@@ -481,9 +481,7 @@ LayerFilter::LayerFilter() :
 
 LayerFilter::~LayerFilter()
 {
-std::cerr << "LayerFilter::~LayerFilter() begin" << std::endl;
 	this->private_->finalize();
-std::cerr << "LayerFilter::~LayerFilter() end" << std::endl;
 }
 
 void LayerFilter::raise_abort()
@@ -935,7 +933,6 @@ bool LayerFilter::dispatch_insert_mask_volume_into_layer( LayerHandle layer,
 
 void LayerFilter::run()
 {
-std::cerr << "LayerFilter::run() begin" << std::endl;
 	// NOTE: Running too many filters in parallel can cause a huge surge in memory
 	// hence we restrict the maximum number of filters can run simultaneously.
 
@@ -961,7 +958,6 @@ std::cerr << "LayerFilter::run() begin" << std::endl;
 	boost::mutex::scoped_lock lock( this->private_->mutex_ );	
 	this->private_->done_ = true;
 	this->private_->filter_done_.notify_all();
-std::cerr << "LayerFilter::run() end" << std::endl;
 }
 
 

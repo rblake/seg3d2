@@ -94,8 +94,10 @@ public:
                                                         algorithm_config_file,
                                                         algorithm_geometry_file);
 
-std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
-  << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
+//    std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
+//    << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
+    
+    this->set_layer_name( this->src_layer_->get_layer_name() );
     
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
@@ -154,48 +156,6 @@ std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
                         get_recon_volume());
 
     this->stop_progress();
-    
-//    ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume->GetLargestPossibleRegion().GetSize();
-//std::cerr << "Output ITK image size: " << outSize[0] << ", " << outSize[1] << ", " << outSize[2] << std::endl;
-//    const size_t SIZE = outSize[0] * outSize[1] * outSize[2];
-//    if (SIZE == 0)
-//    {
-//      CORE_LOG_WARNING("Reconstruction mask size is 0.");
-//      return;
-//    }
-//    Core::DataBlockHandle finalReconDataBlock = Core::ITKDataBlock::New(finalReconVolume.GetPointer());
-//    Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
-//      new Core::ITKUCharImageData(finalReconDataBlock) );
-//
-//    MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dst_layer_[ 0 ] );
-//    Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(finalReconVolume.GetPointer());
-//    Core::ITKUCharImageDataHandle outImage = Core::ITKUCharImageDataHandle(
-//      new Core::ITKUCharImageData(dataBlock) );
-//    
-//    this->dst_layer_[0]->set_grid_transform(outImage->get_grid_transform(), false);
-//    
-//    Core::MaskDataBlockHandle maskDataBlock;
-//    if (!( Core::MaskDataBlockManager::Convert( dataBlock, outImage->get_grid_transform(), maskDataBlock ) ) )
-//    {
-//      CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
-//    }
-//    Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
-//
-//    for (size_t j = 0; j < maskDataBlock->get_size(); j++ )
-//    {
-//      // test - insert all
-//      if ( finalReconVolume->GetBufferPointer()[j] > 0 )
-//      {
-//        maskDataBlock->set_mask_at(j);
-//      }
-//    }
-//    
-//    if (! this->dispatch_insert_mask_volume_into_layer( this->dst_layer_[ 0 ], maskVolume ) )
-//    {
-//      std::ostringstream oss;
-//      oss << "Could not insert mask volume " << this->dst_layer_[ 0 ]->get_layer_id() << " into layer";
-//      this->report_error(oss.str());
-//    }
   }
   SCI_END_ITK_RUN()
   
@@ -272,7 +232,7 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
   {
     return false;
   }
-  
+
   for (size_t i = 0; i < this->initalGuessSet_.size(); ++i)
   {
     LayerHandle maskLayer = LayerManager::FindLayer( this->initalGuessSet_[i], this->sandbox_ );
@@ -338,15 +298,10 @@ void ActionReconstructionTool::Abort()
   ReconstructionAbort();
 }
 
-//void ActionReconstructionTool::Test(MaskLayerHandle layer, Core::MaskVolumeHandle mask, ProvenanceID prov_id, Layer::filter_key_type key, SandboxID sandbox)
-//{
-//  LayerManager::DispatchInsertMaskVolumeIntoLayer( layer, mask, prov_id, key, sandbox );
-//}
-
 
 void ActionReconstructionTool::clear_cache()
 {
-  std::cerr << "ActionReconstructionTool::clear_cache()" << std::endl;
+  CORE_LOG_MESSAGE("ActionReconstructionTool::clear_cache()");
   // Reset the callback so it won't be holding any handles
   this->callback_ = 0;
 }

@@ -87,8 +87,6 @@ public:
                         ReconstructionFilter::progress_callback callback = 0 );
 
   static void Abort();
-
-//  static void Test(MaskLayerHandle layer, Core::MaskVolumeHandle mask, ProvenanceID prov_id, Layer::filter_key_type key, SandboxID sandbox);
   
 private:
   std::string target_layer_;

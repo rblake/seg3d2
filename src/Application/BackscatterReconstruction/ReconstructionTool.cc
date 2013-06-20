@@ -89,7 +89,7 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
 
 void ReconstructionToolPrivate::handle_abort()
 {
-  std::cerr << "Abort called" << std::endl;
+  std::cerr << "Abort called from reconstruction tool" << std::endl;
   ActionReconstructionTool::Abort();
 }
 

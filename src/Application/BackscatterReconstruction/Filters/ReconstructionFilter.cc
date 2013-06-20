@@ -56,7 +56,7 @@ const std::string ReconstructionFilter::DEST_LAYER_META_INFO("ReconstructionOutp
 class ReconstructionFilterProgress : public Core::Runnable
 {
 public:
-  LayerHandle tmpLayer_;
+//  LayerHandle tmpLayer_;
  
   long msTimeInterval_;
   bool stop_;
@@ -74,13 +74,9 @@ public:
   
   ~ReconstructionFilterProgress()
   {
-    tmpLayer_.reset();
   }
   
   void stop() { stop_ = true; }
-  
-  void setTemporaryLayer(const LayerHandle& layerHandle) { this->tmpLayer_ = layerHandle; }
-  LayerHandle getTemporaryLayer() { return this->tmpLayer_; }
   
   virtual void run()
   {
@@ -99,70 +95,21 @@ public:
       // test
       ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType sizes = reconVolume->GetLargestPossibleRegion().GetSize();
       const size_t SIZE = sizes[0] * sizes[1] * sizes[2];
-std::cerr << "Temp ITK image size: " << sizes[0] << ", " << sizes[1] << ", " << sizes[2] << std::endl;
       if (SIZE > 0)
       {
-        Core::DataBlockHandle tmp_dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
-        Core::ITKUCharImageDataHandle tmp_image = Core::ITKUCharImageDataHandle(
-          new Core::ITKUCharImageData(tmp_dataBlock) );
-        
-        if (! tmpLayer_ && ! layerCreateFlag_)
+        if (! layerCreateFlag_)
         {
-          LayerMetaData metadata;
-          metadata.meta_data_info_ = ReconstructionFilter::TMP_LAYER_META_INFO;
-          metadata.meta_data_ = ReconstructionFilter::TMP_LAYER_NAME;
-          Core::Application::PostEvent( boost::bind(
-            &LayerManager::CreateAndLockMaskLayer, tmp_image->get_grid_transform(),
-            ReconstructionFilter::TMP_LAYER_NAME, tmpLayer_,
-            metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
-          // TODO: check for completions????
+          this->filter_->create_and_lock_tmp_mask_layer(reconVolume);
           layerCreateFlag_ = true;
           
           continue;
         }
-        
-        if (tmpLayer_)
+        else
         {
-          std::cerr << "Temporary Reconstruction layer created" << std::endl;
-          Core::MaskDataBlockHandle maskDataBlock;
-          if (!( Core::MaskDataBlockManager::Convert( tmp_dataBlock, tmp_image->get_grid_transform(), maskDataBlock ) ) )
-          {
-            CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
-          }
-          else
-          {
-std::cerr << "Attempt to insert data into layer..." << std::endl;
-            // move to filter, add filter support...
-            Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmp_image->get_grid_transform(), maskDataBlock ) );
-            MaskLayerHandle tmpMaskLayer = boost::dynamic_pointer_cast<MaskLayer>( tmpLayer_ );
-            // not bothering with provenance here...
-            Core::Application::PostEvent( boost::bind(
-              &LayerManager::DispatchInsertMaskVolumeIntoLayer, tmpMaskLayer, maskVolume, -1,
-                this->filter_->get_key(), this->filter_->get_sandbox() ) );
-          }
+          this->filter_->update_tmp_mask_layer(reconVolume);
         }
-
-//        if ( tmpLayer_ && tmpLayer_->locked_state_->get() )
-//        {
-//std::cerr << "Attempt unlock layer" << std::endl;
-//          Core::Application::PostEvent( boost::bind(
-//            &LayerManager::DispatchUnlockLayer, tmpLayer_, key_, sandbox_ ) );
-//        }
-//        else
-//        {
-//          std::cerr << "Layer unavailable..." << std::endl;
-//          if (! tmpLayer_ )
-//          {
-//            std::cerr << "Layer is NULL" << std::endl;
-//          }
-//          else if ( tmpLayer_->locked_state_->get() )
-//          {
-//            std::cerr << "Layer is locked" << std::endl;
-//          }
-//        }
-//        
       }
-      
+
       boost::this_thread::sleep(boost::posix_time::milliseconds(msTimeInterval_));
     }
     // make sure progress bar completes
@@ -177,16 +124,21 @@ public:
   ReconstructionFilterPrivate(ReconstructionFilter::progress_callback callback, int layerCount)
     : progress_( new ReconstructionFilterProgress(callback) ),
       finalReconVolume_( ReconstructionFilter::UCHAR_IMAGE_TYPE::New() ),
-      layerCount_(layerCount)
+      layerCount_(layerCount),
+      layerName_("reconstruction")
   {
     dstLayers_.resize(this->layerCount_+1);
   }
 
   ~ReconstructionFilterPrivate()
   {
+    tmpLayer_.reset();
   }
   
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
+  void create_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void update_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+
   void finalize();
 
   LayerHandle tmpLayer_;
@@ -196,17 +148,70 @@ public:
   ReconstructionFilterHandle filter_;
   ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume_;
   int layerCount_;
+  std::string layerName_;
 };
+
+void ReconstructionFilterPrivate::update_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+{
+  if (tmpLayer_)
+  {
+    Core::DataBlockHandle tmp_dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+    Core::ITKUCharImageDataHandle tmp_image = Core::ITKUCharImageDataHandle(
+      new Core::ITKUCharImageData(tmp_dataBlock) );
+
+    Core::MaskDataBlockHandle maskDataBlock;
+    if (!( Core::MaskDataBlockManager::Convert( tmp_dataBlock, tmp_image->get_grid_transform(), maskDataBlock ) ) )
+    {
+      CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+    }
+    else
+    {
+      std::ostringstream oss;
+      oss << "Attempt to insert progress data into temporary layer...";
+      CORE_LOG_MESSAGE(oss.str());
+
+      // move to filter, add filter support...
+      Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmp_image->get_grid_transform(), maskDataBlock ) );
+      MaskLayerHandle tmpMaskLayer = boost::dynamic_pointer_cast<MaskLayer>( tmpLayer_ );
+      // not bothering with provenance here...
+      Core::Application::PostEvent( boost::bind(
+        &LayerManager::DispatchInsertMaskVolumeIntoLayer, tmpMaskLayer, maskVolume, -1,
+        this->filter_->get_key(), this->filter_->get_sandbox() ) );
+    }
+  }
+}
+
+void ReconstructionFilterPrivate::create_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+{
+  if (! tmpLayer_ )
+  {
+    Core::DataBlockHandle tmp_dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+    Core::ITKUCharImageDataHandle tmp_image = Core::ITKUCharImageDataHandle(
+      new Core::ITKUCharImageData(tmp_dataBlock) );
+
+    LayerMetaData metadata;
+    metadata.meta_data_info_ = ReconstructionFilter::TMP_LAYER_META_INFO;
+    metadata.meta_data_ = ReconstructionFilter::TMP_LAYER_NAME;
+
+    Core::Application::PostEvent( boost::bind(
+      &LayerManager::CreateAndLockMaskLayer, tmp_image->get_grid_transform(),
+      ReconstructionFilter::TMP_LAYER_NAME, tmpLayer_,
+      metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+  }
+}
 
 void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHandle, bool newGroup )
 {
   lock_type lock( this->get_mutex() );
 
-  std::cerr << "Detected " << layerHandle->get_layer_id() << ", " << layerHandle->get_layer_name() << std::endl;
+  std::ostringstream oss1;
+  oss1 << "Detected " << layerHandle->get_layer_id() << ", " << layerHandle->get_layer_name() << " in handler";
+  CORE_LOG_MESSAGE(oss1.str());
+
   if (layerHandle->get_layer_name() == ReconstructionFilter::TMP_LAYER_NAME &&
       layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::TMP_LAYER_META_INFO)
   {
-    this->progress_->tmpLayer_ = layerHandle;
+    this->tmpLayer_ = layerHandle;
 
     if (newGroup)
     {
@@ -219,7 +224,7 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
         metadata.meta_data_ = oss.str();
 
         Core::Application::PostEvent( boost::bind(
-          &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), "test", 
+          &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), this->layerName_, 
           this->dstLayers_[i], metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
       }
     }
@@ -229,7 +234,10 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
     std::istringstream iss(layerHandle->get_meta_data().meta_data_);
     int index;
     iss >> index;
-std::cerr << "Got index " << index << std::endl;
+    std::ostringstream oss2;
+    oss2 << "Processing destination layer " << index << " from handler";
+    CORE_LOG_MESSAGE(oss2.str());
+
     if (index >= 0 && index < this->layerCount_)
     {
       this->dstLayers_[index] = layerHandle;
@@ -239,7 +247,13 @@ std::cerr << "Got index " << index << std::endl;
 
 void ReconstructionFilterPrivate::finalize()
 {
-std::cerr << "ReconstructionFilterPrivate::finalize() begin" << std::endl;
+  if (this->tmpLayer_)
+  {
+//    Core::Application::PostEvent( boost::bind(
+//      &LayerManager::DispatchUnlockOrDeleteLayer, tmpLayer_, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+    Core::Application::PostEvent( boost::bind(
+      &LayerManager::DispatchDeleteLayer, tmpLayer_, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+  }
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume_->GetLargestPossibleRegion().GetSize();
 
@@ -277,6 +291,10 @@ std::cerr << "ReconstructionFilterPrivate::finalize() begin" << std::endl;
       Core::Application::PostEvent( boost::bind(
         &LayerManager::DispatchInsertMaskVolumeIntoLayer, maskLayer, maskVolume, -1,
         this->filter_->get_key(), this->filter_->get_sandbox() ) );
+
+      Core::Application::PostEvent( boost::bind(
+        &LayerManager::DispatchUnlockLayer, maskLayer,
+        this->filter_->get_key(), this->filter_->get_sandbox() ) );
     }
   }
   else
@@ -284,14 +302,7 @@ std::cerr << "ReconstructionFilterPrivate::finalize() begin" << std::endl;
     CORE_LOG_WARNING("Reconstruction mask size is 0.");
   }
 
-  if ( tmpLayer_ )
-  {
-    Core::Application::PostEvent( boost::bind(
-      &LayerManager::DispatchDeleteLayer, tmpLayer_, this->filter_->get_key(), this->filter_->get_sandbox() ) );
-    tmpLayer_.reset();
-  }    
   this->disconnect_all();
-std::cerr << "ReconstructionFilterPrivate::finalize() end" << std::endl;
 }
 
 ReconstructionFilter::ReconstructionFilter(progress_callback callback, int layerCount) :
@@ -305,15 +316,8 @@ ReconstructionFilter::ReconstructionFilter(progress_callback callback, int layer
 
 ReconstructionFilter::~ReconstructionFilter()
 {
-if ( !( Core::Application::IsApplicationThread() ) )
-{
-std::cerr << "NOT on Application thread" << std::endl;
-}
-
-std::cerr << "ReconstructionFilter::~ReconstructionFilter() begin" << std::endl;
   ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
   this->private_->finalize();
-std::cerr << "ReconstructionFilter::~ReconstructionFilter() end" << std::endl;
 }
 
 //
@@ -353,28 +357,39 @@ void ReconstructionFilter::handle_stop()
 
 void ReconstructionFilter::start_progress()
 {
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
   this->private_->progress_->filter_.reset(this);
   Core::Runnable::Start( this->private_->progress_ );
 }
 
 void ReconstructionFilter::stop_progress()
 {
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
   this->private_->progress_->stop();
 }
 
 ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer ReconstructionFilter::get_recon_volume()
 {
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
   return this->private_->finalReconVolume_;
 }
 
-//void ReconstructionFilter::limit_number_of_itk_threads_internal( itk::ProcessObject::Pointer filter )
-//{
-//  // Assume we will have a minimum of 2 threads. As we subtract one this will ensure that
-//  // there is at least one thread doing the computation.
-//  unsigned int max_threads = boost::thread::hardware_concurrenReconstructionFiltercy();
-//  if ( max_threads < 2 ) max_threads = 2;
-//  
-//  filter->GetMultiThreader()->SetNumberOfThreads( max_threads - 1 );
-//}
+void ReconstructionFilter::set_layer_name(const std::string& name)
+{
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
+  this->private_->layerName_ = name;
+}
+
+void ReconstructionFilter::create_and_lock_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+{
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
+  this->private_->create_tmp_layer(reconVolume);
+}
+
+void ReconstructionFilter::update_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+{
+  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
+  this->private_->update_tmp_layer(reconVolume);
+}
 
 } // end namespace Core

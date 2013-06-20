@@ -266,7 +266,11 @@ protected:
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer get_recon_volume();
   
+  void set_layer_name(const std::string& name);
+  
 private:
+  friend class ReconstructionFilterProgress;
+
   // Internal function for setting up itk progress forwarding
 //  void observe_itk_progress_internal( itk::ProcessObject::Pointer filter, 
 //                                     const LayerHandle& layer, float progress_start, float progress_amount );
@@ -284,7 +288,10 @@ private:
   /// Internal function for limiting the number of threads	
 //  void limit_number_of_itk_threads_internal( itk::ProcessObject::Pointer filter );	
   
-  ReconstructionFilterPrivateHandle private_;  
+  void create_and_lock_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void update_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  
+  ReconstructionFilterPrivateHandle private_;
 };
   
 #define SCI_BEGIN_TYPED_ITK_RUN( DATATYPE ) \
