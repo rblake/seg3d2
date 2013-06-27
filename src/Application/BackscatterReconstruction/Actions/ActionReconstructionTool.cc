@@ -68,14 +68,13 @@ public:
   std::vector< LayerHandle > initialGuessSet_;
 
 //  std::vector<LayerHandle> dst_layer_;
-
-  std::string outputDir_;
+//  std::string outputDir_;
   double xyVoxelSizeScale_;
   double zVoxelSizeScale_;
   int iterations_;
 
-  ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback, int layerCount)
-    : ReconstructionFilter(callback, layerCount)
+  ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback, const std::string& outputDir)
+    : ReconstructionFilter(callback, outputDir)
   {}
   
 public:
@@ -96,8 +95,6 @@ public:
 
 //    std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
 //    << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
-    
-    this->set_layer_name( this->src_layer_->get_layer_name() );
     
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
@@ -123,11 +120,11 @@ public:
       {
         Core::MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->initialGuessSet_[i] );
         Core::MaskVolumeHandle volumeHandle = mask_layer->get_mask_volume();
-        if ( volumeHandle->get_size() != srcVolumeHandle->get_size() )
-        {
-          this->report_error("Mask size does not match data volume size");
-          return;
-        }
+//        if ( volumeHandle->get_size() != srcVolumeHandle->get_size() )
+//        {
+//          this->report_error("Mask size does not match data volume size");
+//          return;
+//        }
         Core::MaskDataBlockHandle dataBlock = volumeHandle->get_mask_data_block();
         
         for (size_t j = 0; j < volumeHandle->get_size(); j++)
@@ -147,12 +144,11 @@ public:
     SandboxID sandbox = this->get_sandbox();
     this->start_progress();
 
-    int test_iteration_count = 0;
     ReconstructionStart(image->get_image(),
                         initialGuess,
                         algorithm_config_file.string().c_str(),
                         voxelSizeCM,
-                        /*iterations_*/ test_iteration_count,
+                        0, //iterations_,
                         get_recon_volume());
 
     this->stop_progress();
@@ -208,16 +204,14 @@ ActionReconstructionTool::ActionReconstructionTool()
 bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
                                     Core::ActionResultHandle& result )
 {
-  // TODO: more systematic way to know number of masks in output?
-  const int LAYER_COUNT = 2;
   // Create algorithm
-  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo(this->callback_, LAYER_COUNT) );
+  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo(this->callback_, this->outputDir_) );
 
   // Copy the parameters over to the algorithm that runs the filter
   algo->set_sandbox( this->sandbox_ );
 
   // Set up parameters
-  algo->outputDir_ = this->outputDir_;
+//  algo->outputDir_ = this->outputDir_;
   algo->xyVoxelSizeScale_ = this->xyVoxelSizeScale_;
   algo->zVoxelSizeScale_ = this->zVoxelSizeScale_;
   algo->iterations_ = this->iterations_;

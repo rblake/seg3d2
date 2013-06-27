@@ -71,12 +71,15 @@ public:
   typedef Core::ITKImageDataT<unsigned char> UCHAR_CONTAINER_TYPE;
   typedef boost::function< void ( double, double, double ) > progress_callback;
   
-  static const std::string TMP_LAYER_NAME;
+  static const std::string TMP_LAYER_PREFIX;
   static const std::string TMP_LAYER_META_INFO;
   static const std::string DEST_LAYER_META_INFO;
+  /// LAYER_COUNT:
+  /// Reconstruction layers are air (or void), foam and aluminium
+  static const size_t LAYER_COUNT;
   
 public:
-  ReconstructionFilter(progress_callback callback, int layerCount);
+  ReconstructionFilter(progress_callback callback, const std::string& outputDir);
   virtual ~ReconstructionFilter();
   
 protected:
@@ -266,8 +269,6 @@ protected:
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer get_recon_volume();
   
-  void set_layer_name(const std::string& name);
-  
 private:
   friend class ReconstructionFilterProgress;
 
@@ -288,8 +289,8 @@ private:
   /// Internal function for limiting the number of threads	
 //  void limit_number_of_itk_threads_internal( itk::ProcessObject::Pointer filter );	
   
-  void create_and_lock_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
-  void update_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void create_and_lock_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void update_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
   
   ReconstructionFilterPrivateHandle private_;
 };

@@ -39,19 +39,34 @@
 
 // Application includes
 #include <Application/Layer/Layer.h>
+#include <Application/LayerIO/Actions/ActionExportSegmentation.h>
 #include <Application/Filters/LayerFilterLock.h>
 #include <Application/BackscatterReconstruction/Filters/ReconstructionFilter.h>
 #include <Application/BackscatterReconstruction/Algorithm/recon_api.h>
+#include <Application/PreferencesManager/PreferencesManager.h>
 
+// Core includes
+#include <Core/Geometry/Color.h>
 #include <Core/Utils/Log.h>
 
+// Boost includes
+#include <boost/assign.hpp>
 
 namespace Seg3D
 {
   
-const std::string ReconstructionFilter::TMP_LAYER_NAME("TemporaryReconstruction");
+const std::string ReconstructionFilter::TMP_LAYER_PREFIX("Temporary_");
 const std::string ReconstructionFilter::TMP_LAYER_META_INFO("TemporaryReconstructionMaskLayer");
 const std::string ReconstructionFilter::DEST_LAYER_META_INFO("ReconstructionOutputMaskLayer");
+const size_t ReconstructionFilter::LAYER_COUNT = 3;  // air, foam, aluminum
+
+struct ReconstructionResult
+{
+  ReconstructionResult(const std::string& name, const int colorIndex) :
+    name_(name), colorIndex_(colorIndex) {}
+  std::string name_;
+  int colorIndex_;
+};
 
 class ReconstructionFilterProgress : public Core::Runnable
 {
@@ -89,24 +104,24 @@ public:
       if ( this->callback_ != 0 )
       {
         // TODO: using scale temporarily because progress values are < 0.01
-        // before reconstruction either exits or crashes
         Core::Application::PostEvent( boost::bind( this->callback_, progress*scale, 0, 1.0 ) );
       }
       // test
       ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType sizes = reconVolume->GetLargestPossibleRegion().GetSize();
       const size_t SIZE = sizes[0] * sizes[1] * sizes[2];
+      
       if (SIZE > 0)
       {
         if (! layerCreateFlag_)
         {
-          this->filter_->create_and_lock_tmp_mask_layer(reconVolume);
+          this->filter_->create_and_lock_tmp_mask_layers(reconVolume);
           layerCreateFlag_ = true;
           
           continue;
         }
         else
         {
-          this->filter_->update_tmp_mask_layer(reconVolume);
+          this->filter_->update_tmp_mask_layers(reconVolume);
         }
       }
 
@@ -121,81 +136,110 @@ public:
 class ReconstructionFilterPrivate : public Core::Lockable, public Core::ConnectionHandler
 {
 public:
-  ReconstructionFilterPrivate(ReconstructionFilter::progress_callback callback, int layerCount)
+  ReconstructionFilterPrivate(ReconstructionFilter::progress_callback callback, const std::string& outputDir)
     : progress_( new ReconstructionFilterProgress(callback) ),
       finalReconVolume_( ReconstructionFilter::UCHAR_IMAGE_TYPE::New() ),
-      layerCount_(layerCount),
-      layerName_("reconstruction")
+      outputDir_(outputDir)
   {
-    dstLayers_.resize(this->layerCount_+1);
+    dstLayers_.resize(ReconstructionFilter::LAYER_COUNT);
+    tmpLayers_.resize(ReconstructionFilter::LAYER_COUNT);
+    results_.push_back( ReconstructionResult("air", 2) );
+    results_.push_back( ReconstructionResult("foam", 9) );
+    results_.push_back( ReconstructionResult("aluminum", 0) );
   }
 
   ~ReconstructionFilterPrivate()
   {
-    tmpLayer_.reset();
+    tmpLayers_.clear();
   }
   
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
-  void create_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
-  void update_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void create_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
+  void update_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
 
   void finalize();
 
-  LayerHandle tmpLayer_;
+  std::vector<LayerHandle> tmpLayers_;
   std::vector<LayerHandle> dstLayers_;
 
   ReconstructionFilterProgressHandle progress_;
   ReconstructionFilterHandle filter_;
   ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer finalReconVolume_;
-  int layerCount_;
-  std::string layerName_;
+
+  typedef std::vector<ReconstructionResult> result_vector_type;
+  result_vector_type results_;
+  std::string outputDir_;
 };
-
-void ReconstructionFilterPrivate::update_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+  
+void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
-  if (tmpLayer_)
+  Core::DataBlockHandle tmpDataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+  Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
+    new Core::ITKUCharImageData(tmpDataBlock) );
+
+  Core::MaskDataBlockHandle maskDataBlock;
+  if (!( Core::MaskDataBlockManager::Convert( tmpDataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
   {
-    Core::DataBlockHandle tmp_dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
-    Core::ITKUCharImageDataHandle tmp_image = Core::ITKUCharImageDataHandle(
-      new Core::ITKUCharImageData(tmp_dataBlock) );
+    CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+  }
+  else
+  {
+    std::ostringstream oss;
+    oss << "Attempt to insert progress data into temporary layers...";
+    CORE_LOG_MESSAGE(oss.str());
 
-    Core::MaskDataBlockHandle maskDataBlock;
-    if (!( Core::MaskDataBlockManager::Convert( tmp_dataBlock, tmp_image->get_grid_transform(), maskDataBlock ) ) )
+    for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
     {
-      CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
-    }
-    else
-    {
-      std::ostringstream oss;
-      oss << "Attempt to insert progress data into temporary layer...";
-      CORE_LOG_MESSAGE(oss.str());
+      if (this->tmpLayers_[i])
+      {
+        MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->tmpLayers_[ i ] );
 
-      // move to filter, add filter support...
-      Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmp_image->get_grid_transform(), maskDataBlock ) );
-      MaskLayerHandle tmpMaskLayer = boost::dynamic_pointer_cast<MaskLayer>( tmpLayer_ );
-      // not bothering with provenance here...
-      Core::Application::PostEvent( boost::bind(
-        &LayerManager::DispatchInsertMaskVolumeIntoLayer, tmpMaskLayer, maskVolume, -1,
-        this->filter_->get_key(), this->filter_->get_sandbox() ) );
+        Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+          Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
+          new Core::ITKUCharImageData(dataBlock) );
+
+        Core::MaskDataBlockHandle maskDataBlock;
+        if (! ( Core::MaskDataBlockManager::Convert( dataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
+        {
+          CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+        }
+
+        Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmpImage->get_grid_transform(), maskDataBlock ) );
+        for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
+        {
+          //if ( reconVolume->GetBufferPointer()[j] == (i+1) )
+          if ( reconVolume->GetBufferPointer()[j] == i )
+          {
+            maskDataBlock->set_mask_at(j);
+          }
+        }
+
+        // not bothering with provenance here...
+        Core::Application::PostEvent( boost::bind(
+          &LayerManager::DispatchInsertMaskVolumeIntoLayer, maskLayer, maskVolume, -1,
+          this->filter_->get_key(), this->filter_->get_sandbox() ) );
+      }
     }
   }
 }
 
-void ReconstructionFilterPrivate::create_tmp_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+void ReconstructionFilterPrivate::create_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
-  if (! tmpLayer_ )
-  {
-    Core::DataBlockHandle tmp_dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
-    Core::ITKUCharImageDataHandle tmp_image = Core::ITKUCharImageDataHandle(
-      new Core::ITKUCharImageData(tmp_dataBlock) );
+  Core::DataBlockHandle tmpDataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+  Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
+    new Core::ITKUCharImageData(tmpDataBlock) );
 
+  for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
+  {
     LayerMetaData metadata;
     metadata.meta_data_info_ = ReconstructionFilter::TMP_LAYER_META_INFO;
-    metadata.meta_data_ = ReconstructionFilter::TMP_LAYER_NAME;
-
+    std::ostringstream oss;
+    oss << i;
+    metadata.meta_data_ = oss.str();
+    
     Core::Application::PostEvent( boost::bind(
-      &LayerManager::CreateAndLockMaskLayer, tmp_image->get_grid_transform(),
-      ReconstructionFilter::TMP_LAYER_NAME, tmpLayer_,
+      &LayerManager::CreateAndLockMaskLayer, tmpImage->get_grid_transform(),
+      ReconstructionFilter::TMP_LAYER_PREFIX + results_[i].name_, this->tmpLayers_[ i ],
       metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
   }
 }
@@ -208,24 +252,44 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
   oss1 << "Detected " << layerHandle->get_layer_id() << ", " << layerHandle->get_layer_name() << " in handler";
   CORE_LOG_MESSAGE(oss1.str());
 
-  if (layerHandle->get_layer_name() == ReconstructionFilter::TMP_LAYER_NAME &&
-      layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::TMP_LAYER_META_INFO)
+  if (layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::TMP_LAYER_META_INFO)
   {
-    this->tmpLayer_ = layerHandle;
-
     if (newGroup)
     {
-      for (int i = 0; i < this->layerCount_; ++i)
+      CORE_LOG_MESSAGE("New reconstruction layer group created");
+      for (int i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
       {
         LayerMetaData metadata;
         metadata.meta_data_info_ = ReconstructionFilter::DEST_LAYER_META_INFO;
         std::ostringstream oss;
         oss << i;
         metadata.meta_data_ = oss.str();
-
+        
         Core::Application::PostEvent( boost::bind(
-          &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), this->layerName_, 
+          &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), results_[i].name_, 
           this->dstLayers_[i], metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+      }
+    }
+
+    std::istringstream iss(layerHandle->get_meta_data().meta_data_);
+    int index;
+    iss >> index;
+    std::ostringstream oss2;
+    oss2 << "Processing temporary progress layer " << index << " from handler";
+    CORE_LOG_MESSAGE(oss2.str());
+    
+    if (index >= 0 && index < ReconstructionFilter::LAYER_COUNT)
+    {
+      this->tmpLayers_[index] = layerHandle;
+      
+      MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->tmpLayers_[index] );
+      if (maskLayer)
+        maskLayer->color_state_->set(static_cast< int >(
+          results_[index].colorIndex_ % PreferencesManager::Instance()->color_states_.size() ));
+
+      if (index == 0)
+      {
+        this->tmpLayers_[index]->master_visible_state_->set(false);
       }
     }
   }
@@ -238,21 +302,32 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
     oss2 << "Processing destination layer " << index << " from handler";
     CORE_LOG_MESSAGE(oss2.str());
 
-    if (index >= 0 && index < this->layerCount_)
+    if (index >= 0 && index < ReconstructionFilter::LAYER_COUNT)
     {
       this->dstLayers_[index] = layerHandle;
+      
+      MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dstLayers_[index] );
+      if (maskLayer)
+        maskLayer->color_state_->set(static_cast< int >(
+          results_[index].colorIndex_ % PreferencesManager::Instance()->color_states_.size() ));
+
+      if (index == 0)
+      {
+        this->dstLayers_[index]->master_visible_state_->set(false);
+      }
     }
   }
 }
 
 void ReconstructionFilterPrivate::finalize()
 {
-  if (this->tmpLayer_)
+  for (size_t i = 0; i < this->tmpLayers_.size(); ++i)
   {
-//    Core::Application::PostEvent( boost::bind(
-//      &LayerManager::DispatchUnlockOrDeleteLayer, tmpLayer_, this->filter_->get_key(), this->filter_->get_sandbox() ) );
-    Core::Application::PostEvent( boost::bind(
-      &LayerManager::DispatchDeleteLayer, tmpLayer_, this->filter_->get_key(), this->filter_->get_sandbox() ) );
+    if (this->tmpLayers_[i])
+    {
+      Core::Application::PostEvent( boost::bind(
+        &LayerManager::DispatchDeleteLayer, this->tmpLayers_[i], this->filter_->get_key(), this->filter_->get_sandbox() ) );
+    }
   }
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType outSize = finalReconVolume_->GetLargestPossibleRegion().GetSize();
@@ -264,8 +339,14 @@ void ReconstructionFilterPrivate::finalize()
     Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
       new Core::ITKUCharImageData(finalReconDataBlock) );
 
-    for (size_t i = 0; i < this->layerCount_; ++i)
+    for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
     {
+      if (! this->dstLayers_[ i ] )
+      {
+        this->filter_->report_error("Destination layers not initialized.");
+        break;
+      }
+
       MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dstLayers_[ i ] );
 
       Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
@@ -281,7 +362,8 @@ void ReconstructionFilterPrivate::finalize()
       Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
       for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
       {
-        if ( this->finalReconVolume_->GetBufferPointer()[j] == (i+1) )
+        //if ( this->finalReconVolume_->GetBufferPointer()[j] == (i+1) )
+        if ( this->finalReconVolume_->GetBufferPointer()[j] == i )
         {
           maskDataBlock->set_mask_at(j);
         }
@@ -305,9 +387,9 @@ void ReconstructionFilterPrivate::finalize()
   this->disconnect_all();
 }
 
-ReconstructionFilter::ReconstructionFilter(progress_callback callback, int layerCount) :
+ReconstructionFilter::ReconstructionFilter(progress_callback callback, const std::string& outputDir) :
   LayerFilter(),
-  private_( new ReconstructionFilterPrivate(callback, layerCount) )
+  private_( new ReconstructionFilterPrivate(callback, outputDir) )
 {
   this->private_->filter_.reset(this);
   this->private_->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
@@ -374,22 +456,16 @@ ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer ReconstructionFilter::get_recon_
   return this->private_->finalReconVolume_;
 }
 
-void ReconstructionFilter::set_layer_name(const std::string& name)
+void ReconstructionFilter::create_and_lock_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
   ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-  this->private_->layerName_ = name;
+  this->private_->create_tmp_layers(reconVolume);
 }
 
-void ReconstructionFilter::create_and_lock_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
+void ReconstructionFilter::update_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
   ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-  this->private_->create_tmp_layer(reconVolume);
-}
-
-void ReconstructionFilter::update_tmp_mask_layer(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
-{
-  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-  this->private_->update_tmp_layer(reconVolume);
+  this->private_->update_tmp_layers(reconVolume);
 }
 
 } // end namespace Core

@@ -86,7 +86,7 @@ Menu::Menu( QMainWindow* parent ) :
 	this->create_file_menu( menubar );	
 //	this->create_edit_menu( menubar );
 //	this->create_view_menu( menubar );
-//	this->create_tool_menus( menubar );
+	this->create_tool_menus( menubar );
 //	this->create_window_menu( menubar );
 	this->create_help_menu( menubar );
 	

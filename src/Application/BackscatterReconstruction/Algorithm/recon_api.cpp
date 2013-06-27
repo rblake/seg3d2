@@ -293,7 +293,7 @@ double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconV
   else {
     reconMarkovContext->GetCurrentVolume(reconVolume);
   }
-
+  std::cerr << "reconApiProgress=" << reconApiProgress << std::endl;
   return reconApiProgress;
 }
 
