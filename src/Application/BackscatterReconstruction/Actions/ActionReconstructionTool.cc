@@ -148,7 +148,7 @@ public:
                         initialGuess,
                         algorithm_config_file.string().c_str(),
                         voxelSizeCM,
-                        0, //iterations_,
+                        iterations_,
                         get_recon_volume());
 
     this->stop_progress();
