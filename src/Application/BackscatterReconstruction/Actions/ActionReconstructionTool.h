@@ -46,7 +46,6 @@
 namespace Seg3D
 {
 
-
 class ActionReconstructionTool : public LayerAction
 {
   
@@ -71,7 +70,7 @@ public:
 public:
   virtual bool validate( Core::ActionContextHandle& context );
   virtual bool run( Core::ActionContextHandle& context, Core::ActionResultHandle& result );
-  virtual void clear_cache();
+//  virtual void clear_cache();
   
   // -- Dispatch this action from the interface --
 public:

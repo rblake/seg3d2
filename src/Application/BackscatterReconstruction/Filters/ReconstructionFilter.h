@@ -266,6 +266,8 @@ protected:
   void start_progress();
 
   void stop_progress();
+
+  void finalizeAlgorithm();
   
   ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer get_recon_volume();
   

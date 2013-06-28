@@ -37,15 +37,18 @@
 #include <Application/Layer/LayerManager.h>
 #include <Application/ViewerManager/ViewerManager.h>
 
-#include <Core/Viewer/Mouse.h>
+#include <Core/State/Actions/ActionSet.h>
+
+//#include <Core/Viewer/Mouse.h>
 
 #include <Core/Volume/DataVolumeSlice.h>
 #include <Core/Volume/MaskVolumeSlice.h>
 
 // test
 #include <iostream>
-#include <boost/thread.hpp>
 // test
+
+#include <boost/filesystem.hpp>
 
 // Register the tool into the tool factory
 SCI_REGISTER_TOOL( Seg3D, ReconstructionTool )
@@ -73,17 +76,23 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
 {
   if (layerHandle->get_type() == Core::VolumeType::DATA_E)
   {
+    // TODO: need stricter check
     this->tool_->input_data_id_->set(layerHandle->get_layer_id());
   }
   else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
   {
-    if (newGroup)
+    std::string layerName = layerHandle->get_layer_name();
+    if ( (layerName.find("air") == std::string::npos) &&
+         (layerName.find("foam") == std::string::npos) &&
+         (layerName.find("aluminum") == std::string::npos) )
     {
-      CORE_LOG_WARNING("Inserting layers from new group");
-      return;
+      if (newGroup)
+      {
+        CORE_LOG_WARNING("Inserting layers from new group");
+        return;
+      }
+      this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
     }
-    
-    this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
   }
 }
 
@@ -165,6 +174,20 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
         break;
       }
     }
+  }
+
+  if ( this->outputDirectory_state_->get().size() == 0 || boost::filesystem::is_directory(this->outputDirectory_state_->get()))
+  {
+    boost::filesystem::path algorithm_work_dir;
+    boost::filesystem::path algorithm_config_file;    
+    boost::filesystem::path algorithm_geometry_file;
+    Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
+                                                        algorithm_config_file,
+                                                        algorithm_geometry_file);
+
+    Core::ActionSet::Dispatch( Core::Interface::GetWidgetActionContext(),
+                              this->outputDirectory_state_,
+                              algorithm_work_dir.string() );
   }
 
   this->private_->reset_progress();

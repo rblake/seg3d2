@@ -51,6 +51,7 @@
 
 // Boost includes
 #include <boost/assign.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Seg3D
 {
@@ -71,8 +72,6 @@ struct ReconstructionResult
 class ReconstructionFilterProgress : public Core::Runnable
 {
 public:
-//  LayerHandle tmpLayer_;
- 
   long msTimeInterval_;
   bool stop_;
   bool layerCreateFlag_;
@@ -89,7 +88,8 @@ public:
   
   ~ReconstructionFilterProgress()
   {
-  }
+//    std::cerr << "~ReconstructionProgress()" << std::endl;
+ }
   
   void stop() { stop_ = true; }
   
@@ -151,9 +151,11 @@ public:
   ~ReconstructionFilterPrivate()
   {
     tmpLayers_.clear();
+    this->disconnect_all();    
   }
   
 	void handle_layer_group_insert( LayerHandle layerHandle, bool newGroup );
+  void handle_layer_volume_changed( LayerHandle layerHandle );
   void create_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
   void update_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
 
@@ -319,6 +321,34 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
   }
 }
 
+void ReconstructionFilterPrivate::handle_layer_volume_changed( LayerHandle layerHandle )
+{
+  std::string layerName = layerHandle->get_layer_name();
+  if (layerName == "air" || layerName == "foam" || layerName == "aluminum")
+  {
+    bool valid = true;
+    for (size_t i = 0; i < this->dstLayers_.size(); ++i)
+    {
+      std::cerr << "Layer has valid data: " << this->dstLayers_[i]->has_valid_data() << std::endl;
+      valid = this->dstLayers_[i]->has_valid_data();
+    }
+    if (valid)
+    {
+      std::ostringstream oss;
+      oss << this->dstLayers_[ 0 ]->get_layer_id() << " "
+          << this->dstLayers_[ 1 ]->get_layer_id() << " "
+          << this->dstLayers_[ 2 ]->get_layer_id();
+
+      std::string date_time_str = boost::posix_time::to_iso_string( boost::posix_time::second_clock::local_time() );
+      boost::filesystem::path outputPath =
+        boost::filesystem::path(this->outputDir_) / boost::filesystem::path("reconstruction_" + date_time_str);
+
+      ActionExportSegmentation::Dispatch( Core::Interface::GetWidgetActionContext(),
+        oss.str(), "label_mask", outputPath.string(), ".nrrd" );
+    }
+  }
+}
+
 void ReconstructionFilterPrivate::finalize()
 {
   for (size_t i = 0; i < this->tmpLayers_.size(); ++i)
@@ -383,8 +413,6 @@ void ReconstructionFilterPrivate::finalize()
   {
     CORE_LOG_WARNING("Reconstruction mask size is 0.");
   }
-
-  this->disconnect_all();
 }
 
 ReconstructionFilter::ReconstructionFilter(progress_callback callback, const std::string& outputDir) :
@@ -394,12 +422,19 @@ ReconstructionFilter::ReconstructionFilter(progress_callback callback, const std
   this->private_->filter_.reset(this);
   this->private_->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
     boost::bind( &ReconstructionFilterPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
+  this->private_->add_connection( LayerManager::Instance()->layer_volume_changed_signal_.connect( 
+    boost::bind( &ReconstructionFilterPrivate::handle_layer_volume_changed, this->private_, _1 ) ) );
 }
 
 ReconstructionFilter::~ReconstructionFilter()
 {
-  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-  this->private_->finalize();
+//  {
+//    ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
+//    this->private_->finalize();
+//  }
+//  this->private_->filter_.reset();
+//  this->private_.reset();
+//std::cerr << "~ReconstructionFilter()" << std::endl;
 }
 
 //
@@ -435,6 +470,11 @@ void ReconstructionFilter::handle_stop()
 //  {
 //    this->private_->filter_->SetAbortGenerateData( true );
 //  }
+}
+
+void ReconstructionFilter::finalizeAlgorithm()
+{
+  this->private_->finalize();
 }
 
 void ReconstructionFilter::start_progress()

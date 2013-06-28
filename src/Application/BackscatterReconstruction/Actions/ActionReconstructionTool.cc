@@ -45,9 +45,6 @@
 #include <Application/Layer/LayerManager.h>
 #include <Application/Layer/LayerMetaData.h>
 
-//#include <Application/Filters/ITKFilter.h>
-//#include <Application/BackscatterReconstruction/Filters/ReconstructionFilter.h>
-
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/conversion.hpp>
@@ -64,17 +61,18 @@ class ReconstructionToolAlgo : public ReconstructionFilter
 {  
 
 public:
+  std::string algorithmConfigFile_;
   LayerHandle src_layer_;
   std::vector< LayerHandle > initialGuessSet_;
 
-//  std::vector<LayerHandle> dst_layer_;
-//  std::string outputDir_;
   double xyVoxelSizeScale_;
   double zVoxelSizeScale_;
   int iterations_;
 
-  ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback, const std::string& outputDir)
-    : ReconstructionFilter(callback, outputDir)
+  ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback,
+                         const std::string& algorithmConfigFile,
+                         const std::string& outputDir)
+    : ReconstructionFilter(callback, outputDir), algorithmConfigFile_(algorithmConfigFile)
   {}
   
 public:
@@ -86,16 +84,6 @@ public:
   // a member variable of the algorithm class.
   SCI_BEGIN_ITK_RUN()
   {
-    boost::filesystem::path algorithm_work_dir;
-    boost::filesystem::path algorithm_config_file;    
-    boost::filesystem::path algorithm_geometry_file;
-    Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
-                                                        algorithm_config_file,
-                                                        algorithm_geometry_file);
-
-//    std::cerr << "work dir=" << algorithm_work_dir.string() << ", config file="
-//    << algorithm_config_file << ", geometry_file=" << algorithm_geometry_file << std::endl;
-    
     Core::ITKImageDataT<float>::Handle image; 
     this->get_itk_image_from_layer<float>( this->src_layer_, image );
     ReconstructionFilter::FLOAT_IMAGE_TYPE::SizeType inSize = image->get_image()->GetLargestPossibleRegion().GetSize();
@@ -120,11 +108,6 @@ public:
       {
         Core::MaskLayerHandle mask_layer = boost::dynamic_pointer_cast<MaskLayer>( this->initialGuessSet_[i] );
         Core::MaskVolumeHandle volumeHandle = mask_layer->get_mask_volume();
-//        if ( volumeHandle->get_size() != srcVolumeHandle->get_size() )
-//        {
-//          this->report_error("Mask size does not match data volume size");
-//          return;
-//        }
         Core::MaskDataBlockHandle dataBlock = volumeHandle->get_mask_data_block();
         
         for (size_t j = 0; j < volumeHandle->get_size(); j++)
@@ -146,12 +129,13 @@ public:
 
     ReconstructionStart(image->get_image(),
                         initialGuess,
-                        algorithm_config_file.string().c_str(),
+                        algorithmConfigFile_.c_str(),
                         voxelSizeCM,
                         iterations_,
                         get_recon_volume());
 
     this->stop_progress();
+    this->finalizeAlgorithm();
   }
   SCI_END_ITK_RUN()
   
@@ -204,14 +188,21 @@ ActionReconstructionTool::ActionReconstructionTool()
 bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
                                     Core::ActionResultHandle& result )
 {
+  boost::filesystem::path algorithm_work_dir;
+  boost::filesystem::path algorithm_config_file;    
+  boost::filesystem::path algorithm_geometry_file;
+  Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
+                                                      algorithm_config_file,
+                                                      algorithm_geometry_file);
+  
   // Create algorithm
-  boost::shared_ptr<ReconstructionToolAlgo> algo( new ReconstructionToolAlgo(this->callback_, this->outputDir_) );
+  boost::shared_ptr<ReconstructionToolAlgo> algo(
+    new ReconstructionToolAlgo(this->callback_, algorithm_config_file.string(), this->outputDir_) );
 
   // Copy the parameters over to the algorithm that runs the filter
   algo->set_sandbox( this->sandbox_ );
 
   // Set up parameters
-//  algo->outputDir_ = this->outputDir_;
   algo->xyVoxelSizeScale_ = this->xyVoxelSizeScale_;
   algo->zVoxelSizeScale_ = this->zVoxelSizeScale_;
   algo->iterations_ = this->iterations_;
@@ -293,11 +284,11 @@ void ActionReconstructionTool::Abort()
 }
 
 
-void ActionReconstructionTool::clear_cache()
-{
-  CORE_LOG_MESSAGE("ActionReconstructionTool::clear_cache()");
-  // Reset the callback so it won't be holding any handles
-  this->callback_ = 0;
-}
+//void ActionReconstructionTool::clear_cache()
+//{
+//  CORE_LOG_MESSAGE("ActionReconstructionTool::clear_cache()");
+//  // Reset the callback so it won't be holding any handles
+//  this->callback_ = 0;
+//}
 
 } // end namespace Seg3D
