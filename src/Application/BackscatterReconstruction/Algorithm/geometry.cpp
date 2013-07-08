@@ -426,6 +426,14 @@ void Geometry::SetVoxelSize(const Vec3f &size) {
   for (int i=0; i<3; i++) {
     mVolumeSamples[i] = (int)(((mVolumeBounds[1][i] - mVolumeBounds[0][i]) / size[i]) + 0.5);
   }
+
+  mVolumeStride[0] = 1;
+  mVolumeStride[1] = mVolumeStride[0] * mVolumeSamples[0];
+  mVolumeStride[2] = mVolumeStride[1] * mVolumeSamples[1];
+
+  mVolumeNodeStride[0] = 1;
+  mVolumeNodeStride[1] = mVolumeNodeStride[0] * (mVolumeSamples[0]+1);
+  mVolumeNodeStride[2] = mVolumeNodeStride[1] * (mVolumeSamples[1]+1);
 }
 
 

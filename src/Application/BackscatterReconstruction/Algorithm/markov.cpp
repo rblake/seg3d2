@@ -171,6 +171,7 @@ void MarkovContext::GetCurrentVolume(ByteVolumeType::Pointer vol) {
   spacing[0] = voxelSize[0];
   spacing[1] = voxelSize[1];
   spacing[2] = voxelSize[2];
+  vol->SetSpacing(spacing);
 
 
   for (size_t vi=0; vi<mCurrentVolumeReconstruction.size(); vi++) {
