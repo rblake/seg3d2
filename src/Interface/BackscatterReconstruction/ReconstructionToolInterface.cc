@@ -438,7 +438,10 @@ void ReconstructionToolInterface::triggerLabelImport()
 
 void ReconstructionToolInterface::triggerDataImport()
 {
+  // for HIS files
   //this->private_->importImageStack();
+
+  // for NRRD files
   this->private_->importDataNrrd();
 }
 
