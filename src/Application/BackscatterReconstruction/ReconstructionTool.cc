@@ -116,7 +116,7 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 
 	// add number of iterations
   this->add_state( "input_data_id", this->input_data_id_, "<none>" );
-	this->add_state( "iterations", this->iterations_state_, 3, 1, 100, 1 );
+	this->add_state( "iterations", this->iterations_state_, 3, 0, 100, 1 );
 	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
 	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
   this->add_state( "initialGuessSet", this->initialGuessSet_state_ );
