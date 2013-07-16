@@ -27,6 +27,7 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 void ReconstructionStart(const ReconImageVolumeType::Pointer images,
                          const ReconMaterialIdVolumeType::Pointer initialGuess, // possibly NULL
                          const char *geometryConfigFile,
+                         const char *sourceIlluminationFile,
                          const float voxelSizeCM[3],
                          int iterations,
                          ReconMaterialIdVolumeType::Pointer finalReconVolume);

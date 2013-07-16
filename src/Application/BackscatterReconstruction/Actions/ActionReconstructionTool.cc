@@ -62,6 +62,7 @@ class ReconstructionToolAlgo : public ReconstructionFilter
 
 public:
   std::string algorithmConfigFile_;
+  std::string algorithmIllumFile_;
   LayerHandle src_layer_;
   std::vector< LayerHandle > initialGuessSet_;
 
@@ -71,8 +72,11 @@ public:
 
   ReconstructionToolAlgo(ReconstructionFilter::progress_callback callback,
                          const std::string& algorithmConfigFile,
+                         const std::string& algorithmIllumFile,
                          const std::string& outputDir)
-    : ReconstructionFilter(callback, outputDir), algorithmConfigFile_(algorithmConfigFile)
+    : ReconstructionFilter(callback, outputDir),
+      algorithmConfigFile_(algorithmConfigFile),
+      algorithmIllumFile_(algorithmIllumFile)
   {}
   
 public:
@@ -130,6 +134,7 @@ public:
     ReconstructionStart(image->get_image(),
                         initialGuess,
                         algorithmConfigFile_.c_str(),
+                        algorithmIllumFile_.c_str(),
                         voxelSizeCM,
                         iterations_,
                         get_recon_volume());
@@ -190,14 +195,19 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
 {
   boost::filesystem::path algorithm_work_dir;
   boost::filesystem::path algorithm_config_file;    
+  boost::filesystem::path algorithm_source_illum_file;
   boost::filesystem::path algorithm_geometry_file;
   Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
                                                       algorithm_config_file,
+                                                      algorithm_source_illum_file,
                                                       algorithm_geometry_file);
   
   // Create algorithm
   boost::shared_ptr<ReconstructionToolAlgo> algo(
-    new ReconstructionToolAlgo(this->callback_, algorithm_config_file.string(), this->outputDir_) );
+    new ReconstructionToolAlgo(this->callback_,
+                               algorithm_config_file.string(),
+                               algorithm_source_illum_file.string(),
+                               this->outputDir_) );
 
   // Copy the parameters over to the algorithm that runs the filter
   algo->set_sandbox( this->sandbox_ );

@@ -115,10 +115,11 @@ public:
 
   bool get_algorithm_config(boost::filesystem::path& algorithm_work_dir,
                             boost::filesystem::path& algorithm_config_file,
+                            boost::filesystem::path& algorithm_source_illum_file,
                             boost::filesystem::path& algorithm_output_geom_file);
 
 	// GET_CONFIG_DIRECTORY:
-	/// Get the configuration directory on the current system	
+	/// Get the configuration directory on the current system
 	bool get_config_directory( boost::filesystem::path& config_dir );
 
 	// GET_USER_DESKTOP_DIRECTORY:

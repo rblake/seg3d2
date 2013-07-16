@@ -68,9 +68,12 @@ public:
     }
     boost::filesystem::path algorithm_work_dir;
     boost::filesystem::path algorithm_config_file;    
+    boost::filesystem::path algorithm_source_illum_file;
     boost::filesystem::path algorithm_geometry_file;
-    if(! Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
-           algorithm_config_file, algorithm_geometry_file) )
+    if (! Core::Application::Instance()->get_algorithm_config(algorithm_work_dir,
+                                                              algorithm_config_file,
+                                                              algorithm_source_illum_file,
+                                                              algorithm_geometry_file) )
 	{
       this->report_error("Failed to get algorithm config information.");
       return;

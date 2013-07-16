@@ -253,6 +253,7 @@ bool Application::get_user_directory( boost::filesystem::path& user_dir, bool co
 
 bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_dir,
                                        boost::filesystem::path& algorithm_config_file,
+                                       boost::filesystem::path& algorithm_source_illum_file,
                                        boost::filesystem::path& algorithm_output_geom_file)
 {
   boost::filesystem::path user_dir;
@@ -307,13 +308,29 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
     return false;
   }
 
+  boost::filesystem::path source_illum_file = executable_path / "source_illumination.nrrd";
+  if (! boost::filesystem::exists( source_illum_file ) )
+  {
+    std::ostringstream oss;
+    oss << "Could not find file " << source_illum_file;
+    CORE_LOG_ERROR( oss.str() );
+    return false;
+  }
+
   algorithm_config_file = algorithm_dir / "config.txt";
-  
   if ( boost::filesystem::exists(algorithm_config_file) )
   {
     boost::filesystem::remove(algorithm_config_file);
   }
   boost::filesystem::copy_file(config_file, algorithm_config_file);
+  
+  algorithm_source_illum_file = algorithm_dir / "source_illumination.nrrd";
+  if ( boost::filesystem::exists(algorithm_source_illum_file) )
+  {
+    boost::filesystem::remove(algorithm_source_illum_file);
+  }
+  boost::filesystem::copy_file(source_illum_file, algorithm_source_illum_file);
+
   algorithm_output_geom_file = algorithm_work_dir / "calib_config.txt";
   
   return true;
