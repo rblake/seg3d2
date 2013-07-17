@@ -209,7 +209,6 @@ void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_
         Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmpImage->get_grid_transform(), maskDataBlock ) );
         for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
         {
-          //if ( reconVolume->GetBufferPointer()[j] == (i+1) )
           if ( reconVolume->GetBufferPointer()[j] == i )
           {
             maskDataBlock->set_mask_at(j);
@@ -228,8 +227,17 @@ void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_
 void ReconstructionFilterPrivate::create_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
   Core::DataBlockHandle tmpDataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+  
+  ReconstructionFilter::UCHAR_IMAGE_TYPE::SpacingType spacing = reconVolume->GetSpacing();
+  ReconstructionFilter::UCHAR_IMAGE_TYPE::PointType origin = reconVolume->GetOrigin();
+
+  Core::Transform transform(Core::Point(origin[0], origin[1], origin[2]),
+                            Core::Vector( spacing[0], 0.0 , 0.0 ),
+                            Core::Vector( 0.0, spacing[1], 0.0 ),
+                            Core::Vector( 0.0, 0.0, spacing[2] ));
+
   Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
-    new Core::ITKUCharImageData(tmpDataBlock) );
+    new Core::ITKUCharImageData(tmpDataBlock, transform) );
 
   for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
   {
@@ -329,7 +337,7 @@ void ReconstructionFilterPrivate::handle_layer_volume_changed( LayerHandle layer
     bool valid = true;
     for (size_t i = 0; i < this->dstLayers_.size(); ++i)
     {
-      std::cerr << "Layer has valid data: " << this->dstLayers_[i]->has_valid_data() << std::endl;
+//      std::cerr << "Layer has valid data: " << this->dstLayers_[i]->has_valid_data() << std::endl;
       valid = this->dstLayers_[i]->has_valid_data();
     }
     if (valid)
