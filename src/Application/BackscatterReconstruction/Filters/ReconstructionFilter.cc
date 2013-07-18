@@ -176,8 +176,19 @@ public:
 void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
 {
   Core::DataBlockHandle tmpDataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+  
+  Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
+  
+  ReconstructionFilter::UCHAR_IMAGE_TYPE::SpacingType spacing = reconVolume->GetSpacing();
+  ReconstructionFilter::UCHAR_IMAGE_TYPE::PointType origin = reconVolume->GetOrigin();
+  
+  Core::Transform transform(Core::Point(origin[0], origin[1], origin[2]),
+                            Core::Vector( spacing[0], 0.0 , 0.0 ),
+                            Core::Vector( 0.0, spacing[1], 0.0 ),
+                            Core::Vector( 0.0, 0.0, spacing[2] ));
+
   Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
-    new Core::ITKUCharImageData(tmpDataBlock) );
+    new Core::ITKUCharImageData(tmpDataBlock, transform) );
 
   Core::MaskDataBlockHandle maskDataBlock;
   if (!( Core::MaskDataBlockManager::Convert( tmpDataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
@@ -195,10 +206,8 @@ void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_
       if (this->tmpLayers_[i])
       {
         MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->tmpLayers_[ i ] );
-
-        Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
-          Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
-          new Core::ITKUCharImageData(dataBlock) );
+        Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
+          new Core::ITKUCharImageData(dataBlock, transform) );
 
         Core::MaskDataBlockHandle maskDataBlock;
         if (! ( Core::MaskDataBlockManager::Convert( dataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
@@ -374,8 +383,17 @@ void ReconstructionFilterPrivate::finalize()
   if (SIZE > 0)
   {
     Core::DataBlockHandle finalReconDataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
+    
+    ReconstructionFilter::UCHAR_IMAGE_TYPE::SpacingType spacing = this->finalReconVolume_->GetSpacing();
+    ReconstructionFilter::UCHAR_IMAGE_TYPE::PointType origin = this->finalReconVolume_->GetOrigin();
+    
+    Core::Transform transform(Core::Point(origin[0], origin[1], origin[2]),
+                              Core::Vector( spacing[0], 0.0 , 0.0 ),
+                              Core::Vector( 0.0, spacing[1], 0.0 ),
+                              Core::Vector( 0.0, 0.0, spacing[2] ));
+
     Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
-      new Core::ITKUCharImageData(finalReconDataBlock) );
+      new Core::ITKUCharImageData(finalReconDataBlock, transform) );
 
     for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
     {
@@ -389,7 +407,7 @@ void ReconstructionFilterPrivate::finalize()
 
       Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
       Core::ITKUCharImageDataHandle outImage = Core::ITKUCharImageDataHandle(
-        new Core::ITKUCharImageData(dataBlock) );
+        new Core::ITKUCharImageData(dataBlock, transform) );
       
       Core::MaskDataBlockHandle maskDataBlock;
       if (! ( Core::MaskDataBlockManager::Convert( dataBlock, outImage->get_grid_transform(), maskDataBlock ) ) )
@@ -400,7 +418,6 @@ void ReconstructionFilterPrivate::finalize()
       Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
       for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
       {
-        //if ( this->finalReconVolume_->GetBufferPointer()[j] == (i+1) )
         if ( this->finalReconVolume_->GetBufferPointer()[j] == i )
         {
           maskDataBlock->set_mask_at(j);
