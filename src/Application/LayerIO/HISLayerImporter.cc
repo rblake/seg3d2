@@ -462,26 +462,26 @@ bool HISLayerImporterPrivate::read_header()
     
     if (this->header_.TypeOfNumbers & 4)
     {
-//      std::cerr << "detected 16 bit integer" << std::endl;
+      std::cerr << "detected 16 bit integer" << std::endl;
       this->data_type_ = Core::DataType::SHORT_E;
       //type = "short";
     }
     else if (this->header_.TypeOfNumbers & 2)
     {
       //CORE_LOG_DEBUG();
-//      std::cerr << "detected 64 bit float" << std::endl;
+      std::cerr << "detected 64 bit float" << std::endl;
       this->data_type_ = Core::DataType::DOUBLE_E;
       //type = "double";
     }
     else if (this->header_.TypeOfNumbers & 32)
     {
-//      std::cerr << "detected 32 bit int" << std::endl;
+      std::cerr << "detected 32 bit int" << std::endl;
       this->data_type_ = Core::DataType::INT_E;
       //type = "int";
     }
     else
     {
-//      std::cerr << "unknown type" << std::endl;
+      std::cerr << "unknown type" << std::endl;
       this->importer_->set_error( "Unknown file type in header (TypeOfNumbers)" );
       return 1;
     }
