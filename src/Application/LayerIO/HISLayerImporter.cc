@@ -155,6 +155,10 @@ private:
       return;
     }
 
+    Core::DataBlockHandle converted_data_block;
+    Core::DataBlock::ConvertDataType( this->data_block_, converted_data_block, Core::DataType::FLOAT_E ); 
+    this->data_block_ = converted_data_block;
+    
     const size_t width = 1024, height = 1024, depth = this->data_block_->get_nz();
 
     // remove stuck pixels
@@ -363,9 +367,9 @@ private:
 
     for (int r = 775; r < 1024; r++)
       mask[1024*r+950] = 1;
-        
+
     float* images = reinterpret_cast<float*>(this->data_block_->get_data());
-    
+
     for (int p=0; p < depth; p++)
     {
       for (int xy=0; xy < width*height; xy++)
@@ -462,20 +466,20 @@ bool HISLayerImporterPrivate::read_header()
     
     if (this->header_.TypeOfNumbers & 4)
     {
-      std::cerr << "detected 16 bit integer" << std::endl;
+//      std::cerr << "detected 16 bit integer" << std::endl;
       this->data_type_ = Core::DataType::SHORT_E;
       //type = "short";
     }
     else if (this->header_.TypeOfNumbers & 2)
     {
       //CORE_LOG_DEBUG();
-      std::cerr << "detected 64 bit float" << std::endl;
+//      std::cerr << "detected 64 bit float" << std::endl;
       this->data_type_ = Core::DataType::DOUBLE_E;
       //type = "double";
     }
     else if (this->header_.TypeOfNumbers & 32)
     {
-      std::cerr << "detected 32 bit int" << std::endl;
+//      std::cerr << "detected 32 bit int" << std::endl;
       this->data_type_ = Core::DataType::INT_E;
       //type = "int";
     }
