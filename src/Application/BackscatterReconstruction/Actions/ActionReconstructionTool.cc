@@ -205,7 +205,7 @@ bool ActionReconstructionTool::run( Core::ActionContextHandle& context,
   // Create algorithm
   boost::shared_ptr<ReconstructionToolAlgo> algo(
     new ReconstructionToolAlgo(this->callback_,
-                               algorithm_config_file.string(),
+                               algorithm_geometry_file.string(),
                                algorithm_source_illum_file.string(),
                                this->outputDir_) );
 
