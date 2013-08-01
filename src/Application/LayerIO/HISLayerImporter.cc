@@ -497,7 +497,8 @@ bool HISLayerImporterPrivate::read_header()
     Core::Point origin;
 
     // spacing between slices apparently doesn't have physical meaning
-    Core::Vector spacing(1, 1, 1);
+    // adjusted to make volume size more reasonable
+    Core::Vector spacing(0.0002002, 0.0002002, 0.001);
     Core::Transform transform(origin,
                               Core::Vector( spacing.x(), 0.0 , 0.0 ),
                               Core::Vector( 0.0, spacing.y(), 0.0 ),
