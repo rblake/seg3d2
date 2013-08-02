@@ -6,14 +6,14 @@
 
 #include <vector>
 
-#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
-#include <Application/BackscatterReconstruction/Algorithm/cone.h>
-#include <Application/BackscatterReconstruction/Algorithm/geometry.h>
-#include <Application/BackscatterReconstruction/Algorithm/material.h>
+#include "vec3.h"
+#include "cone.h"
+#include "geometry.h"
+#include "material.h"
 
 
 #ifndef __CUDACC__
-#include <Application/BackscatterReconstruction/Algorithm/parallel.h>
+#include "parallel.h"
 #include <itkImage.h>
 typedef itk::Image<float, 3> FloatVolumeType;
 typedef itk::Image<unsigned char, 3> ByteVolumeType;
@@ -164,7 +164,7 @@ private:
   void CudaSetCurrentVolume(const vector<unsigned char> &matids) const;
   void CudaSetVolumeCollection(const GibbsProposal &proposal) const;
   void CudaGetVolumeCollection(vector< vector<unsigned char> > &volumeCollection) const;
-  void CudaAcceptNextConfig(int c) const;
+  void CudaAcceptNextConfig(const GibbsProposal &proposal, int c) const;
 
   void CudaComputeSourceAttenuation(int collectionSize) const;
   void CudaGetSourceAttenuation(int collectionSize,
@@ -177,6 +177,9 @@ private:
                                 vector< vector<float> > &forwardProjectionCollection) const;
 
   void CudaGetProjectionError(int collectionSize, vector<float> &errors) const;
+
+  void CudaGetCollectionStartEnd(int g, int collectionSize,
+                                 int &start, int &end) const;
 
 
   // the geometric configuration of the device
@@ -222,6 +225,9 @@ private:
   vector<Vec3f> mSourceRayVolDir;
   vector<float> mSourceRayTMin;
   vector<float> mSourceRayTMax;
+
+
+  vector<int> mGpuIds;
 };
 
 

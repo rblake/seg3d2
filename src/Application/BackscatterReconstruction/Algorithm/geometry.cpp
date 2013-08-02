@@ -9,7 +9,8 @@
 #endif
 
 
-#include <Application/BackscatterReconstruction/Algorithm/geometry.h>
+#include "geometry.h"
+
 
 bool Geometry::LoadFromFile(const char *fname) {
   std::ifstream f;
@@ -22,8 +23,6 @@ bool Geometry::LoadFromFile(const char *fname) {
 
   bool hasSourceLocation = false;
   bool hasSourceDirection = false;
-  bool hasSourceCutoff = false;
-  bool hasSourceFracAtCutoff = false;
   bool hasDetectorCenter = false;
   bool hasDetectorForward = false;
   bool hasDetectorRight = false;
@@ -38,6 +37,7 @@ bool Geometry::LoadFromFile(const char *fname) {
   bool hasVolumeSize = false;
   bool hasVolumeSamples = false;
   bool hasVolumeCenter = false;
+  bool hasGPUBitfield = false;
 
   char line[1024];
   while (f.getline(line, 1024)) {
@@ -61,17 +61,6 @@ bool Geometry::LoadFromFile(const char *fname) {
         sscanf_s(value, "%g, %g, %g", &mSourceDirection[0], &mSourceDirection[1], &mSourceDirection[2]) == 3) {
       mSourceDirection.Normalize();
       hasSourceDirection = true;
-    }
-
-    if (strstr(key, "source cutoff") &&
-        sscanf_s(value, "%g", &mSourceCutoff) == 1) {
-      mSourceCutoff *= (float)(M_PI/180);
-      hasSourceCutoff = true;
-    }
-
-    if (strstr(key, "source frac at cutoff") &&
-        sscanf_s(value, "%g", &mSourceFracAtCutoff) == 1) {
-      hasSourceFracAtCutoff = true;
     }
 
     if (strstr(key, "detector center") &&
@@ -145,6 +134,11 @@ bool Geometry::LoadFromFile(const char *fname) {
         sscanf_s(value, "%g, %g, %g", &mVolumeCenter[0], &mVolumeCenter[1], &mVolumeCenter[2]) == 3) {
       hasVolumeCenter = true;
     }
+
+    if (strstr(key, "use gpus") &&
+        sscanf_s(value, "%d", &mGPUBitfield) == 1) {
+      hasGPUBitfield = true;
+    }
   }
 
   f.close();
@@ -153,10 +147,6 @@ bool Geometry::LoadFromFile(const char *fname) {
     printf("error reading 'source location' from file\n");
   if (!hasSourceDirection)
     printf("error reading 'source direction' from file\n");
-  if (!hasSourceCutoff)
-    printf("error reading 'source cutoff' from file\n");
-  if (!hasSourceFracAtCutoff)
-    printf("error reading 'source frac at cutoff' from file\n");
   if (!hasDetectorCenter)
     printf("error reading 'detector center' from file\n");
   if (!hasDetectorForward)
@@ -185,12 +175,12 @@ bool Geometry::LoadFromFile(const char *fname) {
     printf("error reading 'volume samples' from file\n");
   if (!hasVolumeCenter)
     printf("error reading 'volume center' from file\n");
+  if (!hasGPUBitfield)
+    printf("error reading 'use gpus' from file\n");
 
 
   if (!(hasSourceLocation &&
         hasSourceDirection &&
-        hasSourceCutoff &&
-        hasSourceFracAtCutoff &&
         hasDetectorCenter &&
         hasDetectorForward &&
         hasDetectorRight &&
@@ -204,7 +194,8 @@ bool Geometry::LoadFromFile(const char *fname) {
         hasProjectionAngles &&
         hasVolumeSize &&
         hasVolumeSamples &&
-        hasVolumeCenter))
+        hasVolumeCenter &&
+        hasGPUBitfield))
     return false;
 
 
@@ -231,6 +222,9 @@ bool Geometry::LoadFromFile(const char *fname) {
 
   mDetectorCollimatorLength = mDetectorSampleSize[0] * mDetectorCollimatorRatio;
 
+  WorldToVolume(mSourceLocation, mSourceLocationVol);
+
+
   return true;
 }
 
@@ -244,8 +238,6 @@ bool Geometry::SaveToFile(const char *fname) const {
 
   f << "source location: " << mSourceLocation[0] << ", " << mSourceLocation[1] << ", " << mSourceLocation[2] << std::endl;
   f << "source direction: " << mSourceDirection[0] << ", " << mSourceDirection[1] << ", " << mSourceDirection[2] << std::endl;
-  f << "source cutoff: " << (mSourceCutoff*180/M_PI) << std::endl;
-  f << "source frac at cutoff: " << mSourceFracAtCutoff << std::endl;
   f << "detector center: " << mDetectorCenter[0] << ", " << mDetectorCenter[1] << ", " << mDetectorCenter[2] << std::endl;
   f << "detector forward: " << mDetectorForward[0] << ", " << mDetectorForward[1] << ", " << mDetectorForward[2] << std::endl;
   f << "detector right: " << mDetectorRight[0] << ", " << mDetectorRight[1] << ", " << mDetectorRight[2] << std::endl;
@@ -260,9 +252,12 @@ bool Geometry::SaveToFile(const char *fname) const {
   f << "volume samples: " << mVolumeSamples[0] << ", " << mVolumeSamples[1] << ", " << mVolumeSamples[2] << std::endl;
   f << "volume center: " << mVolumeCenter[0] << ", " << mVolumeCenter[1] << ", " << mVolumeCenter[2] << std::endl;
 
+  f << "use gpus: " << mGPUBitfield << std::endl;
+
   for (size_t i=0; i<mProjectionAngles.size(); i++) {
     f << "projection angle: " << (mProjectionAngles[i]*180/M_PI) << std::endl;
   }
+
 
   f.close();
 
@@ -407,18 +402,35 @@ Vec3f Geometry::GetSourceDirection() const {
   return mSourceDirection;
 }
 
-float Geometry::GetSourceIntensityThroughPoint(const Vec3f &pos) const {
 
-  Vec3f pdir = (pos - GetSourcePosition()).Normalized();
-  float cosangle = pdir.Dot(GetSourceDirection());
-  float angle = acosf(cosangle);
+void Geometry::SetSourceAttenMap(const float *sourceAttenMap,
+                                 int width, int height) {
+  mSourceAttenMapSize[0] = width;
+  mSourceAttenMapSize[1] = height;
 
-  if (angle >= mSourceCutoff) {
-    return 0;
-  }
-  
-  float beta = acosf(mSourceFracAtCutoff)/mSourceCutoff;
-  return cosf(beta * angle);
+  mSourceAttenMap.resize(width*height);
+  for (int i=0; i<width*height; i++)
+    mSourceAttenMap[i] = sourceAttenMap[i];
+}
+
+
+float Geometry::GetSourceIntensityThroughPoint(const Vec3f &pos, int proj) const {
+
+  Vec3<float> ipos = GetInverseRotatedPoint(pos, proj);
+
+  // just use nearest sample
+  // projection transform asuming detector was 0.19m from source and is 0.205m on a side
+  // x axis is swapped, but y is correct
+  int sx = (int)((-pos[0] / (pos[2]-mSourceLocation[2])) * mSourceAttenMapSize[0] * (0.19 / 0.205) + mSourceAttenMapSize[0]*0.5 + 0.5f);
+  int sy = (int)(( pos[1] / (pos[2]-mSourceLocation[2])) * mSourceAttenMapSize[1] * (0.19 / 0.205) + mSourceAttenMapSize[1]*0.5 + 0.5f);
+
+  if (sx<0) sx = 0;
+  else if (sx>=mSourceAttenMapSize[0]) sx = mSourceAttenMapSize[0]-1;
+
+  if (sy<0) sy = 0;
+  else if (sy>=mSourceAttenMapSize[1]) sy = mSourceAttenMapSize[1]-1;
+
+  return mSourceAttenMap[sy*mSourceAttenMapSize[0] + sx];
 }
 
 

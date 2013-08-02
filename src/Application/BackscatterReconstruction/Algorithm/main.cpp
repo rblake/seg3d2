@@ -31,6 +31,7 @@
 #include <tiffio.h>
 
 
+
 typedef itk::RGBPixel<float> RGBPixelType;
 
 typedef itk::Image<RGBPixelType, 3> RGBVolumeType;
@@ -49,25 +50,36 @@ typedef itk::ImageFileWriter< ByteVolumeType > ByteWriterType;
 
 int RunMarkovForwardProject(int argc, char **argv) {
   std::cerr<<"Running Markov Forward Project"<<std::endl;
-  if (argc != 11) {
-    std::cerr<<"usage: backscatter markov_forward_project <geometry.txt> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <volume.nrrd> <samples_per_pixel> <voxel_step_size> <sourceatten_output.nrrd> <forward_output.nrrd>"<<std::endl;
+  if (argc != 12) {
+    std::cerr<<"usage: backscatter markov_forward_project <geometry.txt> <source_falloff.nrrd> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <volume.nrrd> <samples_per_pixel> <voxel_step_size> <sourceatten_output.nrrd> <forward_output.nrrd>"<<std::endl;
     return 1;
   }
 
+
   char *geometryName = argv[2];
-  char *airName = argv[3];
-  char *foamName = argv[4];
-  char *aluminumName = argv[5];
-  char *volumeName = argv[6];
-  int samplesPerPixel = atoi(argv[7]);
-  float voxelStepSize = atof(argv[8]);
-  char *sourceAttenName = argv[9];
-  char *outputName = argv[10];
+  char *sourceFalloffName = argv[3];
+  char *airName = argv[4];
+  char *foamName = argv[5];
+  char *aluminumName = argv[6];
+  char *volumeName = argv[7];
+  int samplesPerPixel = atoi(argv[8]);
+  float voxelStepSize = atof(argv[9]);
+  char *sourceAttenName = argv[10];
+  char *outputName = argv[11];
 
 
   // read geometry configuration
   Geometry geometry;
   geometry.LoadFromFile(geometryName);
+
+  // read source falloff
+  FloatReaderType::Pointer sourceFalloffReader = FloatReaderType::New();
+  sourceFalloffReader->SetFileName(sourceFalloffName);
+  sourceFalloffReader->Update();
+  FloatVolumeType::Pointer sourceFalloff = sourceFalloffReader->GetOutput();
+  FloatVolumeType::SizeType sourceFalloffVolumeSize = sourceFalloff->GetLargestPossibleRegion().GetSize();
+  geometry.SetSourceAttenMap(sourceFalloff->GetBufferPointer(),
+                             sourceFalloffVolumeSize[0], sourceFalloffVolumeSize[1]);
 
   // read materials
   vector<Material> materials(3);
@@ -121,24 +133,34 @@ int RunMarkovForwardProject(int argc, char **argv) {
 
 int RunMarkovInitialGuess(int argc, char **argv) {
   std::cerr<<"Running Markov Initial Guess"<<std::endl;
-  if (argc != 10) {
-    std::cerr<<"usage: backscatter markov_initial_guess <geometry.txt> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <forward_proj.nrrd> <samples_per_pixel> <voxel_step_size> <output.nrrd>"<<std::endl;
+  if (argc != 11) {
+    std::cerr<<"usage: backscatter markov_initial_guess <geometry.txt> <source_falloff.nrrd> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <forward_proj.nrrd> <samples_per_pixel> <voxel_step_size> <output.nrrd>"<<std::endl;
     return 1;
   }
 
   char *geometryName = argv[2];
-  char *airName = argv[3];
-  char *foamName = argv[4];
-  char *aluminumName = argv[5];
-  char *forwardName = argv[6];
-  int samplesPerPixel = atoi(argv[7]);
-  float voxelStepSize = atof(argv[8]);
-  char *outputName = argv[9];
+  char *sourceFalloffName = argv[3];
+  char *airName = argv[4];
+  char *foamName = argv[5];
+  char *aluminumName = argv[6];
+  char *forwardName = argv[7];
+  int samplesPerPixel = atoi(argv[8]);
+  float voxelStepSize = atof(argv[9]);
+  char *outputName = argv[10];
 
 
   // read geometry configuration
   Geometry geometry;
   geometry.LoadFromFile(geometryName);
+
+  // read source falloff
+  FloatReaderType::Pointer sourceFalloffReader = FloatReaderType::New();
+  sourceFalloffReader->SetFileName(sourceFalloffName);
+  sourceFalloffReader->Update();
+  FloatVolumeType::Pointer sourceFalloff = sourceFalloffReader->GetOutput();
+  FloatVolumeType::SizeType sourceFalloffVolumeSize = sourceFalloff->GetLargestPossibleRegion().GetSize();
+  geometry.SetSourceAttenMap(sourceFalloff->GetBufferPointer(),
+                             sourceFalloffVolumeSize[0], sourceFalloffVolumeSize[1]);
 
   // read materials
   vector<Material> materials(3);
@@ -331,33 +353,43 @@ int RunMarkovScaleProjections(int argc, char **argv) {
 int RunGibbs(int argc, char **argv) {
   std::cerr<<"Running Gibbs"<<std::endl;
 
-  if (argc != 19) {
-    std::cerr<<"usage: backscatter gibbs <geometry.txt> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <forward.nrrd> <initial_vol.nrrd> <samples_per_pixel> <voxel_step_size> <num_iter> <regularization_weight> <start_temp> <end_temp> <numThreads>  <numSubThreads> <outputErrors.nrrd> <outputProbs.nrrd>  <outputRecon.nrrd>"<<std::endl;
+  if (argc != 20) {
+    std::cerr<<"usage: backscatter gibbs <geometry.txt> <source_falloff.nrrd> <air_material.txt> <foam_material.txt> <aluminum_material.txt> <forward.nrrd> <initial_vol.nrrd> <samples_per_pixel> <voxel_step_size> <num_iter> <regularization_weight> <start_temp> <end_temp> <numThreads>  <numSubThreads> <outputErrors.nrrd> <outputProbs.nrrd>  <outputRecon.nrrd>"<<std::endl;
     return 1;
   }
 
   char *geometryName = argv[2];
-  char *airName = argv[3];
-  char *foamName = argv[4];
-  char *aluminumName = argv[5];
-  char *forwardName = argv[6];
-  char *initialName = argv[7];
-  int samplesPerPixel = atoi(argv[8]);
-  float voxelStepSize = atof(argv[9]);
-  int niter = atoi(argv[10]);
-  float regWeight = atof(argv[11]);
-  float startTemp = atof(argv[12]);
-  float endTemp = atof(argv[13]);
-  int numThreads = atoi(argv[14]);
-  int numSubThreads = atoi(argv[15]);
-  char *outputErrorsName = argv[16];
-  char *outputProbsName = argv[17];
-  char *outputReconName = argv[18];
+  char *sourceFalloffName = argv[3];
+  char *airName = argv[4];
+  char *foamName = argv[5];
+  char *aluminumName = argv[6];
+  char *forwardName = argv[7];
+  char *initialName = argv[8];
+  int samplesPerPixel = atoi(argv[9]);
+  float voxelStepSize = atof(argv[10]);
+  int niter = atoi(argv[11]);
+  float regWeight = atof(argv[12]);
+  float startTemp = atof(argv[13]);
+  float endTemp = atof(argv[14]);
+  int numThreads = atoi(argv[15]);
+  int numSubThreads = atoi(argv[16]);
+  char *outputErrorsName = argv[17];
+  char *outputProbsName = argv[18];
+  char *outputReconName = argv[19];
 
 
   // read geometry configuration
   Geometry geometry;
   geometry.LoadFromFile(geometryName);
+
+  // read source falloff
+  FloatReaderType::Pointer sourceFalloffReader = FloatReaderType::New();
+  sourceFalloffReader->SetFileName(sourceFalloffName);
+  sourceFalloffReader->Update();
+  FloatVolumeType::Pointer sourceFalloff = sourceFalloffReader->GetOutput();
+  FloatVolumeType::SizeType sourceFalloffVolumeSize = sourceFalloff->GetLargestPossibleRegion().GetSize();
+  geometry.SetSourceAttenMap(sourceFalloff->GetBufferPointer(),
+                             sourceFalloffVolumeSize[0], sourceFalloffVolumeSize[1]);
 
   // read materials
   vector<Material> materials(3);
@@ -887,7 +919,7 @@ int SegmentCalibPoints(int argc, char **argv) {
   std::cerr<<"Segment Calibration Points"<<std::endl;
 
   if (argc < 10) {
-    std::cerr<<"usage: backscatter segment_calib_points <geometry.txt> <forward.nrrd> <threshold> <mask_size/2> <id_size/2> <border> <light/dark> <output.nrrd>"<<std::endl;
+    std::cerr<<"usage: backscatter segment_calib_points <geometry.txt> <forward.nrrd> <num_points> <mask_size/2> <id_size/2> <border> <light/dark> <output.nrrd>"<<std::endl;
     return 1;
   }
 
@@ -1416,7 +1448,7 @@ int ProjectionsToNrrd(int argc, char **argv) {
     if (!indexAngle)
       sprintf(projName, "%s%d.tiff", inputPrefix, (int)(0.5 + geometry.GetProjectionAngle(p) * 180 / M_PI)/10);
     else
-      sprintf(projName, "%s%03d.tiff", inputPrefix, (int)(0.5 + geometry.GetProjectionAngle(p) * 180 / M_PI)+10);
+      sprintf(projName, "%s%03d.tiff", inputPrefix, (int)(0.5 + geometry.GetProjectionAngle(p) * 180 / M_PI));
 
     TIFF *tiff = TIFFOpen(projName, "r");
     if (!tiff) {
@@ -1640,6 +1672,7 @@ int ProjectionsToNrrd(int argc, char **argv) {
   mask[1024*679+524] = 1;
   mask[1024*422+687] = 1;
   mask[1024*1023+473] = 1;
+  mask[1024*870+937] = 1;
 
   for (int r=728; r<1024; r++)
     mask[1024*r+845] = 1;
@@ -1701,7 +1734,6 @@ int ProjectionsToNrrd(int argc, char **argv) {
       }
     }
   }
-
 
   // remove 64 pixel border - do it in place
   int border = 0;
@@ -1852,6 +1884,34 @@ int ProjectionsToNrrd(int argc, char **argv) {
 
 
 
+#if 0
+  // normalize and convert to hex for source intensity falloff bake
+  float max = images[0][0];
+  for (int i=0; i<images[0].size(); i++) {
+    max = std::max(max, images[0][i]);
+  }
+
+  for (int i=0; i<images[0].size(); i++) {
+    images[0][i] /= max;
+  }
+
+  // make an artificial one that has a simple 20 degree cutoff
+  /*
+  for (int y=0; y<256; y++) {
+    for (int x=0; x<256; x++) {
+      float dx = x-128;
+      float dy = y-128;
+      if (sqrt(dx*dx + dy*dy) < 86.35)
+        images[0][y*256+x] = 1;
+      else
+        images[0][y*256+x] = 0;
+    }
+  }
+  */
+#endif
+
+
+
   // init output volume
   FloatVolumeType::Pointer outVol = FloatVolumeType::New();
   FloatVolumeType::SizeType size;
@@ -1868,11 +1928,14 @@ int ProjectionsToNrrd(int argc, char **argv) {
     }
   }
 
+
+
   // save it
   FloatWriterType::Pointer outWriter = FloatWriterType::New();
   outWriter->SetInput(outVol);
   outWriter->SetFileName(outputName);
   outWriter->Update();
+
 
   return 0;
 }

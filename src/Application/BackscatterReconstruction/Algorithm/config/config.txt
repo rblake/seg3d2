@@ -1,31 +1,47 @@
-source location: 0, 0, 0.4064
+source location: 0, 0, 0.54
 source direction: 0, 0, -1
-source cutoff: 20
-source frac at cutoff: 0.99
 
-detector center: 0.381636, 0, 0.39119
-detector forward: -0.731363, -0.00534016, -0.681967
-detector right: 0.000484049, 0.999965, -0.00834936
-detector up: -0.681988, 0.00643653, 0.731335
+detector center: 0.2007, 0, 0.2152
+detector forward: -1, 0, -1
+detector right: 0, 1, 0
+detector up: -1, 0, 1
 
-#detector size: 0.205, 0.205
-detector size: 0.179375, 0.179375 # 64 pixel border
+detector size: 0.205, 0.205
+detector samples: 32, 32
+
+use gpus: 1
+
+
+# 50 frames
+detector gain: 30000
+detector offset: 100
+
+# 20 frames
+detector gain: 12500
+detector offset: 36
+
+# 40 frames
+detector gain: 16000
+detector offset: 30
+
+
+detector collimator ratio: 10000
+detector collimator focal length: 10000
+
+
+# 40 z samples over 0.127m  gives 1/8 inch per layer
+volume samples: 30, 30, 40
+
+# 20 z samples over 0.0635m  gives 1/8 inch per layer
+volume samples: 30, 30, 20
+
+
+volume center: 0, 0, 0.02
+volume size: 0.30, 0.30, 0.127
+
 detector samples: 16, 16
+volume samples: 16, 16, 20
 
-volume samples: 15, 15, 5
-volume size: 0.30, 0.30, 0.1016
-
-volume center: 0, 0, 0
-
-detector gain: 1
-detector offset: 0
-
-
-
-#detector collimator ratio: 15
-detector collimator ratio: 1000
-
-detector collimator focal length: -2
 
 projection angle: 0
 projection angle: 10

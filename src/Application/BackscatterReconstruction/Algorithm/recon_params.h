@@ -16,6 +16,6 @@
 // the positions of the disks in the calibration pattern
 #define RECON_CALIB_PATTERN_DEF(name)             \
   vector<Vec3f> name;                             \
-  name.push_back(Vec3f( 0.03175,-0.03175, 0));    \
   name.push_back(Vec3f(-0.03175, 0.03175, 0));    \
-  name.push_back(Vec3f(-0.03175,-0.03175, 0));
+  name.push_back(Vec3f(-0.03175,-0.03175, 0));    \
+  name.push_back(Vec3f( 0.03175,-0.03175, 0));

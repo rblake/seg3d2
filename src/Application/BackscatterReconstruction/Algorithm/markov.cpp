@@ -1,7 +1,7 @@
 
-#include <Application/BackscatterReconstruction/Algorithm/markov.h>
+#include "markov.h"
 
-//#define USE_CUDA
+#define USE_CUDA
 
 MarkovContext::MarkovContext(const Geometry &g, const vector<Material> &materials,
                              int samplesPerPixel, float voxelStepSize, float energyRegularizationWeight)
@@ -642,9 +642,9 @@ void MarkovContext::UpdateSourceAttenuationCollectionSample(const vector< vector
       }
     }
 
-    // 1/r^2 attenuation, radial source falloft
+    // 1/r^2 attenuation
     for (int c=0; c<collectionSize; c++) {
-      sourceAttenuation[c][nvi] *= mGeometry.GetSourceIntensityThroughPoint(voxelPosition) / (maxt*maxt);
+      sourceAttenuation[c][nvi] *= 1 / (maxt*maxt);
     }
 
   }
@@ -807,6 +807,10 @@ void MarkovContext::GetForwardProjectionCollectionForPixel(int p, int x, int y,
     mGeometry.WorldToVolume(startSamplePos, startSamplePosV);
 
     LerpNodeValuesCollection(sourceAttenuationCollection, collectionSize, startSamplePosV, startSourceAttenCollection);
+    float sourceFalloff = mGeometry.GetSourceIntensityThroughPoint(startSamplePos, p);
+    for (int i=0; i<startSourceAttenCollection.size(); i++) {
+      startSourceAttenCollection[i] *= sourceFalloff;
+    }
     
     for (int v=0; v<ts.size()-1; v++) {
 
@@ -825,6 +829,10 @@ void MarkovContext::GetForwardProjectionCollectionForPixel(int p, int x, int y,
       mGeometry.WorldToVolume(endSamplePos, endSamplePosV);
 
       LerpNodeValuesCollection(sourceAttenuationCollection, collectionSize, endSamplePosV, endSourceAttenCollection);
+      sourceFalloff = mGeometry.GetSourceIntensityThroughPoint(endSamplePos, p);
+      for (int i=0; i<endSourceAttenCollection.size(); i++) {
+        endSourceAttenCollection[i] *= sourceFalloff;
+      }
 
       // all material configurations are different
       for (int c=0; c<collectionSize; c++) {
@@ -1799,7 +1807,7 @@ void MarkovContext::GibbsIterParallel(int nt, int id, PARALLEL_CRITICAL_SECTION 
       currentForwardProjection = forwardProjectionCollection[nextConfig];
 
 #ifdef USE_CUDA
-      CudaAcceptNextConfig(nextConfig);
+      CudaAcceptNextConfig(proposals[_vi], nextConfig);
 #endif
 
       extern double reconApiProgress;

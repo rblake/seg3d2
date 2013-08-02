@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
+#include "vec3.h"
 
 using std::vector;
 
@@ -87,7 +87,7 @@ public:
 
   Vec3f GetSourcePosition() const;
   Vec3f GetSourceDirection() const;
-  float GetSourceIntensityThroughPoint(const Vec3f &pos) const;
+  float GetSourceIntensityThroughPoint(const Vec3f &pos, int proj) const;
 
   // generate a random ray that hits the pixel, and passes through the entire collimation column
   float GetColimatorFocalLength() const { return mDetectorCollimatorFocalLength; }
@@ -98,6 +98,13 @@ public:
                                                (mDetectorSize[1]/ mDetectorSamples[1])); }
 
   void SetVoxelSize(const Vec3f &size);
+
+
+  void SetSourceAttenMap(const float *sourceAttenMap,
+                         int width, int height);
+  const vector<float>& GetSourceAttenMap() const { return mSourceAttenMap; }
+  int GetSourceAttenMapWidth() const { return mSourceAttenMapSize[0]; }
+  int GetSourceAttenMapHeight() const { return mSourceAttenMapSize[1]; }
 
 
   template <typename T>
@@ -124,6 +131,12 @@ public:
 
   Vec3f GetVolumeCenter() const { return mVolumeCenter; }
 
+  void SetDetectorSamples(int w, int h) { 
+    mDetectorSamples[0]=w;
+    mDetectorSamples[1]=h;
+    mDetectorSampleSize[0] = mDetectorSize[0] / mDetectorSamples[0];
+    mDetectorSampleSize[1] = mDetectorSize[1] / mDetectorSamples[1];
+  }
 
   // rotate a vector around z axis : by
   // [ [ cos -sin 0 ]
@@ -138,14 +151,14 @@ public:
                   vec[2]);
   }
 
+  int GetGPUBitfield() const { return mGPUBitfield; }
 
 private:
 
   // the location of the source in the rest position
   Vec3f mSourceLocation;
+  Vec3f mSourceLocationVol;
   Vec3f mSourceDirection;
-  float mSourceCutoff;
-  float mSourceFracAtCutoff;
 
   // the location of the detector in the rest position
   Vec3f mDetectorCenter;
@@ -185,7 +198,15 @@ private:
   int mVolumeSamples[3];
   int mVolumeStride[3];
   int mVolumeNodeStride[3];
-  
+
+
+  // sampled source attenuation map
+  vector<float> mSourceAttenMap;
+  int mSourceAttenMapSize[2];
+
+
+  // bitfield for which GPU's to use.  Doesn't really belong here, but what the hell
+  int mGPUBitfield;
 };
 
 #endif

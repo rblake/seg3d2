@@ -1,6 +1,6 @@
 
 #include <map>
-#include <Application/BackscatterReconstruction/Algorithm/sart.h>
+#include "sart.h"
 
 using std::map;
 
@@ -161,7 +161,7 @@ void SARTContext::CreateWeightsParallel(int nt, int id, PARALLEL_CRITICAL_SECTIO
               continue;
 
             // source ray angular attenuation
-            float sourceFrac = mGeometry.GetSourceIntensityThroughPoint(samplePos);
+            float sourceFrac = mGeometry.GetSourceIntensityThroughPoint(samplePos, p);
             if (sourceFrac == 0)
               continue;
 

@@ -652,7 +652,7 @@ T EvalResidual(Geometry &geometry,
     T osq = p0.LengthSquared();
     T discrim = detectorDistance*detectorDistance - osq;
     if (discrim < 0) {
-      std::cerr<<"calibration error - original detector distance not attainable!"<<std::endl;
+      std::cerr<<"calibration error - original detector distance not attainable, eval!"<<std::endl;
       std::cerr<<_baseOffset[2]<<std::endl;
       std::cerr<<_detPos[2]<<std::endl;
     }
@@ -900,7 +900,7 @@ void CalibrateDetector(Geometry &geometry,
     float osq = p0.LengthSquared();
     float discrim = origDetDist*origDetDist - osq;
     if (discrim < 0) {
-      std::cerr<<"calibration error - original detector distance not attainable!"<<std::endl;
+      std::cerr<<"calibration error - original detector distance not attainable, final!"<<std::endl;
     }
     else {
       float y = sqrt(discrim);

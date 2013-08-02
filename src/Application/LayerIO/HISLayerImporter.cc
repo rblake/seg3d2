@@ -361,6 +361,7 @@ private:
     mask[1024*679+524] = 1;
     mask[1024*422+687] = 1;
     mask[1024*1023+473] = 1;
+	mask[1024*870+937] = 1;
     
     for (int r = 728; r < 1024; r++)
       mask[1024*r+845] = 1;
@@ -433,6 +434,45 @@ private:
         }
       }
     }
+
+	// compute median intensities
+	std::vector<float> medians;
+	  for (int p=0; p<depth; p++) {
+		  std::vector<float> sim;
+		for (int y=0; y<height; y++) {
+		  float fy = 2*((y+0.5) / height - 0.5);
+		  for (int x=0; x<width; x++) {
+			float fx = 2*((x+0.5) / width - 0.5);
+
+			if (fx*fx + fy*fy < 1) {
+			  sim.push_back(images[p*width*height + y*width + x]);
+			}
+
+		  }      
+		}
+		std::sort(sim.begin(), sim.end());
+		medians.push_back(sim[sim.size()/2]);
+
+		std::cerr<<p<<", "<<medians.back()<<std::endl;
+	  }
+
+	  // normalize images to have same median value
+	  float avemedian = 0;
+	  for (int p=0; p<depth; p++) {
+		avemedian += medians[p];
+	  }  
+	  avemedian /= depth;
+
+	  for (int p=0; p<depth; p++) {
+		for (int y=0; y<height; y++) {
+		  for (int x=0; x<width; x++) {
+			images[p*width*height + y*width + x] *= avemedian / medians[p];
+		  }      
+		}
+	  }
+
+
+
     CORE_LOG_MESSAGE("Postprocessing data corrections done.");
   }
 

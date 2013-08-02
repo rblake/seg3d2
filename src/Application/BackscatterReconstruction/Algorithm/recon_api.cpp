@@ -1,8 +1,8 @@
 
-#include <Application/BackscatterReconstruction/Algorithm/markov.h>
-#include <Application/BackscatterReconstruction/Algorithm/calibration.h>
-#include <Application/BackscatterReconstruction/Algorithm/recon_api.h>
-#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
+#include "markov.h"
+#include "calibration.h"
+#include "recon_api.h"
+#include "recon_params.h"
 
 char *matVacuumText =
 #include "materials/foam.txt"
@@ -19,6 +19,12 @@ char *matAluminumText =
 char *matLeadText =
 #include "materials/foam.txt"
 ;
+
+
+// reader for the source attenuation map file
+#include <itkImageFileReader.h>
+#include <itkImageFileWriter.h>
+typedef itk::ImageFileReader< ReconImageVolumeType > ReconImageReaderType;
 
 
 bool ResampleImages(const ReconImageVolumeType::Pointer imagesIn,
@@ -58,6 +64,7 @@ bool ResampleImages(const ReconImageVolumeType::Pointer imagesIn,
       }
     }
   }
+
   return true;
 }
                     
@@ -103,24 +110,17 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
                             const char *initialGeometryConfigFile,
                             const char *outputGeometryConfigFile) {
 
-	int c[3] = {0,0,0};
-	for (int i=0; i<diskIds.size(); i++) {
-		int id = diskIds[i]-1;
-		if (id>=0 && id<3)
-			c[id]++;
-	}
 
-
-  // read geometry configuration
+  // read geometry configuration 
   Geometry geometry;
   geometry.LoadFromFile(initialGeometryConfigFile);
-
 
   //
   // localize the disks
   //
 
   ReconImageVolumeType::SizeType inSize = images->GetLargestPossibleRegion().GetSize();
+  geometry.SetDetectorSamples(inSize[0], inSize[1]); // always calibrate with full res
 
   // copy input into vectors
   vector<float> forward(inSize[0]*inSize[1]*inSize[2]);
@@ -177,7 +177,7 @@ double reconApiProgress = 0;
 void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
                          const ReconMaterialIdVolumeType::Pointer initialGuess, // possibly NULL
                          const char *geometryConfigFile,
-                         const char *sourceIlluminationFile,
+                         const char *sourceFalloffMapFile,
                          const float voxelSizeCM[3],
                          int iterations,
                          ReconMaterialIdVolumeType::Pointer finalReconVolume) {
@@ -212,7 +212,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
     reconMaterials[1].InitFromString(matFoamText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
     reconMaterials[2].InitFromString(matAluminumText, XRAY_ENERGY_LOW, XRAY_ENERGY_HIGH);
   }
-  
+
   // load geometry
   reconGeometry = new Geometry();
   reconGeometry->LoadFromFile(geometryConfigFile);
@@ -220,10 +220,18 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
                                     voxelSizeCM[1]/100,
                                     voxelSizeCM[2]/100));
 
+  // read source falloff
+  ReconImageReaderType::Pointer sourceFalloffReader = ReconImageReaderType::New();
+  sourceFalloffReader->SetFileName(sourceFalloffMapFile);
+  sourceFalloffReader->Update();
+  ReconImageVolumeType::Pointer sourceFalloff = sourceFalloffReader->GetOutput();
+  ReconImageVolumeType::SizeType sourceFalloffVolumeSize = sourceFalloff->GetLargestPossibleRegion().GetSize();
+  reconGeometry->SetSourceAttenMap(sourceFalloff->GetBufferPointer(),
+                                   sourceFalloffVolumeSize[0], sourceFalloffVolumeSize[1]);
+
   // resize projections to reconstruction size
   ReconImageVolumeType::Pointer images = ReconImageVolumeType::New();
   if (!ResampleImages(_images, images, *reconGeometry)) {
-    std::cerr<<"resize projections to reconstruction size failed!"<<std::endl;
     delete reconGeometry;  reconGeometry=NULL;
     return;
   }
@@ -281,7 +289,6 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
 
 // reconstruction - stop it if it's currently running
 void ReconstructionAbort() {
-std::cerr << "ReconstructionAbort()" << std::endl;
   reconApiAbort = true;
 }
 
@@ -294,7 +301,7 @@ double ReconstructionGetMaterialVolume(ReconMaterialIdVolumeType::Pointer reconV
   else {
     reconMarkovContext->GetCurrentVolume(reconVolume);
   }
-  std::cerr << "reconApiProgress=" << reconApiProgress << std::endl;
+
   return reconApiProgress;
 }
 

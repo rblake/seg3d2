@@ -3,7 +3,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <Application/BackscatterReconstruction/Algorithm/markov.h>
+#define MAX_GPUS 2
+
+
+#include "markov.h"
 
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -11,22 +14,82 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 
-#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_functions.h>
-#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_cuda.h>
-#include <Application/BackscatterReconstruction/Algorithm/cuda_common/cutil_math.h>
+#include "cuda_common/helper_functions.h"
+#include "cuda_common/helper_cuda.h"
+#include "cuda_common/cutil_math.h"
+
+//#define CUDA_ENABLE_UPDATE_FORWARD_PROJECTION
+
+
+#ifdef WIN32
+#include <windows.h>
+class Timer {
+  public:
+  Timer(const char *name) :
+    mName(name) {
+    mTotalTime.QuadPart = 0;
+    mStartTime.QuadPart = 0;
+  }
+
+  ~Timer() {
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+    std::cerr<<mName<<": "<<(double)mTotalTime.QuadPart / frequency.QuadPart<<std::endl;
+  }
+
+
+  void Start() {
+    QueryPerformanceCounter(&mStartTime);
+  }
+
+  void Stop() {
+    LARGE_INTEGER stopTime;
+    QueryPerformanceCounter(&stopTime);
+    mTotalTime.QuadPart += stopTime.QuadPart - mStartTime.QuadPart;
+  }
+
+
+  const char *mName;
+  LARGE_INTEGER mTotalTime;
+  LARGE_INTEGER mStartTime;
+};
+
+#if 0
+#define TIMER_START(name)   static Timer timer(name);  timer.Start();
+#define TIMER_STOP                              \
+  for (int g=0; g<mGpuIds.size(); g++) {        \
+    checkCudaErrors(cudaSetDevice(mGpuIds[g])); \
+    checkCudaErrors(cudaDeviceSynchronize());   \
+  }                                             \
+  timer.Stop();
+#else
+#define TIMER_START(name)
+#define TIMER_STOP
+#endif
+
+#else
+
+#define TIMER_START(name)
+#define TIMER_STOP
+
+#endif
+
+
+
+// all the memory / texture references needed for each gpu.  Texture references 
+// are magical and automatically get duplicated for each gpu.
 
 // material volumes in the collection
-float4 *cudaVolumeLinearCurrent = NULL;
-float4 *cudaVolumeLinearCollection = NULL;
-cudaArray *cudaVolumeArray00 = NULL;
-cudaArray *cudaVolumeArray01 = NULL;
-cudaArray *cudaVolumeArray02 = NULL;
-cudaArray *cudaVolumeArray10 = NULL;
-cudaArray *cudaVolumeArray11 = NULL;
-cudaArray *cudaVolumeArray12 = NULL;
-cudaArray *cudaVolumeArray20 = NULL;
-cudaArray *cudaVolumeArray21 = NULL;
-cudaArray *cudaVolumeArray22 = NULL;
+float4 *cudaVolumeLinearCollection[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray00[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray01[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray02[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray10[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray11[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray12[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray20[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray21[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaVolumeArray22[MAX_GPUS] = { NULL, NULL };
 texture<float4, cudaTextureType3D, cudaReadModeElementType> cudaVolumeTextures00;
 texture<float4, cudaTextureType3D, cudaReadModeElementType> cudaVolumeTextures01;
 texture<float4, cudaTextureType3D, cudaReadModeElementType> cudaVolumeTextures02;
@@ -39,15 +102,15 @@ texture<float4, cudaTextureType3D, cudaReadModeElementType> cudaVolumeTextures22
 
 
 // source attenuation volumes in the collection
-cudaArray *cudaSourceArray00 = NULL;
-cudaArray *cudaSourceArray01 = NULL;
-cudaArray *cudaSourceArray02 = NULL;
-cudaArray *cudaSourceArray10 = NULL;
-cudaArray *cudaSourceArray11 = NULL;
-cudaArray *cudaSourceArray12 = NULL;
-cudaArray *cudaSourceArray20 = NULL;
-cudaArray *cudaSourceArray21 = NULL;
-cudaArray *cudaSourceArray22 = NULL;
+cudaArray *cudaSourceArray00[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray01[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray02[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray10[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray11[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray12[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray20[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray21[MAX_GPUS] = { NULL, NULL };
+cudaArray *cudaSourceArray22[MAX_GPUS] = { NULL, NULL };
 texture<float, cudaTextureType3D, cudaReadModeElementType> cudaSourceTextures00;
 texture<float, cudaTextureType3D, cudaReadModeElementType> cudaSourceTextures01;
 texture<float, cudaTextureType3D, cudaReadModeElementType> cudaSourceTextures02;
@@ -63,33 +126,38 @@ texture<float, cudaTextureType3D, cudaReadModeElementType> cudaSourceTextures22;
 texture<float, cudaTextureType1D, cudaReadModeElementType> cudaMaterialTextures0;
 texture<float, cudaTextureType1D, cudaReadModeElementType> cudaMaterialTextures1;
 texture<float, cudaTextureType1D, cudaReadModeElementType> cudaMaterialTextures2;
+cudaArray* cudaMaterialArray[MAX_GPUS][NUM_MATERIALS];
+
 
 // source ray info
-float3 *cudaSourceRayVolOrigin = NULL;
-float3 *cudaSourceRayVolDir = NULL;
-float *cudaSourceRayTMin = NULL;
-float *cudaSourceRayTMax = NULL;
-float *cudaSourceScale = NULL; // accounts for source fall off and 1/r^2 attenuation
-float *cudaSourceAttenuationCollection = NULL; // output
+float3 *cudaSourceRayVolOrigin[MAX_GPUS] = { NULL, NULL };
+float3 *cudaSourceRayVolDir[MAX_GPUS] = { NULL, NULL };
+float *cudaSourceRayTMin[MAX_GPUS] = { NULL, NULL };
+float *cudaSourceRayTMax[MAX_GPUS] = { NULL, NULL };
+float *cudaSourceScale[MAX_GPUS] = { NULL, NULL }; // accounts for source 1/r^2 attenuation
+float *cudaSourceAttenuationCollection[MAX_GPUS] = { NULL, NULL }; // output
+texture<float, cudaTextureType2D, cudaReadModeElementType> cudaSourceFalloffTexture;
+cudaArray *cudaFalloffArray[MAX_GPUS] = { NULL, NULL };
+float *cudaProjectionAngles[MAX_GPUS] = { NULL, NULL };
 
 // detector ray info
-float3 *cudaDetectorRayWorldOrigin = NULL;
-float3 *cudaDetectorRayWorldDir = NULL;
-float3 *cudaDetectorRayVolOrigin = NULL;
-float3 *cudaDetectorRayVolDir = NULL;
-float *cudaDetectorRayTMin = NULL;
-float *cudaDetectorRayTMax = NULL;
-float *cudaForwardProjectionCollection = NULL; // output
+float3 *cudaDetectorRayWorldOrigin[MAX_GPUS] = { NULL, NULL };
+float3 *cudaDetectorRayWorldDir[MAX_GPUS] = { NULL, NULL };
+float3 *cudaDetectorRayVolOrigin[MAX_GPUS] = { NULL, NULL };
+float3 *cudaDetectorRayVolDir[MAX_GPUS] = { NULL, NULL };
+float *cudaDetectorRayTMin[MAX_GPUS] = { NULL, NULL };
+float *cudaDetectorRayTMax[MAX_GPUS] = { NULL, NULL };
+float *cudaForwardProjectionCollection[MAX_GPUS] = { NULL, NULL }; // output
 
 // info for calculating projection errors
-float *cudaBaselineProjection = NULL;
-float *cudaForwardProjectionError = NULL;
+float *cudaBaselineProjection[MAX_GPUS] = { NULL, NULL };
+float *cudaForwardProjectionError[MAX_GPUS] = { NULL, NULL };
 
 
 // info for optimizing which rays to cast
-unsigned int *cudaRayIds = NULL;
-float *cudaRayPriority = NULL;
-float *cudaCurrentForwardProjection = NULL;
+unsigned int *cudaRayIds[MAX_GPUS] = { NULL, NULL };
+float *cudaRayPriority[MAX_GPUS] = { NULL, NULL };
+float *cudaCurrentForwardProjection[MAX_GPUS] = { NULL, NULL };
 
 
 __device__ float sampleScatterFactor(int mat, float x) {
@@ -211,7 +279,8 @@ __global__ void castSourceRays(const float *cudaSourceScale,
                                const float *cudaSourceRayTMin,
                                const float *cudaSourceRayTMax,
                                int3 volDim,
-                               int collectionSize,
+                               int collectionStart,
+                               int collectionEnd,
                                float3 matAtten,
                                float3 matDensity,
                                float voxelStepSize,
@@ -220,7 +289,8 @@ __global__ void castSourceRays(const float *cudaSourceScale,
   unsigned int gx = blockIdx.x*blockDim.x + threadIdx.x;
   unsigned int gy = blockIdx.y*blockDim.y + threadIdx.y;
   unsigned int gz = blockIdx.z*blockDim.z + threadIdx.z;
-  if (gx>=volDim.x || gy>=volDim.y || gz>=volDim.z*collectionSize)
+  if (gx>=volDim.x || gy>=volDim.y || 
+      gz<volDim.z*collectionStart || gz>=volDim.z*collectionEnd)
     return;
   unsigned int rayIndex = (gz%volDim.z)*volDim.x*volDim.y + gy*volDim.x + gx;
   int combo = gz/volDim.z;
@@ -311,6 +381,7 @@ __global__ void castSourceRays(const float *cudaSourceScale,
 
 
 void MarkovContext::CudaComputeSourceAttenuation(int collectionSize) const {
+  TIMER_START("CudaComputeSourceAttenuation()");
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -329,76 +400,90 @@ void MarkovContext::CudaComputeSourceAttenuation(int collectionSize) const {
                1+(volDim.y-1) / dimBlock.y, 
                1+(collectionSize*volDim.z-1) / dimBlock.z);
 
-  castSourceRays<<<dimGrid, dimBlock>>>(cudaSourceScale,
-                                        cudaSourceRayVolOrigin,
-                                        cudaSourceRayVolDir,
-                                        cudaSourceRayTMin,
-                                        cudaSourceRayTMax,
-                                        volDim,
-                                        collectionSize,
-                                        matAtten,
-                                        matDensity,
-                                        mVoxelStepSize,
-                                        cudaSourceAttenuationCollection);
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, collectionSize, collectionStart, collectionEnd);
+
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    castSourceRays<<<dimGrid, dimBlock>>>(cudaSourceScale[g],
+                                          cudaSourceRayVolOrigin[g],
+                                          cudaSourceRayVolDir[g],
+                                          cudaSourceRayTMin[g],
+                                          cudaSourceRayTMax[g],
+                                          volDim,
+                                          collectionStart,
+                                          collectionEnd,
+                                          matAtten,
+                                          matDensity,
+                                          mVoxelStepSize,
+                                          cudaSourceAttenuationCollection[g]);
+
+    for (int c=collectionStart; c<collectionEnd; c++) {
+      cudaArray **cudaArray = NULL;
+      switch (c) {
+      case 0:
+        cudaArray = &cudaSourceArray00[g];
+        break;
+      case 1:
+        cudaArray = &cudaSourceArray01[g];
+        break;
+      case 2:
+        cudaArray = &cudaSourceArray02[g];
+        break;
+      case 3:
+        cudaArray = &cudaSourceArray10[g];
+        break;
+      case 4:
+        cudaArray = &cudaSourceArray11[g];
+        break;
+      case 5:
+        cudaArray = &cudaSourceArray12[g];
+        break;
+      case 6:
+        cudaArray = &cudaSourceArray20[g];
+        break;
+      case 7:
+        cudaArray = &cudaSourceArray21[g];
+        break;
+      case 8:
+        cudaArray = &cudaSourceArray22[g];
+        break;
+      }
 
 
-  // bind output to source atten textures
-  for (int c=0; c<collectionSize; c++) {
-    cudaArray **cudaArray = NULL;
-    switch (c) {
-    case 0:
-      cudaArray = &cudaSourceArray00;
-      break;
-    case 1:
-      cudaArray = &cudaSourceArray01;
-      break;
-    case 2:
-      cudaArray = &cudaSourceArray02;
-      break;
-    case 3:
-      cudaArray = &cudaSourceArray10;
-      break;
-    case 4:
-      cudaArray = &cudaSourceArray11;
-      break;
-    case 5:
-      cudaArray = &cudaSourceArray12;
-      break;
-    case 6:
-      cudaArray = &cudaSourceArray20;
-      break;
-    case 7:
-      cudaArray = &cudaSourceArray21;
-      break;
-    case 8:
-      cudaArray = &cudaSourceArray22;
-      break;
+      cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
+                                              mGeometry.GetVolumeNodeSamplesY(),
+                                              mGeometry.GetVolumeNodeSamplesZ());
+      // copy data to 3D array
+      cudaMemcpy3DParms copyParams = {0};
+      copyParams.srcPtr   = make_cudaPitchedPtr((void *)&cudaSourceAttenuationCollection[g][mGeometry.GetTotalVolumeNodeSamples() * c],
+                                                volumeSize.width*sizeof(float), volumeSize.width, volumeSize.height);
+      copyParams.dstArray = *cudaArray;
+      copyParams.extent   = volumeSize;
+      copyParams.kind     = cudaMemcpyDeviceToDevice;
+      checkCudaErrors(cudaMemcpy3DAsync(&copyParams));
     }
-
-
-    cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
-                                            mGeometry.GetVolumeNodeSamplesY(),
-                                            mGeometry.GetVolumeNodeSamplesZ());
-    // copy data to 3D array
-    cudaMemcpy3DParms copyParams = {0};
-    copyParams.srcPtr   = make_cudaPitchedPtr((void *)&cudaSourceAttenuationCollection[mGeometry.GetTotalVolumeNodeSamples() * c],
-                                              volumeSize.width*sizeof(float), volumeSize.width, volumeSize.height);
-    copyParams.dstArray = *cudaArray;
-    copyParams.extent   = volumeSize;
-    copyParams.kind     = cudaMemcpyDeviceToDevice;
-    checkCudaErrors(cudaMemcpy3DAsync(&copyParams));
   }
-}
 
+  TIMER_STOP;
+}
 
 void MarkovContext::CudaGetSourceAttenuation(int collectionSize,
                                              vector< vector<float> > &sourceAttenuationCollection) const {
   // copy results back 
   vector<float> outputData(collectionSize * mGeometry.GetTotalVolumeNodeSamples());
-  checkCudaErrors(cudaMemcpy(&outputData[0],
-                             cudaSourceAttenuationCollection,
-                             collectionSize * mGeometry.GetTotalVolumeNodeSamples()*sizeof(float),
-                             cudaMemcpyDeviceToHost));
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, collectionSize, collectionStart, collectionEnd);
+
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    if ((collectionEnd-collectionStart) > 0) {
+      checkCudaErrors(cudaMemcpy(&outputData[collectionStart * mGeometry.GetTotalVolumeNodeSamples()],
+                                 &cudaSourceAttenuationCollection[g][collectionStart * mGeometry.GetTotalVolumeNodeSamples()],
+                                 (collectionEnd-collectionStart) * mGeometry.GetTotalVolumeNodeSamples()*sizeof(float),
+                                 cudaMemcpyDeviceToHost));
+    }
+  }
 
   sourceAttenuationCollection.resize(collectionSize);
   for (int c=0; c<collectionSize; c++) {
@@ -496,9 +581,9 @@ __device__ void castDetectorRay(int rayIndex, int combo,
                                 const float3 *cudaDetectorRayVolDir,
                                 const float *cudaDetectorRayTMin,
                                 const float *cudaDetectorRayTMax,
+                                const float *cudaProjectionAngles,
                                 int3 detectorDim,
                                 int3 volDim,
-                                int collectionSize,
                                 float3 matAtten,
                                 float3 matDensity,
                                 float3 sourcePosition,
@@ -521,6 +606,24 @@ __device__ void castDetectorRay(int rayIndex, int combo,
   float3 volP0 = volOrigin + tmin*volDir;
   float3 volP1 = volOrigin + tmax*volDir;
 
+  // compute ray trajectory in rotated worldspace coordinates for source falloff lookup
+  // assumes detector spacing of 10 degrees!
+  float theta = cudaProjectionAngles[rayIndex/(detectorDim.x*detectorDim.y)];
+  float ctheta = cosf(-theta); // backwards rotation
+  float stheta = sinf(-theta);
+  float3 worldSourceP0 = worldOrigin + tmin*worldDir;
+  float3 worldSourceP1 = worldOrigin + tmax*worldDir;
+  worldSourceP0 = make_float3(ctheta*worldSourceP0.x - stheta*worldSourceP0.y,
+                               stheta*worldSourceP0.x + ctheta*worldSourceP0.y,
+                               worldSourceP0.z);
+  worldSourceP1 = make_float3(ctheta*worldSourceP1.x - stheta*worldSourceP1.y,
+                               stheta*worldSourceP1.x + ctheta*worldSourceP1.y,
+                               worldSourceP1.z);
+  worldSourceP0.x = -worldSourceP0.x;
+  worldSourceP1.x = -worldSourceP1.x;
+  worldSourceP0.z = sourcePosition.z - worldSourceP0.z;
+  worldSourceP1.z = sourcePosition.z - worldSourceP1.z;
+
   float volLength = length(volP1-volP0);
   int numSteps = volLength / voxelStepSize + 1;
 
@@ -532,7 +635,10 @@ __device__ void castDetectorRay(int rayIndex, int combo,
   float forwardProjection = 0;
   float sumDetectorAttenuation = 0;
 
-  float lastInterfaceSourceAtten = sampleSourceAttenuation(combo, volOrigin + tmin*volDir, volDim);
+  float lastInterfaceSourceAtten = sampleSourceAttenuation(combo, volP0, volDim);
+  lastInterfaceSourceAtten *= tex2D(cudaSourceFalloffTexture, 
+                                    worldSourceP0.x/worldSourceP0.z * (0.19/0.205) + 0.5,
+                                    worldSourceP0.y/worldSourceP0.z * (0.19/0.205) + 0.5);
 
 
   for (int step=0; step<numSteps; step++) {
@@ -570,6 +676,12 @@ __device__ void castDetectorRay(int rayIndex, int combo,
       float3 sourceRayDir = normalize((worldOrigin + ((interfaceT+lastInterfaceT)*0.5f)*worldDir) - sourcePosition);
       float ncosScatterAngle = dot(worldDir, sourceRayDir);
       float thisInterfaceSourceAtten = sampleSourceAttenuation(combo, volOrigin + interfaceT*volDir, volDim);
+      
+      float3 worldSourceP = lerp(worldSourceP0, worldSourceP1, interfacef);
+      thisInterfaceSourceAtten *= tex2D(cudaSourceFalloffTexture,
+                                        worldSourceP.x/worldSourceP.z * (0.19/0.205) + 0.5,
+                                        worldSourceP.y/worldSourceP.z * (0.19/0.205) + 0.5);
+      
 
       float density = 0;
       float massAtten = 0;
@@ -631,6 +743,9 @@ __device__ void castDetectorRay(int rayIndex, int combo,
   float3 sourceRayDir = normalize((worldOrigin + ((interfaceT+lastInterfaceT)*0.5f)*worldDir) - sourcePosition);
   float ncosScatterAngle = dot(worldDir, sourceRayDir);
   float thisInterfaceSourceAtten = sampleSourceAttenuation(combo, volOrigin + interfaceT*volDir, volDim);
+  thisInterfaceSourceAtten *= tex2D(cudaSourceFalloffTexture,
+                                    worldSourceP1.x/worldSourceP1.z * (0.19/0.205) + 0.5,
+                                    worldSourceP1.y/worldSourceP1.z * (0.19/0.205) + 0.5);
 
   float density = 0;
   float massAtten = 0;
@@ -682,9 +797,11 @@ __global__ void castAllDetectorRays(const float3 *cudaDetectorRayWorldOrigin,
                                     const float3 *cudaDetectorRayVolDir,
                                     const float *cudaDetectorRayTMin,
                                     const float *cudaDetectorRayTMax,
+                                    const float *cudaProjectionAngles,
                                     int3 detectorDim,
                                     int3 volDim,
-                                    int collectionSize,
+                                    int collectionStart,
+                                    int collectionEnd,
                                     float3 matAtten,
                                     float3 matDensity,
                                     float3 sourcePosition,
@@ -694,7 +811,8 @@ __global__ void castAllDetectorRays(const float3 *cudaDetectorRayWorldOrigin,
   unsigned int gx = blockIdx.x*blockDim.x + threadIdx.x;
   unsigned int gy = blockIdx.y*blockDim.y + threadIdx.y;
   unsigned int gz = blockIdx.z*blockDim.z + threadIdx.z;
-  if (gx>=detectorDim.x || gy>=detectorDim.y || gz>=detectorDim.z*collectionSize)
+  if (gx>=detectorDim.x || gy>=detectorDim.y || 
+      gz<detectorDim.z*collectionStart || gz>=detectorDim.z*collectionEnd)
     return;
   unsigned int rayIndex = (gz%detectorDim.z)*detectorDim.x*detectorDim.y + gy*detectorDim.x + gx;
   int combo = gz/detectorDim.z;
@@ -706,9 +824,9 @@ __global__ void castAllDetectorRays(const float3 *cudaDetectorRayWorldOrigin,
                   cudaDetectorRayVolDir,
                   cudaDetectorRayTMin,
                   cudaDetectorRayTMax,
+                  cudaProjectionAngles,
                   detectorDim,
                   volDim,
-                  collectionSize,
                   matAtten,
                   matDensity,
                   sourcePosition,
@@ -727,9 +845,11 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
                                             const float3 *cudaDetectorRayVolDir,
                                             const float *cudaDetectorRayTMin,
                                             const float *cudaDetectorRayTMax,
+                                            const float *cudaProjectionAngles,
                                             int3 detectorDim,
                                             int3 volDim,
-                                            int collectionSize,
+                                            int collectionStart,
+                                            int collectionEnd,
                                             float3 matAtten,
                                             float3 matDensity,
                                             float3 sourcePosition,
@@ -737,13 +857,14 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
                                             float *cudaForwardProjectionCollection) {
 
   unsigned int gx = blockIdx.x*blockDim.x + threadIdx.x;
-  if (gx>=detectorDim.x*detectorDim.y*detectorDim.z*collectionSize)
+  if (gx<detectorDim.x*detectorDim.y*detectorDim.z*collectionStart ||
+      gx>=detectorDim.x*detectorDim.y*detectorDim.z*collectionEnd)
     return;
 
   //unsigned int rayIndexIndex = gx % (detectorDim.x*detectorDim.y*detectorDim.z);
   //int combo = gx / (detectorDim.x*detectorDim.y*detectorDim.z);
-  unsigned int rayIndexIndex = gx / collectionSize;
-  int combo = gx % collectionSize;
+  unsigned int rayIndexIndex = gx % (detectorDim.x*detectorDim.y*detectorDim.z);
+  int combo = gx / (detectorDim.x*detectorDim.y*detectorDim.z);
 
   unsigned int rayIndex = cudaRayIds[rayIndexIndex];
   float priority = cudaRayPriority[rayIndexIndex];
@@ -763,9 +884,9 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
                     cudaDetectorRayVolDir,
                     cudaDetectorRayTMin,
                     cudaDetectorRayTMax,
+                    cudaProjectionAngles,
                     detectorDim,
                     volDim,
-                    collectionSize,
                     matAtten,
                     matDensity,
                     sourcePosition,
@@ -778,6 +899,7 @@ __global__ void castPrioritizedDetectorRays(const unsigned int *cudaRayIds,
 
 
 void MarkovContext::CudaForwardProject(int collectionSize) const {
+  TIMER_START("CudaForwardProject()");
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -803,26 +925,44 @@ void MarkovContext::CudaForwardProject(int collectionSize) const {
                1+(detectorDim.y-1) / dimBlock.y, 
                1+(collectionSize*detectorDim.z-1) / dimBlock.z);
 
-  castAllDetectorRays<<<dimGrid, dimBlock>>>(cudaDetectorRayWorldOrigin,
-                                             cudaDetectorRayWorldDir,
-                                             cudaDetectorRayVolOrigin,
-                                             cudaDetectorRayVolDir,
-                                             cudaDetectorRayTMin,
-                                             cudaDetectorRayTMax,
-                                             detectorDim,
-                                             volDim,
-                                             collectionSize,
-                                             matAtten,
-                                             matDensity,
-                                             sourcePosition,
-                                             mVoxelStepSize,
-                                             cudaForwardProjectionCollection);
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, collectionSize, collectionStart, collectionEnd);
+
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    castAllDetectorRays<<<dimGrid, dimBlock>>>(cudaDetectorRayWorldOrigin[g],
+                                               cudaDetectorRayWorldDir[g],
+                                               cudaDetectorRayVolOrigin[g],
+                                               cudaDetectorRayVolDir[g],
+                                               cudaDetectorRayTMin[g],
+                                               cudaDetectorRayTMax[g],
+                                               cudaProjectionAngles[g],
+                                               detectorDim,
+                                               volDim,
+                                               collectionStart,
+                                               collectionEnd,
+                                               matAtten,
+                                               matDensity,
+                                               sourcePosition,
+                                               mVoxelStepSize,
+                                               cudaForwardProjectionCollection[g]);
+  }
+
+  TIMER_STOP;
 }
 
 
-
+#ifdef CUDA_ENABLE_UPDATE_FORWARD_PROJECTION
 void MarkovContext::CudaUpdateForwardProjection(int collectionSize,
                                                 const Cone &attenChangeCone) const {
+
+  if (mGpuIds.size() > 1) {
+    // currently, forward projections are not copied between gpus when a config is accepted
+    std::cerr<<"CudaUpdateForwardProjection() currently does not support more than one GPU!"<<std::endl;
+    return;
+  }
+
+  TIMER_START("CudaUpdateForwardProjection()");
 
   int3 volDim = make_int3(mGeometry.GetVolumeNodeSamplesX(),
                           mGeometry.GetVolumeNodeSamplesY(),
@@ -845,91 +985,133 @@ void MarkovContext::CudaUpdateForwardProjection(int collectionSize,
   // prioritize each ray
   dim3 dimBlockPrioritize(32,1,1);
   dim3 dimGridPrioritize(1+(mGeometry.GetTotalProjectionSamples()-1) / dimBlockPrioritize.x, 1, 1);
-  prioritizeDetectorRays<<<dimGridPrioritize, dimBlockPrioritize>>>(cudaDetectorRayWorldOrigin,
-                                                                    cudaDetectorRayWorldDir,
-                                                                    cudaDetectorRayTMin,
-                                                                    cudaDetectorRayTMax,
-                                                                    mGeometry.GetTotalProjectionSamples(),
-                                                                    make_float3(attenChangeCone.mOrigin[0],
-                                                                                attenChangeCone.mOrigin[1],
-                                                                                attenChangeCone.mOrigin[2]),
-                                                                    make_float3(attenChangeCone.mDir[0],
-                                                                                attenChangeCone.mDir[1],
-                                                                                attenChangeCone.mDir[2]),
-                                                                    attenChangeCone.mCosTheta,
-                                                                    attenChangeCone.mMinDist,
-                                                                    cudaRayIds,
-                                                                    cudaRayPriority);
-
-
-  // sort rays by priority
-  thrust::device_ptr<unsigned int> thrustIds = thrust::device_pointer_cast(cudaRayIds);
-  thrust::device_ptr<float> thrustPriorities = thrust::device_pointer_cast(cudaRayPriority);
-  thrust::sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
-  //thrust::stable_sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
-
-  /*
-  vector<float> priorities(mGeometry.GetTotalProjectionSamples());
-  checkCudaErrors(cudaMemcpy(&priorities[0], cudaRayPriority, sizeof(float)*mGeometry.GetTotalProjectionSamples(), cudaMemcpyDeviceToHost));
-
-  int skippedRays = 0;
-  for (int i=0; i<priorities.size(); i++) {
-    if (priorities[i] == 0) {
-      skippedRays++;
-    }
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    prioritizeDetectorRays<<<dimGridPrioritize, dimBlockPrioritize>>>(cudaDetectorRayWorldOrigin[g],
+                                                                      cudaDetectorRayWorldDir[g],
+                                                                      cudaDetectorRayTMin[g],
+                                                                      cudaDetectorRayTMax[g],
+                                                                      mGeometry.GetTotalProjectionSamples(),
+                                                                      make_float3(attenChangeCone.mOrigin[0],
+                                                                                  attenChangeCone.mOrigin[1],
+                                                                                  attenChangeCone.mOrigin[2]),
+                                                                      make_float3(attenChangeCone.mDir[0],
+                                                                                  attenChangeCone.mDir[1],
+                                                                                  attenChangeCone.mDir[2]),
+                                                                      attenChangeCone.mCosTheta,
+                                                                      attenChangeCone.mMinDist,
+                                                                      cudaRayIds[g],
+                                                                      cudaRayPriority[g]);
   }
 
-  std::cerr<<"skipped "<<skippedRays<<" of "<<priorities.size()<<std::endl;
-  */
+  // sort rays by priority
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    thrust::device_ptr<unsigned int> thrustIds = thrust::device_pointer_cast(cudaRayIds[g]);
+    thrust::device_ptr<float> thrustPriorities = thrust::device_pointer_cast(cudaRayPriority[g]);
+    thrust::sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
+    //thrust::stable_sort_by_key(thrustPriorities, thrustPriorities+mGeometry.GetTotalProjectionSamples(), thrustIds);
+
+    /*
+      vector<float> priorities(mGeometry.GetTotalProjectionSamples());
+      checkCudaErrors(cudaMemcpy(&priorities[0], cudaRayPriority, sizeof(float)*mGeometry.GetTotalProjectionSamples(), cudaMemcpyDeviceToHost));
+
+      int skippedRays = 0;
+      for (int i=0; i<priorities.size(); i++) {
+      if (priorities[i] == 0) {
+      skippedRays++;
+      }
+      }
+
+      std::cerr<<"skipped "<<skippedRays<<" of "<<priorities.size()<<std::endl;
+    */
 
 
-  // cast only non-zero priority rays
-  /*
-  dim3 dimBlock(8, 8, 1);
-  dim3 dimGrid(1+(detectorDim.x-1) / dimBlock.x, 
-               1+(detectorDim.y-1) / dimBlock.y, 
-               1+(collectionSize*detectorDim.z-1) / dimBlock.z);
-  */
+    // cast only non-zero priority rays
+    /*
+      dim3 dimBlock(8, 8, 1);
+      dim3 dimGrid(1+(detectorDim.x-1) / dimBlock.x, 
+      1+(detectorDim.y-1) / dimBlock.y, 
+      1+(collectionSize*detectorDim.z-1) / dimBlock.z);
+    */
+  }
+
 
   dim3 dimBlock(32,1,1);
   dim3 dimGrid(1+(collectionSize * mGeometry.GetTotalProjectionSamples()-1) / dimBlockPrioritize.x, 1, 1);
 
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, collectionSize, collectionStart, collectionEnd);
 
-  castPrioritizedDetectorRays<<<dimGrid, dimBlock>>>(cudaRayIds,
-                                                     cudaRayPriority,
-                                                     cudaCurrentForwardProjection,
-                                                     cudaDetectorRayWorldOrigin,
-                                                     cudaDetectorRayWorldDir,
-                                                     cudaDetectorRayVolOrigin,
-                                                     cudaDetectorRayVolDir,
-                                                     cudaDetectorRayTMin,
-                                                     cudaDetectorRayTMax,
-                                                     detectorDim,
-                                                     volDim,
-                                                     collectionSize,
-                                                     matAtten,
-                                                     matDensity,
-                                                     sourcePosition,
-                                                     mVoxelStepSize,
-                                                     cudaForwardProjectionCollection);
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    castPrioritizedDetectorRays<<<dimGrid, dimBlock>>>(cudaRayIds[g],
+                                                       cudaRayPriority[g],
+                                                       cudaCurrentForwardProjection[g],
+                                                       cudaDetectorRayWorldOrigin[g],
+                                                       cudaDetectorRayWorldDir[g],
+                                                       cudaDetectorRayVolOrigin[g],
+                                                       cudaDetectorRayVolDir[g],
+                                                       cudaDetectorRayTMin[g],
+                                                       cudaDetectorRayTMax[g],
+                                                       cudaProjectionAngles[g],
+                                                       detectorDim,
+                                                       volDim,
+                                                       collectionStart,
+                                                       collectionEnd,
+                                                       matAtten,
+                                                       matDensity,
+                                                       sourcePosition,
+                                                       mVoxelStepSize,
+                                                       cudaForwardProjectionCollection[g]);
+  }
+
+  TIMER_STOP;
 }
-
+#endif
 
 void MarkovContext::CudaGetForwardProjection(int collectionSize,
                                              vector< vector<float> > &forwardProjectionCollection) const {
+  TIMER_START("CudaGetForwardProjection()");
+
   // copy results back
-  vector<float> outputData(collectionSize * mGeometry.GetTotalProjectionSamples());
-  checkCudaErrors(cudaMemcpy(&outputData[0],
-                             cudaForwardProjectionCollection,
-                             collectionSize * mGeometry.GetTotalProjectionSamples()*sizeof(float),
-                             cudaMemcpyDeviceToHost));
+  //vector<float> outputData(collectionSize * mGeometry.GetTotalProjectionSamples());
+  float *outputData;
+  checkCudaErrors(cudaHostAlloc(&outputData,
+                                collectionSize * mGeometry.GetTotalProjectionSamples() * sizeof(float),
+                                cudaHostAllocDefault));
+
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, collectionSize, collectionStart, collectionEnd);
+
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    if ((collectionEnd-collectionStart) > 0) {
+      checkCudaErrors(cudaMemcpyAsync(&outputData[collectionStart * mGeometry.GetTotalProjectionSamples()],
+                                      &cudaForwardProjectionCollection[g][collectionStart * mGeometry.GetTotalProjectionSamples()],
+                                      (collectionEnd-collectionStart) * mGeometry.GetTotalProjectionSamples()*sizeof(float),
+                                      cudaMemcpyDeviceToHost));
+    }
+  }
+
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    checkCudaErrors(cudaDeviceSynchronize());
+  }
+
 
   forwardProjectionCollection.resize(collectionSize);
   for (int c=0; c<collectionSize; c++) {
     forwardProjectionCollection[c].resize(mGeometry.GetTotalProjectionSamples());
-    for (int i=0; i<mGeometry.GetTotalProjectionSamples(); i++)
+    for (int i=0; i<mGeometry.GetTotalProjectionSamples(); i++) {
       forwardProjectionCollection[c][i] = outputData[c*mGeometry.GetTotalProjectionSamples() + i];
+    }
   }
+
+  checkCudaErrors(cudaFreeHost(outputData));
+
+
+  TIMER_STOP;
 }
 
 
@@ -955,25 +1137,35 @@ __global__ void projectionToError(int totalProjectionSamples,
 
 void MarkovContext::CudaGetProjectionError(int collectionSize, vector<float> &errors) const {
 
+  TIMER_START("CudaGetProjectionError()");
+
   // compute squared errors
   int totalProjectionSamples = mGeometry.GetTotalProjectionSamples();
   dim3 dimBlock(32, 1, 1);
   dim3 dimGrid(1+((totalProjectionSamples*collectionSize)-1) / dimBlock.x, 1, 1);
 
-  projectionToError<<<dimGrid, dimBlock>>>(totalProjectionSamples,
-                                           collectionSize,
-                                           cudaBaselineProjection,
-                                           cudaForwardProjectionCollection,
-                                           cudaForwardProjectionError);
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    projectionToError<<<dimGrid, dimBlock>>>(totalProjectionSamples,
+                                             collectionSize,
+                                             cudaBaselineProjection[g],
+                                             cudaForwardProjectionCollection[g],
+                                             cudaForwardProjectionError[g]);
+  }
 
   // use thrust to sum the errors for each material combo
-  thrust::device_ptr<float> dev_ptr = thrust::device_pointer_cast(cudaForwardProjectionError);
-  errors.resize(collectionSize);
-  for (int c=0; c<collectionSize; c++) {
-    errors[c] = (thrust::reduce(dev_ptr+c*totalProjectionSamples,
-                                dev_ptr+(c+1)*totalProjectionSamples)
-                 * mGeometry.GetDetectorPixelArea());
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    thrust::device_ptr<float> dev_ptr = thrust::device_pointer_cast(cudaForwardProjectionError[g]);
+    errors.resize(collectionSize);
+    for (int c=0; c<collectionSize; c++) {
+      errors[c] = (thrust::reduce(dev_ptr+c*totalProjectionSamples,
+                                  dev_ptr+(c+1)*totalProjectionSamples)
+                   * mGeometry.GetDetectorPixelArea());
+    }
   }
+
+  TIMER_STOP;
 }
 
 
@@ -1028,18 +1220,54 @@ __global__ void cudaUpdateVolume2(float4 *vol,
 }
 
 
-void MarkovContext::CudaAcceptNextConfig(int c) const {
-  // set the accepted volume as current
-  checkCudaErrors(cudaMemcpyAsync(cudaVolumeLinearCurrent,
-                                  cudaVolumeLinearCollection + c*mGeometry.GetTotalVolumeNodeSamples(),
-                                  sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples(),
-                                  cudaMemcpyDeviceToDevice));
 
-  // set the accepted forward projection as current
-  checkCudaErrors(cudaMemcpyAsync(cudaCurrentForwardProjection,
-                                  cudaForwardProjectionCollection + c*mGeometry.GetTotalProjectionSamples(),
-                                  sizeof(float)*mGeometry.GetTotalProjectionSamples(),
-                                  cudaMemcpyDeviceToDevice));
+void MarkovContext::CudaAcceptNextConfig(const GibbsProposal &proposal, int c) const {
+  TIMER_START("CudaAcceptNextConfig()");
+
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, NUM_MATERIALS*NUM_MATERIALS, collectionStart, collectionEnd);
+
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+
+    // update all collection volumes
+    for (int c2=collectionStart; c2<collectionEnd; c2++) {
+      float4 *cudaVolume = cudaVolumeLinearCollection[g] + c2*mGeometry.GetTotalVolumeNodeSamples();
+
+      // apply changes
+      // first proposal only
+      if (proposal.first>=0 && proposal.second<0) {
+        dim3 dimBlock(1,1,1);
+        dim3 dimGrid(1,1,1);
+        cudaUpdateVolume1<<<dimGrid, dimBlock>>>(cudaVolume,
+                                                 proposal.first,
+                                                 c%NUM_MATERIALS);
+      }
+
+      // apply changes
+      // both proposals
+      else if (proposal.first>=0 && proposal.second>=0) {
+        dim3 dimBlock(1,1,1);
+        dim3 dimGrid(1,1,1);
+        cudaUpdateVolume2<<<dimGrid, dimBlock>>>(cudaVolume,
+                                                 proposal.first,
+                                                 c%NUM_MATERIALS,
+                                                 proposal.second,
+                                                 c/NUM_MATERIALS);
+      }
+    }
+
+
+    // set the accepted forward projection as current
+#ifdef CUDA_ENABLE_UPDATE_FORWARD_PROJECTION
+    checkCudaErrors(cudaMemcpyAsync(cudaCurrentForwardProjection[g],
+                                    cudaForwardProjectionCollection[g] + c*mGeometry.GetTotalProjectionSamples(),
+                                    sizeof(float)*mGeometry.GetTotalProjectionSamples(),
+                                    cudaMemcpyDeviceToDevice));
+#endif
+  }
+
+  TIMER_STOP;
 }
 
 
@@ -1056,10 +1284,17 @@ void MarkovContext::CudaSetCurrentVolume(const vector<unsigned char> &matids) co
     }
   }
 
-  checkCudaErrors(cudaMemcpy(cudaVolumeLinearCurrent,
-                             &volumeData[0],
-                             sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples(),
-                             cudaMemcpyHostToDevice));
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+
+    // set all collection volumes
+    for (int c=0; c<NUM_MATERIALS*NUM_MATERIALS; c++) {
+      checkCudaErrors(cudaMemcpy(cudaVolumeLinearCollection[g] + c*mGeometry.GetTotalVolumeNodeSamples(),
+                                 &volumeData[0],
+                                 sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples(),
+                                 cudaMemcpyHostToDevice));
+    }
+  }
 }
 
 
@@ -1094,102 +1329,106 @@ void MarkovContext::CudaGetVolumeCollection(vector< vector<unsigned char> > &vol
 
 
 void MarkovContext::CudaSetVolumeCollection(const GibbsProposal &proposal) const {
+  TIMER_START("CudaSetVolumeCollection()");
 
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
-  cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
-                                          mGeometry.GetVolumeNodeSamplesY(),
-                                          mGeometry.GetVolumeNodeSamplesZ());
+  for (int g=0; g<mGpuIds.size(); g++) {
+    int collectionStart, collectionEnd;
+    CudaGetCollectionStartEnd(g, NUM_MATERIALS*NUM_MATERIALS, collectionStart, collectionEnd);
 
-  for (int c=0; c<NUM_MATERIALS*NUM_MATERIALS; c++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+ 
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float4>();
+    cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
+                                            mGeometry.GetVolumeNodeSamplesY(),
+                                            mGeometry.GetVolumeNodeSamplesZ());
 
-    float4 *cudaVolume = cudaVolumeLinearCollection + c*mGeometry.GetTotalVolumeNodeSamples();
+    // apply changes to each collection volume
+    for (int c=collectionStart; c<collectionEnd; c++) {
+      float4 *cudaVolume = cudaVolumeLinearCollection[g] + c*mGeometry.GetTotalVolumeNodeSamples();
 
-    // copy current volume to collection volume
-    checkCudaErrors(cudaMemcpyAsync(cudaVolume,
-                                    cudaVolumeLinearCurrent,
-                                    sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples(),
-                                    cudaMemcpyDeviceToDevice));
-  }
+      // apply changes
+      // first proposal only
+      if (proposal.first>=0 && proposal.second<0) {
+        dim3 dimBlock(1,1,1);
+        dim3 dimGrid(1,1,1);
+        cudaUpdateVolume1<<<dimGrid, dimBlock>>>(cudaVolume,
+                                                 proposal.first,
+                                                 c%NUM_MATERIALS);
+      }
 
-  for (int c=0; c<NUM_MATERIALS*NUM_MATERIALS; c++) {
-    float4 *cudaVolume = cudaVolumeLinearCollection + c*mGeometry.GetTotalVolumeNodeSamples();
-
-    // apply changes
-    // first proposal only
-    if (proposal.first>=0 && proposal.second<0) {
-      dim3 dimBlock(1,1,1);
-      dim3 dimGrid(1,1,1);
-      cudaUpdateVolume1<<<dimGrid, dimBlock>>>(cudaVolume,
-                                               proposal.first,
-                                               c%NUM_MATERIALS);
+      // apply changes
+      // both proposals
+      else if (proposal.first>=0 && proposal.second>=0) {
+        dim3 dimBlock(1,1,1);
+        dim3 dimGrid(1,1,1);
+        cudaUpdateVolume2<<<dimGrid, dimBlock>>>(cudaVolume,
+                                                 proposal.first,
+                                                 c%NUM_MATERIALS,
+                                                 proposal.second,
+                                                 c/NUM_MATERIALS);
+      }
     }
 
-    // apply changes
-    // both proposals
-    else if (proposal.first>=0 && proposal.second>=0) {
-      dim3 dimBlock(1,1,1);
-      dim3 dimGrid(1,1,1);
-      cudaUpdateVolume2<<<dimGrid, dimBlock>>>(cudaVolume,
-                                               proposal.first,
-                                               c%NUM_MATERIALS,
-                                               proposal.second,
-                                               c/NUM_MATERIALS);
+
+    // copy linear collection volumes to arrays
+    for (int c=collectionStart; c<collectionEnd; c++) {
+      float4 *cudaVolume = cudaVolumeLinearCollection[g] + c*mGeometry.GetTotalVolumeNodeSamples();
+
+      cudaArray **cudaArray = NULL;
+      switch (c) {
+      case 0:
+        cudaArray = &cudaVolumeArray00[g];
+        break;
+      case 1:
+        cudaArray = &cudaVolumeArray01[g];
+        break;
+      case 2:
+        cudaArray = &cudaVolumeArray02[g];
+        break;
+      case 3:
+        cudaArray = &cudaVolumeArray10[g];
+        break;
+      case 4:
+        cudaArray = &cudaVolumeArray11[g];
+        break;
+      case 5:
+        cudaArray = &cudaVolumeArray12[g];
+        break;
+      case 6:
+        cudaArray = &cudaVolumeArray20[g];
+        break;
+      case 7:
+        cudaArray = &cudaVolumeArray21[g];
+        break;
+      case 8:
+        cudaArray = &cudaVolumeArray22[g];
+        break;
+      }
+
+      // copy data to 3D array
+      cudaMemcpy3DParms copyParams = {0};
+      copyParams.srcPtr   = make_cudaPitchedPtr(cudaVolume, volumeSize.width*sizeof(float4), volumeSize.width, volumeSize.height);
+      copyParams.dstArray = *cudaArray;
+      copyParams.extent   = volumeSize;
+      copyParams.kind     = cudaMemcpyDeviceToDevice;
+      checkCudaErrors(cudaMemcpy3DAsync(&copyParams));
     }
   }
 
-    
-  for (int c=0; c<NUM_MATERIALS*NUM_MATERIALS; c++) {
-    float4 *cudaVolume = cudaVolumeLinearCollection + c*mGeometry.GetTotalVolumeNodeSamples();
-
-    cudaArray **cudaArray = NULL;
-    switch (c) {
-    case 0:
-      cudaArray = &cudaVolumeArray00;
-      break;
-    case 1:
-      cudaArray = &cudaVolumeArray01;
-      break;
-    case 2:
-      cudaArray = &cudaVolumeArray02;
-      break;
-    case 3:
-      cudaArray = &cudaVolumeArray10;
-      break;
-    case 4:
-      cudaArray = &cudaVolumeArray11;
-      break;
-    case 5:
-      cudaArray = &cudaVolumeArray12;
-      break;
-    case 6:
-      cudaArray = &cudaVolumeArray20;
-      break;
-    case 7:
-      cudaArray = &cudaVolumeArray21;
-      break;
-    case 8:
-      cudaArray = &cudaVolumeArray22;
-      break;
-    }
-
-    // copy data to 3D array
-    cudaMemcpy3DParms copyParams = {0};
-    copyParams.srcPtr   = make_cudaPitchedPtr(cudaVolume, volumeSize.width*sizeof(float4), volumeSize.width, volumeSize.height);
-    copyParams.dstArray = *cudaArray;
-    copyParams.extent   = volumeSize;
-    copyParams.kind     = cudaMemcpyDeviceToDevice;
-    checkCudaErrors(cudaMemcpy3DAsync(&copyParams));
-  }
+  TIMER_STOP;
 }
-
 
 
 //==================================================================================================
 //==================================================================================================
 //==================================================================================================
 void MarkovContext::CudaSetBaselineProjection() const {
-  checkCudaErrors(cudaMalloc(&cudaBaselineProjection, sizeof(float)*mBaselineProjection.size()));
-  checkCudaErrors(cudaMemcpy(cudaBaselineProjection, &mBaselineProjection[0], sizeof(float)*mBaselineProjection.size(), cudaMemcpyHostToDevice));
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+
+    checkCudaErrors(cudaMalloc(&cudaBaselineProjection[g], sizeof(float)*mBaselineProjection.size()));
+    checkCudaErrors(cudaMemcpy(cudaBaselineProjection[g], &mBaselineProjection[0], sizeof(float)*mBaselineProjection.size(), cudaMemcpyHostToDevice));
+  }
 }
 
 
@@ -1204,179 +1443,317 @@ void SetTextureParams(T *cudaTexture) {
 
 void MarkovContext::CudaInitialize() {
 
-  // This will pick the best possible CUDA capable device
-  int devID = findCudaDevice(0, NULL);
+  mGpuIds.clear();
 
-  // get device name
-  cudaDeviceProp deviceProps;
-  checkCudaErrors(cudaGetDeviceProperties(&deviceProps, devID));
-  printf("CUDA device [%s]\n", deviceProps.name);
+  int gpu_bitfield = mGeometry.GetGPUBitfield();
+  for (int g=0; g<MAX_GPUS; g++) {
+    if ((1<<g)&gpu_bitfield) {
+      int id = gpuDeviceInit(g);
+      if (id>=0) {
+        mGpuIds.push_back(id);
 
+        // get device name
+        cudaDeviceProp deviceProps;
+        checkCudaErrors(cudaGetDeviceProperties(&deviceProps, id));
+        printf("CUDA device [%s]\n", deviceProps.name);
+      }
+    }
+  }
 
-  // initialize material data
-  for (int m=0; m<mMaterials.size(); m++) {
-    vector<float> scatterFactors;
-    mMaterials[m].GetScatterFactorArray(scatterFactors);
-
-    // Allocate array and copy image data
-    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
-    cudaArray *cuArray;
-    checkCudaErrors(cudaMallocArray(&cuArray,
-                                    &channelDesc,
-                                    (int)scatterFactors.size(),
-                                    1,
-                                    cudaArrayDefault));
-    checkCudaErrors(cudaMemcpyToArray(cuArray,
-                                      0,
-                                      0,
-                                      &scatterFactors[0],
-                                      (int)scatterFactors.size() * sizeof(float),
-                                      cudaMemcpyHostToDevice));
+  if (mGpuIds.empty()) {
+    std::cerr<<"No GPUs selected!!"<<std::endl;
+  }
 
 
-    texture<float, 1, cudaReadModeElementType> *cudaMaterialTexture = NULL;
-    switch (m) {
-    case 0:
-      cudaMaterialTexture = &cudaMaterialTextures0; break;
-    case 1:
-      cudaMaterialTexture = &cudaMaterialTextures1; break;
-    case 2:
-      cudaMaterialTexture = &cudaMaterialTextures2; break;
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+
+    // initialize material data
+    for (int m=0; m<mMaterials.size(); m++) {
+      vector<float> scatterFactors;
+      mMaterials[m].GetScatterFactorArray(scatterFactors);
+
+      // Allocate array and copy image data
+      cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+      cudaArray *cuArray;
+      checkCudaErrors(cudaMallocArray(&cuArray,
+                                      &channelDesc,
+                                      (int)scatterFactors.size(),
+                                      1,
+                                      cudaArrayDefault));
+      cudaMaterialArray[g][m] = cuArray;
+
+      checkCudaErrors(cudaMemcpyToArray(cuArray,
+                                        0,
+                                        0,
+                                        &scatterFactors[0],
+                                        (int)scatterFactors.size() * sizeof(float),
+                                        cudaMemcpyHostToDevice));
+
+
+      texture<float, 1, cudaReadModeElementType> *cudaMaterialTexture = NULL;
+      switch (m) {
+      case 0:
+        cudaMaterialTexture = &cudaMaterialTextures0; break;
+      case 1:
+        cudaMaterialTexture = &cudaMaterialTextures1; break;
+      case 2:
+        cudaMaterialTexture = &cudaMaterialTextures2; break;
+      }
+
+      // Set texture parameters
+      cudaMaterialTexture->addressMode[0] = cudaAddressModeClamp;
+      cudaMaterialTexture->addressMode[1] = cudaAddressModeClamp;
+      cudaMaterialTexture->filterMode = cudaFilterModeLinear;
+      cudaMaterialTexture->normalized = true;    // access with normalized texture coordinates
+    
+      // Bind the array to the texture
+      checkCudaErrors(cudaBindTextureToArray(*cudaMaterialTexture, cuArray, channelDesc));
     }
 
-    // Set texture parameters
-    cudaMaterialTexture->addressMode[0] = cudaAddressModeClamp;
-    cudaMaterialTexture->addressMode[1] = cudaAddressModeClamp;
-    cudaMaterialTexture->filterMode = cudaFilterModeLinear;
-    cudaMaterialTexture->normalized = true;    // access with normalized texture coordinates
+
+    // volume data
+    cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
+                                            mGeometry.GetVolumeNodeSamplesY(),
+                                            mGeometry.GetVolumeNodeSamplesZ());
+    checkCudaErrors(cudaMalloc(&cudaVolumeLinearCollection[g], sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples()*NUM_MATERIALS*NUM_MATERIALS));
+    cudaChannelFormatDesc channelDesc4 = cudaCreateChannelDesc<float4>();
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray00[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray01[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray02[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray10[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray11[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray12[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray20[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray21[g], &channelDesc4, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray22[g], &channelDesc4, volumeSize));
+
+    SetTextureParams(&cudaVolumeTextures00);
+    SetTextureParams(&cudaVolumeTextures01);
+    SetTextureParams(&cudaVolumeTextures02);
+    SetTextureParams(&cudaVolumeTextures10);
+    SetTextureParams(&cudaVolumeTextures11);
+    SetTextureParams(&cudaVolumeTextures12);
+    SetTextureParams(&cudaVolumeTextures20);
+    SetTextureParams(&cudaVolumeTextures21);
+    SetTextureParams(&cudaVolumeTextures22);
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures00, cudaVolumeArray00[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures01, cudaVolumeArray01[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures02, cudaVolumeArray02[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures10, cudaVolumeArray10[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures11, cudaVolumeArray11[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures12, cudaVolumeArray12[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures20, cudaVolumeArray20[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures21, cudaVolumeArray21[g], channelDesc4));
+    checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures22, cudaVolumeArray22[g], channelDesc4));
+
+
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray00[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray01[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray02[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray10[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray11[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray12[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray20[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray21[g], &channelDesc, volumeSize));
+    checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray22[g], &channelDesc, volumeSize));
+
+    SetTextureParams(&cudaSourceTextures00);
+    SetTextureParams(&cudaSourceTextures01);
+    SetTextureParams(&cudaSourceTextures02);
+    SetTextureParams(&cudaSourceTextures10);
+    SetTextureParams(&cudaSourceTextures11);
+    SetTextureParams(&cudaSourceTextures12);
+    SetTextureParams(&cudaSourceTextures20);
+    SetTextureParams(&cudaSourceTextures21);
+    SetTextureParams(&cudaSourceTextures22);
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures00, cudaSourceArray00[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures01, cudaSourceArray01[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures02, cudaSourceArray02[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures10, cudaSourceArray10[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures11, cudaSourceArray11[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures12, cudaSourceArray12[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures20, cudaSourceArray20[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures21, cudaSourceArray21[g], channelDesc));
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures22, cudaSourceArray22[g], channelDesc));
+
+
+    // upload all of the ray info
+    checkCudaErrors(cudaMalloc(&cudaSourceRayVolOrigin[g], sizeof(float3)*mSourceRayVolOrigin.size()));
+    checkCudaErrors(cudaMemcpy(cudaSourceRayVolOrigin[g], &mSourceRayVolOrigin[0], sizeof(float3)*mSourceRayVolOrigin.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaSourceRayVolDir[g], sizeof(float3)*mSourceRayVolDir.size()));
+    checkCudaErrors(cudaMemcpy(cudaSourceRayVolDir[g], &mSourceRayVolDir[0], sizeof(float3)*mSourceRayVolDir.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaSourceRayTMin[g], sizeof(float)*mSourceRayTMin.size()));
+    checkCudaErrors(cudaMemcpy(cudaSourceRayTMin[g], &mSourceRayTMin[0], sizeof(float)*mSourceRayTMin.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaSourceRayTMax[g], sizeof(float)*mSourceRayTMax.size()));
+    checkCudaErrors(cudaMemcpy(cudaSourceRayTMax[g], &mSourceRayTMax[0], sizeof(float)*mSourceRayTMax.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayVolOrigin[g], sizeof(float3)*mDetectorRayVolOrigin.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayVolOrigin[g], &mDetectorRayVolOrigin[0], sizeof(float3)*mDetectorRayVolOrigin.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayVolDir[g], sizeof(float3)*mDetectorRayVolDir.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayVolDir[g], &mDetectorRayVolDir[0], sizeof(float3)*mDetectorRayVolDir.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayWorldOrigin[g], sizeof(float3)*mDetectorRayOrigin.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayWorldOrigin[g], &mDetectorRayOrigin[0], sizeof(float3)*mDetectorRayOrigin.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayWorldDir[g], sizeof(float3)*mDetectorRayDir.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayWorldDir[g], &mDetectorRayDir[0], sizeof(float3)*mDetectorRayDir.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayTMin[g], sizeof(float)*mDetectorRayTMin.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayTMin[g], &mDetectorRayTMin[0], sizeof(float)*mDetectorRayTMin.size(), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc(&cudaDetectorRayTMax[g], sizeof(float)*mDetectorRayTMax.size()));
+    checkCudaErrors(cudaMemcpy(cudaDetectorRayTMax[g], &mDetectorRayTMax[0], sizeof(float)*mDetectorRayTMax.size(), cudaMemcpyHostToDevice));
+
+    checkCudaErrors(cudaMalloc(&cudaRayIds[g], sizeof(unsigned int)*mGeometry.GetTotalProjectionSamples()));
+    checkCudaErrors(cudaMalloc(&cudaRayPriority[g], sizeof(float)*mGeometry.GetTotalProjectionSamples()));
+    checkCudaErrors(cudaMalloc(&cudaCurrentForwardProjection[g], sizeof(float)*mGeometry.GetTotalProjectionSamples()));
+
+    vector<float> projectionAngles;
+    for (int i=0; i<mGeometry.GetNumProjectionAngles(); i++) {
+      projectionAngles.push_back(mGeometry.GetProjectionAngle(i));
+    }
+    checkCudaErrors(cudaMalloc(&cudaProjectionAngles[g], sizeof(float)*mGeometry.GetNumProjectionAngles()));
+    checkCudaErrors(cudaMemcpy(cudaProjectionAngles[g], &projectionAngles[0], sizeof(float)*mGeometry.GetNumProjectionAngles(), cudaMemcpyHostToDevice));
+
+
+    // precompute some source attenuation info
+    vector<float> sourceScale(mGeometry.GetTotalVolumeNodeSamples());
+    for (int nvi=0; nvi<mGeometry.GetTotalVolumeNodeSamples(); nvi++) {
+      int x,y,z;
+      mGeometry.VolumeIndexToNodeCoord(nvi, x,y,z);
+
+      Vec3f voxelPosition;
+      mGeometry.VolumeToWorld(Vec3f((float)x,(float)y,(float)z), voxelPosition);
+
+      Vec3f diff = voxelPosition - mGeometry.GetSourcePosition();
+      float maxt = diff.Length();
+      Vec3f dir = diff / maxt;
     
-    // Bind the array to the texture
-    checkCudaErrors(cudaBindTextureToArray(*cudaMaterialTexture, cuArray, channelDesc));
+      sourceScale[nvi] = 1 / (maxt*maxt);
+    }
+
+    checkCudaErrors(cudaMalloc(&cudaSourceScale[g], sizeof(float)*sourceScale.size()));
+    checkCudaErrors(cudaMemcpy(cudaSourceScale[g], &sourceScale[0], sizeof(float)*sourceScale.size(), cudaMemcpyHostToDevice));
+
+
+    // source falloff texture
+    cudaChannelFormatDesc falloffChannelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
+    checkCudaErrors(cudaMallocArray(&cudaFalloffArray[g],
+                                    &falloffChannelDesc,
+                                    mGeometry.GetSourceAttenMapWidth(),
+                                    mGeometry.GetSourceAttenMapHeight(),
+                                    cudaArrayDefault));
+    checkCudaErrors(cudaMemcpyToArray(cudaFalloffArray[g],
+                                      0,
+                                      0,
+                                      &mGeometry.GetSourceAttenMap()[0],
+                                      mGeometry.GetSourceAttenMapWidth()*mGeometry.GetSourceAttenMapHeight() * sizeof(float),
+                                      cudaMemcpyHostToDevice));
+    cudaSourceFalloffTexture.addressMode[0] = cudaAddressModeClamp;
+    cudaSourceFalloffTexture.addressMode[1] = cudaAddressModeClamp;
+    cudaSourceFalloffTexture.filterMode = cudaFilterModeLinear;
+    cudaSourceFalloffTexture.normalized = true;    // access with normalized texture coordinates
+    checkCudaErrors(cudaBindTextureToArray(cudaSourceFalloffTexture, cudaFalloffArray[g], falloffChannelDesc));
+
+
+
+    checkCudaErrors(cudaMalloc(&cudaSourceAttenuationCollection[g], sizeof(float)*mGeometry.GetTotalVolumeNodeSamples() * NUM_MATERIALS*NUM_MATERIALS));
+    checkCudaErrors(cudaMalloc(&cudaForwardProjectionCollection[g], sizeof(float)*mGeometry.GetTotalProjectionSamples() * NUM_MATERIALS*NUM_MATERIALS));
+    checkCudaErrors(cudaMalloc(&cudaForwardProjectionError[g], sizeof(float)*mGeometry.GetTotalProjectionSamples() * NUM_MATERIALS*NUM_MATERIALS));
   }
-
-
-  // volume data
-  cudaExtent volumeSize = make_cudaExtent(mGeometry.GetVolumeNodeSamplesX(),
-                                          mGeometry.GetVolumeNodeSamplesY(),
-                                          mGeometry.GetVolumeNodeSamplesZ());
-  checkCudaErrors(cudaMalloc(&cudaVolumeLinearCurrent, sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples()));
-  checkCudaErrors(cudaMalloc(&cudaVolumeLinearCollection, sizeof(float4)*mGeometry.GetTotalVolumeNodeSamples()*NUM_MATERIALS*NUM_MATERIALS));
-  cudaChannelFormatDesc channelDesc4 = cudaCreateChannelDesc<float4>();
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray00, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray01, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray02, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray10, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray11, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray12, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray20, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray21, &channelDesc4, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaVolumeArray22, &channelDesc4, volumeSize));
-
-  SetTextureParams(&cudaVolumeTextures00);
-  SetTextureParams(&cudaVolumeTextures01);
-  SetTextureParams(&cudaVolumeTextures02);
-  SetTextureParams(&cudaVolumeTextures10);
-  SetTextureParams(&cudaVolumeTextures11);
-  SetTextureParams(&cudaVolumeTextures12);
-  SetTextureParams(&cudaVolumeTextures20);
-  SetTextureParams(&cudaVolumeTextures21);
-  SetTextureParams(&cudaVolumeTextures22);
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures00, cudaVolumeArray00, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures01, cudaVolumeArray01, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures02, cudaVolumeArray02, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures10, cudaVolumeArray10, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures11, cudaVolumeArray11, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures12, cudaVolumeArray12, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures20, cudaVolumeArray20, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures21, cudaVolumeArray21, channelDesc4));
-  checkCudaErrors(cudaBindTextureToArray(cudaVolumeTextures22, cudaVolumeArray22, channelDesc4));
-
-
-  cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray00, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray01, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray02, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray10, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray11, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray12, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray20, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray21, &channelDesc, volumeSize));
-  checkCudaErrors(cudaMalloc3DArray(&cudaSourceArray22, &channelDesc, volumeSize));
-
-  SetTextureParams(&cudaSourceTextures00);
-  SetTextureParams(&cudaSourceTextures01);
-  SetTextureParams(&cudaSourceTextures02);
-  SetTextureParams(&cudaSourceTextures10);
-  SetTextureParams(&cudaSourceTextures11);
-  SetTextureParams(&cudaSourceTextures12);
-  SetTextureParams(&cudaSourceTextures20);
-  SetTextureParams(&cudaSourceTextures21);
-  SetTextureParams(&cudaSourceTextures22);
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures00, cudaSourceArray00, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures01, cudaSourceArray01, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures02, cudaSourceArray02, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures10, cudaSourceArray10, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures11, cudaSourceArray11, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures12, cudaSourceArray12, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures20, cudaSourceArray20, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures21, cudaSourceArray21, channelDesc));
-  checkCudaErrors(cudaBindTextureToArray(cudaSourceTextures22, cudaSourceArray22, channelDesc));
-
-
-  // upload all of the ray info
-  checkCudaErrors(cudaMalloc(&cudaSourceRayVolOrigin, sizeof(float3)*mSourceRayVolOrigin.size()));
-  checkCudaErrors(cudaMemcpy(cudaSourceRayVolOrigin, &mSourceRayVolOrigin[0], sizeof(float3)*mSourceRayVolOrigin.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaSourceRayVolDir, sizeof(float3)*mSourceRayVolDir.size()));
-  checkCudaErrors(cudaMemcpy(cudaSourceRayVolDir, &mSourceRayVolDir[0], sizeof(float3)*mSourceRayVolDir.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaSourceRayTMin, sizeof(float)*mSourceRayTMin.size()));
-  checkCudaErrors(cudaMemcpy(cudaSourceRayTMin, &mSourceRayTMin[0], sizeof(float)*mSourceRayTMin.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaSourceRayTMax, sizeof(float)*mSourceRayTMax.size()));
-  checkCudaErrors(cudaMemcpy(cudaSourceRayTMax, &mSourceRayTMax[0], sizeof(float)*mSourceRayTMax.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayVolOrigin, sizeof(float3)*mDetectorRayVolOrigin.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayVolOrigin, &mDetectorRayVolOrigin[0], sizeof(float3)*mDetectorRayVolOrigin.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayVolDir, sizeof(float3)*mDetectorRayVolDir.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayVolDir, &mDetectorRayVolDir[0], sizeof(float3)*mDetectorRayVolDir.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayWorldOrigin, sizeof(float3)*mDetectorRayOrigin.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayWorldOrigin, &mDetectorRayOrigin[0], sizeof(float3)*mDetectorRayOrigin.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayWorldDir, sizeof(float3)*mDetectorRayDir.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayWorldDir, &mDetectorRayDir[0], sizeof(float3)*mDetectorRayDir.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayTMin, sizeof(float)*mDetectorRayTMin.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayTMin, &mDetectorRayTMin[0], sizeof(float)*mDetectorRayTMin.size(), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMalloc(&cudaDetectorRayTMax, sizeof(float)*mDetectorRayTMax.size()));
-  checkCudaErrors(cudaMemcpy(cudaDetectorRayTMax, &mDetectorRayTMax[0], sizeof(float)*mDetectorRayTMax.size(), cudaMemcpyHostToDevice));
-
-  checkCudaErrors(cudaMalloc(&cudaRayIds, sizeof(unsigned int)*mGeometry.GetTotalProjectionSamples()));
-  checkCudaErrors(cudaMalloc(&cudaRayPriority, sizeof(float)*mGeometry.GetTotalProjectionSamples()));
-  checkCudaErrors(cudaMalloc(&cudaCurrentForwardProjection, sizeof(float)*mGeometry.GetTotalProjectionSamples()));
-
-
-  // precompute some source attenuation info
-  vector<float> sourceScale(mGeometry.GetTotalVolumeNodeSamples());
-  for (int nvi=0; nvi<mGeometry.GetTotalVolumeNodeSamples(); nvi++) {
-    int x,y,z;
-    mGeometry.VolumeIndexToNodeCoord(nvi, x,y,z);
-
-    Vec3f voxelPosition;
-    mGeometry.VolumeToWorld(Vec3f((float)x,(float)y,(float)z), voxelPosition);
-
-    Vec3f diff = voxelPosition - mGeometry.GetSourcePosition();
-    float maxt = diff.Length();
-    Vec3f dir = diff / maxt;
-    
-    sourceScale[nvi] = mGeometry.GetSourceIntensityThroughPoint(voxelPosition) / (maxt*maxt);
-  }
-
-  checkCudaErrors(cudaMalloc(&cudaSourceScale, sizeof(float)*sourceScale.size()));
-  checkCudaErrors(cudaMemcpy(cudaSourceScale, &sourceScale[0], sizeof(float)*sourceScale.size(), cudaMemcpyHostToDevice));
-
-
-  checkCudaErrors(cudaMalloc(&cudaSourceAttenuationCollection, sizeof(float)*mGeometry.GetTotalVolumeNodeSamples() * NUM_MATERIALS*NUM_MATERIALS));
-  checkCudaErrors(cudaMalloc(&cudaForwardProjectionCollection, sizeof(float)*mGeometry.GetTotalProjectionSamples() * NUM_MATERIALS*NUM_MATERIALS));
-  checkCudaErrors(cudaMalloc(&cudaForwardProjectionError, sizeof(float)*mGeometry.GetTotalProjectionSamples() * NUM_MATERIALS*NUM_MATERIALS));
-
 }
 
 
 void MarkovContext::CudaShutdown() const {
-  cudaDeviceReset();
+  for (int g=0; g<mGpuIds.size(); g++) {
+    checkCudaErrors(cudaSetDevice(mGpuIds[g]));
+    
+    checkCudaErrors(cudaFree(cudaBaselineProjection[g]));  cudaBaselineProjection[g]=NULL;
+
+    for (int m=0; m<mMaterials.size(); m++) {
+      checkCudaErrors(cudaFree(cudaMaterialArray[g][m]));  cudaMaterialArray[g][m]=NULL;
+    }
+
+    checkCudaErrors(cudaFree(cudaVolumeLinearCollection[g]));  cudaVolumeLinearCollection[g]=NULL;
+
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray00[g]));  cudaVolumeArray00[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray01[g]));  cudaVolumeArray01[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray02[g]));  cudaVolumeArray02[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray10[g]));  cudaVolumeArray10[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray11[g]));  cudaVolumeArray11[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray12[g]));  cudaVolumeArray12[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray20[g]));  cudaVolumeArray20[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray21[g]));  cudaVolumeArray21[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaVolumeArray22[g]));  cudaVolumeArray22[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray00[g]));  cudaSourceArray00[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray01[g]));  cudaSourceArray01[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray02[g]));  cudaSourceArray02[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray10[g]));  cudaSourceArray10[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray11[g]));  cudaSourceArray11[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray12[g]));  cudaSourceArray12[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray20[g]));  cudaSourceArray20[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray21[g]));  cudaSourceArray21[g]=NULL;
+    checkCudaErrors(cudaFreeArray(cudaSourceArray22[g]));  cudaSourceArray22[g]=NULL;
+
+    checkCudaErrors(cudaFree(cudaSourceRayVolOrigin[g]));  cudaSourceRayVolOrigin[g]=NULL;
+    checkCudaErrors(cudaFree(cudaSourceRayVolDir[g]));  cudaSourceRayVolDir[g]=NULL;
+    checkCudaErrors(cudaFree(cudaSourceRayTMin[g]));  cudaSourceRayTMin[g]=NULL;
+    checkCudaErrors(cudaFree(cudaSourceRayTMax[g]));  cudaSourceRayTMax[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayVolOrigin[g]));  cudaDetectorRayVolOrigin[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayVolDir[g]));  cudaDetectorRayVolDir[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayWorldOrigin[g]));  cudaDetectorRayWorldOrigin[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayWorldDir[g]));  cudaDetectorRayWorldDir[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayTMin[g]));  cudaDetectorRayTMin[g]=NULL;
+    checkCudaErrors(cudaFree(cudaDetectorRayTMax[g]));  cudaDetectorRayTMax[g]=NULL;
+
+    checkCudaErrors(cudaFree(cudaRayIds[g]));  cudaRayIds[g]=NULL;
+    checkCudaErrors(cudaFree(cudaRayPriority[g]));  cudaRayPriority[g]=NULL;
+    checkCudaErrors(cudaFree(cudaCurrentForwardProjection[g]));  cudaCurrentForwardProjection[g]=NULL;
+
+    checkCudaErrors(cudaFree(cudaProjectionAngles[g]));  cudaProjectionAngles[g]=NULL;
+
+    checkCudaErrors(cudaFree(cudaSourceScale[g]));  cudaSourceScale[g]=NULL;
+
+    checkCudaErrors(cudaFreeArray(cudaFalloffArray[g]));  cudaFalloffArray[g]=NULL;
+
+    checkCudaErrors(cudaFree(cudaSourceAttenuationCollection[g]));  cudaSourceAttenuationCollection[g]=NULL;
+    checkCudaErrors(cudaFree(cudaForwardProjectionCollection[g]));  cudaForwardProjectionCollection[g]=NULL;
+    checkCudaErrors(cudaFree(cudaForwardProjectionError[g]));  cudaForwardProjectionError[g]=NULL;
+
+    cudaDeviceReset();
+  }
+}
+
+
+void MarkovContext::CudaGetCollectionStartEnd(int g, int collectionSize,
+                                              int &start, int &end) const {
+  // default
+  start = g * collectionSize / mGpuIds.size();
+  end = (g+1) * collectionSize / mGpuIds.size();
+
+  if (mGpuIds.size() == 1) {
+    start = 0;
+    end = collectionSize;
+  }
+
+  else if (mGpuIds.size() == 2) {
+    if (collectionSize == 1) {
+      if (g==0) {
+        start = 0;
+        end = 0;
+      }
+      else {
+        start = 0;
+        end = 1;
+      }
+    }
+
+    else if (collectionSize == 9) {
+      if (g==0) {
+        start = 0;
+        end = 4;
+      }
+      else {
+        start = 4;
+        end = 9;
+      }
+    }
+  }
 }
