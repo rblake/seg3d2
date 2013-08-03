@@ -6,14 +6,14 @@
 
 #include <vector>
 
-#include "vec3.h"
-#include "cone.h"
-#include "geometry.h"
-#include "material.h"
+#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
+#include <Application/BackscatterReconstruction/Algorithm/cone.h>
+#include <Application/BackscatterReconstruction/Algorithm/geometry.h>
+#include <Application/BackscatterReconstruction/Algorithm/material.h>
 
 
 #ifndef __CUDACC__
-#include "parallel.h"
+#include <Application/BackscatterReconstruction/Algorithm/parallel.h>
 #include <itkImage.h>
 typedef itk::Image<float, 3> FloatVolumeType;
 typedef itk::Image<unsigned char, 3> ByteVolumeType;

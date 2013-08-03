@@ -76,23 +76,32 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
 {
   if (layerHandle->get_type() == Core::VolumeType::DATA_E)
   {
-    // TODO: need stricter check
-    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
+//    // TODO: need stricter check
+//    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
+    this->tool_->target_layer_state_->set(layerHandle->get_layer_id());
   }
   else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
   {
-    std::string layerName = layerHandle->get_layer_name();
-    if ( (layerName.find("air") == std::string::npos) &&
-         (layerName.find("foam") == std::string::npos) &&
-         (layerName.find("aluminum") == std::string::npos) )
+    if ( this->tool_->input_b_state_->get() == "<none>" )
     {
-      if (newGroup)
-      {
-        CORE_LOG_WARNING("Inserting layers from new group");
-        return;
-      }
-      this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
+      this->tool_->input_b_state_->set(layerHandle->get_layer_id());
     }
+    else if ( this->tool_->input_c_state_->get() == "<none>" )
+    {
+      this->tool_->input_c_state_->set(layerHandle->get_layer_id());
+    }
+//    std::string layerName = layerHandle->get_layer_name();
+//    if ( (layerName.find("air") == std::string::npos) &&
+//         (layerName.find("foam") == std::string::npos) &&
+//         (layerName.find("aluminum") == std::string::npos) )
+//    {
+//      if (newGroup)
+//      {
+//        CORE_LOG_WARNING("Inserting layers from new group");
+//        return;
+//      }
+//      this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
+//    }
   }
 }
 
@@ -109,23 +118,32 @@ void ReconstructionToolPrivate::handleOutputDirChanged()
 }
 
 ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
-  SingleTargetTool( Core::VolumeType::MASK_E, toolid ),
+  SingleTargetTool( Core::VolumeType::DATA_E/*|Core::VolumeType::MASK_E*/, toolid ),
   private_( new ReconstructionToolPrivate )
 {
 	this->private_->tool_ = this;
 
+	// Create an empty list of label options
+	std::vector< LayerIDNamePair > empty_list( 1, 
+    std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
+  
 	// add number of iterations
-  this->add_state( "input_data_id", this->input_data_id_, "<none>" );
 	this->add_state( "iterations", this->iterations_state_, 3, 0, 100, 1 );
 	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
 	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
-  this->add_state( "initialGuessSet", this->initialGuessSet_state_ );
 	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
 
+	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E, false, false );
+	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E, false, false );
+  
   this->add_connection( this->outputDirectory_state_->state_changed_signal_.connect(
     boost::bind( &ReconstructionToolPrivate::handleOutputDirChanged, this->private_ ) ) );
+
 	this->add_connection( LayerManager::Instance()->layer_inserted_signal_.connect( 
     boost::bind( &ReconstructionToolPrivate::handle_layer_group_insert, this->private_, _1, _2 ) ) );
+
 	this->add_connection( this->abort_signal_.connect(
     boost::bind( &ReconstructionToolPrivate::handle_abort, this->private_ ) ) );
 }
@@ -150,7 +168,7 @@ ReconstructionTool::~ReconstructionTool()
 
 void ReconstructionTool::execute( Core::ActionContextHandle context )
 {
-  if (this->input_data_id_->get() == "<none>")
+  if ( this->target_layer_state_->get() == Tool::NONE_OPTION_C )
   {
     LayerHandle activeLayer = LayerManager::Instance()->get_active_layer();
     if (! activeLayer)
@@ -170,12 +188,29 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
     {
       if ( layers[i]->get_type() == Core::VolumeType::DATA_E )
       {
-        this->input_data_id_->set( layers[i]->get_layer_id() );
+        this->target_layer_state_->set( layers[i]->get_layer_id() );
         break;
       }
     }
   }
 
+  std::vector< std::string > initialGuessSet;
+  if ( this->input_b_state_->get() != Tool::NONE_OPTION_C )
+  {
+    initialGuessSet.push_back(this->input_b_state_->get());
+  }
+
+  if ( this->input_c_state_->get() != Tool::NONE_OPTION_C )
+  {
+    initialGuessSet.push_back(this->input_c_state_->get());
+  }
+  
+  if (initialGuessSet.size() > 0 && initialGuessSet.size() < 2)
+  {
+    CORE_LOG_WARNING("Need 2 segmentations for the initial reconstruction. Running reconstruction without initial reconstruction data.");
+    initialGuessSet.clear();
+  }
+  
   if ( this->outputDirectory_state_->get().size() == 0 || boost::filesystem::is_directory(this->outputDirectory_state_->get()))
   {
     boost::filesystem::path algorithm_work_dir;
@@ -195,8 +230,9 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
   this->private_->reset_progress();
 
   ActionReconstructionTool::Dispatch( context,
-    this->input_data_id_->get(),
-    this->initialGuessSet_state_->get(),
+    this->target_layer_state_->get(),
+    initialGuessSet,
+//    this->initialGuessSet_state_->get(),
     this->outputDirectory_state_->get(),
     iterations_state_->get(),
     xyVoxelSizeScale_state_->get(),

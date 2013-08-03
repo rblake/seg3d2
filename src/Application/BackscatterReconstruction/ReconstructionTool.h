@@ -86,16 +86,17 @@ public:
 	Core::StateBoolHandle show_progress_bar_state_;
   
 	/// Number of iterations
-  Core::StateStringHandle input_data_id_;
-
-  Core::StateStringVectorHandle initialGuessSet_state_;
-
 	Core::StateRangedIntHandle iterations_state_;
+
+	/// Scaling
 	Core::StateRangedDoubleHandle xyVoxelSizeScale_state_;
 	Core::StateRangedDoubleHandle zVoxelSizeScale_state_;
   
-	Core::StateStringHandle outputDirectory_state_;	
+	Core::StateStringHandle outputDirectory_state_;
 
+	Core::StateLabeledOptionHandle input_b_state_;
+	Core::StateLabeledOptionHandle input_c_state_;
+  
 private:
   ReconstructionToolPrivateHandle private_;
 };

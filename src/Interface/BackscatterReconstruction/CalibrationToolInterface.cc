@@ -488,7 +488,10 @@ bool CalibrationToolInterface::build_widget( QFrame* frame )
   //this->private_->ui_.labelTableWidget->horizontalHeader()->setResizeMode(QHeaderView::ResizeToContents);
   this->private_->ui_.labelTableWidget->setColumnWidth(0,  20);
   this->private_->ui_.labelTableWidget->setShowGrid(false);
-
+	
+  this->connect( this->private_->ui_.use_active_layer_, SIGNAL( toggled( bool ) ),
+                this->private_->ui_.input_a_, SLOT( setDisabled( bool ) ) );
+  
   QTableWidgetItem *index1 = new QTableWidgetItem(tr("1"));
   this->private_->ui_.labelTableWidget->setItem(0, ID_INDEX, index1);
   QTableWidgetItem *color1 = new QTableWidgetItem();
@@ -518,12 +521,15 @@ bool CalibrationToolInterface::build_widget( QFrame* frame )
 
 	QtUtils::QtBridge::Connect( this->private_->ui_.segmentButton, boost::bind(
     &CalibrationTool::segment, tool, Core::Interface::GetWidgetActionContext() ) );
+
+	QtUtils::QtBridge::Connect( this->private_->ui_.input_a_, tool->target_layer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
   
-  connect(this->private_->ui_.labelTableWidget, SIGNAL( itemClicked( QTableWidgetItem * ) ),
+  this->connect(this->private_->ui_.labelTableWidget, SIGNAL( itemClicked( QTableWidgetItem * ) ),
     this, SLOT( trigger_itemActivated( QTableWidgetItem * ) ) );
 
   // TODO: make tool and action for this for scripting (take filepath, filter)
-  connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
+  this->connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
   
 //  // TODO: make tool and action for this for scripting (take filepath, filter)
 //  connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );

@@ -68,7 +68,6 @@ public:
 	// -- state --
   // target_layer_state_ is selected layer
 
-  Core::StateStringHandle input_data_id_;
   Core::StateStringVectorHandle calibrationSet_state_;
   Core::StateStringVectorHandle maskLayers_state_;
 

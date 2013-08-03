@@ -1,8 +1,8 @@
 
 #include <string.h>
 
-#include "material.h"
-#include "recon_params.h"
+#include <Application/BackscatterReconstruction/Algorithm/material.h>
+#include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
 
 #ifndef WIN32
 #define sscanf_s sscanf

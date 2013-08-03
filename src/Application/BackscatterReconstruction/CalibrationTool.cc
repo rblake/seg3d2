@@ -72,7 +72,7 @@ void CalibrationToolPrivate::handle_layer_group_insert( LayerHandle layerHandle,
   std::cerr << "layer handle=" << layerHandle->get_layer_name() << ", " << layerHandle->get_layer_id() << ", new group created=" << newGroup << std::endl;
   if (layerHandle->get_type() == Core::VolumeType::DATA_E)
   {
-    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
+    this->tool_->target_layer_state_->set(layerHandle->get_layer_id());
     Core::Point p; // (0, 0, 0) by default
     ActionPickPoint::Dispatch( Core::Interface::GetWidgetActionContext(), p );
   }
@@ -90,12 +90,11 @@ void CalibrationToolPrivate::handle_layer_group_insert( LayerHandle layerHandle,
 
 
 CalibrationTool::CalibrationTool( const std::string& toolid ) :
-  SingleTargetTool( Core::VolumeType::MASK_E, toolid ),
+  SingleTargetTool( Core::VolumeType::DATA_E, toolid ),
   private_( new CalibrationToolPrivate )
 {
   this->private_->tool_ = this;
 
-  this->add_state( "input_data_id", this->input_data_id_, "<none>" );
   this->add_state( "calibrationSet", this->calibrationSet_state_ );
   // should have 3 layer entries and be found in maskLayers
   this->calibrationSet_state_->add("<none>");
@@ -122,7 +121,7 @@ void CalibrationTool::save( Core::ActionContextHandle context, int index, std::s
   
 void CalibrationTool::execute( Core::ActionContextHandle context )
 {
-  if (this->input_data_id_->get() == "<none>")
+  if ( this->target_layer_state_->get() == Tool::NONE_OPTION_C )
   {
     LayerHandle activeLayer = LayerManager::Instance()->get_active_layer();
     if (! activeLayer)
@@ -142,20 +141,20 @@ void CalibrationTool::execute( Core::ActionContextHandle context )
     {
       if ( layers[i]->get_type() == Core::VolumeType::DATA_E )
       {
-        this->input_data_id_->set( layers[i]->get_layer_id() );
+        this->target_layer_state_->set( layers[i]->get_layer_id() );
         break;
       }
     }
   }
 
   ActionCalibrationFitGeometry::Dispatch( context,
-                                          this->input_data_id_->get(),
+                                          this->target_layer_state_->get(),
                                           this->calibrationSet_state_->get() );	
 }
 
 void CalibrationTool::segment( Core::ActionContextHandle context )
 {
-  ActionCalibrationSegment::Dispatch( context, this->input_data_id_->get() );	
+  ActionCalibrationSegment::Dispatch( context, this->target_layer_state_->get() );	
 }
 
 void CalibrationTool::activate()

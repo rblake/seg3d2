@@ -517,7 +517,10 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
   this->connect( this->private_->ui_.openDataButton, SIGNAL( clicked() ), this, SLOT( triggerDataImport() ) );
   this->connect( this->private_->ui_.openLabelsButton, SIGNAL( clicked() ), this, SLOT( triggerLabelImport() ) );  
 	this->connect( this->private_->ui_.abort_button_, SIGNAL ( pressed() ), this, SLOT( triggerAbort() ) );
-
+	
+  this->connect( this->private_->ui_.use_active_layer_, SIGNAL( toggled( bool ) ),
+                this->private_->ui_.input_a_, SLOT( setDisabled( bool ) ) );
+  
   ToolHandle base_tool_ = tool();
   ReconstructionTool* tool = dynamic_cast< ReconstructionTool* > ( base_tool_.get() );
 
@@ -528,6 +531,11 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
   QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
     &Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
 
+	QtUtils::QtBridge::Connect( this->private_->ui_.input_a_, tool->target_layer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.input_b_, tool->input_b_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.input_c_, tool->input_c_state_ );
+  
   this->add_connection( tool->update_progress_signal_.connect(
     boost::bind( &ReconstructionToolInterface::UpdateProgress, qpointer_type( this ), _1 ) ) );
   this->add_connection( tool->reset_progress_signal_.connect(

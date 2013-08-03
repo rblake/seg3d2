@@ -318,18 +318,16 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
   }
 
   algorithm_config_file = algorithm_dir / "config.txt";
-  if ( boost::filesystem::exists(algorithm_config_file) )
+  if ( ! boost::filesystem::exists(algorithm_config_file) )
   {
-    boost::filesystem::remove(algorithm_config_file);
+    boost::filesystem::copy_file(config_file, algorithm_config_file);
   }
-  boost::filesystem::copy_file(config_file, algorithm_config_file);
   
   algorithm_source_illum_file = algorithm_dir / "source_illumination.nrrd";
-  if ( boost::filesystem::exists(algorithm_source_illum_file) )
+  if ( ! boost::filesystem::exists(algorithm_source_illum_file) )
   {
-    boost::filesystem::remove(algorithm_source_illum_file);
+    boost::filesystem::copy_file(source_illum_file, algorithm_source_illum_file);
   }
-  boost::filesystem::copy_file(source_illum_file, algorithm_source_illum_file);
 
   algorithm_output_geom_file = algorithm_work_dir / "calib_config.txt";
   

@@ -6,7 +6,7 @@
 #define MAX_GPUS 2
 
 
-#include "markov.h"
+#include <Application/BackscatterReconstruction/Algorithm/markov.h>
 
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
@@ -14,9 +14,9 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 
-#include "cuda_common/helper_functions.h"
-#include "cuda_common/helper_cuda.h"
-#include "cuda_common/cutil_math.h"
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_functions.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/helper_cuda.h>
+#include <Application/BackscatterReconstruction/Algorithm/cuda_common/cutil_math.h>
 
 //#define CUDA_ENABLE_UPDATE_FORWARD_PROJECTION
 

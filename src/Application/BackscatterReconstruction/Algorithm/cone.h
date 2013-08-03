@@ -3,7 +3,7 @@
 #define CONE_H
 
 #include <iostream>
-#include "vec3.h"
+#include <Application/BackscatterReconstruction/Algorithm/vec3.h>
 
 #define COSTHETA_EPS 0.01f
 #define MINDIST_EPS 0.001f
