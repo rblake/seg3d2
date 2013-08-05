@@ -120,6 +120,8 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
   //
 
   ReconImageVolumeType::SizeType inSize = images->GetLargestPossibleRegion().GetSize();
+  int oldWidth = geometry.GetDetectorSamplesWidth();
+  int oldHeight = geometry.GetDetectorSamplesHeight();
   geometry.SetDetectorSamples(inSize[0], inSize[1]); // always calibrate with full res
 
   // copy input into vectors
@@ -159,6 +161,7 @@ void CalibrationFitGeometry(const ReconImageVolumeType::Pointer images,
 
 
   // save the new geometry file
+  geometry.SetDetectorSamples(oldWidth, oldHeight);
   geometry.SaveToFile(outputGeometryConfigFile);
 
 }
