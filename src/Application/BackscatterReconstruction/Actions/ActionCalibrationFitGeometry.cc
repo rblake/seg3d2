@@ -107,7 +107,8 @@ public:
       if (! layer)
       {
         std::ostringstream oss;
-        oss << "Could not find layer " << this->calibrationSet_[i];
+        oss << "Could not find calibration segmentation layer " << this->calibrationSet_[i]
+            << ". Make sure correspondes have been set.";
         this->report_error(oss.str());
         return;
       }
@@ -167,7 +168,7 @@ bool ActionCalibrationFitGeometry::validate( Core::ActionContextHandle& context 
   {
     return false;
   }
-  
+
   // Check for layer existence and type information
   if ( ! LayerManager::CheckLayerExistenceAndType( this->target_layer_, 
     Core::VolumeType::DATA_E, context, this->sandbox_ ) ) return false;

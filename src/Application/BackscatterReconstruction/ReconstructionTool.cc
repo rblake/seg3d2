@@ -76,8 +76,6 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
 {
   if (layerHandle->get_type() == Core::VolumeType::DATA_E)
   {
-//    // TODO: need stricter check
-//    this->tool_->input_data_id_->set(layerHandle->get_layer_id());
     this->tool_->target_layer_state_->set(layerHandle->get_layer_id());
   }
   else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
@@ -90,18 +88,6 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
     {
       this->tool_->input_c_state_->set(layerHandle->get_layer_id());
     }
-//    std::string layerName = layerHandle->get_layer_name();
-//    if ( (layerName.find("air") == std::string::npos) &&
-//         (layerName.find("foam") == std::string::npos) &&
-//         (layerName.find("aluminum") == std::string::npos) )
-//    {
-//      if (newGroup)
-//      {
-//        CORE_LOG_WARNING("Inserting layers from new group");
-//        return;
-//      }
-//      this->tool_->initialGuessSet_state_->add(layerHandle->get_layer_id());
-//    }
   }
 }
 

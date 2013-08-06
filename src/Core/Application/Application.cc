@@ -30,6 +30,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 // Core includes
 #include <Core/Utils/Log.h>
@@ -58,6 +59,8 @@
 #include <sys/mount.h>
 #endif
 #endif
+
+#include <ctime>
 
 // Include CMake generated files
 #include "ApplicationConfiguration.h"
@@ -299,6 +302,7 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
 #else
   boost::filesystem::path executable_path = boost::filesystem::current_path();
 #endif
+
   boost::filesystem::path config_file = executable_path / "config.txt";
   if (! boost::filesystem::exists( config_file ) )
   {
@@ -322,13 +326,43 @@ bool Application::get_algorithm_config(boost::filesystem::path& algorithm_work_d
   {
     boost::filesystem::copy_file(config_file, algorithm_config_file);
   }
+  else
+  {
+    std::time_t config_time = boost::filesystem::last_write_time( config_file );
+    std::time_t algo_config_time = boost::filesystem::last_write_time( algorithm_config_file );
+
+    boost::posix_time::ptime config_ptime = boost::posix_time::from_time_t( config_time );
+    boost::posix_time::ptime algo_config_ptime = boost::posix_time::from_time_t( algo_config_time );
+
+    if (config_ptime > algo_config_ptime)
+    {
+      boost::filesystem::remove(algorithm_config_file);
+      boost::filesystem::copy_file(config_file, algorithm_config_file);
+      CORE_LOG_MESSAGE("Replaced algorithm config file with newer version.");
+    }
+  }
   
   algorithm_source_illum_file = algorithm_dir / "source_illumination.nrrd";
   if ( ! boost::filesystem::exists(algorithm_source_illum_file) )
   {
     boost::filesystem::copy_file(source_illum_file, algorithm_source_illum_file);
   }
+  else
+  {
+    std::time_t source_illum_time = boost::filesystem::last_write_time( source_illum_file );
+    std::time_t algo_source_illum_time = boost::filesystem::last_write_time( algorithm_source_illum_file );
+    
+    boost::posix_time::ptime source_illum_ptime = boost::posix_time::from_time_t( source_illum_time );
+    boost::posix_time::ptime algo_source_illum_ptime = boost::posix_time::from_time_t( algo_source_illum_time );
 
+    if (source_illum_ptime > algo_source_illum_ptime)
+    {
+      boost::filesystem::remove(algorithm_source_illum_file);
+      boost::filesystem::copy_file(source_illum_file, algorithm_source_illum_file);
+      CORE_LOG_MESSAGE("Replaced algorithm source illumination NRRD file with newer version.");
+    }
+  }
+  
   algorithm_output_geom_file = algorithm_work_dir / "calib_config.txt";
   
   return true;
