@@ -1737,11 +1737,11 @@ void MarkovContext::CudaGetCollectionStartEnd(int g, int collectionSize,
     if (collectionSize == 1) {
       if (g==0) {
         start = 0;
-        end = 0;
+        end = 1;
       }
       else {
         start = 0;
-        end = 1;
+        end = 0;
       }
     }
 

@@ -222,6 +222,11 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
   reconGeometry->SetVoxelSize(Vec3f(voxelSizeCM[0]/100,
                                     voxelSizeCM[1]/100,
                                     voxelSizeCM[2]/100));
+  std::cerr<<"volume dimensions: "<<
+    reconGeometry->GetVolumeSamplesX()<<" "<<
+    reconGeometry->GetVolumeSamplesY()<<" "<<
+    reconGeometry->GetVolumeSamplesZ()<<std::endl;
+
 
   // read source falloff
   ReconImageReaderType::Pointer sourceFalloffReader = ReconImageReaderType::New();
