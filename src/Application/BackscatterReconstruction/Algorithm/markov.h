@@ -33,6 +33,9 @@ public:
   void SetCurrentVolume(ByteVolumeType::Pointer vol);
   void SetCurrentVolume(unsigned char v);
 
+  // set regularization weight - needed for initial guess through recon_api
+  void SetRegularizationWeight(float w) { mEnergyRegularizationWeight = w; }
+
   // get current volume reconstruction
   void GetCurrentVolume(ByteVolumeType::Pointer vol);
 
@@ -191,7 +194,7 @@ private:
   float mProgressIncrement;
 
   // energy regularization weight
-  const float mEnergyRegularizationWeight;
+  float mEnergyRegularizationWeight;
 
   // the material attributes for all materials in the volume
   const vector<Material> &mMaterials;

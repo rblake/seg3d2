@@ -5,7 +5,7 @@
 #include <Application/BackscatterReconstruction/Algorithm/recon_params.h>
 
 char *matVacuumText =
-#include "materials/foam.txt"
+#include "materials/vacuum.txt"
 ;
 
 char *matFoamText =
@@ -13,11 +13,11 @@ char *matFoamText =
 ;
 
 char *matAluminumText =
-#include "materials/foam.txt"
+#include "materials/aluminum.txt"
 ;
 
 char *matLeadText =
-#include "materials/foam.txt"
+#include "materials/lead.txt"
 ;
 
 
@@ -261,7 +261,9 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
 
   // initialize reconstruciton
   if (initialGuess.IsNull()) {
+    reconMarkovContext->SetRegularizationWeight(0);
     reconMarkovContext->FindInitialGuess();
+    reconMarkovContext->SetRegularizationWeight(regWeight);
   }
 
   else {
