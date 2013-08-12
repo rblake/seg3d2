@@ -88,9 +88,8 @@ public:
   
   ~ReconstructionFilterProgress()
   {
-//    std::cerr << "~ReconstructionProgress()" << std::endl;
- }
-  
+  }
+
   void stop() { stop_ = true; }
   
   virtual void run()
@@ -177,8 +176,6 @@ void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_
 {
   Core::DataBlockHandle tmpDataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
   
-  Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(reconVolume.GetPointer());
-  
   ReconstructionFilter::UCHAR_IMAGE_TYPE::SpacingType spacing = reconVolume->GetSpacing();
   ReconstructionFilter::UCHAR_IMAGE_TYPE::PointType origin = reconVolume->GetOrigin();
   
@@ -190,45 +187,50 @@ void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_
   Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
     new Core::ITKUCharImageData(tmpDataBlock, transform) );
 
-  Core::MaskDataBlockHandle maskDataBlock;
-  if (!( Core::MaskDataBlockManager::Convert( tmpDataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
-  {
-    CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
-  }
-  else
-  {
-    std::ostringstream oss;
-    oss << "Attempt to insert progress data into temporary layers...";
-    CORE_LOG_MESSAGE(oss.str());
+  std::ostringstream oss;
+  oss << "Attempt to insert progress data into temporary layers...";
+  CORE_LOG_MESSAGE(oss.str());
 
-    for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
-    {
-      if (this->tmpLayers_[i])
+
+  for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
+  {
+    if (this->tmpLayers_[i])
+    {        
+      std::istringstream iss(this->tmpLayers_[ i ]->get_meta_data().meta_data_);
+      size_t index;
+      iss >> index;
+      std::ostringstream oss2;
+      oss2 << "Processing temporary progress layer " << index << ", loop index=" << i;
+      CORE_LOG_DEBUG(oss2.str());
+      
+      if (i != index)
       {
-        MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->tmpLayers_[ i ] );
-        Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
-          new Core::ITKUCharImageData(dataBlock, transform) );
-
-        Core::MaskDataBlockHandle maskDataBlock;
-        if (! ( Core::MaskDataBlockManager::Convert( dataBlock, tmpImage->get_grid_transform(), maskDataBlock ) ) )
-        {
-          CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
-        }
-
-        Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(tmpImage->get_grid_transform(), maskDataBlock ) );
-        for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
-        {
-          if ( reconVolume->GetBufferPointer()[j] == i )
-          {
-            maskDataBlock->set_mask_at(j);
-          }
-        }
-
-        // not bothering with provenance here...
-        Core::Application::PostEvent( boost::bind(
-          &LayerManager::DispatchInsertMaskVolumeIntoLayer, maskLayer, maskVolume, -1,
-          this->filter_->get_key(), this->filter_->get_sandbox() ) );
+        CORE_LOG_WARNING("Processing temporary layer out of order.");
       }
+
+      MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->tmpLayers_[ i ] );
+      Core::ITKUCharImageDataHandle tmpImage = Core::ITKUCharImageDataHandle(
+        new Core::ITKUCharImageData(tmpDataBlock, transform) );
+
+      Core::MaskDataBlockHandle maskDataBlock;
+      if (! Core::MaskDataBlockManager::Create( tmpImage->get_grid_transform(), maskDataBlock ) )
+      {
+        CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
+      }
+      Core::MaskVolumeHandle maskVolume( new Core::MaskVolume( tmpImage->get_grid_transform(), maskDataBlock ) );
+      
+      for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
+      {
+        if ( reconVolume->GetBufferPointer()[j] == static_cast<unsigned char>(i) )
+        {
+          maskDataBlock->set_mask_at(j);
+        }
+      }
+
+      // not bothering with provenance here...
+      Core::Application::PostEvent( boost::bind(
+        &LayerManager::DispatchInsertMaskVolumeIntoLayer, maskLayer, maskVolume, -1,
+        this->filter_->get_key(), this->filter_->get_sandbox() ) );
     }
   }
 }
@@ -291,7 +293,7 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
     }
 
     std::istringstream iss(layerHandle->get_meta_data().meta_data_);
-    int index;
+    size_t index;
     iss >> index;
     std::ostringstream oss2;
     oss2 << "Processing temporary progress layer " << index << " from handler";
@@ -392,9 +394,6 @@ void ReconstructionFilterPrivate::finalize()
                               Core::Vector( 0.0, spacing[1], 0.0 ),
                               Core::Vector( 0.0, 0.0, spacing[2] ));
 
-    Core::ITKUCharImageDataHandle finalReconImage = Core::ITKUCharImageDataHandle(
-      new Core::ITKUCharImageData(finalReconDataBlock, transform) );
-
     for (size_t i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
     {
       if (! this->dstLayers_[ i ] )
@@ -403,6 +402,18 @@ void ReconstructionFilterPrivate::finalize()
         break;
       }
 
+      std::istringstream iss(this->dstLayers_[ i ]->get_meta_data().meta_data_);
+      size_t index;
+      iss >> index;
+      std::ostringstream oss2;
+      oss2 << "Processing destination layer " << index << ", loop index=" << i;
+      CORE_LOG_DEBUG(oss2.str());
+      
+      if (i != index)
+      {
+        CORE_LOG_WARNING("Processing destination layer out of order.");
+      }
+      
       MaskLayerHandle maskLayer = boost::dynamic_pointer_cast<MaskLayer>( this->dstLayers_[ i ] );
 
       Core::DataBlockHandle dataBlock = Core::ITKDataBlock::New(this->finalReconVolume_.GetPointer());
@@ -410,7 +421,7 @@ void ReconstructionFilterPrivate::finalize()
         new Core::ITKUCharImageData(dataBlock, transform) );
       
       Core::MaskDataBlockHandle maskDataBlock;
-      if (! ( Core::MaskDataBlockManager::Convert( dataBlock, outImage->get_grid_transform(), maskDataBlock ) ) )
+      if (! ( Core::MaskDataBlockManager::Create( outImage->get_grid_transform(), maskDataBlock ) ) )
       {
         CORE_LOG_WARNING("Could not allocate enough memory for temporary mask.");
       }
@@ -418,7 +429,7 @@ void ReconstructionFilterPrivate::finalize()
       Core::MaskVolumeHandle maskVolume( new Core::MaskVolume(outImage->get_grid_transform(), maskDataBlock ) );
       for (size_t j = 0; j < maskDataBlock->get_size(); ++j )
       {
-        if ( this->finalReconVolume_->GetBufferPointer()[j] == i )
+        if ( this->finalReconVolume_->GetBufferPointer()[j] == static_cast<unsigned char>(i) )
         {
           maskDataBlock->set_mask_at(j);
         }
@@ -453,48 +464,6 @@ ReconstructionFilter::ReconstructionFilter(progress_callback callback, const std
 
 ReconstructionFilter::~ReconstructionFilter()
 {
-//  {
-//    ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-//    this->private_->finalize();
-//  }
-//  this->private_->filter_.reset();
-//  this->private_.reset();
-//std::cerr << "~ReconstructionFilter()" << std::endl;
-}
-
-//
-//void ReconstructionFilter::forward_abort_to_filter_internal( itk::ProcessObject::Pointer filter, 
-//                                                 LayerHandle layer )
-//{		
-//  // TODO: Most of this can be handled by the layer above --JGS
-//  
-//  // Setup forwarding of the abort signal to the itk filter
-//  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-//  this->private_->disconnect_all();
-//  
-//  // NOTE: The following logic is already done by LayerFilter.
-//  //this->private_->add_connection( layer->abort_signal_.connect( boost::bind(
-//  //	&ReconstructionFilter::raise_abort, this ) ) );
-//  //this->private_->add_connection( layer->stop_signal_.connect( boost::bind(
-//  //	&ReconstructionFilter::raise_stop, this ) ) );
-//}
-
-void ReconstructionFilter::handle_abort()
-{
-  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-//  if ( this->private_->filter_.GetPointer() )
-//  {
-//    this->private_->filter_->SetAbortGenerateData( true );
-//  }
-}
-
-void ReconstructionFilter::handle_stop()
-{
-  ReconstructionFilterPrivate::lock_type lock( this->private_->get_mutex() );
-//  if ( this->private_->filter_.GetPointer() )
-//  {
-//    this->private_->filter_->SetAbortGenerateData( true );
-//  }
 }
 
 void ReconstructionFilter::finalizeAlgorithm()

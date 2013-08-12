@@ -205,64 +205,8 @@ protected:
     // Success
     return true;
   }
-  
-  
-//  /// FORWARD_ABORT_TO_FILTER:
-//  /// Forward a Seg3D abort to an itk filter
-//  template< class T >
-//  void forward_abort_to_filter( T filter_pointer, LayerHandle layer )
-//  {
-//    this->forward_abort_to_filter_internal( itk::ProcessObject::Pointer( filter_pointer ), 
-//                                           layer );
-//  }
-  
-  /// OBSERVE_ITK_PROGRESS:
-  /// Forward the progress an itk filter is making and check for the abort status of the layer
-//  template< class T >
-//  void observe_itk_progress( T filter_pointer, const LayerHandle& layer, 
-//                            float progress_start = 0.0, float progress_amount = 1.0 )
-//  {
-//    this->observe_itk_progress_internal( itk::ProcessObject::Pointer( filter_pointer ), layer,
-//                                        progress_start, progress_amount );
-//  }
-  
-  /// OBSERVE_ITK_ITERATIONS:
-  /// Forward progess on iterations to a user specified function
-  ///template< class T >
-  ///void observe_itk_iterations( T filter_pointer, boost::function< void( itk::Object* ) > iteration_fcn )
-  ///{
-  ///	this->observe_itk_iterations_internal( itk::ProcessObject::Pointer( filter_pointer ),
-  ///		iteration_fcn );
-  ///}
-  
-  
-//  template< class T >
-//  void observe_itk_iterations( T filter_pointer, boost::function< void( itk::Object* ) > iteration_fcn )
-//  {
-//    this->observe_itk_iterations_internal( itk::Object::Pointer( filter_pointer ),
-//                                          iteration_fcn );
-//  }
-  
-  
-  /// LIMIT_NUMBER_OF_ITK_THREADS:
-  /// Limit the number of itk threads so that at least one thread can be used to allow for
-  /// interaction in the program.
-  /// NOTE: If the host machine does not have multiple cores this function will not do anything
-//  template< class T>
-//  void limit_number_of_itk_threads( T filter_pointer )
-//  {
-//    this->limit_number_of_itk_threads_internal( itk::ProcessObject::Pointer( filter_pointer ) );
-//  }
-  
-protected:			
-  /// HANDLE_ABORT:
-  /// A virtual function that can be overloaded
-  virtual void handle_abort();		
-  
-  /// HANDLE_STOP:
-  /// A virtual function that can be overloaded
-  virtual void handle_stop();
 
+protected:			
   void start_progress();
 
   void stop_progress();
@@ -273,23 +217,6 @@ protected:
   
 private:
   friend class ReconstructionFilterProgress;
-
-  // Internal function for setting up itk progress forwarding
-//  void observe_itk_progress_internal( itk::ProcessObject::Pointer filter, 
-//                                     const LayerHandle& layer, float progress_start, float progress_amount );
-  
-  /// Internal function for setting up itk iteration forwarding
-  ///void observe_itk_iterations_internal( itk::ProcessObject::Pointer filter, 
-  ///	boost::function< void( itk::Object* ) > iteration_fcn );
-  
-//  void observe_itk_iterations_internal( itk::Object::Pointer filter, 
-//                                       boost::function< void( itk::Object* ) > iteration_fcn );
-  
-  /// Internal	function for setting up abort handling
-//  void forward_abort_to_filter_internal( itk::ProcessObject::Pointer filter, LayerHandle layer );
-  
-  /// Internal function for limiting the number of threads	
-//  void limit_number_of_itk_threads_internal( itk::ProcessObject::Pointer filter );	
   
   void create_and_lock_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
   void update_tmp_mask_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume);
