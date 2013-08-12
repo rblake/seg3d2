@@ -542,8 +542,8 @@ bool ReconstructionToolInterface::build_widget( QFrame* frame )
     boost::bind( &ReconstructionToolInterface::ResetProgress, qpointer_type( this ) ) ) );
 
   this->private_->ui_.iterationsCombo->set_description( "Iterations" );
-  this->private_->ui_.xyVoxelSizeCombo->set_description( "XY Voxel Scale" );
-  this->private_->ui_.zVoxelSizeCombo->set_description( "Z Voxel Scale" );
+  this->private_->ui_.xyVoxelSizeCombo->set_description( "XY Voxel Size (cm)" );
+  this->private_->ui_.zVoxelSizeCombo->set_description( "Z Voxel Size (cm)" );
   // Finish button disabled and hidden until can be hooked up to appropriate algorithm function
   this->private_->ui_.stop_button_->hide();
 
