@@ -99,14 +99,21 @@ public:
 
     if (this->initialGuessSet_.size() > 0)
     {
+      // get size from first mask layer
+      Core::MaskLayerHandle mask_layer0 = boost::dynamic_pointer_cast<MaskLayer>( this->initialGuessSet_[0] );
+      Core::MaskVolumeHandle volumeHandle0 = mask_layer0->get_mask_volume();
+      Core::MaskDataBlockHandle dataBlock0 = volumeHandle0->get_mask_data_block();
+
       initialGuess = ReconstructionFilter::UCHAR_IMAGE_TYPE::New();
       ReconstructionFilter::UCHAR_IMAGE_TYPE::SizeType size;
-      size.SetElement(0, inSize[0]);
-      size.SetElement(1, inSize[1]);
-      size.SetElement(2, inSize[2]);
+      // assuming x = 0, y = 1, z = 2
+      size.SetElement(0, dataBlock0->get_nx());
+      size.SetElement(1, dataBlock0->get_ny());
+      size.SetElement(2, dataBlock0->get_nz());
       initialGuess->SetRegions(ReconstructionFilter::UCHAR_IMAGE_TYPE::RegionType(size));
       initialGuess->Allocate();
 
+      
       // TODO: ordering of mask labels?
       for (size_t i = 0; i < this->initialGuessSet_.size(); ++i)
       {
@@ -118,7 +125,7 @@ public:
         {
           if (dataBlock->get_mask_at(j))
           {
-            // set disk IDs from 1 onwards
+            // set disk IDs from 1 onwards, since background is implicit
             initialGuess->GetBufferPointer()[j] = (i+1);
           }
         }
