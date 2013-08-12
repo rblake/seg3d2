@@ -93,7 +93,7 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
 
 void ReconstructionToolPrivate::handle_abort()
 {
-  std::cerr << "Abort called from reconstruction tool" << std::endl;
+  CORE_LOG_MESSAGE("Abort called from reconstruction tool");
   ActionReconstructionTool::Abort();
 }
 
@@ -114,7 +114,7 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
     std::make_pair( Tool::NONE_OPTION_C, Tool::NONE_OPTION_C ) );
   
 	// add number of iterations
-	this->add_state( "iterations", this->iterations_state_, 3, 0, 100, 1 );
+	this->add_state( "iterations", this->iterations_state_, 1, 0, 3, 1 );
 	this->add_state( "xyVoxelSizeScale", this->xyVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
 	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
 	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
@@ -136,13 +136,15 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 
 void ReconstructionToolPrivate::update_progress( double amount, double progress_start, double progress_amount )
 {
-  std::cerr << "ReconstructionToolPrivate::update_progress: " << amount << std::endl;
+  std::ostringstream oss;
+  oss << "Update reconstruction progress: " << amount;
+  CORE_LOG_DEBUG(oss.str());
   this->tool_->update_progress_signal_( progress_start + amount * progress_amount );
 }
   
 void ReconstructionToolPrivate::reset_progress()
 {
-  std::cerr << "ReconstructionToolPrivate::reset_progress" << std::endl;
+  CORE_LOG_DEBUG("Reset reconstruction progress");
   this->tool_->reset_progress_signal_();
 }
 
@@ -196,8 +198,8 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
     CORE_LOG_WARNING("Need 2 segmentations for the initial reconstruction. Running reconstruction without initial reconstruction data.");
     initialGuessSet.clear();
   }
-  
-  if ( this->outputDirectory_state_->get().size() == 0 || boost::filesystem::is_directory(this->outputDirectory_state_->get()))
+
+  if ( this->outputDirectory_state_->get().size() == 0 || ! boost::filesystem::is_directory( this->outputDirectory_state_->get() ) )
   {
     boost::filesystem::path algorithm_work_dir;
     boost::filesystem::path algorithm_config_file;    
@@ -218,7 +220,6 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
   ActionReconstructionTool::Dispatch( context,
     this->target_layer_state_->get(),
     initialGuessSet,
-//    this->initialGuessSet_state_->get(),
     this->outputDirectory_state_->get(),
     iterations_state_->get(),
     xyVoxelSizeScale_state_->get(),
