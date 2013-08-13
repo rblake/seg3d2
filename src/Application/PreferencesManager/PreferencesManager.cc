@@ -153,7 +153,7 @@ void PreferencesManager::initialize_states()
 	this->add_state( "export_path", this->export_path_state_, desktop_path.string() );
 	
 	this->add_state( "full_screen_on_startup", this->full_screen_on_startup_state_, false );
-	this->add_state( "auto_save", this->auto_save_state_, true );
+	this->add_state( "auto_save", this->auto_save_state_, false );
 	this->add_state( "auto_save_time", this->auto_save_time_state_, 10, 1, 120, 1 );
 	this->add_state( "smart_save", this->smart_save_state_, true );
 	this->add_state( "advanced_visibility_settings", this->advanced_visibility_settings_state_, false );

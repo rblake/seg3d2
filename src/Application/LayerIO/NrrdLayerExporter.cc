@@ -160,7 +160,7 @@ bool NrrdLayerExporter::export_mask_label( const std::string& file_path )
     // TODO: temporary hack
     for (size_t k = 0; k < this->label_values_.size(); ++k)
     {
-      this->label_values_[k] = k;
+      this->label_values_[k] = static_cast<double>(k);
     }
   }
 
