@@ -80,13 +80,13 @@ void ReconstructionToolPrivate::handle_layer_group_insert( LayerHandle layerHand
   }
   else if (layerHandle->get_type() == Core::VolumeType::MASK_E)
   {
-    if ( this->tool_->input_b_state_->get() == "<none>" )
+    if ( this->tool_->input_foam_state_->get() == "<none>" )
     {
-      this->tool_->input_b_state_->set(layerHandle->get_layer_id());
+      this->tool_->input_foam_state_->set(layerHandle->get_layer_id());
     }
-    else if ( this->tool_->input_c_state_->get() == "<none>" )
+    else if ( this->tool_->input_aluminum_state_->get() == "<none>" )
     {
-      this->tool_->input_c_state_->set(layerHandle->get_layer_id());
+      this->tool_->input_aluminum_state_->set(layerHandle->get_layer_id());
     }
   }
 }
@@ -119,10 +119,10 @@ ReconstructionTool::ReconstructionTool( const std::string& toolid ) :
 	this->add_state( "zVoxelSizeScale", this->zVoxelSizeScale_state_, 0.5, 0.1, 10.0, 0.1 );
 	this->add_state( "outputDirectory", this->outputDirectory_state_, "" );
 
-	this->add_state( "input_b", this->input_b_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_extra_layer_input( this->input_b_state_, Core::VolumeType::MASK_E, false, false );
-	this->add_state( "input_c", this->input_c_state_, Tool::NONE_OPTION_C, empty_list );
-	this->add_extra_layer_input( this->input_c_state_, Core::VolumeType::MASK_E, false, false );
+	this->add_state( "input_foam", this->input_foam_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_extra_layer_input( this->input_foam_state_, Core::VolumeType::MASK_E, false, false );
+	this->add_state( "input_aluminum", this->input_aluminum_state_, Tool::NONE_OPTION_C, empty_list );
+	this->add_extra_layer_input( this->input_aluminum_state_, Core::VolumeType::MASK_E, false, false );
   
   this->add_connection( this->outputDirectory_state_->state_changed_signal_.connect(
     boost::bind( &ReconstructionToolPrivate::handleOutputDirChanged, this->private_ ) ) );
@@ -183,19 +183,19 @@ void ReconstructionTool::execute( Core::ActionContextHandle context )
   }
 
   std::vector< std::string > initialGuessSet;
-  if ( this->input_b_state_->get() != Tool::NONE_OPTION_C )
+  if ( this->input_foam_state_->get() != Tool::NONE_OPTION_C )
   {
-    initialGuessSet.push_back(this->input_b_state_->get());
+    initialGuessSet.push_back(this->input_foam_state_->get());
   }
 
-  if ( this->input_c_state_->get() != Tool::NONE_OPTION_C )
+  if ( this->input_aluminum_state_->get() != Tool::NONE_OPTION_C )
   {
-    initialGuessSet.push_back(this->input_c_state_->get());
+    initialGuessSet.push_back(this->input_aluminum_state_->get());
   }
   
   if (initialGuessSet.size() > 0 && initialGuessSet.size() < 2)
   {
-    CORE_LOG_WARNING("Need 2 segmentations for the initial reconstruction. Running reconstruction without initial reconstruction data.");
+    CORE_LOG_WARNING("Need both foam and aluminum layers from the initial reconstruction. Running reconstruction without initial reconstruction data.");
     initialGuessSet.clear();
   }
 

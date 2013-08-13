@@ -94,8 +94,8 @@ public:
   
 	Core::StateStringHandle outputDirectory_state_;
 
-	Core::StateLabeledOptionHandle input_b_state_;
-	Core::StateLabeledOptionHandle input_c_state_;
+	Core::StateLabeledOptionHandle input_foam_state_;
+	Core::StateLabeledOptionHandle input_aluminum_state_;
   
 private:
   ReconstructionToolPrivateHandle private_;

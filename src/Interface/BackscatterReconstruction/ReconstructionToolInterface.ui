@@ -179,7 +179,7 @@ QPushButton:pressed{
                   </widget>
                  </item>
                  <item>
-                  <widget class="QtUtils::QtDropableComboBox" name="input_a_">
+                  <widget class="QtUtils::QtDropableComboBox" name="input_target_">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -268,12 +268,12 @@ QPushButton:pressed{
                     <item>
                      <widget class="QLabel" name="label_11">
                       <property name="text">
-                       <string>initial reconstruction:</string>
+                       <string>foam:</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QtUtils::QtDropableComboBox" name="input_b_">
+                     <widget class="QtUtils::QtDropableComboBox" name="input_foam_">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                         <horstretch>0</horstretch>
@@ -303,12 +303,12 @@ QPushButton:pressed{
                     <item>
                      <widget class="QLabel" name="label_12">
                       <property name="text">
-                       <string>initial reconstruction:</string>
+                       <string>aluminum:</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QtUtils::QtDropableComboBox" name="input_c_">
+                     <widget class="QtUtils::QtDropableComboBox" name="input_aluminum_">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                         <horstretch>0</horstretch>
