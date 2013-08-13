@@ -54,7 +54,7 @@ IF(CUDA_FOUND)
     cone.h
     recon_api.cpp
     recon_api.h
-    recon_params.h)
+    recon_params.h STATIC)
 
   SET_TARGET_PROPERTIES(Application_BackscatterReconstruction_Algorithm
     PROPERTIES
@@ -62,6 +62,7 @@ IF(CUDA_FOUND)
   )
 ELSE(CUDA_FOUND)
   ADD_LIBRARY(Application_BackscatterReconstruction_Algorithm # no main.cpp!
+    STATIC
     geometry.cpp
     geometry.h
     sart.cpp
