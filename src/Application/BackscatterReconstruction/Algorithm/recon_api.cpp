@@ -241,6 +241,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
   ReconImageVolumeType::Pointer images = ReconImageVolumeType::New();
   if (!ResampleImages(_images, images, *reconGeometry)) {
     delete reconGeometry;  reconGeometry=NULL;
+	reconRunning = false;
     return;
   }
 
@@ -252,6 +253,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
     std::cerr<<"input forward projection dimensions do not match geometry configuration file!"<<std::endl;
 
     delete reconGeometry;  reconGeometry=NULL;
+	reconRunning = false;
     return;
   }
 
@@ -275,6 +277,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
       std::cerr<<"initial volume dimensions do not match geometry configuration file!"<<std::endl;
       delete reconMarkovContext;  reconMarkovContext=NULL;
       delete reconGeometry;  reconGeometry=NULL;
+	  reconRunning = false;
       return;
     }
 
@@ -292,7 +295,7 @@ void ReconstructionStart(const ReconImageVolumeType::Pointer _images,
 
 
   // don't cleanup the context / geometry since we may still call ReconstructionGetMaterialVolume()
-  reconRunning = true;
+  reconRunning = false;
 }
 
 
