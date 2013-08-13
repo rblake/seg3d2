@@ -233,7 +233,7 @@ void ReconstructionTool::activate()
                              ViewerManager::Instance()->layout_state_,
                              ViewerManager::VIEW_SINGLE_C );
   ViewerHandle viewer = ViewerManager::Instance()->get_active_viewer();
-  viewer->view_mode_state_->set(Viewer::AXIAL_C);
+  viewer->view_mode_state_->set(Viewer::VOLUME_C);
 }
   
 }
