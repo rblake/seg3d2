@@ -69,7 +69,10 @@ public:
 
 void CalibrationToolPrivate::handle_layer_group_insert( LayerHandle layerHandle, bool newGroup )
 {
-  std::cerr << "layer handle=" << layerHandle->get_layer_name() << ", " << layerHandle->get_layer_id() << ", new group created=" << newGroup << std::endl;
+  std::ostringstream oss;
+  oss << "layer handle=" << layerHandle->get_layer_name() << ", " << layerHandle->get_layer_id() << ", new group created=" << newGroup;
+  CORE_LOG_MESSAGE(oss.str());
+
   if (layerHandle->get_type() == Core::VolumeType::DATA_E)
   {
     this->tool_->target_layer_state_->set(layerHandle->get_layer_id());
