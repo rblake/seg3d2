@@ -138,7 +138,8 @@ public:
   ReconstructionFilterPrivate(ReconstructionFilter::progress_callback callback, const std::string& outputDir)
     : progress_( new ReconstructionFilterProgress(callback) ),
       finalReconVolume_( ReconstructionFilter::UCHAR_IMAGE_TYPE::New() ),
-      outputDir_(outputDir)
+      outputDir_(outputDir),
+      destinationLayersInitialized_(false)
   {
     dstLayers_.resize(ReconstructionFilter::LAYER_COUNT);
     tmpLayers_.resize(ReconstructionFilter::LAYER_COUNT);
@@ -170,6 +171,7 @@ public:
   typedef std::vector<ReconstructionResult> result_vector_type;
   result_vector_type results_;
   std::string outputDir_;
+  bool destinationLayersInitialized_;
 };
   
 void ReconstructionFilterPrivate::update_tmp_layers(ReconstructionFilter::UCHAR_IMAGE_TYPE::Pointer reconVolume)
@@ -275,7 +277,7 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
 
   if (layerHandle->get_meta_data().meta_data_info_ == ReconstructionFilter::TMP_LAYER_META_INFO)
   {
-    if (newGroup)
+    if (! this->destinationLayersInitialized_)
     {
       CORE_LOG_MESSAGE("New reconstruction layer group created");
       for (int i = 0; i < ReconstructionFilter::LAYER_COUNT; ++i)
@@ -290,6 +292,7 @@ void ReconstructionFilterPrivate::handle_layer_group_insert( LayerHandle layerHa
           &LayerManager::CreateAndLockMaskLayer, layerHandle->get_grid_transform(), results_[i].name_, 
           this->dstLayers_[i], metadata, this->filter_->get_key(), this->filter_->get_sandbox() ) );
       }
+      this->destinationLayersInitialized_ = true;
     }
 
     std::istringstream iss(layerHandle->get_meta_data().meta_data_);
