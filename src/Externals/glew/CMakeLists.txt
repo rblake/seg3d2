@@ -29,7 +29,7 @@
 ###########################################
 # GLEW project
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(glew)
 
 ###########################################
@@ -58,7 +58,13 @@ SET(SCI_GLEW_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "Public 
 ###########################################
 # Add the sources needed for the project
 
-SET(GLEW_SRCS glew.c include/GL/glew.h include/GL/glxew.h include/GL/wglew.h)
+SET(GLEW_SRCS
+  src/glew.c
+  src/glewinfo.c
+  src/visualinfo.c
+  include/GL/glew.h
+  include/GL/glxew.h
+  include/GL/wglew.h)
 
 ###########################################
 # Build the libary statically
@@ -91,25 +97,3 @@ ENDIF (NOT WIN32)
 # STATIC - we want glew to be a static library
 
 ADD_DEFINITIONS(-DGLEW_STATIC)
-
-###########################################
-# In case we build against X11.
-# In case of Qt we link directly to AGL and
-# in that case we do not need this workaround.
- 
-IF (APPLE)
-#  IF(X11_FOUND)
-#
-#    EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-#    STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
-#    IF (DARWIN_VERSION GREATER 8)
-#      SET_TARGET_PROPERTIES(glew PROPERTIES 
-#        LINK_FLAGS  "-dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib /usr/X11R6/lib/libGL.dylib /usr/X11R6/lib/libGLU.dylib  -framework AGL"
-#        )
-#    ENDIF (DARWIN_VERSION GREATER 8)
-#
-#    ADD_DEFINITIONS(-DGLEW_APPLE_GLX)
-#  ENDIF(X11_FOUND)
-ENDIF(APPLE)
-
-
