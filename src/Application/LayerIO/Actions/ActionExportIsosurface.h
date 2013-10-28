@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef APPLICATION_LAYERIO_ACTIONS_ACTIONEXPORTLAYER_H
-#define APPLICATION_LAYERIO_ACTIONS_ACTIONEXPORTLAYER_H
+#ifndef APPLICATION_LAYERIO_ACTIONS_ACTIONEXPORTISOSURFACE_H
+#define APPLICATION_LAYERIO_ACTIONS_ACTIONEXPORTISOSURFACE_H
 
 // Core includes
 #include <Core/Action/Actions.h>
@@ -38,28 +38,24 @@
 namespace Seg3D
 {
 	
-class ActionExportLayer : public Core::Action
+class ActionExportIsosurface : public Core::Action
 {
 
 CORE_ACTION( 
-	CORE_ACTION_TYPE( "ExportLayer", "This action exports a data layer to file.")
-	CORE_ACTION_ARGUMENT( "layer", "The name of the data layer to be exported." )
+	CORE_ACTION_TYPE( "ExportIsosurface", "This action exports an isosurface to file.")
+	CORE_ACTION_ARGUMENT( "layer", "layer to be exported." )
 	CORE_ACTION_ARGUMENT( "file_path", "A path, including the name of the file where the layer should be exported to." )
-	CORE_ACTION_OPTIONAL_ARGUMENT( "exporter", "", "Optional name for a specific exporter." )
-	CORE_ACTION_OPTIONAL_ARGUMENT( "extension", "", "Extension used for saving file." )
 	CORE_ACTION_CHANGES_PROJECT_DATA()
 )
 
 	// -- Constructor/Destructor --
 public:
-	ActionExportLayer()
+	ActionExportIsosurface()
 	{
-		this->add_parameter( this->layer_id_ );
+		this->add_parameter( this->layer_ );
 		this->add_parameter( this->file_path_ );
-		this->add_parameter( this->exporter_ );
-		this->add_parameter( this->extension_ );
 	}
-	
+
 	// -- Functions that describe action --
 public:
 	// VALIDATE:
@@ -79,32 +75,20 @@ public:
 
 	// -- Action parameters --
 private:
+
 	// Where the layer should be exported
 	std::string file_path_;
-
-	// Which type of exporter should we use
-	std::string exporter_;
 	
-	// the name of the layer to be exported
-	std::string layer_id_;
-
-	// Extension for saving data
-	std::string extension_;
-	
-	// Short cut to the layer exporter that has already loaded the data if the file
-	// was read through the GUI
-	LayerExporterHandle layer_exporter_;
-	
+  // The layer to be exported
+	std::string layer_;
 	
 	// -- Dispatch this action from the interface --
 public:
 
 	// DISPATCH:
-	static void Dispatch( Core::ActionContextHandle context, const std::string& layer, 
-		const std::string& file_path, const std::string extension = "" );
-		
-	static void Dispatch( Core::ActionContextHandle context, const std::string& layer,
-		LayerExporterHandle exporter, const std::string& file_path );	
+		static void Dispatch( Core::ActionContextHandle context, const std::string& layer_id, 
+      const std::string& file_path );
+			
 };
 	
 } // end namespace Seg3D
