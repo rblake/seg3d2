@@ -142,3 +142,13 @@ MESSAGE(STATUS "Configuring boost")
 ADD_SUBDIRECTORY(boost)
 
 MESSAGE(STATUS "Configuring Seg3D2")
+
+##################################################
+# ADD GOOGLETEST
+##################################################
+
+
+IF(BUILD_TESTING)
+  MESSAGE(STATUS "Configuring Google Test")
+  ADD_SUBDIRECTORY(googletest)
+ENDIF(BUILD_TESTING)
