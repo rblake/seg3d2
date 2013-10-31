@@ -263,12 +263,12 @@ void QtRenderWidget::mousePressEvent( QMouseEvent * event )
 
 void QtRenderWidget::saveTexture(const std::string& name, Core::Texture2DHandle texture)
 {
-	Core::Texture::lock_type texture_lock( texture->get_mutex() );
+  Core::Texture::lock_type texture_lock( texture->get_mutex() );
 
-	texture->enable();
+  texture->enable();
 
-	int width = 0;
-	int height = 0;
+  int width = 0;
+  int height = 0;
   glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
   glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
@@ -311,7 +311,7 @@ void QtRenderWidget::saveTexture(const std::string& name, Core::Texture2DHandle 
 
 void QtRenderWidget::saveSceneOnly(const std::string& name)
 {
-	Core::Texture2DHandle texture = this->private_->viewer_->get_texture();
+  Core::Texture2DHandle texture = this->private_->viewer_->get_texture();
   if (texture)
   {
     saveTexture(name, texture);
@@ -320,7 +320,7 @@ void QtRenderWidget::saveSceneOnly(const std::string& name)
 
 void QtRenderWidget::saveOverlayOnly(const std::string& name)
 {
-	Core::Texture2DHandle overlay_texture = this->private_->viewer_->get_overlay_texture();
+  Core::Texture2DHandle overlay_texture = this->private_->viewer_->get_overlay_texture();
   if (overlay_texture)
   {
     saveTexture(name, overlay_texture);
