@@ -91,8 +91,15 @@ ADD_SUBDIRECTORY(sqlite)
 # ADDING GDCM
 ##################################################
 
-MESSAGE(STATUS "Configuring GDCM")
-ADD_SUBDIRECTORY(gdcm)
+#MESSAGE(STATUS "Configuring GDCM")
+#ADD_SUBDIRECTORY(gdcm)
+
+##################################################
+# ADDING HDF5
+##################################################
+
+MESSAGE(STATUS "Configuring HDF5")
+ADD_SUBDIRECTORY(hdf5)
 
 ##################################################
 # ADDING ITK
@@ -102,21 +109,17 @@ MESSAGE(STATUS "Configuring insight toolkit")
 
 # Force ITK not to install any libraries, header
 # files etc. Because we don't need that stuff
+#SET(ITK_INSTALL_NO_DEVELOPMENT 1)
+#SET(ITK_INSTALL_NO_RUNTIME 1)
+#SET(ITK_INSTALL_NO_DOCUMENTATION 1)
+#SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
+#INCLUDE_DIRECTORIES(${SCI_HDF5_INCLUDE})
+#SET(ITK_USE_SYSTEM_HDF5 1 CACHE BOOL "" FORCE)
 
-SET(ITK_INSTALL_NO_DEVELOPMENT 1)
-SET(ITK_INSTALL_NO_RUNTIME 1)
-SET(ITK_INSTALL_NO_DOCUMENTATION 1)
-SET(ITK_INSTALL_NO_LIBRARIES 1)
-SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
-INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
+SET(ITK_INSTALL_NO_LIBRARIES ON)
+SET(ITKV3_COMPATIBILITY ON CACHE BOOL "" FORCE)
+SET(Module_ITKDeprecated ON CACHE BOOL "" FORCE)
 ADD_SUBDIRECTORY(itk)
-
-##################################################
-# ADDING HDF5
-##################################################
-
-MESSAGE(STATUS "Configuring HDF5")
-ADD_SUBDIRECTORY(hdf5)
 
 ##################################################
 # ADDING MRC2000
