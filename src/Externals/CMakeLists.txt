@@ -119,6 +119,11 @@ MESSAGE(STATUS "Configuring insight toolkit")
 SET(ITK_INSTALL_NO_LIBRARIES ON)
 SET(ITKV3_COMPATIBILITY ON CACHE BOOL "" FORCE)
 SET(Module_ITKDeprecated ON CACHE BOOL "" FORCE)
+
+# Test
+SET(ITK_USE_FFTWD ON)
+SET(ITK_USE_FFTWF ON)
+
 ADD_SUBDIRECTORY(itk)
 
 ##################################################
