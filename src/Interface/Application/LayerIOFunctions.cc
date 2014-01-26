@@ -102,12 +102,13 @@ bool LayerIOFunctions::ImportFiles( QMainWindow* main_window, std::string file_t
 #if defined(__APPLE__) || defined(_WIN32)
         // Use native dialog
 		file_list = QFileDialog::getOpenFileNames( main_window, 
-			"Import Layer(s)... ", current_file_folder.string().c_str(), filters, &qs_filtername );
+			"Import Layer(s)... ", current_file_folder.string().c_str(), filters, &qs_filtername, QFileDialog::DontUseNativeDialog );
 #else
         // It seems Ubuntus Qt4 version is broken and its dialog tends to crash
         // Hence use the other way of defining a dialog
         QFileDialog* diag = new QFileDialog( main_window, "Import Layer(s)...", 
             current_file_folder.string().c_str(), filters );
+        diag->setOption(QFileDialog::DontUseNativeDialog);
         diag->setFileMode(QFileDialog::ExistingFiles);
         diag->setNameFilter( qs_filtername );
         diag->exec();
@@ -231,12 +232,13 @@ void LayerIOFunctions::ImportSeries( QMainWindow* main_window )
 #if defined(__APPLE__) || defined(_WIN32)
         // Use native dialog
 		file_list = QFileDialog::getOpenFileNames( main_window, 
-			"Select a file from the series... ", current_file_folder.string().c_str(), filters, &filtername );
+			"Select a file from the series... ", current_file_folder.string().c_str(), filters, &filtername, QFileDialog::DontUseNativeDialog );
 #else
         // It seems Ubuntus Qt4 version is broken and its dialog tends to crash
         // Hence use the other way of defining a dialog
         QFileDialog* diag = new QFileDialog( main_window, "Select a file from the series...", 
             current_file_folder.string().c_str(), filters );
+        diag->setOption(QFileDialog::DontUseNativeDialog);
         diag->setFileMode(QFileDialog::ExistingFiles);
         diag->setNameFilter( filtername );
         diag->exec();
@@ -334,7 +336,8 @@ void LayerIOFunctions::ExportLayer( QMainWindow* main_window )
 
 	QString filename = QFileDialog::getSaveFileName( main_window, "Export Data Layer As... ",
 		QString::fromStdString( file_path.string() ),
-		"NRRD files (*.nrrd);;DICOM files (*.dcm);;TIFF files (*.tiff);;PNG files (*.png);;MRC files (*.mrc);;Matlab files (*.mat)" );
+		"NRRD files (*.nrrd);;DICOM files (*.dcm);;TIFF files (*.tiff);;PNG files (*.png);;MRC files (*.mrc);;Matlab files (*.mat)",
+		0, QFileDialog::DontUseNativeDialog );
 	
 	if( filename == "" ) return;
 	

@@ -105,7 +105,7 @@ PreferencesInterface::~PreferencesInterface()
 void PreferencesInterface::change_project_directory()
 {
 	QString path = QFileDialog::getExistingDirectory ( this, tr( "Directory" ), 
-		project_directory_.path() );
+		project_directory_.path(), QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog );
     if ( path.isNull() == false )
     {
         project_directory_.setPath( path );

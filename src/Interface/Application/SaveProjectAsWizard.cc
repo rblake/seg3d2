@@ -177,7 +177,8 @@ void SaveAsInfoPage::set_path()
 
     QDir project_directory_ = QDir( QFileDialog::getExistingDirectory ( this, 
 		tr( "Choose Save Directory..." ), this->project_path_lineedit_->text(), 
-		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks  ) );
+		QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks |
+		QFileDialog::DontUseNativeDialog ) );
 	
 	if( project_directory_.exists() )
     {

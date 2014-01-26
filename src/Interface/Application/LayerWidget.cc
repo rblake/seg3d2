@@ -376,7 +376,7 @@ void LayerWidgetPrivate::export_layer( const std::string& type_extension )
 {
 	boost::filesystem::path current_folder = ProjectManager::Instance()->get_current_file_folder();
 	QString export_path = QFileDialog::getExistingDirectory( this->parent_, tr( "Choose Directory for Export..." ),
-		current_folder.string().c_str(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks );
+		current_folder.string().c_str(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog );
 
 	if( export_path == "" ) return;
 

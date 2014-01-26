@@ -663,7 +663,10 @@ void Menu::open_project()
 		QFileDialog::getOpenFileName ( this->main_window_, 
 		QString::fromStdString( project_type ), 
 		QString::fromStdString( current_projects_path.string() ), 
-		QString::fromStdString( project_file_type ) ) ).toStdString() ); 
+		QString::fromStdString( project_file_type ),
+		0,
+		QFileDialog::DontUseNativeDialog
+		) ).toStdString() ); 
 
 #else
         // It seems Ubuntus Qt4 version is broken and its dialog tends to crash
@@ -672,6 +675,7 @@ void Menu::open_project()
             QString::fromStdString( project_type ), 
             QString::fromStdString( current_projects_path.string() ), 
             QString::fromStdString( project_file_type ) );
+        diag->setOption(QFileDialog::DontUseNativeDialog);
         diag->setFileMode(QFileDialog::ExistingFile);
         diag->exec();
         

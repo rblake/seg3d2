@@ -337,13 +337,15 @@ bool SegmentationSelectionPage::validatePage()
              " File (*"  + file_type + ")";
     
 		filename = QFileDialog::getSaveFileName( this, "Export Segmentation As... ",
-			current_folder.string().c_str(), QString::fromStdString( file_selector ) );
+			current_folder.string().c_str(), QString::fromStdString( file_selector ),
+			0, QFileDialog::DontUseNativeDialog
+			);
 	}
 	else
 	{
 		filename = QFileDialog::getExistingDirectory( this, tr( "Choose Directory for Export..." ),
 			current_folder.string().c_str(), QFileDialog::ShowDirsOnly | 
-                QFileDialog::DontResolveSymlinks );
+                QFileDialog::DontResolveSymlinks | QFileDialog::DontUseNativeDialog );
 			
 		if( !QFileInfo( filename ).exists() )
 		{

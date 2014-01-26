@@ -180,9 +180,12 @@ void SplashScreen::open_existing()
 
 	boost::filesystem::path full_path =  boost::filesystem::path( ( 
 		QFileDialog::getOpenFileName ( 0, 
-		QString::fromStdString( project_type ), 
-		QString::fromStdString( current_projects_path.string() ), 
-		QString::fromStdString( project_file_type ) ) ).toStdString() ); 
+			QString::fromStdString( project_type ),
+			QString::fromStdString( current_projects_path.string() ),
+			QString::fromStdString( project_file_type ),
+			0,
+			QFileDialog::DontUseNativeDialog
+                ) ).toStdString() );
 
 	bool is_path_extension = false;
 	for ( size_t j = 0; j < project_path_extensions.size(); j++ )
