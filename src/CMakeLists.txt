@@ -199,7 +199,7 @@ ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 # be build against different licensed 
 # versions of Qt.
 ###########################################
-
+OPTION(USE_SYSTEM_LIBRARIES "Use system libraries instead of Externals directory.  Use when packaging for Linux." OFF)
 
 MESSAGE(STATUS "Configuring External Packages")
 
@@ -337,9 +337,21 @@ ENDIF(BUILD_WITH_PYTHON)
 ##################################################
 
 MESSAGE(STATUS "Configuring boost")
-ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB)  
-ADD_SUBDIRECTORY(Externals/boost)
-INCLUDE_DIRECTORIES(${SCI_BOOST_INCLUDE})
+
+IF(USE_SYSTEM_LIBRARIES)
+  IF(BUILD_WITH_PYTHON)
+    SET(boost_python_components python-py32)
+  ELSE(BUILD_WITH_PYTHON)
+    SET(boost_python_components )
+  ENDIF(BUILD_WITH_PYTHON)
+  FIND_PACKAGE(Boost 1.36.0 REQUIRED filesystem regex system thread date_time ${boost_python_components})
+  INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+  SET(SCI_BOOST_LIBRARY ${Boost_LIBRARIES})
+ELSE(USE_SYSTEM_LIBRARIES)
+  ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB)  
+  ADD_SUBDIRECTORY(Externals/boost)
+  INCLUDE_DIRECTORIES(${SCI_BOOST_INCLUDE})  
+ENDIF(USE_SYSTEM_LIBRARIES)
 
 MESSAGE(STATUS "Configuring Seg3D2")
 
