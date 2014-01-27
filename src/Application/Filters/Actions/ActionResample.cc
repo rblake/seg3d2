@@ -28,7 +28,7 @@
 
 // teem includes
 #include <teem/nrrd.h>
-#include <teem/privateNrrd.h>
+//#include <teem/privateNrrd.h> // when using system NRRD, this header doesn't exist.
 
 // Core includes
 #include <Core/DataBlock/NrrdDataBlock.h>
@@ -243,22 +243,42 @@ ResampleAlgo::~ResampleAlgo()
 	}
 }
 
+static inline int _nrrdKindAltered(int kindIn, int resampling) {
+  int kindOut;
+
+  if (nrrdStateKindNoop) {
+    kindOut = nrrdKindUnknown;
+    /* HEY: setting the kindOut to unknown is arguably not a no-op.
+       It is more like pointedly and stubbornly simplistic. So maybe
+       nrrdStateKindNoop could be renamed .. */
+  } else {
+    if (nrrdKindIsDomain(kindIn)
+        || (0 == nrrdKindSize(kindIn) && !resampling)) {
+      kindOut = kindIn;
+    } else {
+      kindOut = nrrdKindUnknown;
+    }
+  }
+  return kindOut;
+}
+
+
 // NOTE: This function is copied from the _nrrdResampleOutputUpdate function
 static void UpdateNrrdAxisInfo( Nrrd* nout, NrrdResampleContext* rsmc )
 {
     nrrdSpaceVecCopy( nout->spaceOrigin, rsmc->nin->spaceOrigin );
+    nrrdAxisInfoCopy( nout, rsmc->nin, NULL, 
+                     ( NRRD_AXIS_INFO_SIZE_BIT
+                      | NRRD_AXIS_INFO_SPACING_BIT
+                      | NRRD_AXIS_INFO_THICKNESS_BIT
+                      | NRRD_AXIS_INFO_MIN_BIT
+                      | NRRD_AXIS_INFO_MAX_BIT
+                      | NRRD_AXIS_INFO_SPACEDIRECTION_BIT
+                      | NRRD_AXIS_INFO_CENTER_BIT
+                      | NRRD_AXIS_INFO_KIND_BIT ) );
     for ( unsigned int axIdx = 0; axIdx < rsmc->dim; axIdx++ ) 
 	{
         double minIdxFull, maxIdxFull, zeroPos;
-        _nrrdAxisInfoCopy( nout->axis + axIdx, rsmc->nin->axis + axIdx,
-                          ( NRRD_AXIS_INFO_SIZE_BIT
-                           | NRRD_AXIS_INFO_SPACING_BIT
-                           | NRRD_AXIS_INFO_THICKNESS_BIT
-                           | NRRD_AXIS_INFO_MIN_BIT
-                           | NRRD_AXIS_INFO_MAX_BIT
-                           | NRRD_AXIS_INFO_SPACEDIRECTION_BIT
-                           | NRRD_AXIS_INFO_CENTER_BIT
-                           | NRRD_AXIS_INFO_KIND_BIT ) );
         /* now set all the per-axis fields we just abstained from copying */
         /* size was already set */
         nout->axis[ axIdx ].spacing = ( rsmc->nin->axis[ axIdx ].spacing
@@ -267,9 +287,13 @@ static void UpdateNrrdAxisInfo( Nrrd* nout, NrrdResampleContext* rsmc )
         nout->axis[ axIdx ].thickness = AIR_NAN;
         /* We had to assume a specific centering when doing resampling */
         nout->axis[ axIdx ].center = rsmc->axis[ axIdx ].center;
-        _nrrdResampleMinMaxFull( &minIdxFull, &maxIdxFull,
-                                rsmc->axis[ axIdx ].center,
-                                rsmc->nin->axis[ axIdx ].size );
+        if (nrrdCenterCell == rsmc->axis[ axIdx ].center) {
+           minIdxFull = -0.5;
+           maxIdxFull = rsmc->nin->axis[ axIdx ].size - 0.5;
+        } else {
+           minIdxFull = 0.0;
+           maxIdxFull = rsmc->nin->axis[ axIdx ].size - 1.0;
+        }
         nout->axis[ axIdx ].min = AIR_AFFINE( minIdxFull,
                                            rsmc->axis[axIdx].min,
                                            maxIdxFull,

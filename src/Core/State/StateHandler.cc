@@ -30,7 +30,7 @@
 #include <queue>
 
 // TinyXML includes
-#include <Externals/tinyxml/tinyxml.h>
+#include <tinyxml.h>
 
 // Core includes
 #include <Core/State/StateHandler.h>
@@ -305,7 +305,7 @@ bool StateHandler::load_states( const StateIO& state_io )
 			state_value_str_map[ this->get_statehandler_id() + "::" + stateid ] = state_value_str;			
 		}
 
-		state_element = state_element->NextSiblingElement( STATE_ELEMENT_NAME );
+		state_element = state_element->NextSiblingElement( STATE_ELEMENT_NAME.c_str() );
 	}
 	
 	if ( !success )
@@ -454,11 +454,11 @@ bool StateHandler::save_states( StateIO& state_io )
 	TiXmlElement* sh_element;
 	if ( this->private_->do_not_save_id_number_ )
 	{
-		sh_element = new TiXmlElement( this->get_statehandler_id_base() );
+		sh_element = new TiXmlElement( this->get_statehandler_id_base().c_str() );
 	}
 	else
 	{
-		sh_element = new TiXmlElement( this->get_statehandler_id() );
+		sh_element = new TiXmlElement( this->get_statehandler_id().c_str() );
 	}
 
 	state_io.get_current_element()->LinkEndChild( sh_element );
