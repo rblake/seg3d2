@@ -129,24 +129,6 @@ ELSE (CMAKE_SIZEOF_VOID_P MATCHES 8)
 ENDIF (CMAKE_SIZEOF_VOID_P MATCHES 8)
 
 ###########################################
-# SETUP DEFINTIONS FOR EXTERNAL PACKAGES
-# To force a static build these flags
-# need to be set project wide.
-###########################################
-
-ADD_DEFINITIONS(-DGLEW_STATIC)
-ADD_DEFINITIONS(-DTEEM_STATIC)
-ADD_DEFINITIONS(-DLIBXML_STATIC)
-ADD_DEFINITIONS(-DTINYXML_STATIC)
-ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB)
-ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
-ADD_DEFINITIONS(-DTIXML_USE_STL)
-  
-SET(ITK_BUILD_SHARED_LIBS "STATIC")
-SET(ITK_USE_REVIEW TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
-SET(ITK_USE_REVIEW_STATISTICS TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
-
-###########################################
 # Flags for Microsoft Compiler
 ###########################################
 
@@ -197,21 +179,15 @@ INCLUDE(FindQt4)
 IF (QT_FOUND)
   SET(QT_USE_QTOPENGL 1)
   INCLUDE(${QT_USE_FILE})
+  INCLUDE_DIRECTORIES(${QT_INCLUDE_DIR})
 ELSE (QT_FOUND)
   MESSAGE(FATAL_ERROR "QT ${QT_MIN_VERSION} or later is required for building Seg3D")
 ENDIF (QT_FOUND)
 
 ENDIF(SEG3D_BUILD_INTERFACE)
 
-###########################################
-# Configure python
-OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
-IF(BUILD_WITH_PYTHON)
-  ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
-				  -DPy_NO_ENABLE_SHARED 
-				  -DBOOST_PYTHON_STATIC_MODULE
-				  -DBOOST_PYTHON_STATIC_LIB)
-ENDIF(BUILD_WITH_PYTHON)
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
+
 
 ###########################################
 # External packages other than Qt
@@ -224,7 +200,148 @@ ENDIF(BUILD_WITH_PYTHON)
 # versions of Qt.
 ###########################################
 
-ADD_SUBDIRECTORY(Externals)
+
+MESSAGE(STATUS "Configuring External Packages")
+
+##################################################
+# ADDING ZLIB
+##################################################
+
+MESSAGE(STATUS "Configuring zlib")
+ADD_SUBDIRECTORY(Externals/zlib)
+INCLUDE_DIRECTORIES(${SCI_ZLIB_INCLUDE})
+
+##################################################
+# ADDING MATLABIO
+##################################################
+
+MESSAGE(STATUS "Configuring MatlabIO")
+ADD_SUBDIRECTORY(Externals/MatlabIO)
+INCLUDE_DIRECTORIES(${SCI_MATLABIO_INCLUDE})
+
+##################################################
+# ADDING LIBPNG
+##################################################
+
+MESSAGE(STATUS "Configuring libpng")
+ADD_SUBDIRECTORY(Externals/libpng)
+INCLUDE_DIRECTORIES(${SCI_LIBPNG_INCLUDE})
+
+##################################################
+# ADDING TEEM
+##################################################
+
+# Teem depends on libpng and zlib, so make sure 
+# that these projects are included before Teem.
+
+MESSAGE(STATUS "Configuring teem")
+ADD_DEFINITIONS(-DTEEM_STATIC)
+ADD_SUBDIRECTORY(Externals/teem)
+INCLUDE_DIRECTORIES(${SCI_TEEM_INCLUDE})
+
+##################################################
+# ADDING GLEW
+##################################################
+
+MESSAGE(STATUS "Configuring glew")
+ADD_DEFINITIONS(-DGLEW_STATIC)
+ADD_SUBDIRECTORY(Externals/glew)
+INCLUDE_DIRECTORIES(${SCI_GLEW_INCLUDE})
+
+##################################################
+# ADDING FREETYPE
+##################################################
+
+MESSAGE(STATUS "Configuring freetype")
+ADD_SUBDIRECTORY(Externals/freetype)
+INCLUDE_DIRECTORIES(${SCI_FREETYPE_INCLUDE})
+
+##################################################
+# ADDING TINYXML
+##################################################
+
+MESSAGE(STATUS "Configuring tinyxml")
+ADD_DEFINITIONS(-DLIBXML_STATIC)
+ADD_DEFINITIONS(-DTINYXML_STATIC)
+ADD_DEFINITIONS(-DTIXML_USE_STL)
+ADD_SUBDIRECTORY(Externals/tinyxml)
+INCLUDE_DIRECTORIES(${SCI_TINYXML_INCLUDE})
+
+##################################################
+# ADDING SQLITE
+##################################################
+
+MESSAGE(STATUS "Configuring SQLite")
+ADD_SUBDIRECTORY(Externals/sqlite)
+INCLUDE_DIRECTORIES(${SCI_SQLITE_INCLUDE})
+
+##################################################
+# ADDING GDCM
+##################################################
+
+MESSAGE(STATUS "Configuring GDCM")
+ADD_SUBDIRECTORY(Externals/gdcm)
+INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
+
+##################################################
+# ADDING ITK
+##################################################
+
+MESSAGE(STATUS "Configuring insight toolkit")
+
+# Force ITK not to install any libraries, header
+# files etc. Because we don't need that stuff
+
+SET(ITK_BUILD_SHARED_LIBS "STATIC")
+SET(ITK_USE_REVIEW TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
+SET(ITK_USE_REVIEW_STATISTICS TRUE CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
+SET(ITK_INSTALL_NO_DEVELOPMENT 1)
+SET(ITK_INSTALL_NO_RUNTIME 1)
+SET(ITK_INSTALL_NO_DOCUMENTATION 1)
+SET(ITK_INSTALL_NO_LIBRARIES 1)
+SET(ITK_USE_SYSTEM_GDCM 1 CACHE BOOL "" FORCE)
+ADD_SUBDIRECTORY(Externals/itk)
+INCLUDE_DIRECTORIES(${SCI_ITK_INCLUDE})
+
+##################################################
+# ADDING MRC2000
+##################################################
+
+MESSAGE(STATUS "Configuring MRC2000")
+ADD_SUBDIRECTORY(Externals/MRC2000IO)
+INCLUDE_DIRECTORIES(${SCI_MRC2000IO_INCLUDE})
+
+##################################################
+# ADDING PYTHON
+##################################################
+
+OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
+IF(BUILD_WITH_PYTHON)
+  MESSAGE(STATUS "Configuring python")
+  ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
+				  -DPy_NO_ENABLE_SHARED 
+				  -DBOOST_PYTHON_STATIC_MODULE
+				  -DBOOST_PYTHON_STATIC_LIB)
+  ADD_SUBDIRECTORY(Externals/python)
+  INCLUDE_DIRECTORIES(${SCI_PYTHON_INCLUDE})
+  ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
+  INCLUDE(CMake/GenerateActionPythonWrapper.cmake)
+
+  # Generate the python functions registration file
+  MESSAGE(STATUS "Configuring action python wrapper functions")
+  GENERATE_ACTION_PYTHON_WRAPPER_REGISTRATION_FILE()
+ENDIF(BUILD_WITH_PYTHON)
+
+##################################################
+# ADDING BOOST
+##################################################
+
+MESSAGE(STATUS "Configuring boost")
+ADD_DEFINITIONS(-DBOOST_ALL_NO_LIB)  
+ADD_SUBDIRECTORY(Externals/boost)
+INCLUDE_DIRECTORIES(${SCI_BOOST_INCLUDE})
+
+MESSAGE(STATUS "Configuring Seg3D2")
 
 ###########################################
 # SETUP FOR DEBUG BUILDS
@@ -293,26 +410,6 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 ###########################################
 # Set the include paths
 ###########################################
-
-INCLUDE_DIRECTORIES(${QT_INCLUDE_DIR})
-INCLUDE_DIRECTORIES(${SCI_BOOST_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_ZLIB_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_LIBPNG_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_TEEM_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_GLEW_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_FREETYPE_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_ITK_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_TINYXML_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_MATLABIO_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_SQLITE_INCLUDE})
-INCLUDE_DIRECTORIES(${SCI_MRC2000IO_INCLUDE})
-
-IF(BUILD_WITH_PYTHON)
-  INCLUDE_DIRECTORIES(${SCI_PYTHON_INCLUDE})
-  ADD_DEFINITIONS(-DPy_NO_ENABLE_SHARED)
-  INCLUDE(CMake/GenerateActionPythonWrapper.cmake)
-ENDIF(BUILD_WITH_PYTHON)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -415,14 +512,6 @@ ENDIF(SEG3D_BUILD_INTERFACE)
 MESSAGE(STATUS "Configuring Seg3D registered functions")
 GENERATE_REGISTRATION_FILES()
 
-###########################################
-# Generate the python functions registration file
-###########################################
-
-IF(BUILD_WITH_PYTHON)
-  MESSAGE(STATUS "Configuring action python wrapper functions")
-  GENERATE_ACTION_PYTHON_WRAPPER_REGISTRATION_FILE()
-ENDIF(BUILD_WITH_PYTHON)
 
 ###########################################
 # Bootstrap
