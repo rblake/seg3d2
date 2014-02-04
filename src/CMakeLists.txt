@@ -188,6 +188,9 @@ ENDIF(SEG3D_BUILD_INTERFACE)
 
 ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
+###########################################
+
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
 
 ###########################################
 # External packages other than Qt
@@ -256,9 +259,16 @@ INCLUDE_DIRECTORIES(${SCI_TEEM_INCLUDE})
 ##################################################
 
 MESSAGE(STATUS "Configuring glew")
-ADD_DEFINITIONS(-DGLEW_STATIC)
-ADD_SUBDIRECTORY(Externals/glew)
-INCLUDE_DIRECTORIES(${SCI_GLEW_INCLUDE})
+IF(USE_SYSTEM_LIBRARIES)
+  FIND_PACKAGE(OpenGL)
+  FIND_PACKAGE(GLEW)
+  INCLUDE_DIRECTORIES(${GLEW_INCLUDE_DIRS})
+  SET(SCI_GLEW_LIBRARY ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})
+ELSE(USE_SYSTEM_LIBRARIES)
+  ADD_DEFINITIONS(-DGLEW_STATIC)
+  ADD_SUBDIRECTORY(Externals/glew)
+  INCLUDE_DIRECTORIES(${SCI_GLEW_INCLUDE})
+ENDIF(USE_SYSTEM_LIBRARIES)
 
 ##################################################
 # ADDING FREETYPE
@@ -457,10 +467,6 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 INCLUDE(CMake/Core.cmake)
 INCLUDE(CMake/RegisterClass.cmake)
-
-###########################################
-
-SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
 
 ###########################################
 # Application layers:
