@@ -88,20 +88,6 @@ MESSAGE(STATUS "Configuring SQLite")
 ADD_SUBDIRECTORY(sqlite)
 
 ##################################################
-# ADDING GDCM
-##################################################
-
-#MESSAGE(STATUS "Configuring GDCM")
-#ADD_SUBDIRECTORY(gdcm)
-
-##################################################
-# ADDING HDF5
-##################################################
-
-MESSAGE(STATUS "Configuring HDF5")
-ADD_SUBDIRECTORY(hdf5)
-
-##################################################
 # ADDING ITK
 ##################################################
 
@@ -119,6 +105,7 @@ MESSAGE(STATUS "Configuring insight toolkit")
 SET(ITK_INSTALL_NO_LIBRARIES ON)
 SET(ITKV3_COMPATIBILITY ON CACHE BOOL "" FORCE)
 SET(Module_ITKDeprecated ON CACHE BOOL "" FORCE)
+
 ADD_SUBDIRECTORY(itk)
 
 ##################################################
