@@ -24,10 +24,10 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
- */
+*/
 
-#ifndef APPLICATION_IMAGEREGISTRATIONTOOLS_ACTIONS_ACTIONREFINETRANSLATEFILTER_H
-#define APPLICATION_IMAGEREGISTRATIONTOOLS_ACTIONS_ACTIONREFINETRANSLATEFILTER_H
+#ifndef APPLICATION_IMAGEREGISTRATIONTOOLS_ACTIONS_ACTIONREFINEGRIDFILTER_H
+#define APPLICATION_IMAGEREGISTRATIONTOOLS_ACTIONS_ACTIONREFINEGRIDFILTER_H
 
 #include <Core/Action/Actions.h>
 #include <Core/Interface/Interface.h>
@@ -39,26 +39,24 @@
 namespace Seg3D
 {
 
-class ActionRefineTranslateFilter : public LayerAction
+class ActionRefineGridFilter : public LayerAction
 {
-
+  
 CORE_ACTION(
-  CORE_ACTION_TYPE( "RefineTranslateFilter", "ir-refine-translate" )
+  CORE_ACTION_TYPE( "RefineGridFilter", "ir-refine-grid" )
   CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
   CORE_ACTION_ARGUMENT( "input_mosaic", "Input mosaic file." )
   CORE_ACTION_ARGUMENT( "output_mosaic", "Output mosaic file." )
   CORE_ACTION_ARGUMENT( "directory", "Image file directory." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "shrink_factor", "1", "Downsample factor." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "num_threads", "0", "Number of threads used (if 0, number of cores will be used)." )
-  CORE_ACTION_OPTIONAL_ARGUMENT( "prune_tile_size", "32", "" )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "iterations", "10", "Run algorithm for given number of iterations." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "cell_size", "1", "Cell size." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "mesh_rows", "0", "Transform mesh rows." )
+  CORE_ACTION_OPTIONAL_ARGUMENT( "mesh_cols", "0", "Transform mesh columns." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "pixel_spacing", "1.0", "Pixel spacing." )          
-  CORE_ACTION_OPTIONAL_ARGUMENT( "intensity_tolerance", "0", "Intensity tolerance." )          
-  CORE_ACTION_OPTIONAL_ARGUMENT( "max_offset_x", "std::numeric_limits<double>::max()", "" )          
-  CORE_ACTION_OPTIONAL_ARGUMENT( "max_offset_y", "std::numeric_limits<double>::max()", "" )          
-  CORE_ACTION_OPTIONAL_ARGUMENT( "black_mask_x", "std::numeric_limits<double>::max()", "" )          
-  CORE_ACTION_OPTIONAL_ARGUMENT( "black_mask_y", "std::numeric_limits<double>::max()", "" )          
+  CORE_ACTION_OPTIONAL_ARGUMENT( "displacement_threshold", "1.0", "Pixel spacing." )          
   CORE_ACTION_OPTIONAL_ARGUMENT( "use_standard_mask", "false", "Use the default mask." )
-  CORE_ACTION_OPTIONAL_ARGUMENT( "use_clahe", "true", "Use the default mask." )
   CORE_ACTION_OPTIONAL_ARGUMENT( "sandbox", "-1", "The sandbox in which to run the action." )
   CORE_ACTION_ARGUMENT_IS_NONPERSISTENT( "sandbox" )
 //  CORE_ACTION_CHANGES_PROJECT_DATA()
@@ -66,23 +64,29 @@ CORE_ACTION(
 )
   
 public:
-  ActionRefineTranslateFilter()
+  ActionRefineGridFilter() :
+    MAX_ITERATIONS(100),
+    MIN_STEP_SCALE(1e-12),
+    MIN_ERROR_SQ(1e-16),
+    PICKUP_PACE_STEPS(5),
+    PREWARP_TILES(true),
+    MIN_OVERLAP(0.25),
+    DEFAULT_MEDIAN_FILTER_RADIUS(1),
+    MOVE_ALL_TILES(false)
   {
     this->add_layer_id( this->target_layer_ );
-    this->add_parameter( this->shrink_factor_ );
-    this->add_parameter( this->num_threads_ );
-    this->add_parameter( this->prune_tile_size_ );
-    this->add_parameter( this->pixel_spacing_ );
-    this->add_parameter( this->intensity_tolerance_ );
-    this->add_parameter( this->max_offset_x_ );
-    this->add_parameter( this->max_offset_y_ );
-    this->add_parameter( this->black_mask_x_ );
-    this->add_parameter( this->black_mask_y_ );
-    this->add_parameter( this->use_standard_mask_ );
-    this->add_parameter( this->use_clahe_ );
     this->add_parameter( this->input_mosaic_file_ );
     this->add_parameter( this->output_mosaic_file_ );
     this->add_parameter( this->directory_ );
+    this->add_parameter( this->shrink_factor_ );
+    this->add_parameter( this->num_threads_ );
+    this->add_parameter( this->iterations_ );
+    this->add_parameter( this->cell_size_ );
+    this->add_parameter( this->mesh_rows_ );
+    this->add_parameter( this->mesh_cols_ );
+    this->add_parameter( this->pixel_spacing_ );
+    this->add_parameter( this->displacement_threshold_ );
+    this->add_parameter( this->use_standard_mask_ );
 		this->add_parameter( this->sandbox_ );
   }
   
@@ -95,37 +99,42 @@ public:
                        std::string target_layer,
                        unsigned int shrink_factor,
                        unsigned int num_threads,
-                       unsigned int prune_tile_size,
+                       unsigned int iterations,
+                       unsigned int cell_size,
+                       unsigned int mesh_rows,
+                       unsigned int mesh_cols,
                        double pixel_spacing,
-                       double intensity_tolerance,
-                       double max_offset_x,
-                       double max_offset_y,
-                       double black_mask_x,
-                       double black_mask_y,
+                       double displacement_threshold,
                        bool use_standard_mask,
-                       bool use_clahe,
                        std::string input_mosaic_file,
                        std::string output_mosaic_file,
                        std::string directory);
   
 private:
   std::string target_layer_;
-	SandboxID sandbox_;  
+  SandboxID sandbox_;  
 
   unsigned int shrink_factor_;
   unsigned int num_threads_;
-  unsigned int prune_tile_size_;
+  unsigned int iterations_;
+  unsigned int cell_size_;
+  unsigned int mesh_rows_;
+  unsigned int mesh_cols_;
   double pixel_spacing_;
-  double intensity_tolerance_;
-  double max_offset_x_;
-  double max_offset_y_;
-  double black_mask_x_;
-  double black_mask_y_;
-  bool use_standard_mask_;
-  bool use_clahe_;
+  double displacement_threshold_;
+  bool use_standard_mask_;  
   std::string input_mosaic_file_;
   std::string output_mosaic_file_;
   std::string directory_;
+  
+  const unsigned int MAX_ITERATIONS;
+  const double MIN_STEP_SCALE;
+  const double MIN_ERROR_SQ;
+  const unsigned int PICKUP_PACE_STEPS;
+  const bool PREWARP_TILES;
+  const double MIN_OVERLAP;
+  const unsigned int DEFAULT_MEDIAN_FILTER_RADIUS;
+  const bool MOVE_ALL_TILES;
 };
 
 }
