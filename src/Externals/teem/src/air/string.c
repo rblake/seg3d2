@@ -232,6 +232,7 @@ airOneLinify(char *s) {
         s[j] = s[j+1];
       }
       i--;
+      len--;
       continue;
     }
   }
