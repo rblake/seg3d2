@@ -26,49 +26,39 @@
  DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef APPLICATION_IMAGEREGISTRATIONTOOLS_FFTFILTER_H
-#define APPLICATION_IMAGEREGISTRATIONTOOLS_FFTFILTER_H
-
-#include <Application/Tool/Tool.h>
+// StateEngine of the tool
+#include <Application/ImageRegistrationTools/SliceToSliceFilter.h>
 
 // Application includes
-#include <Application/Tool/SingleTargetTool.h>
+#include <Application/Tool/ToolFactory.h>
+
+#include <Application/ImageRegistrationTools/Actions/ActionSliceToSliceFilter.h>
+
+#include <iostream>
+
+SCI_REGISTER_TOOL(Seg3D, SliceToSliceFilter)
 
 namespace Seg3D
 {
 
-class FFTFilter : public SingleTargetTool
+SliceToSliceFilter::SliceToSliceFilter(const std::string& toolid)
+: SingleTargetTool( Core::VolumeType::DATA_E, toolid)
 {
-  
-SEG3D_TOOL(
-  SEG3D_TOOL_NAME( "FFTFilter", "" )
-  SEG3D_TOOL_MENULABEL( "ir-fft" )
-  SEG3D_TOOL_MENU( "Advanced Filters" )
-//  SEG3D_TOOL_SHORTCUT_KEY( "CTRL+ALT+R" )
-//  SEG3D_TOOL_URL( "" )
-  SEG3D_TOOL_VERSION( "1" )
-)
-  
-public:
-  FFTFilter( const std::string& toolid );
-  virtual ~FFTFilter();
-  
-  // -- state --
-public:
-  Core::StateRangedUIntHandle highest_resolution_level_shrink_factor_state_;
-  Core::StateRangedDoubleHandle overlap_min_state_;
-  Core::StateRangedDoubleHandle overlap_max_state_;
-  Core::StateRangedDoubleHandle pixel_spacing_state_;
-	Core::StateStringVectorHandle input_files_state_;
-  Core::StateStringHandle directory_state_;
-  Core::StateStringHandle output_mosaic_file_state_;
-  
-  // -- execute --
-public:
-  /// Execute the tool and dispatch the action
-  virtual void execute( Core::ActionContextHandle context );
-};
-  
-} // end namespace
+  // TODO: temporary hack
+  this->valid_target_state_->set( true );
+}
 
-#endif
+SliceToSliceFilter::~SliceToSliceFilter()
+{
+}
+
+void
+SliceToSliceFilter::execute( Core::ActionContextHandle context)
+{
+  std::cout << "SliceToSliceFilter::execute!" << std::endl;
+//  Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+//  
+//  ActionSliceToSliceFilter::Dispatch( context, this->target_layer_state_->get() );
+}
+
+}

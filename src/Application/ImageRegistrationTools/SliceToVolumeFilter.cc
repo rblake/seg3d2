@@ -24,51 +24,41 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
-*/
+ */
 
-#ifndef APPLICATION_IMAGEREGISTRATIONTOOLS_FFTFILTER_H
-#define APPLICATION_IMAGEREGISTRATIONTOOLS_FFTFILTER_H
-
-#include <Application/Tool/Tool.h>
+// StateEngine of the tool
+#include <Application/ImageRegistrationTools/SliceToVolumeFilter.h>
 
 // Application includes
-#include <Application/Tool/SingleTargetTool.h>
+#include <Application/Tool/ToolFactory.h>
+
+#include <Application/ImageRegistrationTools/Actions/ActionSliceToVolumeFilter.h>
+
+#include <iostream>
+
+SCI_REGISTER_TOOL(Seg3D, SliceToVolumeFilter)
 
 namespace Seg3D
 {
 
-class FFTFilter : public SingleTargetTool
+SliceToVolumeFilter::SliceToVolumeFilter(const std::string& toolid)
+: SingleTargetTool( Core::VolumeType::DATA_E, toolid)
 {
-  
-SEG3D_TOOL(
-  SEG3D_TOOL_NAME( "FFTFilter", "" )
-  SEG3D_TOOL_MENULABEL( "ir-fft" )
-  SEG3D_TOOL_MENU( "Advanced Filters" )
-//  SEG3D_TOOL_SHORTCUT_KEY( "CTRL+ALT+R" )
-//  SEG3D_TOOL_URL( "" )
-  SEG3D_TOOL_VERSION( "1" )
-)
-  
-public:
-  FFTFilter( const std::string& toolid );
-  virtual ~FFTFilter();
-  
-  // -- state --
-public:
-  Core::StateRangedUIntHandle highest_resolution_level_shrink_factor_state_;
-  Core::StateRangedDoubleHandle overlap_min_state_;
-  Core::StateRangedDoubleHandle overlap_max_state_;
-  Core::StateRangedDoubleHandle pixel_spacing_state_;
-	Core::StateStringVectorHandle input_files_state_;
-  Core::StateStringHandle directory_state_;
-  Core::StateStringHandle output_mosaic_file_state_;
-  
-  // -- execute --
-public:
-  /// Execute the tool and dispatch the action
-  virtual void execute( Core::ActionContextHandle context );
-};
-  
-} // end namespace
+  // TODO: temporary hack
+  this->valid_target_state_->set( true );
+}
 
-#endif
+SliceToVolumeFilter::~SliceToVolumeFilter()
+{
+}
+
+void
+SliceToVolumeFilter::execute( Core::ActionContextHandle context)
+{
+  std::cout << "SliceToVolumeFilter::execute!" << std::endl;
+//  Core::StateEngine::lock_type lock( Core::StateEngine::GetMutex() );
+//  
+//  ActionSliceToVolumeFilter::Dispatch( context, this->target_layer_state_->get() );
+}
+
+}
