@@ -98,8 +98,8 @@ ADD_SUBDIRECTORY(sqlite)
 # ADDING HDF5
 ##################################################
 
-MESSAGE(STATUS "Configuring HDF5")
-ADD_SUBDIRECTORY(hdf5)
+#MESSAGE(STATUS "Configuring HDF5")
+#ADD_SUBDIRECTORY(hdf5)
 
 ##################################################
 # ADDING ITK
@@ -121,8 +121,8 @@ SET(ITKV3_COMPATIBILITY ON CACHE BOOL "" FORCE)
 SET(Module_ITKDeprecated ON CACHE BOOL "" FORCE)
 
 # Test
-SET(ITK_USE_FFTWD ON)
-SET(ITK_USE_FFTWF ON)
+SET(ITK_USE_FFTWD ON CACHE BOOL "" FORCE)
+SET(ITK_USE_FFTWF ON CACHE BOOL "" FORCE)
 
 ADD_SUBDIRECTORY(itk)
 
