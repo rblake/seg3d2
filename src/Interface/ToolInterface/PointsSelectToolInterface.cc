@@ -119,6 +119,10 @@ PointsSelectToolInterface::build_widget( QFrame* frame )
   // Get a pointer to the tool
 	PointsSelectTool* tool = dynamic_cast< PointsSelectTool* > ( this->tool().get() );
 
+	qpointer_type points_select_interface( this );	
+  tool->seed_points_state_->value_changed_signal_.connect(
+   boost::bind( &PointsSelectToolInterface::ToggleSaveButtonEnabled, points_select_interface ) );  
+  
 	QButtonGroup* units_button_group = new QButtonGroup( this );
 	units_button_group->addButton( this->private_->ui_.rb_index_ );
 	units_button_group->addButton( this->private_->ui_.rb_world_ );
@@ -136,17 +140,34 @@ PointsSelectToolInterface::build_widget( QFrame* frame )
   
 	QtUtils::QtBridge::Enable( this->private_->ui_.export_button_, tool->valid_target_state_ );
 	QtUtils::QtBridge::Enable( this->private_->ui_.clear_seeds_button_, tool->valid_target_state_ );
-	QtUtils::QtBridge::Enable( this->private_->ui_.clear_seeds_button_, tool->valid_target_state_ );
   
 	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
-	QtUtils::QtBridge::Enable( this->private_->ui_.target_layer_, tool->use_active_layer_state_, true ); 
-//	QtUtils::QtBridge::Enable( this->private_->ui_.units_groupbox_, tool->use_active_layer_state_, true ); 
+	QtUtils::QtBridge::Enable( this->private_->ui_.target_layer_, tool->use_active_layer_state_, true );
+  
+  this->private_->ui_.export_button_->setEnabled(tool->seed_points_state_->size() > 0);
 
 	//Send a message to the log that we have finished with building the Measure Tool Interface
 	CORE_LOG_MESSAGE( "Finished building an Points Select Tool Interface" );
 
 	return true;
 } // end build_widget	
+
+void
+PointsSelectToolInterface::ToggleSaveButtonEnabled( qpointer_type points_select_interface )
+{
+	// Ensure that this call gets relayed to the right thread
+	if ( !( Core::Interface::IsInterfaceThread() ) )
+	{
+		Core::Interface::PostEvent( boost::bind( 
+      &PointsSelectToolInterface::ToggleSaveButtonEnabled, points_select_interface ) );
+		return;
+	}
+	if ( points_select_interface.data() )
+	{
+		PointsSelectTool* tool = dynamic_cast< PointsSelectTool* >( points_select_interface->tool().get() );
+    points_select_interface->private_->ui_.export_button_->setEnabled(tool->seed_points_state_->size() > 0);
+  }
+}
 
 } // end namespace Seg3D
 

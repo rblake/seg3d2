@@ -58,6 +58,14 @@ public:
 
 private:
     PointsSelectToolInterfacePrivateHandle private_;
+
+public:
+  typedef QPointer< PointsSelectToolInterface > qpointer_type;
+
+	/// TOGGLESAVEBUTTONENABLED
+	/// Enable or disable save points button depending on whether points are available.
+	/// Locks: StateEngine
+  static void ToggleSaveButtonEnabled( qpointer_type points_select_interface );
 };
 
 } // end namespace Seg3D
