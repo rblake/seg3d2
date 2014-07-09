@@ -81,6 +81,12 @@ void PointsSelectToolInterfacePrivate::export_points_to_file() const
                                            QString::fromStdString( file_selector ) );
   if (! filename.isNull() && ! filename.isEmpty() )
   {
+    QFileInfo file(filename);
+    if ( file.suffix().isEmpty() ) 
+    {
+      filename += ".txt";
+    }
+
     if ( tool->use_world_units_state_->get() )
     {
       ActionExportPoints::Dispatch( Core::Interface::GetWidgetActionContext(),
