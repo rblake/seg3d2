@@ -36,6 +36,9 @@
 
 
 cmake_minimum_required(VERSION 2.6)
+IF(COMMAND CMAKE_POLICY)
+  CMAKE_POLICY(VERSION 2.6)
+ENDIF(COMMAND CMAKE_POLICY)
 
 project(freetype)
 
@@ -43,6 +46,8 @@ set(VERSION_MAJOR "2")
 set(VERSION_MINOR "5")
 set(VERSION_PATCH "3")
 set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+
+SET(SCI_FREETYPE_LIBRARY freetype CACHE INTERNAL "Freetype library name." FORCE)
 
 # Compiler definitions for building the library
 add_definitions(-DFT2_BUILD_LIBRARY)
@@ -125,39 +130,46 @@ include_directories("src/raster")
 include_directories("src/psaux")
 include_directories("src/psnames")
 
-add_library(freetype ${BASE_SRCS})
+add_library(${SCI_FREETYPE_LIBRARY} STATIC ${BASE_SRCS})
+
+set(SCI_FREETYPE_INCLUDE
+  ${PROJECT_SOURCE_DIR}/include;${PROJECT_BINARY_DIR}/include
+  CACHE INTERNAL
+    "Public freetype include directories."
+  FORCE
+)
 
 # Installations
 # Note the trailing slash in the argument to the `DIRECTORY' directive
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-  DESTINATION include/freetype2
-  PATTERN "internal" EXCLUDE
-)
-install(TARGETS freetype
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
+#install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+#  DESTINATION include/freetype2
+#  PATTERN "internal" EXCLUDE
+#)
+#install(TARGETS freetype
+#  RUNTIME DESTINATION bin
+#  LIBRARY DESTINATION lib
+#  ARCHIVE DESTINATION lib
+#)
 
 # Packaging
 # CPack version numbers for release tarball name.
-set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH}})
-if (NOT DEFINED CPACK_PACKAGE_DESCRIPTION_SUMMARY)
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${CMAKE_PROJECT_NAME}")
-endif ()
-if (NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME
-    "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION}-r${PROJECT_REV}"
-    CACHE INTERNAL "tarball basename"
-  )
-endif ()
-set(CPACK_SOURCE_GENERATOR TGZ)
-set(CPACK_SOURCE_IGNORE_FILES
-  "/CVS/;/.svn/;.swp$;.#;/#;/build/;/serial/;/ser/;/parallel/;/par/;~;/preconfig.out;/autom4te.cache/;/.config")
-set(CPACK_GENERATOR TGZ)
-include(CPack)
+#set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
+#set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
+#set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH}})
+#if (NOT DEFINED CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+#  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${CMAKE_PROJECT_NAME}")
+#endif ()
+#if (NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
+#  set(CPACK_SOURCE_PACKAGE_FILE_NAME
+#    "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION}-r${PROJECT_REV}"
+#    CACHE INTERNAL "tarball basename"
+#  )
+#endif ()
+#set(CPACK_SOURCE_GENERATOR TGZ)
+#set(CPACK_SOURCE_IGNORE_FILES
+#  "/CVS/;/.svn/;.swp$;.#;/#;/build/;/serial/;/ser/;/parallel/;/par/;~;/preconfig.out;/autom4te.cache/;/.config")
+#set(CPACK_GENERATOR TGZ)
+#include(CPack)
 
 # add make dist target
 add_custom_target(dist COMMAND ${CMAKE_MAKE_PROGRAM} package_source)
