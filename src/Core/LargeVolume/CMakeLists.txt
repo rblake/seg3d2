@@ -4,7 +4,7 @@
 # 
 #  The MIT License
 # 
-#  Copyright (c) 2009 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2014 Scientific Computing and Imaging Institute,
 #  University of Utah.
 # 
 #  
@@ -31,52 +31,28 @@
 # Set sources
 ##################################################
 
-SET(CORE_UTILS_SRCS
-  AtomicCounter.h
-  ConnectionHandler.h
-  ConnectionHandler.cc
-  EnumClass.h
-  Exception.h
-  Exception.cc
-  FilesystemUtil.h
-  FilesystemUtil.cc
-  FileUtil.h
-  FileUtil.cc
-  GenerationNumber.h
-  GenerationNumber.cc
-  IntrusiveBase.h
-  IntrusiveBase.cc
-  Lockable.h
-  Log.h
-  Log.cc
-  LogHistory.h
-  LogHistory.cc
-  LogStreamer.h
-  LogStreamer.cc
-  Notifier.h
-  Notifier.cc
-  Parallel.h
-  Parallel.cc
-  Runnable.h
-  Runnable.cc
-  ScopedCounter.h
-  Singleton.h
-  StackBasedVector.h
-  StackVector.h
-  StringContainer.h
-  StringParser.h
-  StringParser.cc
-  StringUtil.h
-  StringUtil.cc
-  Timer.h
-  Timer.cc
-  Variant.h
-  Variant.cc
-)
+SET(CORE_LARGEVOLUME_SRCS
+  LargeVolumeSchema.h
+  LargeVolumeSchema.cc
+  LargeVolumeConverter.h
+  LargeVolumeConverter.cc
+  LargeVolumeCache.h
+  LargeVolumeCache.cc
+  )
 
 ##################################################
 # Build static library
 ##################################################
 
-CORE_ADD_LIBRARY(Core_Utils ${CORE_UTILS_SRCS})
-TARGET_LINK_LIBRARIES(Core_Utils ${SCI_BOOST_LIBRARY})
+ADD_DEFINITIONS(-DZ_PREFIX)
+
+CORE_ADD_LIBRARY(Core_LargeVolume ${CORE_LARGEVOLUME_SRCS} )
+            
+TARGET_LINK_LIBRARIES(Core_LargeVolume
+	Core_Utils
+	Core_Geometry
+	Core_DataBlock
+	Core_Application
+	${SCI_BOOST_LIBRARY}
+	${SCI_ZLIB_LIBRARY})
+
