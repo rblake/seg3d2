@@ -3,7 +3,7 @@
  
  The MIT License
  
- Copyright (c) 2009 Scientific Computing and Imaging Institute,
+ Copyright (c) 2014 Scientific Computing and Imaging Institute,
  University of Utah.
  
  
@@ -26,52 +26,40 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef INTERFACE_APPLICTION_CONTROLLERACTIONHISTORY_H
-#define INTERFACE_APPLICTION_CONTROLLERACTIONHISTORY_H 
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif 
+#ifndef INTERFACE_TOOLINTERFACE_EXTRACTDATALAYERINTERFACE_H
+#define INTERFACE_TOOLINTERFACE_EXTRACTDATALAYERINTERFACE_H
 
 #ifndef Q_MOC_RUN
 
-// QT includes
-#include <QtCore/QVariant>
-#include <QtCore/QModelIndex>
-#include <QtCore/QObject>
-
-// Core includes
-// include all the headers associated with the action engine
-#include <Core/Action/Actions.h>
-#include <Core/Action/ActionHistory.h>
+// Base class of the tool widget
+#include <Interface/Application/ToolWidget.h>
 
 #endif
 
 namespace Seg3D
 {
+class ExtractDataLayerInterfacePrivate;
 
-class ControllerActionHistory : public QAbstractTableModel
+class ExtractDataLayerInterface : public ToolWidget
 {
 Q_OBJECT
 
+// -- Constructor/destructor --
 public:
-	ControllerActionHistory( QObject* parent = 0 );
+	ExtractDataLayerInterface();
+	virtual ~ExtractDataLayerInterface();
 
-	virtual ~ControllerActionHistory();
-
-	int rowCount( const QModelIndex &index ) const;
-	int columnCount( const QModelIndex &index ) const;
-
-	QVariant data( const QModelIndex& index, int role ) const;
-	QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
-
-	void update() { reset(); }
+// -- create interface --
+public:
+	/// BUILD_WIDGET:
+	/// This function builds the actual GUI
+	virtual bool build_widget( QFrame* frame );
 
 private:
-	// Short cut to where the history is stored
-	Core::ActionHistory* history_;
+	boost::shared_ptr< ExtractDataLayerInterfacePrivate > private_;
+
 };
 
-} // end namespace Seg3D
+} // namespace Seg3D
 
 #endif
