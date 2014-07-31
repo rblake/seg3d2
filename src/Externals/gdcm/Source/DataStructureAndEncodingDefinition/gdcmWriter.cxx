@@ -121,7 +121,7 @@ if( DS.IsEmpty() )
     //gzos.flush();
 }
 
-    return os;
+    return (bool)os;
     }
 
 try

@@ -14,6 +14,8 @@
 =========================================================================*/
 #include "gdcmByteValue.h"
 
+#include <algorithm>
+
 namespace gdcm
 {
 
