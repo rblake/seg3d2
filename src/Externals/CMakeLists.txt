@@ -141,4 +141,15 @@ ENDIF(BUILD_WITH_PYTHON)
 MESSAGE(STATUS "Configuring boost")
 ADD_SUBDIRECTORY(boost)
 
+
+##################################################
+# ADD GOOGLETEST
+##################################################
+
+IF(BUILD_TESTING)
+  MESSAGE(STATUS "Configuring Google Test")
+  ADD_SUBDIRECTORY(googletest)
+ENDIF(BUILD_TESTING)
+
+
 MESSAGE(STATUS "Configuring Seg3D2")
