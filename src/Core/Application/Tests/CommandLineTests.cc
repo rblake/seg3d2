@@ -125,7 +125,7 @@ TEST(CommandLineTests, PointParam)
 {
   const int ARGC = 2;
   char argv0[] = { 't', 'e', 's', 't', '\0' };
-  char argv1[] = { '-', '-', 'p', 'o', 'i', 'n', 't', '=', '[', '0', '.', '1', ',', '0', '.', '1', ',', '0', '.', '1', ']', '\0' };
+  char argv1[] = { '-', '-', 'p', 'o', 'i', 'n', 't', '=', '0', '.', '1', ',', '0', '.', '1', ',', '0', '.', '1', '\0' };
   char* argv[] = { argv0, argv1 };
   
   Core::Application::Instance()->parse_command_line_parameters( ARGC, argv );
@@ -148,7 +148,7 @@ TEST(CommandLineTests, VectorParamWithFileArgs)
   char argv0[] = { 't', 'e', 's', 't', '\0' };
   char argv1[] = { 'f', 'i', 'l', 'e', '1', '\0' };
   char argv2[] = { 'f', 'i', 'l', 'e', '2', '\0' };
-  char argv3[] = { '-', '-', 'v', 'e', 'c', 't', 'o', 'r', '=', '[', '0', '.', '1', ',', '0', '.', '1', ',', '0', '.', '1', ']', '\0' };
+  char argv3[] = { '-', '-', 'v', 'e', 'c', 't', 'o', 'r', '=', '0', '.', '1', ',', '0', '.', '1', ',', '0', '.', '1', '\0' };
   char* argv[] = { argv0, argv1, argv2, argv3 };
   
   Core::Application::Instance()->parse_command_line_parameters( ARGC, argv, FILE_ARGS );
