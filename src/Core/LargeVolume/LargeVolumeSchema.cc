@@ -115,8 +115,7 @@ public:
 		return Ceil( size.xd() / effective_brick_size.x() ) * Ceil( size.yd() / effective_brick_size.y() ) * Ceil( size.zd() / effective_brick_size.z() );
 	}
   
-  IndexVector compute_remainder_brick( const BrickInfo& bi,
-                                  const IndexVector& index )
+  IndexVector compute_remainder_brick( const BrickInfo& bi, const IndexVector& index )
   {
     const IndexVector& layout = this->level_layout_[ bi.level_ ];
     const IndexVector& size = this->level_size_[ bi.level_ ];

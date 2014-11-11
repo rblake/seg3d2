@@ -56,32 +56,33 @@ namespace Core
 /// Brick sizes are computed in the XY plane.
 ///
 /// For example, if a 5000 x 5000 x n dataset is divided into 20
-/// 256x256x256 bricks at full resolution with n layers in the z axis, the schema is:
+/// 256x256x256 bricks at full resolution with m layers (m=n if downsampling in the z direction is off)
+/// in the z axis, the schema is:
 ///
-/// level 0 (20, 20, n):
+/// level 0 (20, 20, m):
 /// A0   (0 0 0)  | A1  (1 0 0)   | A2  (2 0 0)   | ... | A19 (19 0 0)
 /// A20  (0 1 0)  | A21 (1 1 0)   | A22 (2 1 0)   | ... | A39 (19 1 0)
 /// ...
 /// A380 (0 19 0) | A381 (1 19 0) | A382 (2 19 0) | ... | A399 (19 19 0)
 ///
-/// level 1 (10, 10, n):
+/// level 1 (10, 10, m):
 /// B0  (0 0 0) | B1  (1 0 0) | B2  (2 0 0)  | ... | B9 (9 0 0)
 /// B10 (0 1 0) | B11 (1 1 0) | B12 (2 1 0)  | ... | B19 (9 1 0)
 /// ...
 /// B90 (0 9 0) | B91 (1 9 0) | B92 (2 9 0)  | ... | B99 (9 9 0)
 ///
-/// level 2 (5, 5, n):
+/// level 2 (5, 5, m):
 /// C0 (0 0 0)  | C1 (1 0 0)  | C2 (2 0 0)  | C3 (3 0 0)  | C4 (4 0 0)
 /// C5 (0 1 0)  | C6 (1 1 0)  | C7 (2 1 0)  | C8 (3 1 0)  | C9 (4 1 0)
 /// ...
 /// C20 (0 4 0) | C21 (1 4 0) | C22 (2 4 0) | C23 (3 4 0) | C24 (4 4 0)
 ///
-/// level 3 (3, 3, n):
+/// level 3 (3, 3, m):
 /// D0 (0 0 0) | D1 (1 0 0) | D2 (2 0 0)
 /// D3 (0 1 0) | D4 (1 1 0) | D5 (2 1 0)
 /// D6 (0 2 0) | D7 (1 2 0) | D8 (2 2 0)
 ///
-/// level 4 (2, 2, n):
+/// level 4 (2, 2, m):
 /// E0 (0 0 0) | E1 (1 0 0)
 /// E2 (0 1 0) | E3 (1 1 0)
 ///
