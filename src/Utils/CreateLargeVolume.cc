@@ -66,6 +66,7 @@ void printUsage() {
 	std::cout << "  silent         - Do not wait for user input to continue." << std::endl;
 }
 
+// TODO: header full of useful constants (e.g. default brick size)
 
 int main( int argc, char **argv )
 {

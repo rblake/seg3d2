@@ -161,58 +161,58 @@ void Application::set_command_line_parameter( const std::string& key, const std:
 // Function for parsing the command line parameters
 void Application::parse_command_line_parameters( int argc, char **argv, int num_arguments )
 {
-	lock_type lock( get_mutex() );
+  lock_type lock( get_mutex() );
 
-    this->arguments_.clear();
-    this->parameters_.clear();
+  this->arguments_.clear();
+  this->parameters_.clear();
+  this->private_->app_filename_ = boost::filesystem::path( argv[0] );
+  this->private_->app_filepath_ = this->private_->app_filename_.parent_path();
 
-	this->private_->app_filename_ = boost::filesystem::path( argv[0] );
-	this->private_->app_filepath_ = this->private_->app_filename_.parent_path();
+  typedef boost::tokenizer< boost::char_separator< char > > tokenizer;
+  boost::char_separator< char > seperator( ":-=|;" );
 
-	typedef boost::tokenizer< boost::char_separator< char > > tokenizer;
-	boost::char_separator< char > seperator( ":-=|;" );
-	
-    int count = 1;
-    
-    for ( ; count < argc && count < (num_arguments+1); count++ )
+  int count = 1;
+
+  // Iterate over arguments (this will likely be file and directory paths),
+  // for example in the CreateLargeVolume utility.
+  for ( ; count < argc && count < (num_arguments+1); count++ )
+  {
+    this->arguments_.push_back(argv[count]);
+  }
+
+  if( ( argc > count ) && ( boost::filesystem::exists( boost::filesystem::path( argv[ count ] ) ) ) )
+  {
+    std::string key = "file_to_open_on_start";
+    this->parameters_[ key ] = std::string( argv[ count ] );
+    count++;
+  }
+
+  // Iterate over and parse through the command line parameters (flags).
+  for ( ; count < argc; count++ )
+  {
+
+    std::string arg( argv[ count ] );
+    tokenizer tokens( arg, seperator );
+    std::vector< std::string > param_vector;
+
+    for ( tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter )
     {
-        this->arguments_.push_back(argv[count]);
+      param_vector.push_back( *tok_iter );
     }
-	
-	if( ( argc > count ) && ( boost::filesystem::exists( boost::filesystem::path( argv[ count ] ) ) ) )
-	{
-		std::string key = "file_to_open_on_start";
-		this->parameters_[ key ] = std::string( argv[ count ] );
-		count++;
-	}
 
-	// parse through the command line arguments
+    // Create empty string
+    std::string value = "1";
 
-	for ( ; count < argc; count++ )
-	{
-    
-		std::string arg( argv[ count ] );
-		tokenizer tokens( arg, seperator );
-		std::vector< std::string > param_vector;
-
-		for ( tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter )
-		{
-			param_vector.push_back( *tok_iter );
-		}
-
-		// Create empty string
-		std::string value = "1";
-		
-		if ( param_vector.size() > 1 ) 
-		{ 
-			value = param_vector[ 1 ];
-		}
-		if ( param_vector.size() > 0 )
-		{
-			std::string key = param_vector[ 0 ];
-			this->parameters_[ key ] = value;
-		}
-	}
+    if ( param_vector.size() > 1 ) 
+    { 
+      value = param_vector[ 1 ];
+    }
+    if ( param_vector.size() > 0 )
+    {
+      std::string key = param_vector[ 0 ];
+      this->parameters_[ key ] = value;
+    }
+  }
 }
 
 bool Application::get_user_directory( boost::filesystem::path& user_dir, bool config_path )
