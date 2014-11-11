@@ -3,7 +3,7 @@
 # 
 #  The MIT License
 # 
-#  Copyright (c) 2009 Scientific Computing and Imaging Institute,
+#  Copyright (c) 2014 Scientific Computing and Imaging Institute,
 #  University of Utah.
 # 
 #  
@@ -30,16 +30,31 @@
 # PROJECT: Seg3D
 ###########################################
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
 
 PROJECT(Seg3D)
+
+
+###########################################
+# Configure testing support.
+# This should be done before any
+# MESSAGE(FATAL_ERROR ...) commands are
+# invoked.
+###########################################
+
+INCLUDE( CTest )
+IF(BUILD_TESTING)
+  ENABLE_TESTING()
+  INCLUDE(CMake/RegisterUnitTest.cmake)
+  INCLUDE_DIRECTORIES( ${SCI_GTEST_INCLUDE} )
+ENDIF(BUILD_TESTING)
 
 ###########################################
 # Verify build directory
 ###########################################
 
 IF ( ${CMAKE_BINARY_DIR} MATCHES ${CMAKE_SOURCE_DIR} )
-	MESSAGE( FATAL_ERROR "Please delete the CMakeCache.txt from the src directory and build Seg3D in the bin directory. Run 'rm CMakeCache.txt; cd ../bin; cmake ../src' from the binary directory." )
+  MESSAGE( FATAL_ERROR "Please delete the CMakeCache.txt from the src directory and build Seg3D in the bin directory. Run 'rm CMakeCache.txt; cd ../bin; cmake ../src' from the binary directory." )
 ENDIF ( ${CMAKE_BINARY_DIR} MATCHES ${CMAKE_SOURCE_DIR} )
 
 ###########################################
@@ -48,7 +63,7 @@ ENDIF ( ${CMAKE_BINARY_DIR} MATCHES ${CMAKE_SOURCE_DIR} )
 ###########################################
 
 IF (CMAKE_GENERATOR MATCHES "Unix Makefiles" AND NOT CMAKE_BUILD_TYPE)
-	SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
 ENDIF (CMAKE_GENERATOR MATCHES "Unix Makefiles" AND NOT CMAKE_BUILD_TYPE)
 
 ###########################################
@@ -124,7 +139,7 @@ ELSE (CMAKE_SIZEOF_VOID_P MATCHES 8)
   SET(MSVC90_BUILD "x86")
   ADD_DEFINITIONS(-DSCI_32BITS)
   IF (WIN32)
-	ADD_DEFINITIONS(-DBOOST_BIND_ENABLE_STDCALL)
+  ADD_DEFINITIONS(-DBOOST_BIND_ENABLE_STDCALL)
   ENDIF (WIN32)
 ENDIF (CMAKE_SIZEOF_VOID_P MATCHES 8)
 
@@ -212,9 +227,9 @@ ENDIF(SEG3D_BUILD_INTERFACE)
 OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
 IF(BUILD_WITH_PYTHON)
   ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
-				  -DPy_NO_ENABLE_SHARED 
-				  -DBOOST_PYTHON_STATIC_MODULE
-				  -DBOOST_PYTHON_STATIC_LIB)
+          -DPy_NO_ENABLE_SHARED 
+          -DBOOST_PYTHON_STATIC_MODULE
+          -DBOOST_PYTHON_STATIC_LIB)
 ENDIF(BUILD_WITH_PYTHON)
 
 ###########################################
@@ -257,23 +272,23 @@ IF(NOT WIN32 AND NOT APPLE)
   SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} X11)
 
   CHECK_C_SOURCE_COMPILES(
-	"
-	#include <X11/Xlib.h>
+  "
+    #include <X11/Xlib.h>
 
-	int main()
-	{
-		XInitThreads();
-		return 1;
-	}
-	"
-	X11_THREADSAFE
+    int main()
+    {
+      XInitThreads();
+      return 1;
+    }
+  "
+  X11_THREADSAFE
   )
   IF(${X11_THREADSAFE})
-	MESSAGE(STATUS "XInitThreads found")
-	OPTION(MULTITHREADED_RENDERING "Enable multi-threaded rendering." OFF)
-	IF(MULTITHREADED_RENDERING)
-	  ADD_DEFINITIONS(-DX11_THREADSAFE)
-	ENDIF(MULTITHREADED_RENDERING)
+  MESSAGE(STATUS "XInitThreads found")
+  OPTION(MULTITHREADED_RENDERING "Enable multi-threaded rendering." OFF)
+  IF(MULTITHREADED_RENDERING)
+    ADD_DEFINITIONS(-DX11_THREADSAFE)
+  ENDIF(MULTITHREADED_RENDERING)
   ENDIF(${X11_THREADSAFE})
 ENDIF(NOT WIN32 AND NOT APPLE)
 
@@ -380,9 +395,9 @@ INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/Plugins")
 
 FOREACH(DIR ${PLUGIN_DIRS})
   IF(NOT ${DIR} MATCHES "Plugins/.svn")
-	IF(IS_DIRECTORY ${DIR}) 
+  IF(IS_DIRECTORY ${DIR}) 
       ADD_SUBDIRECTORY(${DIR})
-	ENDIF(IS_DIRECTORY ${DIR}) 
+  ENDIF(IS_DIRECTORY ${DIR}) 
   ENDIF(NOT ${DIR} MATCHES "Plugins/.svn")
 ENDFOREACH(DIR ${PLUGIN_DIRS})
 
@@ -517,7 +532,7 @@ IF(WIN32 AND NOT UNIX)
     SET(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
   ELSE(CMAKE_SIZEOF_VOID_P MATCHES 8)
     SET(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES")
-  ENDIF(CMAKE_SIZEOF_VOID_P MATCHES 8)	
+  ENDIF(CMAKE_SIZEOF_VOID_P MATCHES 8)  
   
   SET(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\${APPLICATION_NAME}")
   SET(CPACK_NSIS_MUI_ICON "${APPLICATION_WINDOWS_ICON}")
@@ -528,36 +543,36 @@ IF(WIN32 AND NOT UNIX)
   SET(CPACK_NSIS_MODIFY_PATH ON)
   SET(CPACK_PACKAGE_EXECUTABLES "${APPLICATION_NAME}" "${APPLICATION_NAME}")
   SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-	WriteRegStr HKCR '.nrrd' '' '${APPLICATION_NAME}-nrrd'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd' '' '${APPLICATION_NAME} NRRD File'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell' '' 'open'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit' '' 'Open NRRD Data File'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
-	WriteRegStr HKCR '.nhdr' '' '${APPLICATION_NAME}-nhdr'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr' '' '${APPLICATION_NAME} NHDR File'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell' '' 'open'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit' '' 'Open NHDR Data File'
-	WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	#System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
-	WriteRegStr HKCR '${APPLICATION_EXTENSION}' '' '${APPLICATION_NAME}'
-	WriteRegStr HKCR '${APPLICATION_NAME}' '' '${APPLICATION_NAME} Project File'
-	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell' '' 'open'
-	WriteRegStr HKCR '${APPLICATION_NAME}\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
-	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit' '' 'Open ${APPLICATION_NAME} Project File'
-	WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
-	System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
+    WriteRegStr HKCR '.nrrd' '' '${APPLICATION_NAME}-nrrd'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd' '' '${APPLICATION_NAME} NRRD File'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell' '' 'open'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit' '' 'Open NRRD Data File'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nrrd\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    #System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
+    WriteRegStr HKCR '.nhdr' '' '${APPLICATION_NAME}-nhdr'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr' '' '${APPLICATION_NAME} NHDR File'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell' '' 'open'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit' '' 'Open NHDR Data File'
+    WriteRegStr HKCR '${APPLICATION_NAME}-nhdr\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    #System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
+    WriteRegStr HKCR '${APPLICATION_EXTENSION}' '' '${APPLICATION_NAME}'
+    WriteRegStr HKCR '${APPLICATION_NAME}' '' '${APPLICATION_NAME} Project File'
+    WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell' '' 'open'
+    WriteRegStr HKCR '${APPLICATION_NAME}\\\\DefaultIcon' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe,0'
+    WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\open\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit' '' 'Open ${APPLICATION_NAME} Project File'
+    WriteRegStr HKCR '${APPLICATION_NAME}\\\\shell\\\\edit\\\\command' '' '$INSTDIR\\\\bin\\\\${APPLICATION_NAME}.exe \\\"%1\\\"'
+    System::Call 'Shell32::SHChangeNotify( i 0x800000, i 0, i 0, i 0)'
   ")
   SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-	DeleteRegKey HKCR '.nrrd'
-	DeleteRegKey HKCR '.nhdr'
-	DeleteRegKey HKCR '${APPLICATION_EXTENSION}'
-	DeleteRegKey HKCR '${APPLICATION_NAME}'
+    DeleteRegKey HKCR '.nrrd'
+    DeleteRegKey HKCR '.nhdr'
+    DeleteRegKey HKCR '${APPLICATION_EXTENSION}'
+    DeleteRegKey HKCR '${APPLICATION_NAME}'
   ")
 ELSE(WIN32 AND NOT UNIX)
   IF(APPLE)
