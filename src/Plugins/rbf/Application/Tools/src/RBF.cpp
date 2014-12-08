@@ -1,9 +1,35 @@
-#include "ScatteredData.h"
-#include "RBF.h"
-#include "SparseMatrix.h"
-#include "vec3.h"
-#include "LinearSolver.h"
-#include "FMM.h"
+//-------------------------------------------------------------------
+//
+//  Permission is  hereby  granted, free  of charge, to any person
+//  obtaining a copy of this software and associated documentation
+//  files  ( the "Software" ),  to  deal in  the  Software without
+//  restriction, including  without limitation the rights to  use,
+//  copy, modify,  merge, publish, distribute, sublicense,  and/or
+//  sell copies of the Software, and to permit persons to whom the
+//  Software is  furnished  to do  so,  subject  to  the following
+//  conditions:
+//
+//  The above  copyright notice  and  this permission notice shall
+//  be included  in  all copies  or  substantial  portions  of the
+//  Software.
+//
+//  THE SOFTWARE IS  PROVIDED  "AS IS",  WITHOUT  WARRANTY  OF ANY
+//  KIND,  EXPRESS OR IMPLIED, INCLUDING  BUT NOT  LIMITED  TO THE
+//  WARRANTIES   OF  MERCHANTABILITY,  FITNESS  FOR  A  PARTICULAR
+//  PURPOSE AND NONINFRINGEMENT. IN NO EVENT  SHALL THE AUTHORS OR
+//  COPYRIGHT HOLDERS  BE  LIABLE FOR  ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+//  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+//  USE OR OTHER DEALINGS IN THE SOFTWARE.
+//-------------------------------------------------------------------
+//-------------------------------------------------------------------
+
+#include <rbf/Application/Tools/src/ScatteredData.h>
+#include <rbf/Application/Tools/src/RBF.h>
+#include <rbf/Application/Tools/src/SparseMatrix.h>
+#include <rbf/Application/Tools/src/vec3.h>
+#include <rbf/Application/Tools/src/LinearSolver.h>
+#include <rbf/Application/Tools/src/FMM.h>
 
 #include <cmath>
 #include <cstdio>
@@ -12,8 +38,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
-using std::vector;
-using std::pair;
+
 
 RBF::RBF()
 {
@@ -59,16 +84,16 @@ void RBF::computeFunction()
 			data->setData(completeData->x[0], completeData->x[1], completeData->x[2], completeData->fnc);
 			computeFunctionForData();
 			break;
-
+      
 		case Random:
 			bool *added;
 			int n = completeData->fnc.size();
 			printf("%d\n",n);
 			added = new bool[n];
-		
+      
 			for(int i=0; i<n; i++)
 				added[i]=false;
-
+      
 			for(int i=0; i<25; i++)
 			{
 				int j = rand()%n;
@@ -84,7 +109,7 @@ void RBF::computeFunction()
 				data->fnc.push_back(completeData->fnc[j]);
 				printf("%d %lf %lf %lf %lf\n", j, completeData->x[0][j],completeData->x[1][j],completeData->x[2][j],completeData->fnc[j]);
 			}
-			vector<pair<double, int> > error;
+			std::vector<std::pair<double, int> > error;
 			bool smallError=false;
 			while(!smallError)
 			{
@@ -113,7 +138,7 @@ void RBF::computeFunction()
 						data->fnc.push_back(completeData->fnc[j]);
 					}
 				}
-
+        
 			}
 			printf("Total no. of data point: %d\n",  data->fnc.size()); fflush(stdout);
 	}
@@ -157,14 +182,14 @@ double RBF::computeValue(vec3 x)
 			return fmmComputeValue(x);
 		case None:
 		default:
-				double sum=0;
-				for(int i=0; i<coeff.size(); i++)
-					sum+=coeff[i]*computeKernel(i, x);
-				return sum;
+      double sum=0;
+      for(int i=0; i<coeff.size(); i++)
+        sum+=coeff[i]*computeKernel(i, x);
+      return sum;
 	}
 }
 
-void RBF::computeErrorForData(vector<pair<double, int> > &error)
+void RBF::computeErrorForData(std::vector<std::pair<double, int> > &error)
 {
 	int n = completeData->fnc.size();
 	error.clear();
@@ -179,19 +204,19 @@ void RBF::computeErrorForData(vector<pair<double, int> > &error)
 double RBF::computeKernel(int i, int j)
 {
 	double r = sqrt( (data->x[0][i] - data->x[0][j])*(data->x[0][i] - data->x[0][j]) +
-		         (data->x[1][i] - data->x[1][j])*(data->x[1][i] - data->x[1][j]) +
-		         (data->x[2][i] - data->x[2][j])*(data->x[2][i] - data->x[2][j]) );
-
+                  (data->x[1][i] - data->x[1][j])*(data->x[1][i] - data->x[1][j]) +
+                  (data->x[2][i] - data->x[2][j])*(data->x[2][i] - data->x[2][j]) );
+  
 	return computeRadialFunction(r);
-
+  
 }
 
 double RBF::computeKernel(int i, vec3 b)
 {
 	double r = sqrt( (data->x[0][i] - b[0])*(data->x[0][i] - b[0]) +
-		         (data->x[1][i] - b[1])*(data->x[1][i] - b[1]) +
-		         (data->x[2][i] - b[2])*(data->x[2][i] - b[2]) );
-
+                  (data->x[1][i] - b[1])*(data->x[1][i] - b[1]) +
+                  (data->x[2][i] - b[2])*(data->x[2][i] - b[2]) );
+  
 	return computeRadialFunction(r);
 }
 
@@ -217,11 +242,6 @@ double RBF::computeRadialFunction(double r)
 }
 
 
-
-
-
-
-
 //FMM Codes
 void RBF::fmmComputeFunction()
 {
@@ -230,7 +250,7 @@ void RBF::fmmComputeFunction()
 
 void RBF::fmmBuildTree()
 {
-	vector<int> myIndices;
+	std::vector<int> myIndices;
 	int n = data->x[0].size();
 	for(int i=0; i<n; i++)
 		myIndices.push_back(i);
@@ -254,52 +274,52 @@ void RBF::fmmPrintTree(BHNode *myNode, int stack)
 	printf("%d %d %d\n", myNode, myNode->index, myNode->pts.size());
 	for(int i=0; i<8; i++)
 	{
-		if(myNode->nodes[i]!=NULL)
+		if(myNode->nodes[i]!=0)
 			fmmPrintTree(myNode->nodes[i], stack+1);
 	}
 }
 
-void RBF::fmmBuildTree(vector<int> &myPoints, BHNode *myNode)
+void RBF::fmmBuildTree(std::vector<int> &myPoints, BHNode *myNode)
 {
-
-	//printf("[%lf %lf %lf] [%lf %lf %lf] %d\n", myNode->box.min[0], myNode->box.min[1], myNode->box.min[2], myNode->box.max[0], myNode->box.max[1], myNode->box.max[2], myPoints.size()); 
-	vector<int> children[8];
+  
+	//printf("[%lf %lf %lf] [%lf %lf %lf] %d\n", myNode->box.min[0], myNode->box.min[1], myNode->box.min[2], myNode->box.max[0], myNode->box.max[1], myNode->box.max[2], myPoints.size());
+	std::vector<int> children[8];
 	int n = myPoints.size();
-
+  
 	myNode->index = fmm->numOfNodes;
 	fmm->numOfNodes += 1;
 	fmm->nodePointer.push_back(myNode);
-
+  
 	myNode->mass = n;
 	myNode->leaf = (n<=1)?true:false;
 	myNode->center = vec3::zero;
-
+  
 	myNode->coeff = 1; //REPLACE
 	//add all the coefficients
-
-
+  
+  
 	for(int i=0; i<myPoints.size(); i++)
 		myNode->pts.push_back(myPoints[i]);
-
+  
 	for(int i=0; i<n; i++)
 	{
 		vec3 location(data->x[0][myPoints[i]], data->x[1][myPoints[i]],data->x[2][myPoints[i]]);
 		myNode->center = myNode->center + (location/n);
 	}
-
+  
 	if (n==1)
 	{
 		for(int i=0; i<8; i++)
-			myNode->nodes[i]=NULL;
+			myNode->nodes[i]=0;
 		return;
 	}
 	if(length(myNode->box.max - myNode->box.min) < 1e-6)
 	{
 		for(int i=0; i<8; i++)
-			myNode->nodes[i]=NULL;
+			myNode->nodes[i]=0;
 		return;
 	}
-
+  
 	vec3 mid((myNode->box.getMin()+myNode->box.getMax())/2);
 	for(int i=0; i<n; i++)
 	{
@@ -311,21 +331,21 @@ void RBF::fmmBuildTree(vector<int> &myPoints, BHNode *myNode)
 			octant+=2;
 		if(data->x[2][myPoints[i]] > mid[2])
 			octant+=4;
-
+    
 		//printf("%d %d %d %lf %lf %lf\n", i,octant, myPoints[i], data->x[0][myPoints[i]],data->x[1][myPoints[i]], data->x[2][myPoints[i]]);
-
+    
 		children[octant].push_back(myPoints[i]);
 	}
 	for(int i=0; i<8; i++)
 	{
 		if (children[i].size() == 0)
 		{
-			myNode->nodes[i] = NULL;
+			myNode->nodes[i] = 0;
 			continue;
 		}
-
+    
 		myNode->nodes[i] = new BHNode();
-
+    
 		int hash = i;
 		for(int j=0; j<3; j++)
 		{
@@ -341,7 +361,7 @@ void RBF::fmmBuildTree(vector<int> &myPoints, BHNode *myNode)
 			}
 			hash /= 2;
 		}
-
+    
 		
 		fmmBuildTree(children[i], myNode->nodes[i]);
 	}
@@ -357,7 +377,7 @@ double RBF::fmmComputeValue(vec3 x)
 double RBF::fmmComputeValueRecurse(vec3 x, BHNode *myNode)
 {
 	double val=0;
-
+  
 	if(length(myNode->center - x)/length(myNode->box.min-myNode->box.max) < 0)  //far away
 	{
 		val = myNode->coeff*fmmComputeKernel(x, myNode);
@@ -366,7 +386,7 @@ double RBF::fmmComputeValueRecurse(vec3 x, BHNode *myNode)
 	{
 		for(int i=0; i<8; i++)
 		{
-			if(myNode->nodes[i] != NULL)
+			if(myNode->nodes[i] != 0)
 			{
 				val+=fmmComputeValueRecurse(x, myNode->nodes[i]);
 			}
@@ -386,7 +406,7 @@ double RBF::fmmComputeValueRecurse(vec3 x, BHNode *myNode)
 double RBF::fmmComputeKernel(vec3 b, BHNode *myNode)
 {
 	double r = length(myNode->center - b);
-
+  
 	return computeRadialFunction(r);
 }
 
