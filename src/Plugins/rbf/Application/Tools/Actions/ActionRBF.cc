@@ -229,12 +229,11 @@ public:
         {
           for(int i=0; i < dim[0]; i++)
           {
-            double val = value[i][j][k];
+            float val = value[i][j][k];
             nrrd_file.write((char*)&val, sizeof(float));
           }
         }
       }
-      
       nrrd_file.close();
     }
   }
