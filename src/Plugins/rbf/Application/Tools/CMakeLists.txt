@@ -33,6 +33,8 @@ SET(APPLICATION_TOOLS_SRCS
 )
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS
+  src/BBox.cpp
+  src/BBox.h
   src/BHNode.cpp
   src/BHNode.h
   src/FMM.cpp
@@ -45,7 +47,9 @@ SET(APPLICATION_TOOLS_NOREGISTER_SRCS
   src/ScatteredData.h
   src/SparseMatrix.cpp
   src/SparseMatrix.h
-#  src/fileIO.h
+  src/Surface.cpp
+  src/Surface.h
+  #src/fileIO.h
   src/vec3.cpp
   src/vec3.h
 )
