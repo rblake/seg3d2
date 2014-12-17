@@ -32,13 +32,16 @@
 // Core includes
 #include <Application/Layer/LayerAction.h>
 
-namespace Seg3D
+namespace Plugin
+{
+
+namespace Application
 {
 
 class ActionRBFPrivate;
 typedef boost::shared_ptr< ActionRBFPrivate > ActionRBFPrivateHandle;
 
-class ActionRBF : public LayerAction
+class ActionRBF : public Seg3D::LayerAction
 {
 CORE_ACTION
 (
@@ -70,6 +73,6 @@ public:
   static void Dispatch( Core::ActionContextHandle context );
 };
 
-} // end namespace Seg3D
+}}
 
 #endif

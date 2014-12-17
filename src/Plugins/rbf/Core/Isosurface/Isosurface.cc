@@ -26,6 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
+#include <rbf/Core/Isosurface/Isosurface.h>
+
 // STL includes
 #include <fstream>
 
@@ -34,15 +36,19 @@
  
 // Core includes
 #include <Core/DataBlock/StdDataBlock.h>
-#include <Core/Isosurface/Isosurface.h>
 #include <Core/Utils/StackVector.h>
 #include <Core/Utils/Parallel.h>
 #include <Core/Utils/Log.h>
 #include <Core/Graphics/VertexBufferObject.h>
 #include <Core/RenderResources/RenderResources.h>
 
+namespace Plugin
+{
+
 namespace Core
 {
+
+using namespace ::Core;
 
 // Marching Cubes tutorial: http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
 
@@ -2274,4 +2280,4 @@ float Isosurface::surface_area() const
 	return this->private_->area_;
 }
 
-} // end namespace Core
+}}

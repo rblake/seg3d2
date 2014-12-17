@@ -46,19 +46,24 @@
 #include <vector>
 #include <cstdio>
 #include <fstream>
+#include <Core/DataBlock/StdDataBlock.h>
 // test
 
-CORE_REGISTER_ACTION( Seg3D, RBF )
+CORE_REGISTER_ACTION( Plugin::Application, RBF )
 
-namespace Seg3D
+namespace Plugin
 {
+
+namespace Application
+{
+
 
 // TODO really worth having a private class here?
 class ActionRBFPrivate
 {
 public:
   std::string target_layer_id_;
-  SandboxID sandbox_;
+  Seg3D::SandboxID sandbox_;
 };
 
 vec3 findNormal(ScatteredData *data, int n)
@@ -108,21 +113,33 @@ void augmentNormalData(ScatteredData *data)
   }
 }
 
-class RBFAlgo : public LayerFilter
+  class RBFAlgo : public Seg3D::LayerFilter
 {
   
 public:
-  LayerHandle src_layer_;
-  LayerHandle dst_layer_;
+//  LayerHandle src_layer_;
+  Seg3D::LayerHandle dst_layer_;
 
 	RBFAlgo();
 	virtual ~RBFAlgo();
   
   SCI_BEGIN_RUN()
   {
+    
+    // temporary: destination layer will be created in the usual way
+//    LayerHandle dst_layer;
+    Seg3D::LayerMetaData meta_data;
+    Core::Point origin(-30, -50, 80);
+    Core::Transform transform(origin,
+                              Core::Vector( 0.6, 0.0 , 0.0 ),
+                              Core::Vector( 0.0, 0.5, 0.0 ),
+                              Core::Vector( 0.0, 0.0, 0.1 ));
+    Core::GridTransform gridTransform( 100, 100, 100, transform );
+    gridTransform.set_originally_node_centered( false );
+    
     //Take the input
     ScatteredData *mySurfaceData = new ScatteredData();
-    
+
     //	readSurfaceDataFile("./segmentation/sample_points_DEMRI.txt", mySurfaceData);
     std::vector<Surface*> mySurface;
     // file contents (sample data)
@@ -153,6 +170,7 @@ public:
     // ???
     for(int i=0; i<3; i++)
       mySurfaceData->x[i].pop_back();
+
     mySurfaceData->fnc.pop_back();
     std::cout<<"Done"<<std::endl;
     std::cout<<"Augmenting data"<<std::endl;
@@ -170,8 +188,7 @@ public:
     
     //Construct RBFs
     mySurface[0]->computeRBF();
-    
-    
+
     //Compute material
     std::vector<std::vector<std::vector<double> > > value;
     value.resize(100);
@@ -199,6 +216,40 @@ public:
       }
     }
     
+    Core::DataBlockHandle dstDataBlock = Core::StdDataBlock::New( gridTransform.get_nx(), gridTransform.get_ny(), gridTransform.get_nz(), Core::DataType::FLOAT_E );
+
+    // Initialize the result data with 0
+    float* dstData = reinterpret_cast< float* >( dstDataBlock->get_data() );
+    size_t total_voxels = dstDataBlock->get_size();
+    memset( dstData, 0, total_voxels );
+
+    for (size_t x = 0; x < 100; x++)
+    {
+      for (size_t y = 0; y < 100; y++)
+      {
+        for (size_t z = 0; z < 100; z++)
+        {
+          size_t index = dstDataBlock->to_index( x, y, z );
+          dstData[index] = value[x][y][z];
+        }
+      }
+     }
+
+//    if (! this->create_and_lock_data_layer_test( dst_layer, "surface", gridTransform, meta_data ) )
+//    {
+//      this->report_error( "Could not create layer." );
+//    }
+
+    if (! this->dispatch_insert_data_volume_into_layer(this->dst_layer_, Core::DataVolumeHandle( new Core::DataVolume( gridTransform, dstDataBlock ) ), true ) )
+    {
+      this->report_error( "Could not insert layer." );
+    }
+
+    if (! this->dispatch_unlock_layer( this->dst_layer_ ) )
+    {
+      this->report_error( "Could not unlock layer." );
+    }
+
     vec3 dim(100,100,100);
     vec3 spacing(0.6,0.5,0.1);
     std::string filename = "surface.nrrd";
@@ -280,9 +331,23 @@ bool ActionRBF::run( Core::ActionContextHandle& context, Core::ActionResultHandl
   
 	// Set up parameters
 	algo->set_sandbox( this->private_->sandbox_ );
+
+  Seg3D::LayerMetaData meta_data;
+  Core::Point origin(-30, -50, 80);
+  Core::Transform transform(origin,
+                            Core::Vector( 0.6, 0.0 , 0.0 ),
+                            Core::Vector( 0.0, 0.5, 0.0 ),
+                            Core::Vector( 0.0, 0.0, 0.1 ));
+  Core::GridTransform gridTransform( 100, 100, 100, transform );
+  gridTransform.set_originally_node_centered( false );
+  
+  if (! algo->create_and_lock_data_layer_test( algo->dst_layer_, "surface", gridTransform, meta_data ) )
+  {
+    context->report_error( "Could not create layer." );
+  }
 	
 	// Build the undo-redo record
-	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this(), true );
+//	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this(), true );
   
 	// Start the filter.
 	Core::Runnable::Start( algo );
@@ -297,4 +362,4 @@ void ActionRBF::Dispatch( Core::ActionContextHandle context)
   Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
 }
 
-} // end namespace Seg3D
+}}

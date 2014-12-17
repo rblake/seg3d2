@@ -43,6 +43,9 @@
 #include <Core/Volume/MaskVolume.h>
 #include <Core/Utils/Lockable.h>
 
+namespace Plugin
+{
+
 namespace Core
 {
 
@@ -54,10 +57,10 @@ class IsosurfacePrivate;
 typedef boost::shared_ptr< IsosurfacePrivate > IsosurfacePrivateHandle;
 
 // Isosurface geometry and computation code 
-class Isosurface : public Core::RecursiveLockable
+class Isosurface : public ::Core::RecursiveLockable
 {
 public:
-	Isosurface( const MaskVolumeHandle& mask_volume );	
+Isosurface( const ::Core::MaskVolumeHandle& mask_volume );
 
 	// COMPUTE:
 	/// Compute isosurface.  quality_factor must be one of: {0.125, 0.25, 0.5, 1.0} 
@@ -67,7 +70,7 @@ public:
 	/// Get 3D points for vertices, each stored only once
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	const std::vector< PointF >& get_points() const;
+	const std::vector< ::Core::PointF >& get_points() const;
 
 	// GET_FACES:
 	/// Indices into vertices, 3 per face
@@ -79,7 +82,7 @@ public:
 	/// Get one normal per vertex, interpolated
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	const std::vector< VectorF >& get_normals() const;
+	const std::vector< ::Core::VectorF >& get_normals() const;
 
 	// SURFACE_AREA:
 	/// Return the area of the isosurface.
@@ -102,11 +105,11 @@ public:
 	/// Set mapping from vertex values to RGB colors.  
 	/// NOTE: This function is not thread-safe. Passing handle since colormap is unlikely
 	/// to be modified after creation. 
-	void set_color_map( ColorMapHandle color_map );
+	void set_color_map( ::Core::ColorMapHandle color_map );
 
 	// GET_COLOR_MAP:
 	/// Get mapping from vertex values to RGB colors
-	ColorMapHandle get_color_map() const;
+	::Core::ColorMapHandle get_color_map() const;
 
 	// REDRAW:
 	/// Render the isosurface.  This function doesn't work in isolation -- it must be called from the 
@@ -159,6 +162,6 @@ private:
 	IsosurfacePrivateHandle private_;
 };
 
-} // end namespace Core
+}}
 
 #endif
