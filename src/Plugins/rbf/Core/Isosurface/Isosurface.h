@@ -26,8 +26,8 @@
  DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CORE_ISOSURFACE_ISOSURFACE_H
-#define CORE_ISOSURFACE_ISOSURFACE_H
+#ifndef PLUGIN_CORE_ISOSURFACE_ISOSURFACE_H
+#define PLUGIN_CORE_ISOSURFACE_ISOSURFACE_H
 
 // STL includes
 #include <vector>
@@ -40,7 +40,7 @@
 #include <Core/Geometry/Point.h>
 #include <Core/Geometry/Vector.h>
 #include <Core/Graphics/ColorMap.h>
-#include <Core/Volume/MaskVolume.h>
+#include <Core/Volume/DataVolume.h>
 #include <Core/Utils/Lockable.h>
 
 namespace Plugin
@@ -60,7 +60,7 @@ typedef boost::shared_ptr< IsosurfacePrivate > IsosurfacePrivateHandle;
 class Isosurface : public ::Core::RecursiveLockable
 {
 public:
-Isosurface( const ::Core::MaskVolumeHandle& mask_volume );
+  Isosurface( const ::Core::DataVolumeHandle& volume, double isovalue );
 
 	// COMPUTE:
 	/// Compute isosurface.  quality_factor must be one of: {0.125, 0.25, 0.5, 1.0} 
@@ -70,7 +70,7 @@ Isosurface( const ::Core::MaskVolumeHandle& mask_volume );
 	/// Get 3D points for vertices, each stored only once
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	const std::vector< ::Core::PointF >& get_points() const;
+	const std::vector< ::Core::Point >& get_points() const;
 
 	// GET_FACES:
 	/// Indices into vertices, 3 per face
@@ -82,24 +82,24 @@ Isosurface( const ::Core::MaskVolumeHandle& mask_volume );
 	/// Get one normal per vertex, interpolated
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	const std::vector< ::Core::VectorF >& get_normals() const;
+	const std::vector< ::Core::Vector >& get_normals() const;
 
 	// SURFACE_AREA:
 	/// Return the area of the isosurface.
-	float surface_area() const;
+	double surface_area() const;
 
 	// GET_VALUES:
 	/// Get values per vertex.  Returns empty vector if use has not set values.
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	const std::vector< float >& get_values() const; 
+	const std::vector< double >& get_values() const;
 
 	// SET_VALUES:
 	/// Set values for all vertices.  Vector must be same size as points and normals vectors 
 	/// or empty.  Returns true on success, false on failure.
 	/// NOTE: This function is not thread-safe, make sure you have the mutex
 	/// allocated before using this array (use get_mutex())
-	bool set_values( const std::vector< float >& values );
+	bool set_values( const std::vector< double >& values );
 
 	// SET_COLOR_MAP:
 	/// Set mapping from vertex values to RGB colors.  

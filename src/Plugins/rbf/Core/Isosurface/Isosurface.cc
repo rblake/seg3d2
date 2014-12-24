@@ -41,6 +41,7 @@
 #include <Core/Utils/Log.h>
 #include <Core/Graphics/VertexBufferObject.h>
 #include <Core/RenderResources/RenderResources.h>
+#include <Core/Utils/Exception.h>
 
 namespace Plugin
 {
@@ -360,84 +361,40 @@ public:
 };
 typedef boost::shared_ptr< VertexBufferBatch > VertexBufferBatchHandle;
 
-class IsosurfacePrivate 
+class IsosurfacePrivate
 {
-
 public:
-	void downsample_setup( int num_threads, double quality_factor );
-
-	// PARALLEL_DOWNSAMPLE:
-	// Downsample mask prior to computing the isosurface in order to reduce the mesh to speed up
-	// rendering.
-	void parallel_downsample_mask( int thread, int num_threads, boost::barrier& barrier, 
-		double quality_factor );
-
-	// Copy values to members just to simplify and shorten code.  Must be called after downsample
-	// and before face computation.
-	void compute_setup();
-
-	// SETUP:
-	// Setup the algorithm and the buffers for face computation
-	void compute_faces_setup( int num_threads );
-
-	// PARALLEL_COMPUTE_FACES:
-	// Parallelized isosurface computation algorithm 
-	void parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier );
-
-	void translate_cap_coords( int cap_num, float i, float j, float& x, float& y, float& z );
-
-	size_t get_data_index( float x, float y, float z );
-
-	// COMPUTE_CAP_FACES:
-	// Compute the "cap" faces at the boundary of the mask volume to handle the case where the 
-	// mask goes all the way to the boundary.  Otherwise, we end up with holes in the 
-	// isosurface at the boundary.  The cap faces are computed as separate geometry so that they can 
-	// be turned on/off independently from the rest of the isosurface.
-	void compute_cap_faces();
-
-	// PARALLEL_COMPUTE_NORMALS:
-	// Parallelized isosurface normal computation algorithm 
-	void parallel_compute_normals( int thread, int num_threads,  boost::barrier& barrier );
-
-	// UPLOAD_TO_VERTEX_BUFFER:
-	void upload_to_vertex_buffer();
-
-	void reset();
-	
-
 	// Pointer to public Isosurface -- needed to give access to public signals
 	Isosurface* isosurface_;
 
+	// Input to isosurface computation, not downsampled
+	DataVolumeHandle orig_data_volume_;
+
+	// Data volume to be used for isosurface computation.  May point to original volume or
+	// downsampled volume.
+	DataVolumeHandle compute_data_volume_;
+
 	// Downsample params
-	MaskVolumeHandle downsample_mask_volume_;
+	DataVolumeHandle downsample_data_volume_;
 	int neighborhood_size_;
 	size_t zsize_;
 	size_t total_neighborhoods_;
 
-	// Input to isosurface computation, not downsampled
-	MaskVolumeHandle orig_mask_volume_; 
-	// Mask volume to be used for isosurface computation.  May point to original volume or 
-	// downsampled volume.
-	MaskVolumeHandle compute_mask_volume_; 
-	unsigned char mask_value_; // Same for original volume and downsampled volume
-
 	// Output mesh
-	std::vector< PointF > points_; 
-	std::vector< VectorF > normals_; 
+	std::vector< Point > points_;
+	std::vector< Vector > normals_;
 	std::vector< unsigned int > faces_; // unsigned int because GL expects this
-	std::vector< float > values_; // Should be in range [0, 1]
-	float area_; // Surface area of the isosurface
+	std::vector< double > values_; // Should be in range [0, 1]
+	double area_; // Surface area of the isosurface
 
 	// Single colormap shared by all isosurfaces
 	ColorMapHandle color_map_;
 
-	// Algorithm data & buffers
-	unsigned char* data_; // Mask data is stored in bit-plane (8 masks per data block)
-	size_t nx_, ny_, nz_; // Mask dimensions of original or downsampled volume depending on quality
+	size_t nx_, ny_, nz_; // Dimensions of original or downsampled volume depending on quality
 	size_t elem_nx_, elem_ny_, elem_nz_; // Number of (marching) cubes
 
-	std::vector<unsigned char> type_buffer_; 
-	std::vector<std::vector<unsigned int> > edge_buffer_;  
+	std::vector<unsigned char> type_buffer_;
+	std::vector<std::vector<unsigned int> > edge_buffer_;
 
 	std::vector<unsigned int> min_point_index_;
 	std::vector<unsigned int> max_point_index_;
@@ -448,9 +405,9 @@ public:
 	std::vector< std::pair<unsigned int, unsigned int> > part_faces_;
 	std::vector< std::vector< unsigned int > > part_indices_;
 
-	std::vector< std::vector< PointF > > new_points_; 
+	std::vector< std::vector< Point > > new_points_;
 	std::vector< std::vector< StackVector< size_t, 3 > > > new_elems_;
-	std::vector< float > new_elem_areas_;
+	std::vector< double > new_elem_areas_;
 
 	std::vector< size_t > front_offset_;
 	std::vector< size_t > back_offset_;
@@ -467,6 +424,14 @@ public:
 	bool need_abort_;
 	boost::function< bool () > check_abort_;
 
+  virtual void reset() = 0;
+	virtual void compute_setup() = 0;
+	virtual void compute_cap_faces() = 0;
+	virtual void upload_to_vertex_buffer() = 0;
+	virtual void parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier ) = 0;
+	virtual void parallel_compute_normals( int thread, int num_threads,  boost::barrier& barrier ) = 0;
+	virtual void parallel_downsample( int thread, int num_threads, boost::barrier& barrier, double quality_factor ) = 0;
+
 	const static double COMPUTE_PERCENT_PROGRESS_C;
 	const static double NORMAL_PERCENT_PROGRESS_C;
 	const static double PARTITION_PERCENT_PROGRESS_C;
@@ -475,46 +440,97 @@ public:
 // Initialize static variables
 const double IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C = 0.8;
 const double IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C = 0.05;
-const double IsosurfacePrivate::PARTITION_PERCENT_PROGRESS_C = 0.15; 
+const double IsosurfacePrivate::PARTITION_PERCENT_PROGRESS_C = 0.15;
 
-void IsosurfacePrivate::downsample_setup( int num_threads, double quality_factor )
+template <class T>
+class IsosurfacePrivateImpl : public IsosurfacePrivate
 {
-	this->nx_ = this->orig_mask_volume_->get_mask_data_block()->get_nx();
-	this->ny_ = this->orig_mask_volume_->get_mask_data_block()->get_ny();
-	this->nz_ = this->orig_mask_volume_->get_mask_data_block()->get_nz();
+private:
+	void downsample_setup( int num_threads, double quality_factor );
 
-	// Mask data is stored in bit-plane (8 masks per data block)
-	this->data_ = this->orig_mask_volume_->get_mask_data_block()->get_mask_data();
+	void translate_cap_coords( int cap_num, double i, double j, double& x, double& y, double& z );
+
+	// SETUP:
+	// Setup the algorithm and the buffers for face computation
+	void compute_faces_setup( int num_threads );
+
+	size_t get_data_index( double x, double y, double z );
+
+public:
+
+	// COMPUTE_CAP_FACES:
+	// Compute the "cap" faces at the boundary of the volume to handle the case where the 
+	// surface  goes all the way to the boundary.  Otherwise, we end up with holes in the
+	// isosurface at the boundary.  The cap faces are computed as separate geometry so that they can 
+	// be turned on/off independently from the rest of the isosurface.
+	virtual void compute_cap_faces();
+
+	// UPLOAD_TO_VERTEX_BUFFER:
+	virtual void upload_to_vertex_buffer();
+
+	// Copy values to members just to simplify and shorten code.  Must be called after downsample
+	// and before face computation.
+	virtual void compute_setup();
+
+	virtual void reset();
+
+	// PARALLEL_COMPUTE_FACES:
+	// Parallelized isosurface computation algorithm
+	virtual void parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier );
+
+	// PARALLEL_COMPUTE_NORMALS:
+	// Parallelized isosurface normal computation algorithm
+	virtual void parallel_compute_normals( int thread, int num_threads,  boost::barrier& barrier );
+
+	// PARALLEL_DOWNSAMPLE:
+	// Downsample data prior to computing the isosurface in order to reduce the mesh to speed up
+	// rendering.
+	virtual void parallel_downsample( int thread, int num_threads, boost::barrier& barrier, double quality_factor );
+
+  //	unsigned char mask_value_; // Same for original volume and downsampled volume
+  T isovalue_;
+
+	// Algorithm data & buffers
+//	unsigned char* data_; // Mask data is stored in bit-plane (8 masks per data block)
+  T* data_;
+};
+
+template <class T>
+void IsosurfacePrivateImpl<T>::downsample_setup( int num_threads, double quality_factor )
+{
+	this->nx_ = this->orig_data_volume_->get_data_block()->get_nx();
+	this->ny_ = this->orig_data_volume_->get_data_block()->get_ny();
+	this->nz_ = this->orig_data_volume_->get_data_block()->get_nz();
+
+	this->data_ = reinterpret_cast<T*>( this->orig_data_volume_->get_data_block()->get_data() );
 
 	// Bit where mask bit is stored
-	this->mask_value_ = this->orig_mask_volume_->get_mask_data_block()->get_mask_value();
+//	this->mask_value_ = this->orig_data_volume_->get_data_block()->get_mask_value();
 
-	// Create downsampled mask to store results 
+	// Create downsampled volume to store results 
 	this->neighborhood_size_ = static_cast< int >( 1.0 / quality_factor );
 	size_t downsampled_nx = this->nx_ / this->neighborhood_size_;
 	size_t downsampled_ny = this->ny_ / this->neighborhood_size_;
 	size_t downsampled_nz = this->nz_ / this->neighborhood_size_;
 
-	// Normally MaskDataBlocks should be registered with the MathDataBlockManager, but in this
+	// Normally DataBlocks should be registered with the DataBlockManager, but in this
 	// case we are only using this as a temporary object and do not want to share the mask with
 	// other masks since we would then have to carefully lock/unlock it during use.
-	MaskDataBlockHandle mask_data_block( new MaskDataBlock( 
-		StdDataBlock::New( downsampled_nx, downsampled_ny, downsampled_nz, DataType::UCHAR_E ), 
-		this->orig_mask_volume_->get_mask_data_block()->get_mask_bit() ) );
+	DataBlockHandle data_block( StdDataBlock::New( downsampled_nx, downsampled_ny, downsampled_nz, this->orig_data_volume_->get_data_type() ) );
 
-	// Downsampled mask needs to be scaled up to fill the same geometric space as the original
+	// Downsampled data volume needs to be scaled up to fill the same geometric space as the original
 	// mask.
-	GridTransform grid_transform = this->orig_mask_volume_->get_grid_transform();
+	GridTransform grid_transform = this->orig_data_volume_->get_grid_transform();
 	double transform_scale = static_cast< double >( this->neighborhood_size_ );
 	grid_transform.post_scale( Vector( transform_scale, transform_scale, transform_scale ) );
 
-	this->downsample_mask_volume_ = MaskVolumeHandle( new MaskVolume( grid_transform, 
-		mask_data_block ) );
+	this->downsample_data_volume_ = DataVolumeHandle( new DataVolume( grid_transform, 
+		data_block ) );
 
-	// Point to downsampled mask rather than original mask
-	this->compute_mask_volume_ = this->downsample_mask_volume_;
+	// Point to downsampled data volume rather than original data volume
+	this->compute_data_volume_ = this->downsample_data_volume_;
 
-	// For parallelization, divide mask into slabs along z.  No synchronization is needed.
+	// For parallelization, divide volume into slabs along z.  No synchronization is needed.
 	this->zsize_ = static_cast< size_t >( this->nz_ / num_threads );
 	// Make sure this zsize will cover all the data
 	if ( this->zsize_ * num_threads < this->nz_ ) 
@@ -534,13 +550,13 @@ void IsosurfacePrivate::downsample_setup( int num_threads, double quality_factor
 	this->total_neighborhoods_ = x_neighborhoods * y_neighborhoods * z_neighborhoods;
 }
 
-/*
-Allow downsampling by only half, quarter, and eighth.  When downsampling by half, a 2x2x2 
-neighborhood of nodes is downsampled to a single node.  If at least one neighborhood node is "on", 
-result is "on".  This method was chosen to prevent holes in the downsampled data.
-*/
-void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads, 
-	boost::barrier& barrier, double quality_factor )
+
+// Allow downsampling by only half, quarter, and eighth.  When downsampling by half, a 2x2x2
+// neighborhood of nodes is downsampled to a single node.  If at least one neighborhood node is "on",
+// result is "on".  This method was chosen to prevent holes in the downsampled data.
+
+template <class T>
+void IsosurfacePrivateImpl<T>::parallel_downsample( int thread, int num_threads, boost::barrier& barrier, double quality_factor )
 {
 	// Only need to setup once 
 	if( thread == 0 )
@@ -561,11 +577,10 @@ void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads,
 		nzend = this->nz_;
 	}
 
-	unsigned char* downsampled_data = 
-		this->downsample_mask_volume_->get_mask_data_block()->get_mask_data();
+	T* downsampled_data = reinterpret_cast<T*>( this->downsample_data_volume_->get_data_block()->get_data() );
 
 	size_t z_offset = this->nx_ * this->ny_;
-	unsigned char not_mask_value = ~( this->mask_value_ );
+//	unsigned char not_mask_value = ~( this->mask_value_ );
 
 	size_t target_index = thread * this->total_neighborhoods_;
 	size_t x_start_end = this->nx_ - this->neighborhood_size_ + 1;
@@ -580,8 +595,8 @@ void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads,
 			for ( size_t x_start = 0; x_start < x_start_end; x_start += this->neighborhood_size_ ) 
 			{
 				// Clear entry initially
-				downsampled_data[ target_index ] &= not_mask_value;
-				
+//				downsampled_data[ target_index ] &= not_mask_value;
+
 				bool stop = false;
 				size_t x_end = x_start + this->neighborhood_size_;
 				size_t y_end = y_start + this->neighborhood_size_;
@@ -597,13 +612,13 @@ void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads,
 							size_t index = ( ( z_offset ) * z ) + ( this->nx_ * y ) + x;  
 
 							// If at least one neighborhood node is "on", result is "on"
-							if ( this->data_[ index ] & this->mask_value_ ) // Node "on"		
-							{
-								// Turn on mask value
-								downsampled_data[ target_index ] |= this->mask_value_;
-								// Short-circuit
-								stop = true;
-							}
+//							if ( this->data_[ index ] & this->mask_value_ ) // Node "on"		
+//							{
+//								// Turn on mask value
+//								downsampled_data[ target_index ] |= this->mask_value_;
+//								// Short-circuit
+//								stop = true;
+//							}
 						}
 					}
 				}
@@ -613,20 +628,21 @@ void IsosurfacePrivate::parallel_downsample_mask( int thread, int num_threads,
 	}
 }
 
-void IsosurfacePrivate::compute_setup()
+template <class T>
+void IsosurfacePrivateImpl<T>::compute_setup()
 {
-	this->nx_ = this->compute_mask_volume_->get_mask_data_block()->get_nx();
-	this->ny_ = this->compute_mask_volume_->get_mask_data_block()->get_ny();
-	this->nz_ = this->compute_mask_volume_->get_mask_data_block()->get_nz();
+	this->nx_ = this->compute_data_volume_->get_data_block()->get_nx();
+	this->ny_ = this->compute_data_volume_->get_data_block()->get_ny();
+	this->nz_ = this->compute_data_volume_->get_data_block()->get_nz();
 
-	// Mask data is stored in bit-plane (8 masks per data block)
-	this->data_ = this->compute_mask_volume_->get_mask_data_block()->get_mask_data();
+	this->data_ = reinterpret_cast<T*>( this->compute_data_volume_->get_data_block()->get_data() );
 
 	// Bit where mask bit is stored
-	this->mask_value_ = this->compute_mask_volume_->get_mask_data_block()->get_mask_value();
+//	this->mask_value_ = this->compute_data_volume_->get_data_block()->get_mask_value();
 }
 
-void IsosurfacePrivate::compute_faces_setup( int num_threads )
+template <class T>
+void IsosurfacePrivateImpl<T>::compute_faces_setup( int num_threads )
 {
 	// Number of elements (cubes) in each dimension
 	this->elem_nx_ = this->nx_ - 1;
@@ -670,31 +686,31 @@ void IsosurfacePrivate::compute_faces_setup( int num_threads )
 
 }
 
-/*
-Basic ideas:
-- Move through volume two slices at a time along z axis.  Back and front refer to these two slices.
-- Points are shared by multiple triangles in the isosurface.  We don't want to store a copy of a
-  point for each triangle.  In order to avoid duplicates, we go through edges in one direction at a 
-  time, looking at edges that need to be split.  This way we encounter each edge only once.
-- Sort edges into 5 configurations
-  - back_buffer_x - Edges along the x direction on the back buffer (slice) 
-  - back_buffer_y - Edges along the y direction on the back buffer (slice)
-  - front_buffer_x - Edges along the x direction on the front buffer (slice)
-  - front_buffer_y - Edges along the y direction on the front buffer (slice)
-  - side_buffer - Edges along the sides between the back and front buffers (slices)
-- These are tables of split edges with indices into a points vector of actual points.
-- Number points as you encounter split edges.
-- After edge tables are built, go back to type list, use configurations to lookup into the tables.
-- Tables are built in parallel using relative indices per thread.
-- Parallel point lists are merged together at the end.
-- At end, swap front and back data (front is now back).
-- One advantage of this approach is that we don't need complex and confusing linked lists; we can
-  use tables that directly correspond to elements.
-- Point of confusion: sometimes "element" is synonymous with "cube" and sometimes it refers
-  to a triangle.
-*/
-void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads, 
-	boost::barrier& barrier )
+
+// Basic ideas:
+// - Move through volume two slices at a time along z axis.  Back and front refer to these two slices.
+// - Points are shared by multiple triangles in the isosurface.  We don't want to store a copy of a
+//   point for each triangle.  In order to avoid duplicates, we go through edges in one direction at a
+//   time, looking at edges that need to be split.  This way we encounter each edge only once.
+// - Sort edges into 5 configurations
+//   - back_buffer_x - Edges along the x direction on the back buffer (slice)
+//   - back_buffer_y - Edges along the y direction on the back buffer (slice)
+//   - front_buffer_x - Edges along the x direction on the front buffer (slice)
+//   - front_buffer_y - Edges along the y direction on the front buffer (slice)
+//   - side_buffer - Edges along the sides between the back and front buffers (slices)
+// - These are tables of split edges with indices into a points vector of actual points.
+// - Number points as you encounter split edges.
+// - After edge tables are built, go back to type list, use configurations to lookup into the tables.
+// - Tables are built in parallel using relative indices per thread.
+// - Parallel point lists are merged together at the end.
+// - At end, swap front and back data (front is now back).
+// - One advantage of this approach is that we don't need complex and confusing linked lists; we can
+//   use tables that directly correspond to elements.
+// - Point of confusion: sometimes "element" is synonymous with "cube" and sometimes it refers
+//   to a triangle.
+
+template <class T>
+void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier )
 {
 	// Setup the algorithm and the buffers
 	if ( thread == 0 ) // Only need to setup once 
@@ -739,7 +755,7 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 	}
 
 	// Each thread generates new points for the isosurface
-	std::vector< PointF >& points = this->new_points_[ thread ];
+	std::vector< Point >& points = this->new_points_[ thread ];
 	// StackVector is a SCIRun class.  
 	// StackVector implements a subclass of the std::vector class, except that
 	// the vector is statically allocated on the stack for performance.
@@ -764,16 +780,16 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 
 	StackVector< size_t, 3 > elems( 3 );    
 
-	// Get mask transform from MaskVolume 
-	GridTransform grid_transform = this->compute_mask_volume_->get_grid_transform();
+	// Get transform from DataVolume
+	GridTransform grid_transform = this->compute_data_volume_->get_grid_transform();
 
 	// Loop over all the slices
 	for ( size_t z = 0;  z < this->elem_nz_; z++ ) 
 	{
 		// Process two adjacent slices at a time (back and front)
 		// Get pointer to beginning of each slice in the data
-		unsigned char* data1 = this->data_ + z * ( this->nx_ * this->ny_ );
-		unsigned char* data2 = this->data_ + ( z + 1 ) * ( this->nx_ * this->ny_ );
+		T* data1 = this->data_ + z * ( this->nx_ * this->ny_ );
+		T* data2 = this->data_ + ( z + 1 ) * ( this->nx_ * this->ny_ );
 
 		points.clear();
 		point_cnt = thread<<24; // upper 8 bits are used to store thread id -- efficiency trick
@@ -819,15 +835,15 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 					size_t q = y * this->nx_ + x; // Index into data
 					// An 8 bit index is formed where each bit corresponds to a vertex 
 					// Bit on if vertex is inside surface, off otherwise
-					if ( data1[ q ] & this->mask_value_ )					type |= 0x1;
-					if ( data1[ q + 1 ] & this->mask_value_ )				type |= 0x2;
-					if ( data1[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x4;
-					if ( data1[ q + this->nx_ ] & this->mask_value_ )		type |= 0x8;
-
-					if ( data2[ q ] & this->mask_value_ )					type |= 0x10;
-					if ( data2[ q + 1 ] & this->mask_value_ )				type |= 0x20;
-					if ( data2[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x40;
-					if ( data2[ q + this->nx_ ] & this->mask_value_ )		type |= 0x80;
+//					if ( data1[ q ] & this->mask_value_ )					type |= 0x1;
+//					if ( data1[ q + 1 ] & this->mask_value_ )				type |= 0x2;
+//					if ( data1[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x4;
+//					if ( data1[ q + this->nx_ ] & this->mask_value_ )		type |= 0x8;
+//
+//					if ( data2[ q ] & this->mask_value_ )					type |= 0x10;
+//					if ( data2[ q + 1 ] & this->mask_value_ )				type |= 0x20;
+//					if ( data2[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x40;
+//					if ( data2[ q + this->nx_ ] & this->mask_value_ )		type |= 0x80;
 
 					this->type_buffer_[ q ] = type;
 
@@ -838,194 +854,168 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 						continue;
 					}
 
-					// Since mask values are either on or off, no need to interpolate 
-					// between vertices along edges.  Always put point in center of edge.
-					const float INTERP_EDGE_OFFSET_C = 0.5f;
+//					// Since mask values are either on or off, no need to interpolate 
+//					// between vertices along edges.  Always put point in center of edge.
+//					const double INTERP_EDGE_OFFSET_C = 0.5;
+
+          // TODO: nterpolate here
 
 					if ( z == 0 )
 					{
 						// top border and center ones
 						if ( ( ( type>>0 ) ^ ( type>>1 ) ) & 0x01 ) 
 						{
-							PointF edge_point = PointF( static_cast< float >( x ) + 
-								INTERP_EDGE_OFFSET_C,
-								static_cast< float >( y ),
-								static_cast< float >( z ) );
+//							Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y ), static_cast< double >( z ) );
 
-							// Transform point by mask transform
-							edge_point = grid_transform.project( edge_point );
-
-							points.push_back( edge_point );
-							back_edge_x[ q ] = point_cnt;
-							point_cnt++;
+							// Transform point by data volume transform
+//							edge_point = grid_transform.project( edge_point );
+//
+//							points.push_back( edge_point );
+//							back_edge_x[ q ] = point_cnt;
+//							point_cnt++;
 						}
 
 						// bottom border one
 						if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>2 ) ^ ( type>>3 ) ) & 0x01 ) )
 						{
-							PointF edge_point = PointF( static_cast< float >( x ) + 
-								INTERP_EDGE_OFFSET_C,
-								static_cast< float>( y + 1 ),
-								static_cast< float >( z ) );
+//							Point edge_point = Point( static_cast< double >( x ) +  INTERP_EDGE_OFFSET_C, static_cast< double>( y + 1 ), static_cast< double >( z ) );
 
-							// Transform point by mask transform
-							edge_point = grid_transform.project( edge_point );
-
-							points.push_back( edge_point );
-							back_edge_x[ q + this->nx_ ] = point_cnt;
-							point_cnt++;
+							// Transform point by data volume transform
+//							edge_point = grid_transform.project( edge_point );
+//
+//							points.push_back( edge_point );
+//							back_edge_x[ q + this->nx_ ] = point_cnt;
+//							point_cnt++;
 						}
 
 						// left border and center ones
 						if ( ( ( type>>0 ) ^ ( type>>3 ) ) & 0x01 )
 						{
-							PointF edge_point = PointF( static_cast< float >( x ),
-								static_cast< float >( y ) + INTERP_EDGE_OFFSET_C,
-								static_cast< float >( z ) );
+//							Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z ) );
 
-							// Transform point by mask transform
-							edge_point = grid_transform.project( edge_point );
-
-							points.push_back( edge_point );
-							back_edge_y[ q ] = point_cnt;
-							point_cnt++;
+							// Transform point by data volume transform
+//							edge_point = grid_transform.project( edge_point );
+//
+//							points.push_back( edge_point );
+//							back_edge_y[ q ] = point_cnt;
+//							point_cnt++;
 						}
 
 						// right one
 						if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>1 ) ^ ( type>>2 ) ) & 0x01 ) )
 						{
-							PointF edge_point = PointF( static_cast< float >( x + 1 ), 
-								static_cast< float >( y ) + INTERP_EDGE_OFFSET_C,
-								static_cast< float >( z ) );
+//							Point edge_point = Point( static_cast< double >( x + 1 ),  static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z ) );
 
-							// Transform point by mask transform
-							edge_point = grid_transform.project( edge_point );
-
-							points.push_back( edge_point );
-							back_edge_y[ q + 1 ] = point_cnt;
-							point_cnt++;
+							// Transform point by data volume transform
+//							edge_point = grid_transform.project( edge_point );
+//
+//							points.push_back( edge_point );
+//							back_edge_y[ q + 1 ] = point_cnt;
+//							point_cnt++;
 						}
 					}
 
 					// top border and center ones
 					if ( ( ( type>>4 ) ^ ( type>>5 ) ) & 0x01 )
 					{
-						PointF edge_point = PointF( static_cast< float >( x ) + INTERP_EDGE_OFFSET_C,
-							static_cast< float >( y ),
-							static_cast< float >( z + 1 ) );
+//						Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y ), static_cast< double >( z + 1 ) );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						front_edge_x[ q ] = point_cnt;
-						point_cnt++;
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						front_edge_x[ q ] = point_cnt;
+//						point_cnt++;
 					}
 
 					// bottom border one
-
 					if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>6 ) ^ ( type>>7 ) ) & 0x01 ) )
 					{
-						PointF edge_point = PointF( static_cast< float >( x ) + INTERP_EDGE_OFFSET_C,
-							static_cast< float >( y + 1 ),
-							static_cast< float >( z + 1 ) );
+//						Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						front_edge_x[ q + this->nx_ ] = point_cnt;
-						point_cnt++;
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						front_edge_x[ q + this->nx_ ] = point_cnt;
+//						point_cnt++;
 					}
 
 					// left border and center ones
 					if ( ( ( type>>4 ) ^ ( type>>7 ) ) & 0x01 )
 					{
-						PointF edge_point = PointF( static_cast< float >( x ),
-							static_cast< float >( y ) + INTERP_EDGE_OFFSET_C,
-							static_cast< float >( z + 1 ) );
+//						Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z + 1 ) );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						front_edge_y[ q ] = point_cnt;
-						point_cnt++;
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						front_edge_y[ q ] = point_cnt;
+//						point_cnt++;
 					}
 
 					// bottom one
-					if ( ( x== this->elem_nx_ - 1 ) && ( ( ( type>>5 ) ^ ( type>>6 ) ) & 0x01 ) )
+					if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>5 ) ^ ( type>>6 ) ) & 0x01 ) )
 					{
-						PointF edge_point = PointF( static_cast< float >( x + 1 ), 
-							static_cast< float >( y ) + INTERP_EDGE_OFFSET_C,
-							static_cast< float >( z + 1 ) );
+//						Point edge_point = Point( static_cast< double >( x + 1 ),  static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z + 1 ) );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						front_edge_y[ q + 1 ] = point_cnt;
-						point_cnt++;
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						front_edge_y[ q + 1 ] = point_cnt;
+//						point_cnt++;
 					}
 
 					// side edges
 
 					if ( ( ( type>>0 ) ^ ( type >> 4 ) ) & 0x01 )
 					{
-						PointF edge_point = PointF( static_cast< float >( x ), 
-							static_cast< float >( y ), 
-							static_cast< float >( z ) + INTERP_EDGE_OFFSET_C );
+//						Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						side_edge[ q ] = point_cnt;
-						point_cnt++;              
-					}    
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						side_edge[ q ] = point_cnt;
+//						point_cnt++;              
+					}
 
 
 					if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>1 ) ^ ( type>>5 ) ) & 0x01 ) )
 					{
-						PointF edge_point = PointF( static_cast< float >( x + 1 ), 
-							static_cast< float >( y ),
-							static_cast< float >( z ) + INTERP_EDGE_OFFSET_C );
+//						Point edge_point = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						side_edge[ q + 1 ] = point_cnt;
-						point_cnt++;              
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						side_edge[ q + 1 ] = point_cnt;
+//						point_cnt++;              
 					}
 
 					if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>3 ) ^ ( type>>7 ) ) & 0x01 ) )
 					{
-						PointF edge_point = PointF( static_cast< float >( x ), 
-							static_cast< float >( y + 1 ), 
-							static_cast< float >( z ) + INTERP_EDGE_OFFSET_C );
+//						Point edge_point = Point( static_cast< double >( x ),  static_cast< double >( y + 1 ),  static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						side_edge[ q + this->nx_ ] = point_cnt;
-						point_cnt++;              
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						side_edge[ q + this->nx_ ] = point_cnt;
+//						point_cnt++;              
 					}
 
-					if ( ( ( y == this->elem_ny_ - 1 ) && ( x == this->elem_nx_ - 1 ) ) && 
-						( ( ( type>>2 ) ^ ( type>>6 ) ) & 0x01 ) )
+					if ( ( ( y == this->elem_ny_ - 1 ) && ( x == this->elem_nx_ - 1 ) ) &&  ( ( ( type>>2 ) ^ ( type>>6 ) ) & 0x01 ) )
 					{
-						PointF edge_point = PointF( static_cast< float >( x + 1 ), 
-							static_cast< float >( y + 1 ), 
-							static_cast< float >( z ) + INTERP_EDGE_OFFSET_C );
+//						Point edge_point = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
 
-						// Transform point by mask transform
-						edge_point = grid_transform.project( edge_point );
-
-						points.push_back( edge_point );
-						side_edge[ q + this->nx_ + 1 ] = point_cnt;
-						point_cnt++;              
+						// Transform point by data volume transform
+//						edge_point = grid_transform.project( edge_point );
+//
+//						points.push_back( edge_point );
+//						side_edge[ q + this->nx_ + 1 ] = point_cnt;
+//						point_cnt++;              
 					}
 				}
 			}
@@ -1046,7 +1036,7 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 					this->back_offset_[ p ] = this->front_offset_[ p ];
 				}
 				local_size += this->new_points_[ p ].size();
-				std::vector< PointF >& points = this->new_points_[ p ];
+				std::vector< Point >& points = this->new_points_[ p ];
 				for ( size_t q = 0; q < points.size(); q++ )
 				{
 					this->points_.push_back( points[ q ] ); 
@@ -1186,11 +1176,10 @@ void IsosurfacePrivate::parallel_compute_faces( int thread, int num_threads,
 	barrier.wait();
 }
 
-//  Translates border face coords (i, j) to volume coords (x, y, z).  
-
-
-void IsosurfacePrivate::translate_cap_coords( int cap_num, float i, float j, 
-	float& x, float& y, float& z )
+//  Translates border face coords (i, j) to volume coords (x, y, z).
+template <class T>
+void IsosurfacePrivateImpl<T>::translate_cap_coords( int cap_num, double i, double j,
+	double& x, double& y, double& z )
 {
 	switch( cap_num )
 	{
@@ -1212,15 +1201,15 @@ void IsosurfacePrivate::translate_cap_coords( int cap_num, float i, float j,
 		case 3: // x, y, z = nz - 1 (back)
 			x = i;
 			y = j;
-			z = static_cast< float >( this->nz_ - 1 );
+			z = static_cast< double >( this->nz_ - 1 );
 			break;
 		case 4: // x, z, y = ny - 1 (bottom)
 			x = i;
-			y = static_cast< float >( this->ny_ - 1 );
+			y = static_cast< double >( this->ny_ - 1 );
 			z = j;
 			break;
 		case 5: // y, z, x = nx - 1 (right)
-			x = static_cast< float >( this->nx_ - 1 );
+			x = static_cast< double >( this->nx_ - 1 );
 			y = i;
 			z = j;
 			break;
@@ -1230,50 +1219,51 @@ void IsosurfacePrivate::translate_cap_coords( int cap_num, float i, float j,
 	}
 }
 
-size_t IsosurfacePrivate::get_data_index( float x, float y, float z )
+template <class T>
+size_t IsosurfacePrivateImpl<T>::get_data_index( double x, double y, double z )
 {
 	size_t data_index = ( static_cast< size_t >( z ) * this->nx_ * this->ny_ ) + 
 		( static_cast< size_t >( y ) * this->nx_ ) + static_cast< size_t >( x );
 	return data_index;
 }
 
-/*
-Basic ideas:
-- Marching cubes:
-  - Each "cube" has a configuration of on/off nodes that can be represented as an 8-bit bitmask.
-    The bitmask can be used as an index into a 256 (2^8) entry lookup table of predefined, canonical
-    facet combinations.
-  - A naive implementation of marching cubes would just process each cube 
-    independently and add all the faces (points and indices) for that cube.  The problem with this 
-    approach is that points end up in the points list multiple times (more GPU memory) and edges get 
-    evaluated multiple times (once for each cube they belong to, up to 4).  To avoid this we process edges 
-    one at a time by running through them horizontally and vertically.  For each edge that is split (one vertex is "on" and the other is "off"),
-    we add a point to the points list.  At this point we have a list of points as well as a canonical facet
-    combination for each cube.  We want to build triangles.  What we need is a way to map the canonical edge indices in the facet 
-    combination to indices of actual points in the points list.  So while we are examining edges we 
-    build a translation table to keep track of what canonical index a split edge point belongs to for 
-    each cube adjacent to the edge.  For each cube we can look up the point index for each canonical index in that 
-    cube's facet combination.  This 2D array looks like 
-    cubes[cube_index][canonical_edge_index] = point_index.  
-	Size: cubes[num cubes][12 (edges per cube)]
-	We're translating this data:
-    cube type -> facet combo -> canonical edge index -> actual point index -> point
-  - Normally in marching cubes the edge points are linearly interpolated between the vertex values, but for
-	for binary images we always place the edge points in the middle of the edge.
-- Isosurface capping
-  - Generating isosurface geometry for the 6 caps of the volume is a 2D operation since each
-    of the 6 faces is a 2D image.  Therefore, instead of calling the elements "cubes," we call them 
-    "cells."
-  - We need a different facet combo type table for caps.
-  - For caps, both nodes and edge center-points can potentially be added to the list of points.  This is 
-    because there would be edge points between the caps and the imaginary outside padding, but
-    these points get clamped to the nodes on the border.  In fact, all border nodes that are "on" are
-    included as points because they are all adjacent to the imaginary padding that is "off."  This
-	means that the canonical point indices must include both nodes and edge points, amounting to 
-	8 canonical indices for a cell (4 nodes, 4 edge points).
-*/
+// Basic ideas:
+// - Marching cubes:
+//   - Each "cube" has a configuration of on/off nodes that can be represented as an 8-bit bitmask.
+//     The bitmask can be used as an index into a 256 (2^8) entry lookup table of predefined, canonical
+//     facet combinations.
+//   - A naive implementation of marching cubes would just process each cube
+//     independently and add all the faces (points and indices) for that cube.  The problem with this
+//     approach is that points end up in the points list multiple times (more GPU memory) and edges get
+//     evaluated multiple times (once for each cube they belong to, up to 4).  To avoid this we process edges
+//     one at a time by running through them horizontally and vertically.  For each edge that is split (one vertex is "on" and the other is "off"),
+//     we add a point to the points list.  At this point we have a list of points as well as a canonical facet
+//    combination for each cube.  We want to build triangles.  What we need is a way to map the canonical edge indices in the facet 
+//    combination to indices of actual points in the points list.  So while we are examining edges we 
+//    build a translation table to keep track of what canonical index a split edge point belongs to for 
+//    each cube adjacent to the edge.  For each cube we can look up the point index for each canonical index in that 
+//    cube's facet combination.  This 2D array looks like 
+//    cubes[cube_index][canonical_edge_index] = point_index.  
+//	Size: cubes[num cubes][12 (edges per cube)]
+//	We're translating this data:
+//    cube type -> facet combo -> canonical edge index -> actual point index -> point
+//  - Normally in marching cubes the edge points are linearly interpolated between the vertex values, but for
+//	for binary images we always place the edge points in the middle of the edge.
+//- Isosurface capping
+//  - Generating isosurface geometry for the 6 caps of the volume is a 2D operation since each
+//    of the 6 faces is a 2D image.  Therefore, instead of calling the elements "cubes," we call them 
+//    "cells."
+//  - We need a different facet combo type table for caps.
+//  - For caps, both nodes and edge center-points can potentially be added to the list of points.  This is 
+//    because there would be edge points between the caps and the imaginary outside padding, but
+//    these points get clamped to the nodes on the border.  In fact, all border nodes that are "on" are
+//    included as points because they are all adjacent to the imaginary padding that is "off."  This
+//	means that the canonical point indices must include both nodes and edge points, amounting to 
+//	8 canonical indices for a cell (4 nodes, 4 edge points).
+
 // Naive implementation -- needs to be optimized!
-void IsosurfacePrivate::compute_cap_faces()
+template <class T>
+void IsosurfacePrivateImpl<T>::compute_cap_faces()
 {
 	// TODO Figure out how to handle x/y/z indices for caps so that code doesn't have to
 	// be duplicated for each cap
@@ -1290,10 +1280,10 @@ void IsosurfacePrivate::compute_cap_faces()
 	cap_dimensions.push_back( std::make_pair( nx, ny ) ); // front and back caps
 	cap_dimensions.push_back( std::make_pair( nx, nz ) ); // top and bottom caps
 	cap_dimensions.push_back( std::make_pair( ny, nz ) ); // left and right side caps
-	PointF elem_vertices[ 3 ]; // Temporary storage for triangle vertices
+	Point elem_vertices[ 3 ]; // Temporary storage for triangle vertices
 
 	// For each of 6 caps
-	for( int cap_num = 0; cap_num < 6; cap_num++ )
+	for ( int cap_num = 0; cap_num < 6; cap_num++ )
 	{
 		unsigned int min_point_index = static_cast< unsigned int >( this->points_.size() );
 		unsigned int min_face_index = static_cast< unsigned int >( this->faces_.size() );
@@ -1313,9 +1303,9 @@ void IsosurfacePrivate::compute_cap_faces()
 		// Loop through all 2D cells to find each cell type
 		size_t cell_index = 0;
 		bool some_nodes_on = false;
-		for( float j = 0; j < nj - 1; j++ )
+		for ( double j = 0; j < nj - 1; j++ )
 		{
-			for( float i = 0; i < ni - 1; i++ )
+			for ( double i = 0; i < ni - 1; i++ )
 			{
 				// Build type
 				// type = index into polygonal configuration table
@@ -1323,27 +1313,27 @@ void IsosurfacePrivate::compute_cap_faces()
 
 				// A 4 bit index is formed where each bit corresponds to a vertex 
 				// Bit on if vertex is inside surface, off otherwise
-				float x, y, z;
+				double x, y, z;
 				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
 				size_t data_index = this->get_data_index( x, y, z );
-				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x1;
-				
+//				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x1;
+
 				this->translate_cap_coords( cap_num, i + 1, j, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
-				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x2;
+//				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x2;
 
 				this->translate_cap_coords( cap_num, i + 1, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
-				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x4;
+//				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x4;
 
 				this->translate_cap_coords( cap_num, i, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
-				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x8;
+//				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x8;
 
 				cell_types[ cell_index ] = cell_type;
 				cell_index++; 
 
-				if( cell_type != 0 )
+				if ( cell_type != 0 )
 				{
 					some_nodes_on = true;
 				}
@@ -1362,176 +1352,173 @@ void IsosurfacePrivate::compute_cap_faces()
 		// size_t point_trans_table[num cells = (nx - 1) * (ny - 1)][8 canonical indices (4 nodes, 4 edge points)]
 		std::vector< boost::array< unsigned int, 8 > > point_trans_table( num_cells );
 
-		// Get mask transform from MaskVolume 
-		GridTransform grid_transform = this->compute_mask_volume_->get_grid_transform();
+		// Get transform from DataVolume
+		GridTransform grid_transform = this->compute_data_volume_->get_grid_transform();
 
 		// All border nodes that are "on" are included as points because they are all adjacent to 
 		// the imaginary padding that is "off." 
 		// Loop through all nodes
 		
-		for( float j = 0; j < nj; j++ )
+		for( double j = 0; j < nj; j++ )
 		{
-			for( float i = 0; i < ni; i++ )
+			for( double i = 0; i < ni; i++ )
 			{
 				// Translate (i, j) to (x, y, z) for this cap
-				float x, y, z;
+				double x, y, z;
 				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
 
-				// Look up mask value at (x, y, z)
 				size_t data_index = this->get_data_index( x, y, z );
 					
-				// If mask value on
-				if ( this->data_[ data_index ] & this->mask_value_ )
-				{
-					// Transform point by mask transform
-					PointF node_point = grid_transform.project( PointF( x, y, z ) );
-					// Add node to the points list.
-					this->points_.push_back( node_point );
-					unsigned int point_index = 
-						static_cast< unsigned int >( this->points_.size() - 1 );
-
-					// Add relevant canonical coordinates to translation table for adjacent cells.
-					// Find indices and canonical coordinates of 1-4 adjacent cells
-
-					// Lower right cell index
-					if( i < ni - 1 && j < nj - 1 )
-					{
-						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-						size_t canonical_coordinate = 0; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-					
-					// Lower left cell index
-					if( i > 0 && j < nj - 1 )
-					{
-						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
-						size_t canonical_coordinate = 1; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-					
-					// Upper left cell index
-					if( i > 0 && j > 0 )
-					{
-						size_t cell_index = 
-							static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i - 1 ); 
-						size_t canonical_coordinate = 2; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-					
-					// Upper right cell index
-					if( i < ni - 1 && j > 0 )
-					{
-						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
-						size_t canonical_coordinate = 3; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-				}
+//				// If mask value on
+//				if ( this->data_[ data_index ] & this->mask_value_ )
+//				{
+//					// Transform point by mask transform
+//					Point node_point = grid_transform.project( Point( x, y, z ) );
+//					// Add node to the points list.
+//					this->points_.push_back( node_point );
+//					unsigned int point_index = 
+//						static_cast< unsigned int >( this->points_.size() - 1 );
+//
+//					// Add relevant canonical coordinates to translation table for adjacent cells.
+//					// Find indices and canonical coordinates of 1-4 adjacent cells
+//
+//					// Lower right cell index
+//					if( i < ni - 1 && j < nj - 1 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+//						size_t canonical_coordinate = 0; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//					
+//					// Lower left cell index
+//					if( i > 0 && j < nj - 1 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+//						size_t canonical_coordinate = 1; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//					
+//					// Upper left cell index
+//					if( i > 0 && j > 0 )
+//					{
+//						size_t cell_index = 
+//							static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i - 1 ); 
+//						size_t canonical_coordinate = 2; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//					
+//					// Upper right cell index
+//					if( i < ni - 1 && j > 0 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+//						size_t canonical_coordinate = 3; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//				}
 			}
 		}
 
 		// STEP 3: Find edge nodes, add to points list and translation table
 
 		// Check vertical edges
-		for( float j = 0; j < nj - 1; j++ )
+		for( double j = 0; j < nj - 1; j++ )
 		{
-			for( float i = 0; i < ni; i++ )
+			for( double i = 0; i < ni; i++ )
 			{
 				// Find endpoint nodes
-				float start_x, start_y, start_z;
+				double start_x, start_y, start_z;
 				this->translate_cap_coords( cap_num, i, j, start_x, start_y, start_z ); 
-				float end_x, end_y, end_z;
+				double end_x, end_y, end_z;
 				this->translate_cap_coords( cap_num, i, j + 1, end_x, end_y, end_z ); 
 
 				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
 				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
 					
-				// If edge is "split" (one endpoint node is on and the other is off)
-				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
-				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
-				if ( start_bit != end_bit )
-				{
-					// Find edge point
-					float edge_x, edge_y, edge_z;
-					this->translate_cap_coords( cap_num, i, j + 0.5f, 
-						edge_x, edge_y, edge_z ); 
-
-					// Transform point by mask transform
-					PointF edge_point = grid_transform.project( PointF( edge_x, edge_y, edge_z) );
-					// Add edge to the points list.
-					this->points_.push_back( edge_point );
-					unsigned int point_index = 
-						static_cast< unsigned int >( this->points_.size() - 1 );
-
-					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
-
-					// Left cell index
-					if( i > 0 )
-					{
-						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
-						size_t canonical_coordinate = 5; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-
-					// Right cell index
-					if( i < ni - 1 )
-					{
-						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-						size_t canonical_coordinate = 7; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-				}
+//				// If edge is "split" (one endpoint node is on and the other is off)
+//				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
+//				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
+//				if ( start_bit != end_bit )
+//				{
+//					// Find edge point
+//					double edge_x, edge_y, edge_z;
+//					this->translate_cap_coords( cap_num, i, j + 0.5f, 
+//						edge_x, edge_y, edge_z ); 
+//
+//					// Transform point by mask transform
+//					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
+//					// Add edge to the points list.
+//					this->points_.push_back( edge_point );
+//					unsigned int point_index = 
+//						static_cast< unsigned int >( this->points_.size() - 1 );
+//
+//					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+//
+//					// Left cell index
+//					if( i > 0 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+//						size_t canonical_coordinate = 5; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//
+//					// Right cell index
+//					if( i < ni - 1 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+//						size_t canonical_coordinate = 7; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//				}
 			}
 		}
 
 		// Check horizontal edges
-		for( float j = 0; j < nj; j++ )
+		for ( double j = 0; j < nj; j++ )
 		{
-			for( float i = 0; i < ni - 1; i++ )
+			for ( double i = 0; i < ni - 1; i++ )
 			{
 				// Find endpoint nodes
-				float start_x, start_y, start_z;
+				double start_x, start_y, start_z;
 				this->translate_cap_coords( cap_num, i, j, start_x, start_y, start_z ); 
-				float end_x, end_y, end_z;
+				double end_x, end_y, end_z;
 				this->translate_cap_coords( cap_num, i + 1, j, end_x, end_y, end_z ); 
 
 				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
 				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
 
-				// If edge is "split" (one endpoint node is on and the other is off)
-				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
-				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
-				if ( start_bit != end_bit )
-				{
-					// Find edge point
-					float edge_x, edge_y, edge_z;
-					this->translate_cap_coords( cap_num, i + 0.5f, j, 
-						edge_x, edge_y, edge_z ); 
-
-					// Transform point by mask transform
-					PointF edge_point = grid_transform.project( PointF( edge_x, edge_y, edge_z) );
-					// Add edge to the points list.
-					this->points_.push_back( edge_point );
-					unsigned int point_index = 
-						static_cast< unsigned int >( this->points_.size() - 1 );
-
-					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
-
-					// Upper cell index
-					if( j > 0 )
-					{
-						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
-						size_t canonical_coordinate = 6; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-
-					// Lower cell index
-					if( j < nj - 1 )
-					{
-						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-						size_t canonical_coordinate = 4; 
-						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-					}
-				}
+//				// If edge is "split" (one endpoint node is on and the other is off)
+//				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
+//				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
+//				if ( start_bit != end_bit )
+//				{
+//					// Find edge point
+//					double edge_x, edge_y, edge_z;
+//					this->translate_cap_coords( cap_num, i + 0.5f, j, edge_x, edge_y, edge_z ); 
+//
+//					// Transform point by data volume transform
+//					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
+//					// Add edge to the points list.
+//					this->points_.push_back( edge_point );
+//					unsigned int point_index = static_cast< unsigned int >( this->points_.size() - 1 );
+//
+//					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+//
+//					// Upper cell index
+//					if ( j > 0 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+//						size_t canonical_coordinate = 6; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//
+//					// Lower cell index
+//					if ( j < nj - 1 )
+//					{
+//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+//						size_t canonical_coordinate = 4; 
+//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+//					}
+//				}
 			}
 		}
 		
@@ -1585,8 +1572,8 @@ void IsosurfacePrivate::compute_cap_faces()
 	}
 }
 
-void IsosurfacePrivate::parallel_compute_normals( int thread, int num_threads, 
-	boost::barrier& barrier )
+template <class T>
+void IsosurfacePrivateImpl<T>::parallel_compute_normals( int thread, int num_threads, boost::barrier& barrier )
 {
 	size_t num_vertices = this->points_.size();
 
@@ -1594,7 +1581,7 @@ void IsosurfacePrivate::parallel_compute_normals( int thread, int num_threads,
 	{	
 		// Reset the normals vector
 		this->normals_.clear();
-		this->normals_.resize( num_vertices, VectorF( 0, 0, 0 ) );
+		this->normals_.resize( num_vertices, Vector( 0, 0, 0 ) );
 	}
 
 	// All threads have to wait until setup is done before proceeding
@@ -1628,14 +1615,14 @@ void IsosurfacePrivate::parallel_compute_normals( int thread, int num_threads,
 			( vertex_index_start <= vertex_index3 && vertex_index3 < vertex_index_end ) )
 		{	
 			// Get vertices of face
-			PointF p1 = this->points_[ vertex_index1 ];
-			PointF p2 = this->points_[ vertex_index2 ];
-			PointF p3 = this->points_[ vertex_index3 ];
+			Point p1 = this->points_[ vertex_index1 ];
+			Point p2 = this->points_[ vertex_index2 ];
+			Point p3 = this->points_[ vertex_index3 ];
 
 			// Calculate cross product of edges
-			VectorF v0 = p3 - p2;
-			VectorF v1 = p1 - p2;
-			VectorF n = Cross( v0, v1 );
+			Vector v0 = p3 - p2;
+			Vector v1 = p1 - p2;
+			Vector n = Cross( v0, v1 );
 
 			// Add to normal for each vertex in our range
 			if( ( vertex_index_start <= vertex_index1 && vertex_index1 < vertex_index_end ) )
@@ -1661,7 +1648,8 @@ void IsosurfacePrivate::parallel_compute_normals( int thread, int num_threads,
 	}
 }
 
-void IsosurfacePrivate::upload_to_vertex_buffer()
+template <class T>
+void IsosurfacePrivateImpl<T>::upload_to_vertex_buffer()
 {
 	if ( !this->surface_changed_ && !this->values_changed_ )
 	{
@@ -1676,9 +1664,9 @@ void IsosurfacePrivate::upload_to_vertex_buffer()
 	for ( size_t i = 0; i < num_of_parts; ++i )
 	{
 		unsigned int num_pts = this->part_points_[ i ].second - this->part_points_[ i ].first;
-		ptrdiff_t vertex_size = num_pts * sizeof( PointF );
-		ptrdiff_t normal_size = num_pts * sizeof( VectorF );
-		ptrdiff_t value_size = has_values ? num_pts * sizeof( float ) : 0;
+		ptrdiff_t vertex_size = num_pts * sizeof( Point );
+		ptrdiff_t normal_size = num_pts * sizeof( Vector );
+		ptrdiff_t value_size = has_values ? num_pts * sizeof( double ) : 0;
 		unsigned int num_face_indices = this->part_faces_[ i ].second - this->part_faces_[ i ].first;
 		ptrdiff_t face_size = num_face_indices * sizeof( unsigned int );
 		ptrdiff_t batch_size = vertex_size + normal_size + value_size + face_size;
@@ -1716,8 +1704,8 @@ void IsosurfacePrivate::upload_to_vertex_buffer()
 			VertexAttribArrayType::NORMAL_E, GL_FLOAT, 0, 0 );
 
 		unsigned int num_pts = this->part_points_[ i ].second - this->part_points_[ i ].first;
-		ptrdiff_t vertex_size = num_pts * sizeof( PointF );
-		ptrdiff_t normal_size = num_pts * sizeof( VectorF );
+		ptrdiff_t vertex_size = num_pts * sizeof( Point );
+		ptrdiff_t normal_size = num_pts * sizeof( Vector );
 		unsigned int num_face_indices = this->part_faces_[ i ].second - this->part_faces_[ i ].first;
 		ptrdiff_t face_size = num_face_indices * sizeof( unsigned int );
 
@@ -1732,7 +1720,7 @@ void IsosurfacePrivate::upload_to_vertex_buffer()
 			this->vbo_batches_[ i ]->value_buffer_.reset( new Core::VertexAttribArrayBuffer );
 			this->vbo_batches_[ i ]->value_buffer_->set_generic_array( 1, 1, GL_FLOAT, 
 				GL_FALSE, 0, 0 );
-			this->vbo_batches_[ i ]->value_buffer_->set_buffer_data( num_pts * sizeof( float ),
+			this->vbo_batches_[ i ]->value_buffer_->set_buffer_data( num_pts * sizeof( double ),
 				&this->values_[ this->part_points_[ i ].first ], GL_STATIC_DRAW );
 		}
 	}
@@ -1742,7 +1730,8 @@ void IsosurfacePrivate::upload_to_vertex_buffer()
 	this->vbo_available_ = true;
 }
 
-void IsosurfacePrivate::reset()
+template <class T>
+void IsosurfacePrivateImpl<T>::reset()
 {
 	this->points_.clear();
 	this->normals_.clear();
@@ -1750,12 +1739,73 @@ void IsosurfacePrivate::reset()
 	this->values_.clear();
 }
 
-Isosurface::Isosurface( const MaskVolumeHandle& mask_volume ) :
-	private_( new IsosurfacePrivate )
+Isosurface::Isosurface( const DataVolumeHandle& volume, double isovalue ) //: private_( new IsosurfacePrivate )
 {
+  switch( volume->get_data_block()->get_data_type() )
+	{
+    case DataType::UNKNOWN_E:
+      CORE_THROW_RUNTIMEERROR("Data volume is of unknown type.");
+    case DataType::CHAR_E:
+    {
+      IsosurfacePrivateImpl<char> *privateImpl = new IsosurfacePrivateImpl<char>;
+      privateImpl->isovalue_ = static_cast<char>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::UCHAR_E:
+    {
+      IsosurfacePrivateImpl<unsigned char> *privateImpl = new IsosurfacePrivateImpl<unsigned char>;
+      privateImpl->isovalue_ = static_cast<unsigned char>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::SHORT_E:
+    {
+      IsosurfacePrivateImpl<short> *privateImpl = new IsosurfacePrivateImpl<short>;
+      privateImpl->isovalue_ = static_cast<short>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::USHORT_E:
+    {
+      IsosurfacePrivateImpl<unsigned short> *privateImpl = new IsosurfacePrivateImpl<unsigned short>;
+      privateImpl->isovalue_ = static_cast<unsigned short>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::INT_E:
+    {
+      IsosurfacePrivateImpl<int> *privateImpl = new IsosurfacePrivateImpl<int>;
+      privateImpl->isovalue_ = static_cast<int>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::UINT_E:
+    {
+      IsosurfacePrivateImpl<unsigned int> *privateImpl = new IsosurfacePrivateImpl<unsigned int>;
+      privateImpl->isovalue_ = static_cast<unsigned int>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::FLOAT_E:
+    {
+      IsosurfacePrivateImpl<float> *privateImpl = new IsosurfacePrivateImpl<float>;
+      privateImpl->isovalue_ = static_cast<float>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+    case DataType::DOUBLE_E:
+    {
+      IsosurfacePrivateImpl<double> *privateImpl = new IsosurfacePrivateImpl<double>;
+      privateImpl->isovalue_ = static_cast<double>(isovalue);
+      this->private_ = IsosurfacePrivateHandle(privateImpl);
+    }
+      break;
+	}
+
 	this->private_->isosurface_ = this;
-	this->private_->orig_mask_volume_ = mask_volume;
-	this->private_->compute_mask_volume_ = mask_volume;
+	this->private_->orig_data_volume_ = volume;
+	this->private_->compute_data_volume_ = volume;
 	this->private_->surface_changed_ = false;
 	this->private_->values_changed_ = false;
 	this->private_->vbo_available_ = false;
@@ -1764,8 +1814,7 @@ Isosurface::Isosurface( const MaskVolumeHandle& mask_volume ) :
 	//this->private_->color_map_ = ColorMapHandle( new ColorMap() );
 }
 
-void Isosurface::compute( double quality_factor, bool capping_enabled, 
-	boost::function< bool () > check_abort )
+void Isosurface::compute( double quality_factor, bool capping_enabled, boost::function< bool () > check_abort )
 {
 	lock_type lock( this->get_mutex() );
 
@@ -1778,17 +1827,16 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 	this->private_->check_abort_ = check_abort;
 
 	{
-		Core::MaskVolume::shared_lock_type vol_lock( this->private_->orig_mask_volume_->get_mutex() );
+		Core::DataVolume::shared_lock_type vol_lock( this->private_->orig_data_volume_->get_mutex() );
 
 		// Initially assume we're computing the isosurface for the original volume (not downsampled)
-		this->private_->compute_mask_volume_ = this->private_->orig_mask_volume_;
+		this->private_->compute_data_volume_ = this->private_->orig_data_volume_;
 
-		// Downsample mask if needed
+		// Downsample if needed
 		if( quality_factor != 1.0 )
 		{
 			assert( quality_factor == 0.5 || quality_factor == 0.25 || quality_factor == 0.125 );
-			Parallel parallel_downsample( boost::bind( &IsosurfacePrivate::parallel_downsample_mask, 
-				this->private_, _1, _2, _3, quality_factor ) );
+			Parallel parallel_downsample( boost::bind( &IsosurfacePrivate::parallel_downsample, this->private_, _1, _2, _3, quality_factor ) );
 			parallel_downsample.run();
 		}
 
@@ -1803,7 +1851,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 		this->private_->compute_setup();
 
 		// Compute isosurface without caps
-		Parallel parallel_faces( boost::bind( &IsosurfacePrivate::parallel_compute_faces, 
+		Parallel parallel_faces( boost::bind( &IsosurfacePrivate::parallel_compute_faces,
 			this->private_, _1, _2, _3 ) );
 		parallel_faces.run();
 
@@ -1831,7 +1879,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 	/*size_t num_points = this->private_->points_.size();
 	for( size_t i = 0; i < num_points; i++ )
 	{
-		float val = static_cast< float >( i ) / static_cast< float >( num_points );
+		double val = static_cast< double >( i ) / static_cast< double >( num_points );
 		this->private_->values_.push_back( val );
 	}*/
 
@@ -1846,8 +1894,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 		return;
 	}
 
-	this->update_progress_signal_( IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C + 
-		IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C );
+	this->update_progress_signal_( IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C + IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C );
 
 	this->private_->type_buffer_.clear();
 	this->private_->edge_buffer_.clear();
@@ -1892,10 +1939,8 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 		}
 
 		// Update progress
-		double partition_progress = 
-			static_cast< double >( j + 1 ) / static_cast< double >( this->private_->min_point_index_.size() ); 
-		double total_progress = IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C + 
-			IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C +
+		double partition_progress = static_cast< double >( j + 1 ) / static_cast< double >( this->private_->min_point_index_.size() ); 
+		double total_progress = IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C + IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C +
 			( partition_progress * IsosurfacePrivate::PARTITION_PERCENT_PROGRESS_C );
 		this->update_progress_signal_( total_progress );
 	}
@@ -1937,7 +1982,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled,
 	// this->export_legacy_isosurface( "", "test_isosurface" );
 }
 
-const std::vector< PointF >& Isosurface::get_points() const
+const std::vector< Point >& Isosurface::get_points() const
 {
 	return this->private_->points_;
 }
@@ -1947,19 +1992,19 @@ const std::vector< unsigned int >& Isosurface::get_faces() const
 	return this->private_->faces_;
 }
 
-const std::vector< VectorF >& Isosurface::get_normals() const
+const std::vector< Vector >& Isosurface::get_normals() const
 {	
 	return this->private_->normals_;
 }
 
-const std::vector< float >& Isosurface::get_values() const
+const std::vector< double >& Isosurface::get_values() const
 {
 	return this->private_->values_;
 }
 
-bool Isosurface::set_values( const std::vector< float >& values )
+bool Isosurface::set_values( const std::vector< double >& values )
 {
-	if( !( values.size() == this->private_->points_.size() || values.size() == 0 ) )
+	if ( !( values.size() == this->private_->points_.size() || values.size() == 0 ) )
 	{
 		return false;
 	}
@@ -2049,9 +2094,9 @@ void Isosurface::redraw( bool use_colormap )
 	for ( size_t i = 0; i < num_batches; ++i )
 	{
 		unsigned int num_pts = this->private_->part_points_[ i ].second - this->private_->part_points_[ i ].first;
-		ptrdiff_t vertex_size = num_pts * sizeof( PointF );
-		ptrdiff_t normal_size = num_pts * sizeof( VectorF );
-		ptrdiff_t value_size = has_values && use_colormap ? num_pts * sizeof( float ) : 0;
+		ptrdiff_t vertex_size = num_pts * sizeof( Point );
+		ptrdiff_t normal_size = num_pts * sizeof( Vector );
+		ptrdiff_t value_size = has_values && use_colormap ? num_pts * sizeof( double ) : 0;
 		unsigned int num_face_indices = this->private_->part_faces_[ i ].second - this->private_->part_faces_[ i ].first;
 		ptrdiff_t face_size = num_face_indices * sizeof( unsigned int );
 		
@@ -2135,7 +2180,7 @@ bool Isosurface::export_legacy_isosurface( const boost::filesystem::path& path,
 
 	for( size_t i = 0; i < this->private_->points_.size(); i++ )
 	{
-		PointF pt = this->private_->points_[ i ];
+		Point pt = this->private_->points_[ i ];
 		pts_file << pt.x() << " " << pt.y() << " " << pt.z() << std::endl; 
 	}
 	pts_file.close();
@@ -2194,11 +2239,11 @@ bool Isosurface::export_vtk_isosurface( const boost::filesystem::path& filename 
 
   vtk_file << "ASCII\n";
   vtk_file << "DATASET POLYDATA\n";
-  vtk_file << "POINTS " << this->private_->points_.size() << " float\n";
+  vtk_file << "POINTS " << this->private_->points_.size() << " double\n";
 
   for( size_t i = 0; i < this->private_->points_.size(); i++ )
   {
-    PointF pt = this->private_->points_[ i ];
+    Point pt = this->private_->points_[ i ];
     vtk_file << pt.x() << " " << pt.y() << " " << pt.z() << std::endl; 
   }
 
@@ -2241,9 +2286,9 @@ bool Isosurface::export_stl_isosurface( const boost::filesystem::path& filename,
 		size_t vertex_index3 = this->private_->faces_[ i + 2 ];
 
     // Get vertices of face
-    PointF p1 = this->private_->points_[ vertex_index1 ];
-    PointF p2 = this->private_->points_[ vertex_index2 ];
-    PointF p3 = this->private_->points_[ vertex_index3 ];
+    Point p1 = this->private_->points_[ vertex_index1 ];
+    Point p2 = this->private_->points_[ vertex_index2 ];
+    Point p3 = this->private_->points_[ vertex_index3 ];
 
     // compute face normal:
     //   U = p2 - p1
@@ -2252,8 +2297,8 @@ bool Isosurface::export_stl_isosurface( const boost::filesystem::path& filename,
     //   Nj = UzVx - UxVz
     //   Nk = UxVy - UyVx
 
-    VectorF U = p2 - p1;
-    VectorF V = p3 - p1;
+    Vector U = p2 - p1;
+    Vector V = p3 - p1;
 
     double Ni = U.y() * V.z() - U.z() * V.y();
     double Nj = U.z() * V.x() - U.x() * V.z();
@@ -2274,10 +2319,11 @@ bool Isosurface::export_stl_isosurface( const boost::filesystem::path& filename,
   return true;
 }
 
-float Isosurface::surface_area() const
+double Isosurface::surface_area() const
 {
 	lock_type lock( this->get_mutex() );
 	return this->private_->area_;
 }
+
 
 }}
