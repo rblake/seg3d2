@@ -49,7 +49,6 @@ SET(APPLICATION_TOOLS_NOREGISTER_SRCS
   src/SparseMatrix.h
   src/Surface.cpp
   src/Surface.h
-  #src/fileIO.h
   src/vec3.cpp
   src/vec3.h
 )
@@ -72,6 +71,7 @@ CORE_ADD_LIBRARY(RBF_Application_Tools
                  ${APPLICATION_TOOLS_SHADER_STRING_SRCS})
 
 TARGET_LINK_LIBRARIES(RBF_Application_Tools
+  Core_Isosurface_RBF
 )
 
 # Register tool classes

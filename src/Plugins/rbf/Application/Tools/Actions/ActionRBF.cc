@@ -41,6 +41,8 @@
 #include <rbf/Application/Tools/src/RBF.h>
 #include <rbf/Application/Tools/src/ScatteredData.h>
 
+#include <rbf/Core/Isosurface/Isosurface.h>
+
 // test
 #include <string>
 #include <vector>
@@ -57,13 +59,16 @@ namespace Plugin
 namespace Application
 {
 
+using namespace ::Seg3D;
+using namespace ::Core;
+using namespace Plugin::Core;
 
 // TODO really worth having a private class here?
 class ActionRBFPrivate
 {
 public:
   std::string target_layer_id_;
-  Seg3D::SandboxID sandbox_;
+  SandboxID sandbox_;
 };
 
 vec3 findNormal(ScatteredData *data, int n)
@@ -113,12 +118,12 @@ void augmentNormalData(ScatteredData *data)
   }
 }
 
-  class RBFAlgo : public Seg3D::LayerFilter
+class RBFAlgo : public LayerFilter
 {
   
 public:
 //  LayerHandle src_layer_;
-  Seg3D::LayerHandle dst_layer_;
+  LayerHandle dst_layer_;
 
 	RBFAlgo();
 	virtual ~RBFAlgo();
@@ -128,13 +133,13 @@ public:
     
     // temporary: destination layer will be created in the usual way
 //    LayerHandle dst_layer;
-    Seg3D::LayerMetaData meta_data;
-    Core::Point origin(-30, -50, 80);
-    Core::Transform transform(origin,
-                              Core::Vector( 0.6, 0.0 , 0.0 ),
-                              Core::Vector( 0.0, 0.5, 0.0 ),
-                              Core::Vector( 0.0, 0.0, 0.1 ));
-    Core::GridTransform gridTransform( 100, 100, 100, transform );
+    LayerMetaData meta_data;
+    Point origin(-30, -50, 80);
+    Transform transform(origin,
+                        Vector( 0.6, 0.0 , 0.0 ),
+                        Vector( 0.0, 0.5, 0.0 ),
+                        Vector( 0.0, 0.0, 0.1 ));
+    GridTransform gridTransform( 100, 100, 100, transform );
     gridTransform.set_originally_node_centered( false );
     
     //Take the input
@@ -216,7 +221,7 @@ public:
       }
     }
     
-    Core::DataBlockHandle dstDataBlock = Core::StdDataBlock::New( gridTransform.get_nx(), gridTransform.get_ny(), gridTransform.get_nz(), Core::DataType::FLOAT_E );
+    DataBlockHandle dstDataBlock = StdDataBlock::New( gridTransform.get_nx(), gridTransform.get_ny(), gridTransform.get_nz(), DataType::FLOAT_E );
 
     // Initialize the result data with 0
     float* dstData = reinterpret_cast< float* >( dstDataBlock->get_data() );
@@ -240,7 +245,8 @@ public:
 //      this->report_error( "Could not create layer." );
 //    }
 
-    if (! this->dispatch_insert_data_volume_into_layer(this->dst_layer_, Core::DataVolumeHandle( new Core::DataVolume( gridTransform, dstDataBlock ) ), true ) )
+    DataVolumeHandle volume = DataVolumeHandle( new DataVolume( gridTransform, dstDataBlock ) );
+    if (! this->dispatch_insert_data_volume_into_layer(this->dst_layer_, volume, true ) )
     {
       this->report_error( "Could not insert layer." );
     }
@@ -258,7 +264,7 @@ public:
     std::cout << "Writing file '" << filename << "'" << std::endl;
     std::ofstream nrrd_file(filename.c_str(), std::ofstream::binary);
     
-    if(nrrd_file.is_open())
+    if (nrrd_file.is_open())
     {
       nrrd_file << "NRRD0001" << std::endl;
       nrrd_file << "# Complete NRRD file format specification at:" << std::endl;
@@ -287,6 +293,9 @@ public:
       }
       nrrd_file.close();
     }
+    double isovalue = 0;
+    IsosurfaceHandle iso = IsosurfaceHandle( new Isosurface(volume, isovalue) );
+    iso->compute( 1.0, true, boost::bind( &LayerFilter::check_abort, this ) );
   }
   SCI_END_RUN()
   
@@ -320,25 +329,25 @@ ActionRBF::ActionRBF() :
   this->add_parameter( this->private_->sandbox_ );
 }
 
-bool ActionRBF::validate( Core::ActionContextHandle& context )
+bool ActionRBF::validate( ActionContextHandle& context )
 {
   return true;
 }
 
-bool ActionRBF::run( Core::ActionContextHandle& context, Core::ActionResultHandle& result )
+bool ActionRBF::run( ActionContextHandle& context, ActionResultHandle& result )
 {
 	boost::shared_ptr< RBFAlgo > algo( new RBFAlgo() );
   
 	// Set up parameters
 	algo->set_sandbox( this->private_->sandbox_ );
 
-  Seg3D::LayerMetaData meta_data;
-  Core::Point origin(-30, -50, 80);
-  Core::Transform transform(origin,
-                            Core::Vector( 0.6, 0.0 , 0.0 ),
-                            Core::Vector( 0.0, 0.5, 0.0 ),
-                            Core::Vector( 0.0, 0.0, 0.1 ));
-  Core::GridTransform gridTransform( 100, 100, 100, transform );
+  LayerMetaData meta_data;
+  Point origin(-30, -50, 80);
+  Transform transform(origin,
+                            Vector( 0.6, 0.0 , 0.0 ),
+                            Vector( 0.0, 0.5, 0.0 ),
+                            Vector( 0.0, 0.0, 0.1 ));
+  GridTransform gridTransform( 100, 100, 100, transform );
   gridTransform.set_originally_node_centered( false );
   
   if (! algo->create_and_lock_data_layer_test( algo->dst_layer_, "surface", gridTransform, meta_data ) )
@@ -350,16 +359,16 @@ bool ActionRBF::run( Core::ActionContextHandle& context, Core::ActionResultHandl
 //	algo->create_undo_redo_and_provenance_record( context, this->shared_from_this(), true );
   
 	// Start the filter.
-	Core::Runnable::Start( algo );
+	Runnable::Start( algo );
   
 	return true;
 }
 
-void ActionRBF::Dispatch( Core::ActionContextHandle context)
+void ActionRBF::Dispatch( ActionContextHandle context)
 {
   ActionRBF* action = new ActionRBF;
   
-  Core::ActionDispatcher::PostAction( Core::ActionHandle( action ), context );
+  ActionDispatcher::PostAction( ActionHandle( action ), context );
 }
 
 }}
