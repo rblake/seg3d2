@@ -42,6 +42,7 @@
 #include <Core/Graphics/VertexBufferObject.h>
 #include <Core/RenderResources/RenderResources.h>
 #include <Core/Utils/Exception.h>
+#include <Core/Math/MathFunctions.h>
 
 namespace Plugin
 {
@@ -431,16 +432,19 @@ public:
 	virtual void parallel_compute_faces( int thread, int num_threads, boost::barrier& barrier ) = 0;
 	virtual void parallel_compute_normals( int thread, int num_threads,  boost::barrier& barrier ) = 0;
 	virtual void parallel_downsample( int thread, int num_threads, boost::barrier& barrier, double quality_factor ) = 0;
+  virtual Point vertex_interp(const Point& p1, const Point& p2, double valp1, double valp2) = 0;
 
 	const static double COMPUTE_PERCENT_PROGRESS_C;
 	const static double NORMAL_PERCENT_PROGRESS_C;
 	const static double PARTITION_PERCENT_PROGRESS_C;
+  const static double INTERP_EPSILON_C;
 };
 
 // Initialize static variables
 const double IsosurfacePrivate::COMPUTE_PERCENT_PROGRESS_C = 0.8;
 const double IsosurfacePrivate::NORMAL_PERCENT_PROGRESS_C = 0.05;
 const double IsosurfacePrivate::PARTITION_PERCENT_PROGRESS_C = 0.15;
+const double IsosurfacePrivate::INTERP_EPSILON_C = 0.00001;
 
 template <class T>
 class IsosurfacePrivateImpl : public IsosurfacePrivate
@@ -487,6 +491,8 @@ public:
 	// rendering.
 	virtual void parallel_downsample( int thread, int num_threads, boost::barrier& barrier, double quality_factor );
 
+  virtual Point vertex_interp(const Point& p1, const Point& p2, double valp1, double valp2);
+
   //	unsigned char mask_value_; // Same for original volume and downsampled volume
   T isovalue_;
 
@@ -503,9 +509,6 @@ void IsosurfacePrivateImpl<T>::downsample_setup( int num_threads, double quality
 	this->nz_ = this->orig_data_volume_->get_data_block()->get_nz();
 
 	this->data_ = reinterpret_cast<T*>( this->orig_data_volume_->get_data_block()->get_data() );
-
-	// Bit where mask bit is stored
-//	this->mask_value_ = this->orig_data_volume_->get_data_block()->get_mask_value();
 
 	// Create downsampled volume to store results 
 	this->neighborhood_size_ = static_cast< int >( 1.0 / quality_factor );
@@ -583,45 +586,48 @@ void IsosurfacePrivateImpl<T>::parallel_downsample( int thread, int num_threads,
 //	unsigned char not_mask_value = ~( this->mask_value_ );
 
 	size_t target_index = thread * this->total_neighborhoods_;
-	size_t x_start_end = this->nx_ - this->neighborhood_size_ + 1;
-	size_t y_start_end = this->ny_ - this->neighborhood_size_ + 1;
-	size_t z_start_end = nzend - this->neighborhood_size_ + 1;
+	const size_t x_index_end = this->nx_ - this->neighborhood_size_ + 1;
+	const size_t y_index_end = this->ny_ - this->neighborhood_size_ + 1;
+	const size_t z_index_end = nzend - this->neighborhood_size_ + 1;
 
 	// Loop over neighborhoods, chop off border values
-	for ( size_t z_start = nzstart; z_start < z_start_end; z_start += this->neighborhood_size_ ) 
+	for ( size_t z_index = nzstart; z_index < z_index_end; z_index += this->neighborhood_size_ ) 
 	{
-		for ( size_t y_start = 0; y_start < y_start_end; y_start += this->neighborhood_size_ ) 
+		for ( size_t y_index = 0; y_index < y_index_end; y_index += this->neighborhood_size_ ) 
 		{
-			for ( size_t x_start = 0; x_start < x_start_end; x_start += this->neighborhood_size_ ) 
+			for ( size_t x_index = 0; x_index < x_index_end; x_index += this->neighborhood_size_ ) 
 			{
-				// Clear entry initially
-//				downsampled_data[ target_index ] &= not_mask_value;
+        // Do straight copy for now...
+        downsampled_data[ target_index ] = static_cast<T>( this->orig_data_volume_->get_data_block()->get_data_at( x_index, y_index, z_index ) );
 
-				bool stop = false;
-				size_t x_end = x_start + this->neighborhood_size_;
-				size_t y_end = y_start + this->neighborhood_size_;
-				size_t z_end = z_start + this->neighborhood_size_;
-
-				// Loop over neighbors based on corner index
-				for( size_t z = z_start; z < z_end && !stop; z++ )
-				{
-					for( size_t y = y_start; y < y_end && !stop; y++ )
-					{
-						for( size_t x = x_start; x < x_end && !stop; x++ )
-						{
-							size_t index = ( ( z_offset ) * z ) + ( this->nx_ * y ) + x;  
-
-							// If at least one neighborhood node is "on", result is "on"
-//							if ( this->data_[ index ] & this->mask_value_ ) // Node "on"		
-//							{
-//								// Turn on mask value
-//								downsampled_data[ target_index ] |= this->mask_value_;
-//								// Short-circuit
-//								stop = true;
-//							}
-						}
-					}
-				}
+//				// Clear entry initially
+////				downsampled_data[ target_index ] &= not_mask_value;
+//
+//				bool stop = false;
+//				size_t x_end = x_index + this->neighborhood_size_;
+//				size_t y_end = y_index + this->neighborhood_size_;
+//				size_t z_end = z_index + this->neighborhood_size_;
+//
+//				// Loop over neighbors based on corner index
+//				for( size_t z = z_index; z < z_end && !stop; z++ )
+//				{
+//					for( size_t y = y_index; y < y_end && !stop; y++ )
+//					{
+//						for( size_t x = x_index; x < x_end && !stop; x++ )
+//						{
+//							size_t index = ( ( z_offset ) * z ) + ( this->nx_ * y ) + x;  
+//
+//							// If at least one neighborhood node is "on", result is "on"
+////							if ( this->data_[ index ] & this->mask_value_ ) // Node "on"		
+////							{
+////								// Turn on mask value
+////								downsampled_data[ target_index ] |= this->mask_value_;
+////								// Short-circuit
+////								stop = true;
+////							}
+//						}
+//					}
+//				}
 				target_index++;
 			}
 		}
@@ -683,7 +689,29 @@ void IsosurfacePrivateImpl<T>::compute_faces_setup( int num_threads )
 	this->prev_point_max_ = 0;
 	
 	this->need_abort_ = false;
+}
 
+template <class T>
+Point IsosurfacePrivateImpl<T>::vertex_interp(const Point& p1, const Point& p2, double valp1, double valp2)
+{
+  double mu;
+  Point p;
+
+  if (Abs(this->isovalue_ - valp1) < INTERP_EPSILON_C)
+    return(p1);
+
+  if (Abs(this->isovalue_ - valp2) < INTERP_EPSILON_C)
+    return(p2);
+
+  if (Abs(valp1 - valp2) < INTERP_EPSILON_C)
+    return(p1);
+
+  mu = (this->isovalue_ - valp1) / (valp2 - valp1);
+  p.x( p1.x() + mu * ( p2.x() - p1.x() ) );
+  p.y( p1.y() + mu * ( p2.y() - p1.y() ) );
+  p.z( p1.z() + mu * ( p2.z() - p1.z() ) );
+  
+  return(p);
 }
 
 
@@ -833,17 +861,15 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 					// type = index into polygonal configuration table
 					unsigned char type = 0;
 					size_t q = y * this->nx_ + x; // Index into data
-					// An 8 bit index is formed where each bit corresponds to a vertex 
-					// Bit on if vertex is inside surface, off otherwise
-//					if ( data1[ q ] & this->mask_value_ )					type |= 0x1;
-//					if ( data1[ q + 1 ] & this->mask_value_ )				type |= 0x2;
-//					if ( data1[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x4;
-//					if ( data1[ q + this->nx_ ] & this->mask_value_ )		type |= 0x8;
-//
-//					if ( data2[ q ] & this->mask_value_ )					type |= 0x10;
-//					if ( data2[ q + 1 ] & this->mask_value_ )				type |= 0x20;
-//					if ( data2[ q + this->nx_ + 1 ] & this->mask_value_ )	type |= 0x40;
-//					if ( data2[ q + this->nx_ ] & this->mask_value_ )		type |= 0x80;
+					if ( data1[ q ] < this->isovalue_ )                 type |= 0x1;
+					if ( data1[ q + 1 ] < this->isovalue_ )             type |= 0x2;
+					if ( data1[ q + this->nx_ + 1 ] < this->isovalue_ ) type |= 0x4;
+					if ( data1[ q + this->nx_ ] < this->isovalue_ )     type |= 0x8;
+
+					if ( data2[ q ] < this->isovalue_ )                 type |= 0x10;
+					if ( data2[ q + 1 ] < this->isovalue_ )             type |= 0x20;
+					if ( data2[ q + this->nx_ + 1 ] < this->isovalue_ ) type |= 0x40;
+					if ( data2[ q + this->nx_ ] < this->isovalue_ )     type |= 0x80;
 
 					this->type_buffer_[ q ] = type;
 
@@ -858,60 +884,83 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 //					// between vertices along edges.  Always put point in center of edge.
 //					const double INTERP_EDGE_OFFSET_C = 0.5;
 
-          // TODO: nterpolate here
-
 					if ( z == 0 )
 					{
 						// top border and center ones
 						if ( ( ( type>>0 ) ^ ( type>>1 ) ) & 0x01 ) 
 						{
 //							Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y ), static_cast< double >( z ) );
+              Point p1 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z ) );
+              Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z ) );
 
 							// Transform point by data volume transform
-//							edge_point = grid_transform.project( edge_point );
-//
-//							points.push_back( edge_point );
-//							back_edge_x[ q ] = point_cnt;
-//							point_cnt++;
+              double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z);
+              double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y , z);
+              Point edge_point = vertex_interp(p1, p2, v1, v2);
+							edge_point = grid_transform.project( edge_point );
+							points.push_back( edge_point );
+							back_edge_x[ q ] = point_cnt;
+							point_cnt++;
 						}
 
 						// bottom border one
 						if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>2 ) ^ ( type>>3 ) ) & 0x01 ) )
 						{
 //							Point edge_point = Point( static_cast< double >( x ) +  INTERP_EDGE_OFFSET_C, static_cast< double>( y + 1 ), static_cast< double >( z ) );
+              Point p1 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
+              Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
 
 							// Transform point by data volume transform
-//							edge_point = grid_transform.project( edge_point );
-//
-//							points.push_back( edge_point );
-//							back_edge_x[ q + this->nx_ ] = point_cnt;
-//							point_cnt++;
+              double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1 , z);
+              double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1, z);
+              Point edge_point = vertex_interp(p1, p2, v1, v2);
+
+							// Transform point by data volume transform
+							edge_point = grid_transform.project( edge_point );
+
+							points.push_back( edge_point );
+							back_edge_x[ q + this->nx_ ] = point_cnt;
+							point_cnt++;
 						}
 
 						// left border and center ones
 						if ( ( ( type>>0 ) ^ ( type>>3 ) ) & 0x01 )
 						{
 //							Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z ) );
+              Point p1 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z ) );
+              Point p2 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
 
 							// Transform point by data volume transform
-//							edge_point = grid_transform.project( edge_point );
-//
-//							points.push_back( edge_point );
-//							back_edge_y[ q ] = point_cnt;
-//							point_cnt++;
+              double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z);
+              double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1, z);
+              Point edge_point = vertex_interp(p1, p2, v1, v2);
+
+							// Transform point by data volume transform
+							edge_point = grid_transform.project( edge_point );
+
+							points.push_back( edge_point );
+							back_edge_y[ q ] = point_cnt;
+							point_cnt++;
 						}
 
 						// right one
 						if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>1 ) ^ ( type>>2 ) ) & 0x01 ) )
 						{
 //							Point edge_point = Point( static_cast< double >( x + 1 ),  static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z ) );
+              Point p1 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z ) );
+              Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
 
 							// Transform point by data volume transform
-//							edge_point = grid_transform.project( edge_point );
-//
-//							points.push_back( edge_point );
-//							back_edge_y[ q + 1 ] = point_cnt;
-//							point_cnt++;
+              double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y , z);
+              double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1, z);
+              Point edge_point = vertex_interp(p1, p2, v1, v2);
+              
+							// Transform point by data volume transform
+							edge_point = grid_transform.project( edge_point );
+
+							points.push_back( edge_point );
+							back_edge_y[ q + 1 ] = point_cnt;
+							point_cnt++;
 						}
 					}
 
@@ -919,52 +968,80 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 					if ( ( ( type>>4 ) ^ ( type>>5 ) ) & 0x01 )
 					{
 //						Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y ), static_cast< double >( z + 1 ) );
+            Point p1 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
+            Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z + 1);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						front_edge_x[ q ] = point_cnt;
-//						point_cnt++;
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						front_edge_x[ q ] = point_cnt;
+						point_cnt++;
 					}
 
 					// bottom border one
 					if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>6 ) ^ ( type>>7 ) ) & 0x01 ) )
 					{
 //						Point edge_point = Point( static_cast< double >( x ) + INTERP_EDGE_OFFSET_C, static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+            Point p1 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+            Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1 , z + 1);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1 , z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						front_edge_x[ q + this->nx_ ] = point_cnt;
-//						point_cnt++;
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						front_edge_x[ q + this->nx_ ] = point_cnt;
+						point_cnt++;
 					}
 
 					// left border and center ones
 					if ( ( ( type>>4 ) ^ ( type>>7 ) ) & 0x01 )
 					{
 //						Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z + 1 ) );
+            Point p1 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
+            Point p2 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
 
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z + 1);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
+            
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						front_edge_y[ q ] = point_cnt;
-//						point_cnt++;
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						front_edge_y[ q ] = point_cnt;
+						point_cnt++;
 					}
 
 					// bottom one
 					if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>5 ) ^ ( type>>6 ) ) & 0x01 ) )
 					{
 //						Point edge_point = Point( static_cast< double >( x + 1 ),  static_cast< double >( y ) + INTERP_EDGE_OFFSET_C, static_cast< double >( z + 1 ) );
+            Point p1 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
+            Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y, z + 1);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						front_edge_y[ q + 1 ] = point_cnt;
-//						point_cnt++;
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						front_edge_y[ q + 1 ] = point_cnt;
+						point_cnt++;
 					}
 
 					// side edges
@@ -972,50 +1049,81 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 					if ( ( ( type>>0 ) ^ ( type >> 4 ) ) & 0x01 )
 					{
 //						Point edge_point = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
+            Point p1 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z ) );
+            Point p2 = Point( static_cast< double >( x ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
 
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x, y, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
+            
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						side_edge[ q ] = point_cnt;
-//						point_cnt++;              
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						side_edge[ q ] = point_cnt;
+						point_cnt++;              
 					}
 
 
 					if ( ( x == this->elem_nx_ - 1 ) && ( ( ( type>>1 ) ^ ( type>>5 ) ) & 0x01 ) )
 					{
 //						Point edge_point = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
+            Point p1 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z ) );
+            Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y, z);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
+
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						side_edge[ q + 1 ] = point_cnt;
-//						point_cnt++;              
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						side_edge[ q + 1 ] = point_cnt;
+						point_cnt++;              
 					}
 
 					if ( ( y == this->elem_ny_ - 1 ) && ( ( ( type>>3 ) ^ ( type>>7 ) ) & 0x01 ) )
 					{
 //						Point edge_point = Point( static_cast< double >( x ),  static_cast< double >( y + 1 ),  static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
+            Point p1 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
+            Point p2 = Point( static_cast< double >( x ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1 , z);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x, y + 1 , z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
+
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						side_edge[ q + this->nx_ ] = point_cnt;
-//						point_cnt++;              
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						side_edge[ q + this->nx_ ] = point_cnt;
+						point_cnt++;              
 					}
 
 					if ( ( ( y == this->elem_ny_ - 1 ) && ( x == this->elem_nx_ - 1 ) ) &&  ( ( ( type>>2 ) ^ ( type>>6 ) ) & 0x01 ) )
 					{
 //						Point edge_point = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z ) + INTERP_EDGE_OFFSET_C );
+            Point p1 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z ) );
+            Point p2 = Point( static_cast< double >( x + 1 ), static_cast< double >( y + 1 ), static_cast< double >( z + 1 ) );
+
+            // Transform point by data volume transform
+            double v1 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1, z);
+            double v2 = this->compute_data_volume_->get_data_block()->get_data_at(x + 1, y + 1, z + 1);
+            Point edge_point = vertex_interp(p1, p2, v1, v2);
+
 
 						// Transform point by data volume transform
-//						edge_point = grid_transform.project( edge_point );
-//
-//						points.push_back( edge_point );
-//						side_edge[ q + this->nx_ + 1 ] = point_cnt;
-//						point_cnt++;              
+						edge_point = grid_transform.project( edge_point );
+
+						points.push_back( edge_point );
+						side_edge[ q + this->nx_ + 1 ] = point_cnt;
+						point_cnt++;              
 					}
 				}
 			}
@@ -1317,18 +1425,22 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
 				size_t data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x1;
+				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x1;
 
 				this->translate_cap_coords( cap_num, i + 1, j, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x2;
+				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x2;
 
 				this->translate_cap_coords( cap_num, i + 1, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x4;
+				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x4;
 
 				this->translate_cap_coords( cap_num, i, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x8;
+				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x8;
 
 				cell_types[ cell_index ] = cell_type;
 				cell_index++; 
@@ -1369,52 +1481,53 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 
 				size_t data_index = this->get_data_index( x, y, z );
 					
-//				// If mask value on
+				// If mask value on
 //				if ( this->data_[ data_index ] & this->mask_value_ )
-//				{
-//					// Transform point by mask transform
-//					Point node_point = grid_transform.project( Point( x, y, z ) );
-//					// Add node to the points list.
-//					this->points_.push_back( node_point );
-//					unsigned int point_index = 
-//						static_cast< unsigned int >( this->points_.size() - 1 );
-//
-//					// Add relevant canonical coordinates to translation table for adjacent cells.
-//					// Find indices and canonical coordinates of 1-4 adjacent cells
-//
-//					// Lower right cell index
-//					if( i < ni - 1 && j < nj - 1 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-//						size_t canonical_coordinate = 0; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//					
-//					// Lower left cell index
-//					if( i > 0 && j < nj - 1 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
-//						size_t canonical_coordinate = 1; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//					
-//					// Upper left cell index
-//					if( i > 0 && j > 0 )
-//					{
-//						size_t cell_index = 
-//							static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i - 1 ); 
-//						size_t canonical_coordinate = 2; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//					
-//					// Upper right cell index
-//					if( i < ni - 1 && j > 0 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
-//						size_t canonical_coordinate = 3; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//				}
+				if ( this->data_[ data_index ] < this->isovalue_ )
+				{
+					// Transform point by mask transform
+					Point node_point = grid_transform.project( Point( x, y, z ) );
+					// Add node to the points list.
+					this->points_.push_back( node_point );
+					unsigned int point_index = 
+						static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add relevant canonical coordinates to translation table for adjacent cells.
+					// Find indices and canonical coordinates of 1-4 adjacent cells
+
+					// Lower right cell index
+					if( i < ni - 1 && j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 0; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Lower left cell index
+					if( i > 0 && j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 1; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Upper left cell index
+					if( i > 0 && j > 0 )
+					{
+						size_t cell_index = 
+							static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 2; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+					
+					// Upper right cell index
+					if( i < ni - 1 && j > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 3; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
 			}
 		}
 
@@ -1434,41 +1547,45 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
 				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
 					
-//				// If edge is "split" (one endpoint node is on and the other is off)
+				// If edge is "split" (one endpoint node is on and the other is off)
 //				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
 //				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
-//				if ( start_bit != end_bit )
-//				{
-//					// Find edge point
-//					double edge_x, edge_y, edge_z;
-//					this->translate_cap_coords( cap_num, i, j + 0.5f, 
-//						edge_x, edge_y, edge_z ); 
-//
-//					// Transform point by mask transform
-//					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
-//					// Add edge to the points list.
-//					this->points_.push_back( edge_point );
-//					unsigned int point_index = 
-//						static_cast< unsigned int >( this->points_.size() - 1 );
-//
-//					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
-//
-//					// Left cell index
-//					if( i > 0 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
-//						size_t canonical_coordinate = 5; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//
-//					// Right cell index
-//					if( i < ni - 1 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-//						size_t canonical_coordinate = 7; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//				}
+
+        // TODO: ???
+				bool start_bit = this->data_[ start_data_index ] < this->isovalue_;
+				bool end_bit = this->data_[ end_data_index ] < this->isovalue_;
+				if ( start_bit != end_bit )
+				{
+					// Find edge point
+					double edge_x, edge_y, edge_z;
+					this->translate_cap_coords( cap_num, i, j + 0.5f, 
+						edge_x, edge_y, edge_z ); 
+
+					// Transform point by mask transform
+					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
+					// Add edge to the points list.
+					this->points_.push_back( edge_point );
+					unsigned int point_index = 
+						static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+
+					// Left cell index
+					if( i > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i - 1 ); 
+						size_t canonical_coordinate = 5; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+
+					// Right cell index
+					if( i < ni - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 7; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
 			}
 		}
 
@@ -1486,39 +1603,43 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 				size_t start_data_index = this->get_data_index( start_x, start_y, start_z );
 				size_t end_data_index = this->get_data_index( end_x, end_y, end_z );
 
-//				// If edge is "split" (one endpoint node is on and the other is off)
+				// If edge is "split" (one endpoint node is on and the other is off)
 //				unsigned char start_bit = this->data_[ start_data_index ] & this->mask_value_;
 //				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
-//				if ( start_bit != end_bit )
-//				{
-//					// Find edge point
-//					double edge_x, edge_y, edge_z;
-//					this->translate_cap_coords( cap_num, i + 0.5f, j, edge_x, edge_y, edge_z ); 
-//
-//					// Transform point by data volume transform
-//					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
-//					// Add edge to the points list.
-//					this->points_.push_back( edge_point );
-//					unsigned int point_index = static_cast< unsigned int >( this->points_.size() - 1 );
-//
-//					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
-//
-//					// Upper cell index
-//					if ( j > 0 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
-//						size_t canonical_coordinate = 6; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//
-//					// Lower cell index
-//					if ( j < nj - 1 )
-//					{
-//						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
-//						size_t canonical_coordinate = 4; 
-//						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
-//					}
-//				}
+
+        // TODO: ???
+				bool start_bit = this->data_[ start_data_index ] < this->isovalue_;
+				bool end_bit = this->data_[ end_data_index ] < this->isovalue_;
+				if ( start_bit != end_bit )
+				{
+					// Find edge point
+					double edge_x, edge_y, edge_z;
+					this->translate_cap_coords( cap_num, i + 0.5f, j, edge_x, edge_y, edge_z ); 
+
+					// Transform point by data volume transform
+					Point edge_point = grid_transform.project( Point( edge_x, edge_y, edge_z) );
+					// Add edge to the points list.
+					this->points_.push_back( edge_point );
+					unsigned int point_index = static_cast< unsigned int >( this->points_.size() - 1 );
+
+					// Add the relevant canonical coordinates to the translation table for adjacent 1-2 cells.
+
+					// Upper cell index
+					if ( j > 0 )
+					{
+						size_t cell_index = static_cast< size_t >( ( ( j - 1 ) * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 6; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+
+					// Lower cell index
+					if ( j < nj - 1 )
+					{
+						size_t cell_index = static_cast< size_t >( ( j * ( ni - 1 ) ) + i ); 
+						size_t canonical_coordinate = 4; 
+						point_trans_table[ cell_index ][ canonical_coordinate ] = point_index;
+					}
+				}
 			}
 		}
 		
@@ -1588,14 +1709,14 @@ void IsosurfacePrivateImpl<T>::parallel_compute_normals( int thread, int num_thr
 	barrier.wait();
 
 	// In order to parallelize the algorithm, each thread processes a different range of vertex 
-	// indices [vertex_index_start, vertex_index_end)
+	// indices [vertex_index_index, vertex_index_end)
 	size_t vertex_range_size = static_cast< size_t >( num_vertices / num_threads );
 	if ( vertex_range_size * num_threads < num_vertices ) 
 	{
 		vertex_range_size++;
 	}
 
-	size_t vertex_index_start = thread * vertex_range_size;
+	size_t vertex_index_index = thread * vertex_range_size;
 	size_t vertex_index_end = ( thread + 1 ) * vertex_range_size;
 	if ( vertex_index_end > num_vertices ) 
 	{
@@ -1610,9 +1731,9 @@ void IsosurfacePrivateImpl<T>::parallel_compute_normals( int thread, int num_thr
 		size_t vertex_index3 = this->faces_[ i + 2 ];
 
 		// If this face has at least one vertex in our range
-		if( ( vertex_index_start <= vertex_index1 && vertex_index1 < vertex_index_end ) ||
-			( vertex_index_start <= vertex_index2 && vertex_index2 < vertex_index_end ) ||
-			( vertex_index_start <= vertex_index3 && vertex_index3 < vertex_index_end ) )
+		if( ( vertex_index_index <= vertex_index1 && vertex_index1 < vertex_index_end ) ||
+			( vertex_index_index <= vertex_index2 && vertex_index2 < vertex_index_end ) ||
+			( vertex_index_index <= vertex_index3 && vertex_index3 < vertex_index_end ) )
 		{	
 			// Get vertices of face
 			Point p1 = this->points_[ vertex_index1 ];
@@ -1625,15 +1746,15 @@ void IsosurfacePrivateImpl<T>::parallel_compute_normals( int thread, int num_thr
 			Vector n = Cross( v0, v1 );
 
 			// Add to normal for each vertex in our range
-			if( ( vertex_index_start <= vertex_index1 && vertex_index1 < vertex_index_end ) )
+			if( ( vertex_index_index <= vertex_index1 && vertex_index1 < vertex_index_end ) )
 			{
 				this->normals_[ vertex_index1 ] += n;
 			}
-			if( ( vertex_index_start <= vertex_index2 && vertex_index2 < vertex_index_end ) )
+			if( ( vertex_index_index <= vertex_index2 && vertex_index2 < vertex_index_end ) )
 			{
 				this->normals_[ vertex_index2 ] += n;
 			}
-			if( ( vertex_index_start <= vertex_index3 && vertex_index3 < vertex_index_end ) )
+			if( ( vertex_index_index <= vertex_index3 && vertex_index3 < vertex_index_end ) )
 			{
 				this->normals_[ vertex_index3 ] += n;
 			}
@@ -1641,7 +1762,7 @@ void IsosurfacePrivateImpl<T>::parallel_compute_normals( int thread, int num_thr
 	}
 
 	// For each vertex in our range
-	for( size_t i = vertex_index_start; i < vertex_index_end; i++ )
+	for( size_t i = vertex_index_index; i < vertex_index_end; i++ )
 	{
 		// Normalize normal
 		this->normals_[ i ].normalize();
@@ -1816,6 +1937,7 @@ Isosurface::Isosurface( const DataVolumeHandle& volume, double isovalue ) //: pr
 
 void Isosurface::compute( double quality_factor, bool capping_enabled, boost::function< bool () > check_abort )
 {
+std::cerr << "Isosurface::compute begin" << std::endl;
 	lock_type lock( this->get_mutex() );
 
 	this->private_->points_.clear();
@@ -1840,6 +1962,8 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 			parallel_downsample.run();
 		}
 
+std::cerr << "Isosurface::compute first job" << std::endl;
+
 		if ( check_abort() )
 		{
 			// leave it in a decent state
@@ -1854,6 +1978,8 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 		Parallel parallel_faces( boost::bind( &IsosurfacePrivate::parallel_compute_faces,
 			this->private_, _1, _2, _3 ) );
 		parallel_faces.run();
+
+std::cerr << "Isosurface::compute second job" << std::endl;
 
 		if ( check_abort() )
 		{
@@ -1872,6 +1998,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 	// Check for empty isosurface
 	if( this->private_->points_.size() == 0 ) 
 	{
+std::cerr << "Isosurface::compute empty isosurface" << std::endl;
 		return;
 	}
 
@@ -1886,6 +2013,8 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 	Parallel parallel_normals( boost::bind( &IsosurfacePrivate::parallel_compute_normals, 
 		this->private_, _1, _2, _3 ) );
 	parallel_normals.run();
+
+std::cerr << "Isosurface::compute third job" << std::endl;
 
 	if ( check_abort() )
 	{
@@ -1969,6 +2098,8 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 
 	this->private_->surface_changed_ = true;
 
+std::cerr << "Isosurface::compute fourth job" << std::endl;
+
 	if ( check_abort() )
 	{
 		// leave it in a decent state
@@ -1980,6 +2111,7 @@ void Isosurface::compute( double quality_factor, bool capping_enabled, boost::fu
 
 	// Test code
 	// this->export_legacy_isosurface( "", "test_isosurface" );
+std::cerr << "Isosurface::compute end" << std::endl;
 }
 
 const std::vector< Point >& Isosurface::get_points() const
