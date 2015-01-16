@@ -698,20 +698,20 @@ Point IsosurfacePrivateImpl<T>::vertex_interp(const Point& p1, const Point& p2, 
   Point p;
 
   if (Abs(this->isovalue_ - valp1) < INTERP_EPSILON_C)
-    return(p1);
+    return p1;
 
   if (Abs(this->isovalue_ - valp2) < INTERP_EPSILON_C)
-    return(p2);
+    return p2;
 
   if (Abs(valp1 - valp2) < INTERP_EPSILON_C)
-    return(p1);
+    return p1;
 
   mu = (this->isovalue_ - valp1) / (valp2 - valp1);
   p.x( p1.x() + mu * ( p2.x() - p1.x() ) );
   p.y( p1.y() + mu * ( p2.y() - p1.y() ) );
   p.z( p1.z() + mu * ( p2.z() - p1.z() ) );
   
-  return(p);
+  return p;
 }
 
 
@@ -861,15 +861,15 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 					// type = index into polygonal configuration table
 					unsigned char type = 0;
 					size_t q = y * this->nx_ + x; // Index into data
-					if ( data1[ q ] < this->isovalue_ )                 type |= 0x1;
-					if ( data1[ q + 1 ] < this->isovalue_ )             type |= 0x2;
-					if ( data1[ q + this->nx_ + 1 ] < this->isovalue_ ) type |= 0x4;
-					if ( data1[ q + this->nx_ ] < this->isovalue_ )     type |= 0x8;
+					if ( data1[ q ] > this->isovalue_ )                 type |= 0x1;
+					if ( data1[ q + 1 ] > this->isovalue_ )             type |= 0x2;
+					if ( data1[ q + this->nx_ + 1 ] > this->isovalue_ ) type |= 0x4;
+					if ( data1[ q + this->nx_ ] > this->isovalue_ )     type |= 0x8;
 
-					if ( data2[ q ] < this->isovalue_ )                 type |= 0x10;
-					if ( data2[ q + 1 ] < this->isovalue_ )             type |= 0x20;
-					if ( data2[ q + this->nx_ + 1 ] < this->isovalue_ ) type |= 0x40;
-					if ( data2[ q + this->nx_ ] < this->isovalue_ )     type |= 0x80;
+					if ( data2[ q ] > this->isovalue_ )                 type |= 0x10;
+					if ( data2[ q + 1 ] > this->isovalue_ )             type |= 0x20;
+					if ( data2[ q + this->nx_ + 1 ] > this->isovalue_ ) type |= 0x40;
+					if ( data2[ q + this->nx_ ] > this->isovalue_ )     type |= 0x80;
 
 					this->type_buffer_[ q ] = type;
 
@@ -1163,7 +1163,7 @@ void IsosurfacePrivateImpl<T>::parallel_compute_faces( int thread, int num_threa
 		// Build triangles
 		for ( size_t y = elem_nystart; y < elem_nyend; y++ )
 		{
-			for (size_t x=0;x<elem_nx_;x++)
+			for ( size_t x = 0; x < elem_nx_; x++ )
 			{
 				size_t elem_offset = y * this->nx_ + x;
 				unsigned char type = this->type_buffer_[ elem_offset ];
@@ -1425,22 +1425,22 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 				this->translate_cap_coords( cap_num, i, j, x, y, z ); 
 				size_t data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x1;
-				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x1;
+				if ( this->data_[ data_index ] > this->isovalue_ )	cell_type |= 0x1;
 
 				this->translate_cap_coords( cap_num, i + 1, j, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x2;
-				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x2;
+				if ( this->data_[ data_index ] > this->isovalue_ )	cell_type |= 0x2;
 
 				this->translate_cap_coords( cap_num, i + 1, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x4;
-				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x4;
+				if ( this->data_[ data_index ] > this->isovalue_ )	cell_type |= 0x4;
 
 				this->translate_cap_coords( cap_num, i, j + 1, x, y, z ); 
 				data_index = this->get_data_index( x, y, z );
 //				if ( this->data_[ data_index ] & this->mask_value_ )	cell_type |= 0x8;
-				if ( this->data_[ data_index ] < this->isovalue_ )	cell_type |= 0x8;
+				if ( this->data_[ data_index ] > this->isovalue_ )	cell_type |= 0x8;
 
 				cell_types[ cell_index ] = cell_type;
 				cell_index++; 
@@ -1483,7 +1483,7 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 					
 				// If mask value on
 //				if ( this->data_[ data_index ] & this->mask_value_ )
-				if ( this->data_[ data_index ] < this->isovalue_ )
+				if ( this->data_[ data_index ] > this->isovalue_ )
 				{
 					// Transform point by mask transform
 					Point node_point = grid_transform.project( Point( x, y, z ) );
@@ -1552,8 +1552,8 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 //				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
 
         // TODO: ???
-				bool start_bit = this->data_[ start_data_index ] < this->isovalue_;
-				bool end_bit = this->data_[ end_data_index ] < this->isovalue_;
+				bool start_bit = this->data_[ start_data_index ] > this->isovalue_;
+				bool end_bit = this->data_[ end_data_index ] > this->isovalue_;
 				if ( start_bit != end_bit )
 				{
 					// Find edge point
@@ -1608,8 +1608,8 @@ void IsosurfacePrivateImpl<T>::compute_cap_faces()
 //				unsigned char end_bit = this->data_[ end_data_index ] & this->mask_value_;
 
         // TODO: ???
-				bool start_bit = this->data_[ start_data_index ] < this->isovalue_;
-				bool end_bit = this->data_[ end_data_index ] < this->isovalue_;
+				bool start_bit = this->data_[ start_data_index ] > this->isovalue_;
+				bool end_bit = this->data_[ end_data_index ] > this->isovalue_;
 				if ( start_bit != end_bit )
 				{
 					// Find edge point
@@ -1957,6 +1957,7 @@ std::cerr << "Isosurface::compute begin" << std::endl;
 		// Downsample if needed
 		if( quality_factor != 1.0 )
 		{
+      // TODO: change to exception
 			assert( quality_factor == 0.5 || quality_factor == 0.25 || quality_factor == 0.125 );
 			Parallel parallel_downsample( boost::bind( &IsosurfacePrivate::parallel_downsample, this->private_, _1, _2, _3, quality_factor ) );
 			parallel_downsample.run();

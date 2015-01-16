@@ -39,9 +39,9 @@
 // Core includes
 #include <Core/Geometry/Point.h>
 #include <Core/Geometry/Vector.h>
-#include <Core/Graphics/ColorMap.h>
 #include <Core/Volume/MaskVolume.h>
-#include <Core/Utils/Lockable.h>
+
+#include <Core/Isosurface/IsosurfaceBase.h>
 
 namespace Core
 {
@@ -54,7 +54,7 @@ class IsosurfacePrivate;
 typedef boost::shared_ptr< IsosurfacePrivate > IsosurfacePrivateHandle;
 
 // Isosurface geometry and computation code 
-class Isosurface : public Core::RecursiveLockable
+class Isosurface : public Core::IsosurfaceBase
 {
 public:
 	Isosurface( const MaskVolumeHandle& mask_volume );	
@@ -83,7 +83,7 @@ public:
 
 	// SURFACE_AREA:
 	/// Return the area of the isosurface.
-	float surface_area() const;
+	double surface_area() const;
 
 	// GET_VALUES:
 	/// Get values per vertex.  Returns empty vector if use has not set values.

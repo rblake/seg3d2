@@ -39,9 +39,9 @@
 // Core includes
 #include <Core/Geometry/Point.h>
 #include <Core/Geometry/Vector.h>
-#include <Core/Graphics/ColorMap.h>
 #include <Core/Volume/DataVolume.h>
-#include <Core/Utils/Lockable.h>
+
+#include <Core/Isosurface/IsosurfaceBase.h>
 
 namespace Plugin
 {
@@ -57,7 +57,7 @@ class IsosurfacePrivate;
 typedef boost::shared_ptr< IsosurfacePrivate > IsosurfacePrivateHandle;
 
 // Isosurface geometry and computation code 
-class Isosurface : public ::Core::RecursiveLockable
+class Isosurface : public ::Core::IsosurfaceBase
 {
 public:
   Isosurface( const ::Core::DataVolumeHandle& volume, double isovalue );
