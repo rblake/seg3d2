@@ -420,7 +420,7 @@ public:
 	std::vector< VectorF > normals_; 
 	std::vector< unsigned int > faces_; // unsigned int because GL expects this
 	std::vector< float > values_; // Should be in range [0, 1]
-	double area_; // Surface area of the isosurface
+	float area_; // Surface area of the isosurface
 
 	// Single colormap shared by all isosurfaces
 	ColorMapHandle color_map_;
@@ -1560,7 +1560,7 @@ void IsosurfacePrivate::compute_cap_faces()
 					this->faces_.push_back( point_index );
 				}
 				// Compute the area of  the triangle and add it to the total area
-				this->area_ += 0.5 * Cross( elem_vertices[ 1 ] - elem_vertices[ 0 ],
+				this->area_ += 0.5f * Cross( elem_vertices[ 1 ] - elem_vertices[ 0 ], 
 					elem_vertices[ 2 ] - elem_vertices[ 0 ] ).length();
 			}
 		}
@@ -2268,7 +2268,7 @@ bool Isosurface::export_stl_isosurface( const boost::filesystem::path& filename,
   return true;
 }
 
-double Isosurface::surface_area() const
+float Isosurface::surface_area() const
 {
 	lock_type lock( this->get_mutex() );
 	return this->private_->area_;
