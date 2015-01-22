@@ -279,8 +279,7 @@ void LayerGroupPrivate::update_grid_information()
 		static_cast< double>( this->grid_transform_.get_nz() ) );
 	this->layer_group_->dimensions_state_->set( dimensions );
 
-	this->layer_group_->origin_state_->set( this->grid_transform_ * 
-		Core::Point( 0, 0, 0 ) );
+	this->layer_group_->origin_state_->set( this->grid_transform_.origin() );
 
 	Core::Vector spacing( 1, 1, 1 );
 	spacing = this->grid_transform_ * spacing;
