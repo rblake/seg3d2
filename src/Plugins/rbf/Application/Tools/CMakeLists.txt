@@ -30,6 +30,8 @@
 ##################################################
 
 SET(APPLICATION_TOOLS_SRCS
+  RBFFilter.cc
+  RBFFilter.h
 )
 
 SET(APPLICATION_TOOLS_NOREGISTER_SRCS

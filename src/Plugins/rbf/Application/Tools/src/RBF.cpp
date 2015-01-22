@@ -77,6 +77,7 @@ void RBF::setDataReduction(DataReduction myDataReduction)
 
 void RBF::computeFunction()
 {
+  const int ERROR_THRESHOLD = 20; // 20 or 2
 	data = new ScatteredData;
 	switch(dataReduction)
 	{
@@ -119,7 +120,7 @@ void RBF::computeFunction()
 				std::reverse(error.begin(), error.end());
 				
 				printf("Largest error: %lf\n", error[0].first);
-				if(error[0].first < 20)
+        if(error[0].first < ERROR_THRESHOLD)
 				{
 					smallError=true;
 					continue;
@@ -127,7 +128,7 @@ void RBF::computeFunction()
 				for(int k=0; k<5; k++)
 				{
 					//printf("Error %d: %lf\n", k, error[k].first);
-					if(error[k].first>20 || error[k].first!=error[k].first)
+					if(error[k].first>ERROR_THRESHOLD || error[k].first!=error[k].first)
 					{
 						int j = error[k].second;
 						printf("Adding data point %d\n", j);
