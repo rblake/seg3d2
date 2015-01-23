@@ -207,6 +207,33 @@ OPTION(USE_SYSTEM_LIBRARIES "Use system libraries instead of Externals directory
 MESSAGE(STATUS "Configuring External Packages")
 
 ##################################################
+# ADDING PYTHON
+##################################################
+
+OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
+IF(BUILD_WITH_PYTHON)
+  MESSAGE(STATUS "Configuring python")
+
+  IF(USE_SYSTEM_LIBRARIES)
+    FIND_PACKAGE(PythonLibs 3.4 EXACT)
+    INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
+    SET(SCI_PYTHON_LIBRARY ${PYTHON_LIBRARIES})
+  ELSE(USE_SYSTEM_LIBRARIES)
+    ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
+      -DPy_NO_ENABLE_SHARED 
+      -DBOOST_PYTHON_STATIC_MODULE
+      -DBOOST_PYTHON_STATIC_LIB)
+    ADD_SUBDIRECTORY(Externals/python)
+    INCLUDE_DIRECTORIES(${SCI_PYTHON_INCLUDE})
+  ENDIF(USE_SYSTEM_LIBRARIES)
+
+  # Generate the python functions registration file
+  MESSAGE(STATUS "Configuring action python wrapper functions")
+  INCLUDE(CMake/GenerateActionPythonWrapper.cmake)
+  GENERATE_ACTION_PYTHON_WRAPPER_REGISTRATION_FILE()
+ENDIF(BUILD_WITH_PYTHON)
+
+##################################################
 # ADDING ZLIB
 ##################################################
 
@@ -337,7 +364,6 @@ ELSE(USE_SYSTEM_LIBRARIES)
   INCLUDE_DIRECTORIES(${SCI_GDCM_INCLUDE})
 ENDIF(USE_SYSTEM_LIBRARIES)
 
-
 ##################################################
 # ADDING ITK
 ##################################################
@@ -374,34 +400,6 @@ ADD_SUBDIRECTORY(Externals/MRC2000IO)
 INCLUDE_DIRECTORIES(${SCI_MRC2000IO_INCLUDE})
 
 ##################################################
-# ADDING PYTHON
-##################################################
-
-OPTION(BUILD_WITH_PYTHON "Build with python support." ON)
-IF(BUILD_WITH_PYTHON)
-  MESSAGE(STATUS "Configuring python")
-
-  IF(USE_SYSTEM_LIBRARIES)
-    SET(Python_ADDITIONAL_VERSIONS 3.2 3.1 3.0)
-    FIND_PACKAGE(PythonLibs)
-    INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
-    SET(SCI_PYTHON_LIBRARY ${PYTHON_LIBRARIES})
-  ELSE(USE_SYSTEM_LIBRARIES)
-    ADD_DEFINITIONS(-DBUILD_WITH_PYTHON 
-      -DPy_NO_ENABLE_SHARED 
-      -DBOOST_PYTHON_STATIC_MODULE
-      -DBOOST_PYTHON_STATIC_LIB)
-    ADD_SUBDIRECTORY(Externals/python)
-    INCLUDE_DIRECTORIES(${SCI_PYTHON_INCLUDE})
-  ENDIF(USE_SYSTEM_LIBRARIES)
-
-  # Generate the python functions registration file
-  MESSAGE(STATUS "Configuring action python wrapper functions")
-  INCLUDE(CMake/GenerateActionPythonWrapper.cmake)
-  GENERATE_ACTION_PYTHON_WRAPPER_REGISTRATION_FILE()
-ENDIF(BUILD_WITH_PYTHON)
-
-##################################################
 # ADDING BOOST
 ##################################################
 
@@ -409,7 +407,7 @@ MESSAGE(STATUS "Configuring boost")
 
 IF(USE_SYSTEM_LIBRARIES)
   IF(BUILD_WITH_PYTHON)
-    SET(boost_python_components python-py32)
+    SET(boost_python_components python-py34)
   ELSE(BUILD_WITH_PYTHON)
     SET(boost_python_components )
   ENDIF(BUILD_WITH_PYTHON)
