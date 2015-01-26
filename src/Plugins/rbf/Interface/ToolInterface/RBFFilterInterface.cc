@@ -74,26 +74,30 @@ bool RBFFilterInterface::build_widget( QFrame* frame )
 	RBFFilter* tool = dynamic_cast< RBFFilter* > ( this->tool().get() );
 	    
 	//Step 3 - connect the gui to the tool through the QtBridge
-	QtUtils::QtBridge::Connect( this->private_->ui_.target_layer_, tool->target_layer_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.use_active_layer_, tool->use_active_layer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.targetLayer_, tool->target_layer_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.useActiveLayer_, tool->use_active_layer_state_ );
 	
-	QtUtils::QtBridge::Connect( this->private_->ui_.isovalue_, tool->isovalue_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sample_x_, tool->sample_x_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sample_y_, tool->sample_y_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sample_z_, tool->sample_z_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.cap_isosurface_, tool->cap_isosurface_state_ );
+//	QtUtils::QtBridge::Connect( this->private_->ui_.isovalue_, tool->isovalue_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.sampleX_, tool->sample_x_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.sampleY_, tool->sample_y_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.sampleZ_, tool->sample_z_state_ );
+//	QtUtils::QtBridge::Connect( this->private_->ui_.cap_isosurface_, tool->cap_isosurface_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.kernel_, tool->kernel_state_ );
 
-	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton, boost::bind(
+	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton_, boost::bind(
 		&Tool::execute, tool, Core::Interface::GetWidgetActionContext() ) );
-	QtUtils::QtBridge::Show( this->private_->ui_.message_alert_, tool->valid_target_state_, true );
-	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton, tool->valid_target_state_ );
-	QtUtils::QtBridge::Enable( this->private_->ui_.target_layer_, tool->use_active_layer_state_, true );
+	QtUtils::QtBridge::Connect( this->private_->ui_.clearSeedsButton_, boost::bind(
+   &SeedPointsTool::clear, tool, Core::Interface::GetWidgetActionContext() ) );
 
-	this->private_->ui_.isovalue_->set_description( "Isovalue" );
-	this->private_->ui_.sample_x_->set_description( "Sample in X" );
-	this->private_->ui_.sample_y_->set_description( "Sample in Y" );
-	this->private_->ui_.sample_z_->set_description( "Sample in Z" );
+	QtUtils::QtBridge::Show( this->private_->ui_.messageAlert_, tool->valid_target_state_, true );
+
+	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton_, tool->valid_target_state_ );
+	QtUtils::QtBridge::Enable( this->private_->ui_.targetLayer_, tool->use_active_layer_state_, true );
+
+//	this->private_->ui_.isovalue_->set_description( "Isovalue" );
+	this->private_->ui_.sampleX_->set_description( "Sample in X" );
+	this->private_->ui_.sampleY_->set_description( "Sample in Y" );
+	this->private_->ui_.sampleZ_->set_description( "Sample in Z" );
 
 
   // TODO: tmp
@@ -101,8 +105,8 @@ bool RBFFilterInterface::build_widget( QFrame* frame )
 //	QtUtils::QtBridge::Enable( this->private_->ui_.cap_isosurface_, tool->cap_isosurface_state_, false );
 
 //	boost::function< bool () > condition = boost::lambda::bind( &Core::StateLabeledOption::get,
-//    tool->target_layer_state_.get() ) != Tool::NONE_OPTION_C;
-//	QtUtils::QtBridge::Enable( this->private_->ui_.isovalue_, tool->target_layer_state_, condition );
+//    tool->targetLayer_state_.get() ) != Tool::NONE_OPTION_C;
+//	QtUtils::QtBridge::Enable( this->private_->ui_.isovalue_, tool->targetLayer_state_, condition );
 
 	return true;
 }

@@ -53,11 +53,11 @@ public:
 
   // -- state --
 public:
-  Core::StateRangedDoubleHandle isovalue_state_;
+//  Core::StateRangedDoubleHandle isovalue_state_;
   Core::StateRangedDoubleHandle sample_x_state_;
   Core::StateRangedDoubleHandle sample_y_state_;
   Core::StateRangedDoubleHandle sample_z_state_;
-  Core::StateBoolHandle cap_isosurface_state_;
+//  Core::StateBoolHandle cap_isosurface_state_;
 	Core::StateOptionHandle kernel_state_;
 
   // -- execute --
@@ -88,16 +88,16 @@ public:
 //  /// The function should only be called by the renderer, which has a valid GL context.
 //  virtual void redraw( size_t viewer_id, const Core::Matrix& proj_mat,
 //                       int viewer_width, int viewer_height );
-
-  /// HAS_2D_VISUAL:
-  /// Returns true if the tool draws itself in the 2D view, otherwise false.
-  /// The default implementation returns false.
-  virtual bool has_2d_visual();
-  
-  /// HANDLE_SEED_POINTS_CHANGED:
-  /// Called when the seed points have changed.
-  /// The default implementation will cause all the 2D viewers to redraw overlay.
-  virtual void handle_seed_points_changed();
+//
+//  /// HAS_2D_VISUAL:
+//  /// Returns true if the tool draws itself in the 2D view, otherwise false.
+//  /// The default implementation returns false.
+//  virtual bool has_2d_visual();
+//  
+//  /// HANDLE_SEED_POINTS_CHANGED:
+//  /// Called when the seed points have changed.
+//  /// The default implementation will cause all the 2D viewers to redraw overlay.
+//  virtual void handle_seed_points_changed();
 
 private:
   void handle_target_layer_changed();

@@ -81,7 +81,7 @@ QPushButton:pressed{
        <number>4</number>
       </property>
       <item>
-       <widget class="QtUtils::QtDropableComboBox" name="target_layer_">
+       <widget class="QtUtils::QtDropableComboBox" name="targetLayer_">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -106,7 +106,7 @@ QPushButton:pressed{
           <number>0</number>
          </property>
          <item>
-          <widget class="QCheckBox" name="use_active_layer_">
+          <widget class="QCheckBox" name="useActiveLayer_">
            <property name="text">
             <string>Always use active layer</string>
            </property>
@@ -149,26 +149,13 @@ QPushButton:pressed{
        <number>2</number>
       </property>
       <item>
-       <widget class="QtUtils::QtSliderDoubleCombo" name="isovalue_" native="true"/>
+       <widget class="QtUtils::QtSliderDoubleCombo" name="sampleX_" native="true"/>
       </item>
       <item>
-       <widget class="QtUtils::QtSliderDoubleCombo" name="sample_x_" native="true"/>
+       <widget class="QtUtils::QtSliderDoubleCombo" name="sampleY_" native="true"/>
       </item>
       <item>
-       <widget class="QtUtils::QtSliderDoubleCombo" name="sample_y_" native="true"/>
-      </item>
-      <item>
-       <widget class="QtUtils::QtSliderDoubleCombo" name="sample_z_" native="true"/>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="cap_isosurface_">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>Cap isosurface</string>
-        </property>
-       </widget>
+       <widget class="QtUtils::QtSliderDoubleCombo" name="sampleZ_" native="true"/>
       </item>
      </layout>
     </widget>
@@ -223,37 +210,41 @@ QPushButton:pressed{
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="replaceRunWidget" native="true">
+    <widget class="QWidget" name="runWidget" native="true">
      <property name="minimumSize">
       <size>
        <width>0</width>
-       <height>32</height>
+       <height>66</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
        <width>16777215</width>
-       <height>32</height>
+       <height>66</height>
       </size>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+     <layout class="QVBoxLayout" name="verticalLayout_5">
       <property name="spacing">
        <number>0</number>
       </property>
-      <property name="leftMargin">
-       <number>2</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
+      <property name="margin">
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="runFilterButton">
+       <widget class="QPushButton" name="clearSeedsButton_">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Clear Seeds</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="runFilterButton_">
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -269,7 +260,7 @@ QPushButton:pressed{
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="message_alert_" native="true">
+    <widget class="QWidget" name="messageAlert_" native="true">
      <property name="minimumSize">
       <size>
        <width>0</width>
