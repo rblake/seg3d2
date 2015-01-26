@@ -33,6 +33,9 @@
 
 #include <vector>
 
+// TODO: this class is redundant - only wraps RBF function calls
+// without additional processing
+
 using std::vector;
 
 class Surface
