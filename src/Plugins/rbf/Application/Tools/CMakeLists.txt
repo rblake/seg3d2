@@ -45,6 +45,8 @@ SET(APPLICATION_TOOLS_NOREGISTER_SRCS
   src/LinearSolver.h
   src/RBF.cpp
   src/RBF.h
+  src/RBFInterface.cpp
+  src/RBFInterface.h
   src/ScatteredData.cpp
   src/ScatteredData.h
   src/SparseMatrix.cpp
@@ -66,14 +68,14 @@ IF(BUILD_WITH_PYTHON)
 ENDIF(BUILD_WITH_PYTHON)
 
 CORE_ADD_LIBRARY(RBF_Application_Tools
-                 ${APPLICATION_TOOLS_SRCS}
-                 ${APPLICATION_TOOLS_NOREGISTER_SRCS}
-                 ${APPLICATION_TOOLS_ACTIONS_SRCS}
-                 ${APPLICATION_TOOLS_SHADER_SRCS}
-                 ${APPLICATION_TOOLS_SHADER_STRING_SRCS})
+  ${APPLICATION_TOOLS_SRCS}
+  ${APPLICATION_TOOLS_NOREGISTER_SRCS}
+  ${APPLICATION_TOOLS_ACTIONS_SRCS}
+  ${APPLICATION_TOOLS_SHADER_SRCS}
+  ${APPLICATION_TOOLS_SHADER_STRING_SRCS})
 
 TARGET_LINK_LIBRARIES(RBF_Application_Tools
-  Core_Isosurface_RBF
+  Core_Isosurface
 )
 
 # Register tool classes

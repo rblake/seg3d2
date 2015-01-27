@@ -80,6 +80,7 @@ void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 m
 	mySurfaceData = new ScatteredData(a,b,c,d);
 	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
 	//mySurfaceRBF->setDataReduction(Random);
+  // TODO: let caller pick the kernel
 	myKernel = ThinPlate;
 	mySurface = new Surface(mySurfaceData, mySurfaceRBF);
 

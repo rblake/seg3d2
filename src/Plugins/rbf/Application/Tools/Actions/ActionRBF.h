@@ -50,9 +50,9 @@ CORE_ACTION(
  CORE_ACTION_TYPE( "RBF", "RBF demo" )
  CORE_ACTION_ARGUMENT( "layerid", "The layerid on which this filter needs to be run." )
  CORE_ACTION_ARGUMENT( "vertices", "The 3D points needed to generate the radial basis function." )
- CORE_ACTION_ARGUMENT( "isovalue", "" )
+// CORE_ACTION_ARGUMENT( "isovalue", "" )
  CORE_ACTION_OPTIONAL_ARGUMENT( "kernel", "thin_plate", "Kernel (options are thin_plate or gaussian or multi_quadratic)." )
- CORE_ACTION_OPTIONAL_ARGUMENT( "cap_isosurface", "false", "Generate cap for isosurface." )
+// CORE_ACTION_OPTIONAL_ARGUMENT( "cap_isosurface", "false", "Generate cap for isosurface." )
  CORE_ACTION_OPTIONAL_ARGUMENT( "x", "100", "Sample interval along X axis" )
  CORE_ACTION_OPTIONAL_ARGUMENT( "y", "100", "Sample interval along Y axis" )
  CORE_ACTION_OPTIONAL_ARGUMENT( "z", "100", "Sample interval along Z axis" )
@@ -85,9 +85,9 @@ public:
                        Core::ActionContextHandle context,
                        const std::string& target,
                        const VertexList& vertices,
-                       double isovalue,
+//                       double isovalue,
                        const std::string& kernel,
-                       bool cap_isosurface,
+//                       bool cap_isosurface,
                        double x,
                        double y,
                        double z
