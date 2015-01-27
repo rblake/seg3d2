@@ -29,14 +29,18 @@ public:
   // test
 
 //	void CreateSurface(string filename, vec3 myOrigin, vec3 mySize, vec3 mySampling);
-	DataStructure CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
+	void CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
 //	RBFInterface(string filename, string dimensions);
 	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
 //	RBFInterface();
 
+  double getThresholdValue() const { return thresholdValue; }
+
 private:
 	void augmentNormalData(ScatteredData *data);
 	vec3 findNormal(ScatteredData *data, int n);
+
+  double thresholdValue;
 };
 
 #endif //_RBFInterface_H_ 

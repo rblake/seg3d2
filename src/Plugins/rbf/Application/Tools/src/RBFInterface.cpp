@@ -8,7 +8,11 @@
 //#include "fileIO.h"
 #include <rbf/Application/Tools/src/RBFInterface.h>
 
-using std::string;
+// test
+#include <fstream>
+// test
+
+//using std::string;
 
 //void RBFInterface::CreateSurface(string filename, vec3 myOrigin, vec3 mySize, vec3 mySampling)
 //{
@@ -62,28 +66,29 @@ using std::string;
 //{
 //}
 
-RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling)
+RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling) : thresholdValue(0)
 {
 	CreateSurface(myData, myOrigin, mySize, mySampling);
 }
 
 
-DataStructure RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling)
+void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling)
 {
 	vector<double> a,b,c,d;
 	for(int i=0; i<myData.size(); i++)
 	{
+    std::cerr << "point : " << myData[i][0] << ", " << myData[i][1] << ", " << myData[i][2] << std::endl;
 		a.push_back(myData[i][0]);
 		b.push_back(myData[i][1]);
 		c.push_back(myData[i][2]);
     // TODO: is this the value to threshold on?
     // If so, needs to be exposed in the interface!!!
-		d.push_back(0);
+		d.push_back(thresholdValue);
 	}
 	mySurfaceData = new ScatteredData(a,b,c,d);
 	augmentNormalData(mySurfaceData);
 	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
-	//mySurfaceRBF->setDataReduction(Random);
+	mySurfaceRBF->setDataReduction(All);
   // TODO: let caller pick the kernel
 	myKernel = ThinPlate;
 	mySurface = new Surface(mySurfaceData, mySurfaceRBF);
@@ -102,6 +107,9 @@ DataStructure RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, ve
   spacing_y = mySpacing[1];
   spacing_z = mySpacing[2];
   // test
+
+  // TODO: what happens when dims are changed to match input data?
+  // TODO: use array (flat data structure) instead (cut down on data copying)?
 
 	//printf("SPACING: %lf %lf %lf\n",mySpacing[0], mySpacing[1], mySpacing[2]);
 	value.resize((int)(mySampling[0]));
@@ -127,7 +135,40 @@ DataStructure RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, ve
 			}
 		}
 	}
-	return value;
+
+  std::string filename = "surface.nrrd";
+  std::cout << "Writing file '" << filename << "'" << std::endl;
+  std::ofstream nrrd_file(filename.c_str(), std::ofstream::binary);
+
+  if (nrrd_file.is_open())
+  {
+    nrrd_file << "NRRD0001" << std::endl;
+    nrrd_file << "# Complete NRRD file format specification at:" << std::endl;
+    nrrd_file << "# http://teem.sourceforge.net/nrrd/format.html" << std::endl;
+    nrrd_file << "type: float" << std::endl;
+    nrrd_file << "dimension: 3" << std::endl;
+    nrrd_file << "sizes: " << nx << " " << ny << " " << nz << std::endl;
+    nrrd_file << "axis mins: " << myOrigin[0] << ", " << myOrigin[1] << ", " << myOrigin[2] << std::endl;
+    nrrd_file << "spacings: " << spacing_x << " " << spacing_y << " " << spacing_z << std::endl;
+    nrrd_file << "centerings: cell cell cell" << std::endl;
+    nrrd_file << "endian: little" << std::endl;
+    nrrd_file << "encoding: raw" << std::endl;
+    nrrd_file << std::endl;
+
+    // write data portion
+    for(int k=0; k < nz; k++)
+    {
+      for(int j=0; j < ny; j++)
+      {
+        for(int i=0; i < nx; i++)
+        {
+          float val = value[i][j][k];
+          nrrd_file.write((char*)&val, sizeof(float));
+        }
+      }
+    }
+    nrrd_file.close();
+  }
 }
 
 
