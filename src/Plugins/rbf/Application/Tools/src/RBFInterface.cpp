@@ -67,7 +67,8 @@ RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize,
 	CreateSurface(myData, myOrigin, mySize, mySampling);
 }
 
-void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling)
+
+DataStructure RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling)
 {
 	vector<double> a,b,c,d;
 	for(int i=0; i<myData.size(); i++)
@@ -75,9 +76,12 @@ void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 m
 		a.push_back(myData[i][0]);
 		b.push_back(myData[i][1]);
 		c.push_back(myData[i][2]);
+    // TODO: is this the value to threshold on?
+    // If so, needs to be exposed in the interface!!!
 		d.push_back(0);
 	}
 	mySurfaceData = new ScatteredData(a,b,c,d);
+	augmentNormalData(mySurfaceData);
 	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
 	//mySurfaceRBF->setDataReduction(Random);
   // TODO: let caller pick the kernel
@@ -87,7 +91,9 @@ void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 m
 	//Construct RBFs
 	mySurface->computeRBF();
 
+  // TODO: dims and spacing of final dataset???
 	vec3 mySpacing(mySize[0]/mySampling[0], mySize[1]/mySampling[1], mySize[2]/mySampling[2]);
+
   // test
   nx = mySampling[0];
   ny = mySampling[1];
@@ -96,12 +102,13 @@ void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 m
   spacing_y = mySpacing[1];
   spacing_z = mySpacing[2];
   // test
+
 	//printf("SPACING: %lf %lf %lf\n",mySpacing[0], mySpacing[1], mySpacing[2]);
 	value.resize((int)(mySampling[0]));
 	for(int i=0; i<mySampling[0]; i++)
 	{
 		//if(i%10==0)
-			//printf("%d/100 done\n", i); fflush(stdout);
+    //printf("%d/100 done\n", i); fflush(stdout);
 		value[i].resize((int)(mySampling[1]));
 		for(int j=0; j<mySampling[1]; j++)
 		{
@@ -120,4 +127,54 @@ void RBFInterface::CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 m
 			}
 		}
 	}
+	return value;
 }
+
+
+vec3 RBFInterface::findNormal(ScatteredData *data, int n)
+{
+	int tot = data->x[0].size();
+	int prev = (n-1)>=0?n-1:tot-1;
+	int next = (n+1)<tot?n+1:0;
+
+	while(data->x[2][prev]!=data->x[2][n])
+	{
+		prev = (prev-1)>=0?prev-1:tot-1;
+	}
+
+	while(data->x[2][next]!=data->x[2][n])
+	{
+		next = (next+1)<tot?next+1:0;
+	}
+	//printf("%d %d %d %d\n", prev,n,next,tot); fflush(stdout);
+
+	vec3 a(data->x[0][n], data->x[1][n], data->x[2][n]);
+	vec3 b(data->x[0][prev], data->x[1][prev], data->x[2][prev]);
+	vec3 c(data->x[0][next], data->x[1][next], data->x[2][next]);
+	vec3 one = b-a;
+	vec3 two = c-a;
+	vec3 ret = one+two;
+	return ret;
+}
+
+void RBFInterface::augmentNormalData(ScatteredData *data)
+{
+	int n = data->x[0].size();
+	for(int i=0; i<n; i++)
+	{
+		vec3 myNormal = findNormal(data, i);
+		myNormal = normalize(myNormal);
+		for(int j=0; j<3; j++)
+		{
+			data->x[j].push_back(data->x[j][i] + myNormal[j]);
+		}
+		data->fnc.push_back(10);
+
+		for(int j=0; j<3; j++)
+		{
+			data->x[j].push_back(data->x[j][i] - myNormal[j]);
+		}
+		data->fnc.push_back(-10);
+	}
+}
+

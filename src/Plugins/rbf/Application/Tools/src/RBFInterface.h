@@ -22,16 +22,21 @@ public:
 	RBF *mySurfaceRBF;
 	Kernel myKernel;
 	DataStructure value;
+
   // test
   size_t nx, ny, nz;
   double spacing_x, spacing_y, spacing_z;
   // test
 
 //	void CreateSurface(string filename, vec3 myOrigin, vec3 mySize, vec3 mySampling);
-	void CreateSurface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
+	DataStructure CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
 //	RBFInterface(string filename, string dimensions);
 	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
 //	RBFInterface();
+
+private:
+	void augmentNormalData(ScatteredData *data);
+	vec3 findNormal(ScatteredData *data, int n);
 };
 
 #endif //_RBFInterface_H_ 
