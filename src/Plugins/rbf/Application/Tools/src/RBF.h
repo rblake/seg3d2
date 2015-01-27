@@ -43,7 +43,7 @@ enum DataReduction {All, Random};
 class RBF
 {
 public:
-	RBF();
+//	RBF();
 	RBF(ScatteredData *myData, Kernel myKernel);
   
 	void setKernel(Kernel myKernel);

@@ -40,11 +40,12 @@
 #include <algorithm>
 
 
-RBF::RBF()
-{
-}
+//RBF::RBF()
+//{
+//}
 
-RBF::RBF(ScatteredData *myData, Kernel myKernel)
+RBF::RBF(ScatteredData *myData, Kernel myKernel) :
+  kernel(ThinPlate), acceleration(None), dataReduction(All)
 {
 	setKernel(myKernel);
 	setData(myData);
