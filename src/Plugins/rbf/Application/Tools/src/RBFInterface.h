@@ -29,9 +29,9 @@ public:
   // test
 
 //	void CreateSurface(string filename, vec3 myOrigin, vec3 mySize, vec3 mySampling);
-	void CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
+	void CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing/*, vec3 mySampling*/);
 //	RBFInterface(string filename, string dimensions);
-	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySampling);
+	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing/*, vec3 mySampling*/);
 //	RBFInterface();
 
   double getThresholdValue() const { return thresholdValue; }
