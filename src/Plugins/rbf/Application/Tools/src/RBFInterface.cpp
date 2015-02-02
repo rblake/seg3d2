@@ -1,79 +1,42 @@
-//#include <string>
+//-------------------------------------------------------------------
 //
-//#include "ScatteredData.h"
-//#include "vec3.h"
-//#include "SampleData.h"
-//#include "RBF.h"
-//#include "horizon.h"
-//#include "fileIO.h"
+//  Permission is  hereby  granted, free  of charge, to any person
+//  obtaining a copy of this software and associated documentation
+//  files  ( the "Software" ),  to  deal in  the  Software without
+//  restriction, including  without limitation the rights to  use,
+//  copy, modify,  merge, publish, distribute, sublicense,  and/or
+//  sell copies of the Software, and to permit persons to whom the
+//  Software is  furnished  to do  so,  subject  to  the following
+//  conditions:
+//
+//  The above  copyright notice  and  this permission notice shall
+//  be included  in  all copies  or  substantial  portions  of the
+//  Software.
+//
+//  THE SOFTWARE IS  PROVIDED  "AS IS",  WITHOUT  WARRANTY  OF ANY
+//  KIND,  EXPRESS OR IMPLIED, INCLUDING  BUT NOT  LIMITED  TO THE
+//  WARRANTIES   OF  MERCHANTABILITY,  FITNESS  FOR  A  PARTICULAR
+//  PURPOSE AND NONINFRINGEMENT. IN NO EVENT  SHALL THE AUTHORS OR
+//  COPYRIGHT HOLDERS  BE  LIABLE FOR  ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+//  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+//  USE OR OTHER DEALINGS IN THE SOFTWARE.
+//-------------------------------------------------------------------
+//-------------------------------------------------------------------
+
 #include <rbf/Application/Tools/src/RBFInterface.h>
 #include <cmath>
 
-// test
-#include <fstream>
-// test
+const double RBFInterface::EPSILON = 1.0e-3;
 
-//using std::string;
-
-//void RBFInterface::CreateSurface(string filename, vec3 myOrigin, vec3 mySize, vec3 mySampling)
-//{
-//	mySurfaceData = new ScatteredData();
-//	readSurfaceDataFile(filename, mySurfaceData);
-//	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
-//	//mySurfaceRBF->setDataReduction(Random);
-//	myKernel = ThinPlate;
-//	mySurface = new Surface(mySurfaceData, mySurfaceRBF);
-//
-//	//Construct RBFs
-//	mySurface->computeRBF();
-//
-//	vec3 mySpacing(mySize[0]/mySampling[0], mySize[1]/mySampling[1], mySize[2]/mySampling[2]);
-//	//printf("SPACING: %lf %lf %lf\n",mySpacing[0], mySpacing[1], mySpacing[2]);
-//	value.resize((int)(mySampling[0]));
-//	for(int i=0; i<mySampling[0]; i++)
-//	{
-//		//if(i%10==0)
-//			//printf("%d/100 done\n", i); fflush(stdout);
-//		value[i].resize((int)(mySampling[1]));
-//		for(int j=0; j<mySampling[1]; j++)
-//		{
-//			//if(j%10==0)
-//			//	printf("\t%d/100 done\n", j); fflush(stdout);
-//			value[i][j].resize((int)(mySampling[2]));
-//			for(int k=0; k<mySampling[2]; k++)
-//			{
-//				//if(k%10==0)
-//				//	printf("\t\t%d/100 done\n", k); fflush(stdout);
-//				vec3 location = myOrigin + mySpacing[0]*i*vec3::unitX + mySpacing[1]*j*vec3::unitY + mySpacing[2]*k*vec3::unitZ;
-//				//std::cout<<"Computing Val ... "<<std::endl;
-//				double myVal = mySurface->computeValue(location);
-//				//printf("Interpolant: %lf %lf %lf %lf\n", location[0], location[1], location[2], myVal); fflush(stdout);
-//				value[i][j][k]=myVal;
-//			}
-//		}
-//	}
-//}
-
-//RBFInterface::RBFInterface(string filename, string dimensions)
-//{
-//	//read from the dimentsion file here	TODO
-//	vec3 myOrigin(-30, -50, 80);
-//	vec3 mySize(60, 50, 10);
-//	vec3 mySampling(100, 100, 100);
-//	CreateSurface(filename, myOrigin, mySize, mySampling);
-//}
-//
-//RBFInterface::RBFInterface()
-//{
-//}
-
-RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing/*, vec3 mySampling*/) : thresholdValue(0)
+RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing) :
+  thresholdValue(0)
 {
-	CreateSurface(myData, myOrigin, mySize, mySpacing/*, mySampling*/);
+	CreateSurface(myData, myOrigin, mySize, mySpacing);
 }
 
 
-void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing/*, vec3 mySampling*/)
+void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing)
 {
 	vector<double> a,b,c,d;
 	for(int i=0; i<myData.size(); i++)
@@ -82,11 +45,10 @@ void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize
 		a.push_back(myData[i][0]);
 		b.push_back(myData[i][1]);
 		c.push_back(myData[i][2]);
-    // TODO: is this the value to threshold on?
-    // If so, needs to be exposed in the interface!!!
 		d.push_back(thresholdValue);
 	}
-  //This code figures out the bounds for the data selected
+
+  // This code figures out the bounds for the data selected
 
   std::vector<double>::iterator minx = std::min_element(a.begin(), a.end());
   std::vector<double>::iterator miny = std::min_element(b.begin(), b.end());
@@ -102,44 +64,28 @@ void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize
 	augmentNormalData(mySurfaceData);
 	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
 	mySurfaceRBF->setDataReduction(All);
+
   // TODO: let caller pick the kernel
 	myKernel = ThinPlate;
 	mySurface = new Surface(mySurfaceData, mySurfaceRBF);
 
-	//Construct RBFs
+	// Construct RBFs
 	mySurface->computeRBF();
 
-  //sanity check
+  // sanity check
   for(int i=0; i<mySurfaceData->fnc.size(); i++)
   {
     vec3 myLocation(mySurfaceData->x[0][i], mySurfaceData->x[1][i], mySurfaceData->x[2][i]);
     double myVal = mySurface->computeValue(myLocation);
     double error  = fabs(myVal - mySurfaceData->fnc[i]);
-    if (error>1e-3)
+    if (error > EPSILON)
     {
-      printf("%lf\n", error);
+      printf("ERROR (numerics): %lf\n", error);
       fflush(stdout);
     }
   }
 
-  // TODO: dims and spacing of final dataset???
-//	vec3 mySpacing(mySize[0]/mySampling[0], mySize[1]/mySampling[1], mySize[2]/mySampling[2]);
-
-  // test
-//  nx = mySampling[0];
-//  ny = mySampling[1];
-//  nz = mySampling[2];
-//  spacing_x = mySpacing[0];
-//  spacing_y = mySpacing[1];
-//  spacing_z = mySpacing[2];
-  // test
-
-  // TODO: what happens when dims are changed to match input data?
-  // TODO: use array (flat data structure) instead (cut down on data copying)?
-
-	//printf("SPACING: %lf %lf %lf\n",mySpacing[0], mySpacing[1], mySpacing[2]);
-
-  //Fill the values into the vector. In the first loop, we initialize the matrix with all values set to -100 (or - inf). In the second loop, we change the values from -100 to the correct value if the point in the domain described above.
+  // Fill the values into the vector. In the first loop, we initialize the matrix with all values set to -100 (or - inf). In the second loop, we change the values from -100 to the correct value if the point in the domain described above.
 
   value.resize(static_cast<int>(mySize[0]));
   for(int i=0; i<mySize[0]; i++)
@@ -173,40 +119,6 @@ void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize
       }
     }
   }
-
-//  std::string filename = "surface.nrrd";
-//  std::cout << "Writing file '" << filename << "'" << std::endl;
-//  std::ofstream nrrd_file(filename.c_str(), std::ofstream::binary);
-//
-//  if (nrrd_file.is_open())
-//  {
-//    nrrd_file << "NRRD0001" << std::endl;
-//    nrrd_file << "# Complete NRRD file format specification at:" << std::endl;
-//    nrrd_file << "# http://teem.sourceforge.net/nrrd/format.html" << std::endl;
-//    nrrd_file << "type: float" << std::endl;
-//    nrrd_file << "dimension: 3" << std::endl;
-//    nrrd_file << "sizes: " << nx << " " << ny << " " << nz << std::endl;
-//    nrrd_file << "axis mins: " << myOrigin[0] << ", " << myOrigin[1] << ", " << myOrigin[2] << std::endl;
-//    nrrd_file << "spacings: " << spacing_x << " " << spacing_y << " " << spacing_z << std::endl;
-//    nrrd_file << "centerings: cell cell cell" << std::endl;
-//    nrrd_file << "endian: little" << std::endl;
-//    nrrd_file << "encoding: raw" << std::endl;
-//    nrrd_file << std::endl;
-//
-//    // write data portion
-//    for(int k=0; k < nz; k++)
-//    {
-//      for(int j=0; j < ny; j++)
-//      {
-//        for(int i=0; i < nx; i++)
-//        {
-//          float val = value[i][j][k];
-//          nrrd_file.write((char*)&val, sizeof(float));
-//        }
-//      }
-//    }
-//    nrrd_file.close();
-//  }
 }
 
 
