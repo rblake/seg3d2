@@ -36,7 +36,7 @@
 #include <vector>
 #include <utility>
 
-enum Kernel {Guassian, ThinPlate, MultiQuadratic};
+enum Kernel {Gaussian, ThinPlate, MultiQuadratic};
 enum Acceleration {None, FastMultipole};
 enum DataReduction {All, Random};
 
