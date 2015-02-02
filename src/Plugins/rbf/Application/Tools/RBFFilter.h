@@ -53,11 +53,7 @@ public:
 
   // -- state --
 public:
-//  Core::StateRangedDoubleHandle isovalue_state_;
-  Core::StateRangedDoubleHandle sample_x_state_;
-  Core::StateRangedDoubleHandle sample_y_state_;
-  Core::StateRangedDoubleHandle sample_z_state_;
-//  Core::StateBoolHandle cap_isosurface_state_;
+  Core::StateRangedDoubleHandle normalOffset_state_;
 	Core::StateOptionHandle kernel_state_;
 
   // -- execute --

@@ -24,7 +24,11 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  DEALINGS IN THE SOFTWARE.
- */
+*/
+
+//Boost Includes
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/bind.hpp>
 
 // Core includes
 #include <Core/Interface/Interface.h>
@@ -77,11 +81,7 @@ bool RBFFilterInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Connect( this->private_->ui_.targetLayer_, tool->target_layer_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.useActiveLayer_, tool->use_active_layer_state_ );
 	
-//	QtUtils::QtBridge::Connect( this->private_->ui_.isovalue_, tool->isovalue_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sampleX_, tool->sample_x_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sampleY_, tool->sample_y_state_ );
-	QtUtils::QtBridge::Connect( this->private_->ui_.sampleZ_, tool->sample_z_state_ );
-//	QtUtils::QtBridge::Connect( this->private_->ui_.cap_isosurface_, tool->cap_isosurface_state_ );
+	QtUtils::QtBridge::Connect( this->private_->ui_.normalOffsetRange_, tool->normalOffset_state_ );
 	QtUtils::QtBridge::Connect( this->private_->ui_.kernel_, tool->kernel_state_ );
 
 	QtUtils::QtBridge::Connect( this->private_->ui_.runFilterButton_, boost::bind(
@@ -94,19 +94,11 @@ bool RBFFilterInterface::build_widget( QFrame* frame )
 	QtUtils::QtBridge::Enable( this->private_->ui_.runFilterButton_, tool->valid_target_state_ );
 	QtUtils::QtBridge::Enable( this->private_->ui_.targetLayer_, tool->use_active_layer_state_, true );
 
-//	this->private_->ui_.isovalue_->set_description( "Isovalue" );
-	this->private_->ui_.sampleX_->set_description( "Sample in X" );
-	this->private_->ui_.sampleY_->set_description( "Sample in Y" );
-	this->private_->ui_.sampleZ_->set_description( "Sample in Z" );
+	this->private_->ui_.normalOffsetRange_->set_description( "Normal Offset" );
 
-
-  // TODO: tmp
-//	QtUtils::QtBridge::Enable( this->private_->ui_.isovalue_, tool->isovalue_state_, false );
-//	QtUtils::QtBridge::Enable( this->private_->ui_.cap_isosurface_, tool->cap_isosurface_state_, false );
-
-//	boost::function< bool () > condition = boost::lambda::bind( &Core::StateLabeledOption::get,
-//    tool->targetLayer_state_.get() ) != Tool::NONE_OPTION_C;
-//	QtUtils::QtBridge::Enable( this->private_->ui_.isovalue_, tool->targetLayer_state_, condition );
+	boost::function< bool () > condition = boost::lambda::bind( &Core::StateLabeledOption::get,
+    tool->target_layer_state_.get() ) != Tool::NONE_OPTION_C;
+	QtUtils::QtBridge::Enable( this->private_->ui_.normalOffsetRange_, tool->target_layer_state_, condition );
 
 	return true;
 }

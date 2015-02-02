@@ -51,11 +51,7 @@ RBFFilter::RBFFilter( const std::string& toolid ) :
 
   // add default values for the the states
 	double inf = std::numeric_limits< double >::infinity();
-//  this->add_state( "isovalue", this->isovalue_state_, inf, -inf, inf, 0.1 );
-  this->add_state( "sample_x", this->sample_x_state_, 100.0, 0.0, 500.0, 0.1 );
-  this->add_state( "sample_y", this->sample_y_state_, 100.0, 0.0, 500.0, 0.1 );
-  this->add_state( "sample_z", this->sample_z_state_, 100.0, 0.0, 500.0, 0.1 );
-//  this->add_state( "cap_isosurface", this->cap_isosurface_state_, false);
+  this->add_state( "normal_offset", this->normalOffset_state_, 10.0, 1.0, 20.0, 0.1 );
 	this->add_state( "kernel", this->kernel_state_, "thin_plate",
                   "thin_plate|gaussian|multi_quadratic" );
 }
@@ -167,12 +163,9 @@ void RBFFilter::execute( Core::ActionContextHandle context )
   ActionRBF::Dispatch( context,
                        this->target_layer_state_->get(),
                        this->seed_points_state_->get(),
-//                       0,
-                       "thin_plate",
-//                       false,
-                       this->sample_x_state_->get(),
-                       this->sample_y_state_->get(),
-                       this->sample_z_state_->get());
+                       this->normalOffset_state_->get(),
+                       this->kernel_state_->get()
+                      );
 }
 
 } // end namespace Seg3D
