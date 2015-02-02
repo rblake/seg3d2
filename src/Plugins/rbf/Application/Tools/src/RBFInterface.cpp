@@ -29,14 +29,13 @@
 
 const double RBFInterface::EPSILON = 1.0e-3;
 
-RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing) :
+RBFInterface::RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing, double myOffset) :
   thresholdValue(0)
 {
-	CreateSurface(myData, myOrigin, mySize, mySpacing);
+	CreateSurface(myData, myOrigin, mySize, mySpacing, myOffset);
 }
 
-
-void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing)
+void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing, double myOffset)
 {
 	vector<double> a,b,c,d;
 	for(int i=0; i<myData.size(); i++)
@@ -61,7 +60,7 @@ void RBFInterface::CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize
   myMax = myMax + 0.05*mySize;
 
 	mySurfaceData = new ScatteredData(a,b,c,d);
-	augmentNormalData(mySurfaceData);
+	augmentNormalData(mySurfaceData, myOffset);
 	mySurfaceRBF = new RBF(mySurfaceData, myKernel);
 	mySurfaceRBF->setDataReduction(All);
 
@@ -142,13 +141,17 @@ vec3 RBFInterface::findNormal(ScatteredData *data, int n)
 	vec3 a(data->x[0][n], data->x[1][n], data->x[2][n]);
 	vec3 b(data->x[0][prev], data->x[1][prev], data->x[2][prev]);
 	vec3 c(data->x[0][next], data->x[1][next], data->x[2][next]);
-	vec3 one = b-a;
-	vec3 two = c-a;
-	vec3 ret = one+two;
+
+	vec3 tangent = b-c;
+  //rotate by 90 degrees on the x-y plane
+  double ret_x = -tangent[1];
+  double ret_y = tangent[0];
+  vec3 ret(ret_x, ret_y, tangent[2]);
+
 	return ret;
 }
 
-void RBFInterface::augmentNormalData(ScatteredData *data)
+void RBFInterface::augmentNormalData(ScatteredData *data, double myOffset)
 {
 	int n = data->x[0].size();
 	for(int i=0; i<n; i++)
@@ -157,13 +160,13 @@ void RBFInterface::augmentNormalData(ScatteredData *data)
 		myNormal = normalize(myNormal);
 		for(int j=0; j<3; j++)
 		{
-			data->x[j].push_back(data->x[j][i] + myNormal[j]);
+			data->x[j].push_back(data->x[j][i] + myOffset*myNormal[j]);
 		}
 		data->fnc.push_back(10);
 
 		for(int j=0; j<3; j++)
 		{
-			data->x[j].push_back(data->x[j][i] - myNormal[j]);
+			data->x[j].push_back(data->x[j][i] - myOffset*myNormal[j]);
 		}
 		data->fnc.push_back(-10);
 	}

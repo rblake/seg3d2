@@ -41,22 +41,26 @@ typedef vector< vector< vector<double> > > DataStructure;
 class RBFInterface
 {
 public:
+	void CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing, double myOffset);
+	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing, double myOffset);
+
+	double getThresholdValue() const { return thresholdValue; }
+	double getOffsetValue() const { return offset; }
+
+  // TODO: need getter
+	DataStructure value;
+
+private:
+	void augmentNormalData(ScatteredData *data, double myOffset);
+	vec3 findNormal(ScatteredData *data, int n);
+
 	ScatteredData *mySurfaceData;
 	Surface *mySurface;
 	RBF *mySurfaceRBF;
 	Kernel myKernel;
-	DataStructure value;
-
-	void CreateSurface(vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing);
-	RBFInterface(std::vector<vec3> myData, vec3 myOrigin, vec3 mySize, vec3 mySpacing);
-
-  double getThresholdValue() const { return thresholdValue; }
-
-private:
-	void augmentNormalData(ScatteredData *data);
-	vec3 findNormal(ScatteredData *data, int n);
 
   double thresholdValue;
+  double offset;
 
   static const double EPSILON;
 };
