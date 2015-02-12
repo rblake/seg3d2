@@ -62,7 +62,10 @@ public Q_SLOTS:
 
 public:
 	double get_value(){ return value_; }
-	void set_description( std::string description );
+
+  void set_description( const std::string& description );
+  void set_tooltip( const std::string& tooltip );
+
 	void connect_min( QtSliderDoubleCombo* min );
 	void connect_max( QtSliderDoubleCombo* max );
     
@@ -72,12 +75,12 @@ private:
     QtSliderDoubleComboPrivateHandle private_;
     
 private Q_SLOTS:
-    void change_min( double new_min );
-    void change_max( double new_max );
-    void slider_signal( int percentage );
-    void spinner_signal( double value );
-	void handle_min_signal( double value );
-	void handle_max_signal( double value );
+  void change_min( double new_min );
+  void change_max( double new_max );
+  void slider_signal( int percentage );
+  void spinner_signal( double value );
+  void handle_min_signal( double value );
+  void handle_max_signal( double value );
 
 private:
     void block_signals( bool block );    
