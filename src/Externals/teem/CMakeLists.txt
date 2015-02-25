@@ -101,10 +101,15 @@ IF(NOT BIG_ENDIAN)
 ENDIF(NOT BIG_ENDIAN)
 
 OPTION(Teem_ZLIB "Build Teem with support for gzip compression." ON)
+MARK_AS_ADVANCED(Teem_ZLIB)
 OPTION(Teem_PNG "Build Teem with support for PNG images." ON)
+MARK_AS_ADVANCED(Teem_PNG)
 OPTION(Teem_VTK_MANGLE "Build Teem using the mangled libraries from VTK for ZLIB and PNG." OFF)
+MARK_AS_ADVANCED(Teem_VTK_MANGLE)
 SET(Teem_VTK_ZLIB_MANGLE_IPATH "" CACHE PATH "Location of vtk_zlib_mangle.h")
+MARK_AS_ADVANCED(Teem_VTK_ZLIB_MANGLE_IPATH)
 OPTION(Teem_VTK_TOOLKITS_IPATH "Location of VTK Build directory for ZLIB and PNG includes." OFF)
+MARK_AS_ADVANCED(Teem_VTK_TOOLKITS_IPATH)
 
 # Can't build PNG without ZLIB, so force it on.
 IF(Teem_PNG AND NOT Teem_ZLIB)
@@ -129,10 +134,12 @@ SET(Teem_BZIP2_IPATH  "")
 
 
 # Try and locate BZIP2 stuff
-OPTION(Teem_BZIP2 "Build Teem with support for bzip compression." ON)
+OPTION(Teem_BZIP2 "Build Teem with support for bzip compression." OFF)
+MARK_AS_ADVANCED(Teem_BZIP2)
 
 # Look for threading libraries
 OPTION(Teem_PTHREAD "Build Teem with pthread library support." ON)
+MARK_AS_ADVANCED(Teem_PTHREAD)
 IF(Teem_PTHREAD)
   INCLUDE(FindThreads)
   IF(CMAKE_USE_PTHREADS_INIT)
@@ -148,6 +155,7 @@ ENDIF(Teem_PTHREAD)
 
 # Look for "levmar" library <http://www.ics.forth.gr/~lourakis/levmar/>
 OPTION(Teem_LEVMAR "Build Teem with levmar library support." OFF)
+MARK_AS_ADVANCED(Teem_LEVMAR)
 SET(Teem_LEVMAR_LIB "")
 IF(Teem_LEVMAR)
   FIND_PACKAGE(LEVMAR)
@@ -365,6 +373,7 @@ IF(UNIX)
 ENDIF(UNIX)
 
 OPTION(Teem_USE_LIB_INSTALL_SUBDIR "Add a Teem-X.Y.Z directory layer to the installation tree for libraries and archives." OFF)
+MARK_AS_ADVANCED(Teem_USE_LIB_INSTALL_SUBDIR)
 IF(Teem_USE_LIB_INSTALL_SUBDIR)
   SET(EXTRA_INSTALL_PATH /Teem-${Teem_VERSION_STRING})
 ELSE(Teem_USE_LIB_INSTALL_SUBDIR)
@@ -382,6 +391,7 @@ ADD_SUBDIRECTORY(src/bin)
 
 # Stand-alone programs to process hex encoding of data
 OPTION(BUILD_HEX "Build dehex and enhex" OFF)
+MARK_AS_ADVANCED(BUILD_HEX)
 IF(BUILD_HEX)
   ADD_SUBDIRECTORY(src/hex)
 ENDIF(BUILD_HEX)
