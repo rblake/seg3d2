@@ -214,7 +214,9 @@ ADD_DEFINITIONS(-DTEEM_DIO=0)
 #ENDIF(USE_DIRECTIO)
 
 SET(BUILD_EXPERIMENTAL_LIBS OFF CACHE BOOL "Build Teem's experimental/unstable libraries")
+MARK_AS_ADVANCED(BUILD_EXPERIMENTAL_LIBS)
 SET(BUILD_EXPERIMENTAL_APPS OFF CACHE BOOL "Build Teem's non-essential command-line tools")
+MARK_AS_ADVANCED(BUILD_EXPERIMENTAL_APPS)
 
 SET(Teem_LIBRARIES air hest biff nrrd ell unrrdu gage limn seek hoover echo ten dye mite)
 IF(BUILD_EXPERIMENTAL_LIBS)
