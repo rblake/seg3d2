@@ -421,37 +421,46 @@ void Menu::create_view_menu( QMenuBar* menubar )
 
 void Menu::create_tool_menus( QMenuBar* qmenubar )
 {
-	ToolMenuList menu_list;
+  ToolMenuList menu_list;
 
-	// Get all the different tool menus
-	ToolFactory::Instance()->list_menus( menu_list );
+  // Get all the different tool menus
+  ToolFactory::Instance()->list_menus( menu_list );
 
-	// Build each of the tool menus
-	for (auto &menu : menu_list)
-	{
-		QMenu* qmenu = qmenubar->addMenu( QString::fromUtf8( "&" ) + QString::fromStdString( menu ) );
-		ToolInfoList tool_types_list;
+  // Build each of the tool menus
+  for (auto &menu : menu_list)
+  {
+    QMenu* qmenu = qmenubar->addMenu( QString::fromUtf8( "&" ) + QString::fromStdString( menu ) );
+    ToolInfoList tool_types_list;
 
-		ToolFactory::Instance()->list_tools( tool_types_list, menu );
+    ToolFactory::Instance()->list_tools( tool_types_list, menu );
 
-		// Loop through all the tools
-		QAction* qaction;
-		for (auto &toolInfo: tool_types_list)
-		{
-			// Add menu option to open tool
-			qaction = qmenu->addAction( QString::fromStdString( toolInfo->get_menu_label() ) );
-			// qaction->setShortcut( QString::fromStdString( toolInfo->get_shortcut_key() ) );
+    int largeVolCounter = 0;
+    // Loop through all the tools
+    QAction* qaction;
+    for (auto &toolInfo: tool_types_list)
+    {
+      // Add menu option to open tool
+      qaction = qmenu->addAction( QString::fromStdString( toolInfo->get_menu_label() ) );
+      // qaction->setShortcut( QString::fromStdString( toolInfo->get_shortcut_key() ) );
       if ( toolInfo->get_is_large_volume() )
       {
         large_volume_tools_.push_back( qaction );
         qaction->setVisible( false );
+        ++largeVolCounter;
       }
 
-			// Connect the action with dispatching a command in the ToolManager
-			QtUtils::QtBridge::Connect( qaction, boost::bind( &ActionOpenTool::Dispatch, 
-					Core::Interface::GetWidgetActionContext(), toolInfo->get_name() ) );
-		}
-	}
+      // Connect the action with dispatching a command in the ToolManager
+      QtUtils::QtBridge::Connect( qaction, boost::bind( &ActionOpenTool::Dispatch,
+        Core::Interface::GetWidgetActionContext(), toolInfo->get_name() ) );
+    }
+
+    // menu only contains large volume tools
+    if (tool_types_list.size() == largeVolCounter)
+    {
+      qmenu->menuAction()->setVisible( false );
+      large_volume_tools_.push_back( qmenu->menuAction() );
+    }
+  }
 }
 
 void Menu::create_window_menu( QMenuBar* menubar )
