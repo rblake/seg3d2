@@ -165,6 +165,25 @@ SET(ITK_BUILD_SHARED_LIBS OFF)
 SET(Module_ITKReview ON CACHE BOOLEAN "Seg3D requires the ITK Review directory for proper filter operations." FORCE)
 
 ###########################################
+# *Nix C++ compiler flags
+###########################################
+
+IF(UNIX)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+ENDIF()
+
+IF(NOT APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
+ENDIF()
+
+IF(APPLE)
+  SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
+  SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -ftemplate-depth=256")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-Wshorten-64-to-32 ${CMAKE_CXX_FLAGS_DEBUG}")
+ENDIF()
+
+###########################################
 # Flags for Microsoft Compiler
 ###########################################
 
@@ -182,7 +201,6 @@ IF(WIN32 AND MSVC)
   # Build with multiple processes -- speeds up compilation on multi-processor machines.
   SET(CMAKE_CXX_FLAGS "/MP ${CMAKE_CXX_FLAGS}") 
 ENDIF()
-
 
 ###########################################
 # RPATH settings for Linux
